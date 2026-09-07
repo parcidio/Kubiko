@@ -2,6 +2,7 @@
 erDiagram
 
     %% ===================== IDENTIDADE & CONFIANÇA =====================
+    PROFILES ||--|| ACCOUNTS : "tem (1:1)"
     PROFILES ||--o{ KYC_VERIFICATIONS : "submete (user_id)"
     PROFILES ||--o{ KYC_VERIFICATIONS : "reve (reviewed_by)"
     PROFILES ||--o{ REVIEWS : "escreve (reviewer_id)"
@@ -14,6 +15,7 @@ erDiagram
     PROFILES ||--o{ NOTIFICATIONS : "recebe (user_id)"
     PROFILES ||--o{ REFRESH_TOKENS : "possui"
     PROFILES ||--o{ AUDIT_LOGS : "executa (actor_id)"
+    PROFILES ||--o{ TRANSACTIONS : "verifica manualmente (verified_by)"
 
     %% ===================== CATÁLOGO & DISPONIBILIDADE =====================
     CATEGORIES ||--o{ ITEMS : "classifica"
@@ -25,15 +27,17 @@ erDiagram
     ITEMS ||--o{ BOOKINGS : "e reservado em"
     ITEMS ||--o{ REVIEWS : "e avaliado em"
 
-    %% ===================== TRANSAÇÃO =====================
+    %% ===================== TRANSAÇÃO / FINANCEIRO =====================
+    ACCOUNTS ||--o{ TRANSACTIONS : "regista movimentos"
     BOOKINGS ||--o{ ITEM_AVAILABILITY : "bloqueia datas"
-    BOOKINGS ||--o{ PAYMENTS : "tem pagamentos"
-    BOOKINGS ||--o| DEPOSITS : "tem caucao (1:1)"
+    BOOKINGS ||--o{ TRANSACTIONS : "gera movimentos financeiros"
     BOOKINGS ||--o| CONTRACTS : "tem contrato (1:1)"
     BOOKINGS ||--o{ REVIEWS : "gera"
     BOOKINGS ||--o{ CLAIMS : "pode gerar"
     BOOKINGS ||--o{ NOTIFICATIONS : "dispara (booking_id)"
     BOOKINGS ||--o{ BOOKING_STATUS_HISTORY : "regista historico"
+
+    CLAIMS ||--o{ TRANSACTIONS : "origina retencao/liberacao da caucao"
 
     %% ===================== AUDITORIA / MENSAGERIA =====================
     OUTBOX_EVENTS }o--|| BOOKINGS : "referencia (aggregate_id quando aggregate_type = booking)"
@@ -54,6 +58,31 @@ erDiagram
         numeric rating_avg "nullable"
         timestamptz created_at
         timestamptz updated_at
+    }
+
+    ACCOUNTS {
+        uuid id PK
+        uuid profile_id FK "unique, -> profiles (1:1)"
+        numeric available_balance "saldo levantavel/utilizavel"
+        numeric held_balance "caucoes retidas, nao disponiveis"
+        text currency
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    TRANSACTIONS {
+        uuid id PK
+        uuid account_id FK "-> accounts"
+        uuid booking_id FK "nullable, -> bookings"
+        uuid claim_id FK "nullable, -> claims"
+        transaction_type type "RENTAL_PAYMENT, DEPOSIT_HOLD, DEPOSIT_RELEASE, DEPOSIT_WITHHOLD, REFUND, PAYOUT"
+        numeric amount
+        payment_method method "nullable, aplica-se a RENTAL_PAYMENT"
+        text operation_number "nullable, referencia Multicaixa Express - fluxo temporario manual"
+        transaction_status status "PENDING_VERIFICATION, CONFIRMED, FAILED, REVERSED"
+        uuid verified_by FK "nullable, -> profiles (operador que confirmou o numero de operacao)"
+        timestamptz verified_at "nullable"
+        timestamptz created_at
     }
 
     REFRESH_TOKENS {
@@ -172,30 +201,6 @@ erDiagram
         timestamptz changed_at
     }
 
-    PAYMENTS {
-        uuid id PK
-        uuid booking_id FK "-> bookings"
-        numeric amount
-        payment_method method
-        payment_status status
-        text external_reference "nullable, id da transacao no gateway"
-        text gateway_callback_payload "nullable, guarda o payload bruto do callback"
-        timestamptz paid_at "nullable"
-        timestamptz created_at
-    }
-
-    DEPOSITS {
-        uuid id PK
-        uuid booking_id FK "unique, -> bookings (1:1)"
-        numeric amount
-        deposit_status status
-        timestamptz held_at "nullable"
-        timestamptz released_at "nullable"
-        numeric withheld_amount "nullable"
-        uuid claim_id FK "nullable, -> claims"
-        timestamptz created_at
-    }
-
     CONTRACTS {
         uuid id PK
         uuid booking_id FK "unique, -> bookings (1:1)"
@@ -214,7 +219,6 @@ erDiagram
         claim_status status
         uuid resolved_by FK "nullable, -> profiles"
         text resolution "nullable"
-        numeric withheld_amount "nullable"
         timestamptz opened_at
         timestamptz resolved_at "nullable"
     }
@@ -238,8 +242,8 @@ erDiagram
     AUDIT_LOGS {
         uuid id PK
         uuid actor_id FK "nullable, -> profiles (nulo quando acao do sistema)"
-        text action "ex: kyc.approved, booking.confirmed, deposit.withheld"
-        text entity_type "ex: booking, kyc_verification, claim, deposit"
+        text action "ex: kyc.approved, booking.confirmed, transaction.verified"
+        text entity_type "ex: booking, kyc_verification, claim, transaction"
         uuid entity_id
         jsonb before_data "nullable"
         jsonb after_data "nullable"
@@ -249,9 +253,9 @@ erDiagram
 
     OUTBOX_EVENTS {
         uuid id PK
-        text aggregate_type "ex: booking, payment, kyc_verification, claim"
+        text aggregate_type "ex: booking, transaction, kyc_verification, claim"
         uuid aggregate_id
-        text event_type "ex: booking.confirmed, payment.confirmed, kyc.approved"
+        text event_type "ex: booking.confirmed, transaction.confirmed, kyc.approved"
         jsonb payload
         outbox_status status
         int retry_count
