@@ -1,0 +1,17 @@
+# Ambiente / segredos
+.env
+.env.local
+
+# Maven
+target/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Docker
+*.log
+
+# MacOs
+.DS_Store
