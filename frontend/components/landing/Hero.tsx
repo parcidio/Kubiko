@@ -1,17 +1,9 @@
-import { Search, ArrowRight, Package, Camera, Video, Mic, Sparkles, Plane, Plus, Shield, Star, Leaf } from "lucide-react";
+import { ArrowRight, Package, Camera, Video, Mic, Sparkles, Plane, Plus, Shield, Star, Leaf } from "lucide-react";
 
 // Troca por uma foto tua — de preferência com o objeto principal
 // posicionado perto do centro-inferior, é onde a máscara mantém nitidez.
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1200&auto=format&fit=crop";
-
-const categories = [
-  { label: "Fotografia", icon: Camera },
-  { label: "Vídeo", icon: Video },
-  { label: "Áudio", icon: Mic },
-  { label: "Eventos", icon: Sparkles },
-  { label: "Drone", icon: Plane },
-];
 
 const stats = [
   { icon: Package, value: "+200", label: "Equipamentos disponíveis" },
@@ -19,14 +11,28 @@ const stats = [
   { icon: Star, value: "4.8", label: "Avaliação média (baseada em 300+ reviews)" },
 ];
 
-export default function KubikoHero() {
+export default function BeeznoHero() {
   return (
-    <section className="relative flex min-h-screen items-center overflow-hidden bg-[#FBF9F4]">
+    <section className="relative flex min-h-screen items-center overflow-hidden bg-background">
       {/* curva verde no fundo */}
       <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-48 bg-[#1F3A2E] sm:h-56 lg:h-64"
-        style={{ clipPath: "ellipse(65% 100% at 15% 100%)" }}
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-primary sm:h-56 lg:h-64"
+        style={{ clipPath: "ellipse(65% 80% at 30% 100%)" }}
       />
+      {/* Estatísticas */}
+          <div className="absolute bottom-10 left-10 z-10 flex flex-wrap gap-8">
+            {stats.map(({ icon: Icon, value, label }) => (
+              <div key={label} className="flex items-start gap-2.5">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
+                  <Icon className="h-4 w-4" />
+                </span>
+                <div className="leading-tight">
+                  <div className="font-semibold text-primary-foreground">{value}</div>
+                  <div className="max-w-[9rem] text-xs text-primary-foreground/60">{label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
 
       <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-6 py-16 lg:grid-cols-2 lg:gap-8 lg:px-10">
         {/* Coluna de texto */}
@@ -36,64 +42,28 @@ export default function KubikoHero() {
             Aluguer de equipamentos em Luanda
           </div>
 
-          <h1 className="text-[2.6rem] font-semibold leading-[1.08] text-[#1A1A18] sm:text-5xl lg:text-[3.2rem]">
+          <h1 className="text-[2.6rem] font-semibold leading-[1.08] text-foreground sm:text-5xl lg:text-[3.2rem]">
             Para quem precisa
             <br />
-            <span className="text-[#2F6B4F]">usar</span>, não precisa
+            <span className="text-primary/90">usar</span>, não precisa
             <br />
             possuir.
           </h1>
 
-          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-[#6B6B63]">
+          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-foreground/80 sm:text-base lg:max-w-lg lg:text-lg">
             Na Kubiko, encontras e alugas equipamentos de qualidade para
             fotografia, vídeo, áudio, eventos e muito mais. Tudo de forma
             simples, segura e perto de ti.
           </p>
 
-          {/* Barra de pesquisa */}
-          <div className="mt-7 flex max-w-lg items-center gap-2 rounded-full border border-[#E4DFD3] bg-white p-1.5 pl-4 shadow-sm">
-            <Search className="h-4 w-4 shrink-0 text-[#9B9B93]" />
-            <input
-              type="text"
-              placeholder="O que procuras hoje?"
-              className="w-full bg-transparent text-sm text-[#1A1A18] placeholder:text-[#9B9B93] focus:outline-none"
-            />
-            <button className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#1F3A2E] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#16291F]">
-              Pesquisar
-              <ArrowRight className="h-4 w-4" />
+          {/* CTAs */}
+          <div className="mt-7 flex max-w-lg flex items-center gap-4 p-1.5 pl-4 justify-start">
+            <button className="bg-primary rounded-md w-50 h-10 cursor-pointer text-primary-foreground font-semibold">
+              Explorar items
             </button>
-          </div>
-
-          {/* Chips de categorias */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {categories.map(({ label, icon: Icon }) => (
-              <button
-                key={label}
-                className="flex items-center gap-1.5 rounded-full border border-[#E4DFD3] bg-white px-4 py-2 text-sm text-[#3A3A36] transition-colors hover:border-[#2F6B4F] hover:text-[#2F6B4F]"
-              >
-                <Icon className="h-3.5 w-3.5" />
-                {label}
-              </button>
-            ))}
-            <button className="flex items-center gap-1.5 rounded-full border border-[#E4DFD3] bg-white px-4 py-2 text-sm text-[#3A3A36] transition-colors hover:border-[#2F6B4F] hover:text-[#2F6B4F]">
-              <Plus className="h-3.5 w-3.5" />
-              Mais
+            <button className="bg-secondary border border-border-bg rounded-md w-50 h-10 cursor-pointer text-secondary-foreground font-semibold">
+              Publicar o meu item
             </button>
-          </div>
-
-          {/* Estatísticas */}
-          <div className="mt-9 flex flex-wrap gap-8">
-            {stats.map(({ icon: Icon, value, label }) => (
-              <div key={label} className="flex items-start gap-2.5">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#EAF1EC] text-[#2F6B4F]">
-                  <Icon className="h-4 w-4" />
-                </span>
-                <div className="leading-tight">
-                  <div className="font-semibold text-[#1A1A18]">{value}</div>
-                  <div className="max-w-[9rem] text-xs text-[#8A8A82]">{label}</div>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -125,7 +95,7 @@ export default function KubikoHero() {
 
             {/* nota manuscrita */}
             <span
-              className="absolute left-10 top-10 rotate-[-4deg] font-serif text-lg italic text-[#EAF1EC]"
+              className="absolute left-10 top-10 rotate-[-4deg] font-serif text-lg italic text-primary-foreground/90 sm:text-xl lg:text-2xl"
               style={{ textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}
             >
               Mais
@@ -136,8 +106,8 @@ export default function KubikoHero() {
             </span>
 
             {/* card flutuante */}
-            <div className="absolute bottom-6 right-6 flex items-center gap-3 rounded-2xl bg-[#1F3A2E]/95 px-4 py-3 text-white shadow-lg backdrop-blur-sm">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10">
+            <div className="absolute bottom-6 right-6 flex items-center gap-3 rounded-2xl bg-accent px-4 py-3 text-accent-foreground shadow-lg backdrop-blur-sm">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-accent-foreground">
                 <Leaf className="h-4 w-4" />
               </span>
               <span className="max-w-[10rem] text-xs leading-snug">

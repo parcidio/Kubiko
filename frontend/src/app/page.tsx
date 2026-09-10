@@ -1,12 +1,14 @@
-import KubikoHero from "../../components/landing/Hero";
-import KubikoNavbar from "../../components/landing/Navbar";
+import BeeznoCategories from "../../components/landing/Categories";
+import BeeznoHero from "../../components/landing/Hero";
+import BeeznoNavbar from "../../components/landing/Navbar";
 
 export default function Home() {
   return (
     <div>
       <main>
-        <KubikoNavbar />
-        <KubikoHero />
+        <BeeznoNavbar />
+        <BeeznoHero />
+        <BeeznoCategories />
       </main>
     </div>
   );
