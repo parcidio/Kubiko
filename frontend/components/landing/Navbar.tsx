@@ -54,11 +54,10 @@ export default function BeeznoNavbar() {
 
         {/* Ações (desktop) */}
         <div className="hidden items-center gap-3 lg:flex">
-          <button className="flex items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-3.5 py-2 text-sm text-secondary-foreground cursor-pointer transition-colors hover:bg-secondary/80 hover:border-border-bg/90">
+          <div className="flex items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-3.5 py-2 text-sm text-secondary-foreground cursor-pointer transition-colors hover:bg-secondary/80 hover:border-border-bg/90">
             <MapPin className="h-4 w-4" />
             Luanda
-            <ChevronDown className="h-3.5 w-3.5" />
-          </button>
+          </div>
 
           <button className="flex items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-colors cursor-pointer hover:bg-secondary/80 hover:border-border-bg/90">
             <MessageCircle className="h-4 w-4" />

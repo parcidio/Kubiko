@@ -51,7 +51,7 @@ export default function BeeznoHero() {
           </h1>
 
           <p className="mt-5 max-w-md text-[15px] leading-relaxed text-foreground/80 sm:text-base lg:max-w-lg lg:text-lg">
-            Na Kubiko, encontras e alugas equipamentos de qualidade para
+            Na Beeznoo, encontras e alugas equipamentos de qualidade para
             fotografia, vídeo, áudio, eventos e muito mais. Tudo de forma
             simples, segura e perto de ti.
           </p>
