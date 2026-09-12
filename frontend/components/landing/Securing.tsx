@@ -12,27 +12,6 @@ const checklistItems = [
   "Suporte via WhatsApp",
 ];
 
-const features = [
-  {
-    icon: BadgeCheck,
-    title: "Contrapartes verificadas",
-    description:
-      "Particulares com BI validado e empresas com NIF e certidão comercial confirmados pela nossa equipa.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Cobertura transparente",
-    description:
-      "O prémio aparece separado no checkout, com o que está coberto, a franquia e o processo de sinistro.",
-  },
-  {
-    icon: Truck,
-    title: "Logística local",
-    description:
-      "Entrega e recolha combinadas entre as partes, com estado do item registado em fotografia.",
-  },
-];
-
 export default function BeeznoSecuring() {
   return (
     <motion.section className="bg-background px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
@@ -92,25 +71,6 @@ export default function BeeznoSecuring() {
               </button>
             </div>
           </motion.div>
-        </motion.div>
-
-        {/* ── Linha 2: três feature cards ── */}
-        <motion.div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-          {features.map(({ icon: Icon, title, description }) => (
-            <motion.div
-              key={title}
-              className="rounded-2xl border border-border-bg bg-card p-6 sm:p-8"
-              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-              whileHover={{ scale: 1.03 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-shield-soft">
-                <Icon className="h-5 w-5 text-shield" />
-              </div>
-              <h3 className="text-lg font-bold text-foreground">{title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{description}</p>
-            </motion.div>
-          ))}
         </motion.div>
 
       </div>
