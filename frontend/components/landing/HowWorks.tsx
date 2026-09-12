@@ -1,8 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import { Search, ShieldCheck, Banknote, FileCheck2 } from "lucide-react";
 import type React from "react";
+
+const ease = [0.25, 0.1, 0.25, 1] as const;
 
 interface StepCardProps {
   icon: React.ReactNode;
@@ -12,12 +15,15 @@ interface StepCardProps {
 }
 
 const StepCard: React.FC<StepCardProps> = ({ icon, step, title, description }) => (
-  <div
+  <motion.div
     className={cn(
       "relative rounded-2xl border border-border-bg/10 bg-primary cursor-pointer p-6 text-primary-foreground",
       "transition-all duration-300 ease-in-out",
-      "hover:scale-[1.03] hover:shadow-xl hover:border-white/20 hover:bg-white/10"
+      "hover:shadow-xl hover:border-white/20 hover:bg-white/10"
     )}
+    variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+    whileHover={{ scale: 1.03 }}
+    transition={{ type: "spring", stiffness: 300, damping: 20 }}
   >
     {/* Icon */}
     <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-primary-foreground">
@@ -29,7 +35,7 @@ const StepCard: React.FC<StepCardProps> = ({ icon, step, title, description }) =
     <h3 className="mb-3 text-lg font-bold leading-snug">{title}</h3>
     {/* Description */}
     <p className="text-sm leading-relaxed text-primary-foreground/60">{description}</p>
-  </div>
+  </motion.div>
 );
 
 export default function BeeznoHowItWorks() {
@@ -65,7 +71,7 @@ export default function BeeznoHowItWorks() {
   ];
 
   return (
-    <section className="overflow-hidden bg-primary px-6 py-16 sm:px-8 sm:py-20">
+    <motion.section className="overflow-hidden bg-primary px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
@@ -97,7 +103,7 @@ export default function BeeznoHowItWorks() {
         </div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <motion.div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }} initial="hidden" whileInView="visible" viewport={{ once: true }}>
           {steps.map(({ step, title, icon, description }) => (
             <StepCard
               key={step}
@@ -107,9 +113,9 @@ export default function BeeznoHowItWorks() {
               description={description}
             />
           ))}
-        </div>
+        </motion.div>
 
       </div>
-    </section>
+    </motion.section>
   );
 }

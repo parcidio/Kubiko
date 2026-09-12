@@ -1,10 +1,13 @@
+"use client";
+
 import { ShieldCheck } from "lucide-react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 
 export default function BeeznoFooter()
 {
     return (
-        <section>
+        <motion.section initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease: [0.25, 0.1, 0.25, 1] }}>
             <footer className="mt-20 border-t border-border-bg bg-sand">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
@@ -69,6 +72,6 @@ export default function BeeznoFooter()
         © 2026 Beeznoo. Feito pra quem cria.
       </div>
     </footer>
-        </section>
+        </motion.section>
     )
 }

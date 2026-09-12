@@ -1,17 +1,44 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { animate, motion, useInView, useMotionValue, useTransform } from "framer-motion";
 import { ArrowRight, Package, Shield, Star, Leaf } from "lucide-react";
+
+const ease = [0.25, 0.1, 0.25, 1] as const;
 
 const HERO_IMAGE =
   "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1200&auto=format&fit=crop";
 
 const stats = [
-  { icon: Package, value: "+200", label: "Equipamentos disponíveis" },
-  { icon: Shield,  value: "100%", label: "Transações seguras" },
-  { icon: Star,    value: "4.8",  label: "Avaliação média (baseada em 300+ reviews)" },
+  { icon: Package, value: 200, prefix: "+", label: "Equipamentos disponíveis" },
+  { icon: Shield, value: 100, suffix: "%", label: "Transações seguras" },
+  { icon: Star, value: 4.8, decimals: 1, label: "Avaliação média (baseada em 300+ reviews)" },
 ];
+
+function StatCounter({ value, prefix = "", suffix = "", decimals = 0 }: {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  decimals?: number;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true });
+  const count = useMotionValue(0);
+  const displayValue = useTransform(count, (latest) => `${prefix}${latest.toFixed(decimals)}${suffix}`);
+
+  useEffect(() => {
+    if (isInView) {
+      const controls = animate(count, value, { duration: 1.2, ease });
+      return controls.stop;
+    }
+  }, [count, isInView, value]);
+
+  return <motion.span ref={ref}>{displayValue}</motion.span>;
+}
 
 export default function BeeznoHero() {
   return (
-    <section className="relative flex min-h-screen items-center overflow-hidden bg-background">
+    <motion.section className="relative flex min-h-screen items-center overflow-hidden bg-background" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
 
       {/* Curva — ~10% menor */}
       <div
@@ -21,16 +48,16 @@ export default function BeeznoHero() {
 
       {/* Estatísticas */}
       <div className="absolute bottom-8 left-8 z-10 flex flex-wrap gap-6 lg:flex hidden">
-        {stats.map(({ icon: Icon, value, label }) => (
-          <div key={label} className="flex items-start gap-2">
+        {stats.map(({ icon: Icon, value, prefix, suffix, decimals, label }) => (
+          <motion.div key={label} className="flex items-start gap-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, ease }}>
             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
               <Icon className="h-3.5 w-3.5" />
             </span>
             <div className="leading-tight">
-              <div className="text-sm font-semibold text-primary-foreground">{value}</div>
+              <div className="text-sm font-semibold text-primary-foreground"><StatCounter value={value} prefix={prefix} suffix={suffix} decimals={decimals} /></div>
               <div className="max-w-[8rem] text-[11px] text-primary-foreground/60">{label}</div>
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
 
@@ -38,7 +65,7 @@ export default function BeeznoHero() {
       <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-6 py-10 lg:grid-cols-2 lg:gap-6 lg:px-10 lg:py-12">
 
         {/* Coluna de texto */}
-        <div className="relative z-10 flex flex-col justify-center">
+        <motion.div className="relative z-10 flex flex-col justify-center" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
 
           {/* Badge */}
           <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-[#E4DFD3] bg-white px-3.5 py-1 text-xs text-[#4A4A45]">
@@ -74,22 +101,22 @@ export default function BeeznoHero() {
 
           {/* Estatísticas inline — mobile/tablet */}
           <div className="mt-8 flex flex-wrap gap-5 lg:hidden">
-            {stats.map(({ icon: Icon, value, label }) => (
+            {stats.map(({ icon: Icon, value, prefix, suffix, decimals, label }) => (
               <div key={label} className="flex items-start gap-2">
                 <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
                   <Icon className="h-3.5 w-3.5" />
                 </span>
                 <div className="leading-tight">
-                  <div className="text-sm font-semibold text-foreground">{value}</div>
+                  <div className="text-sm font-semibold text-foreground"><StatCounter value={value} prefix={prefix} suffix={suffix} decimals={decimals} /></div>
                   <div className="max-w-[8rem] text-[11px] text-muted-foreground">{label}</div>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
 
         {/* Coluna de imagem */}
-        <div className="relative z-10 flex items-center justify-center lg:justify-end">
+        <motion.div className="relative z-10 flex items-center justify-center lg:justify-end" initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2, ease }}>
           <div className="relative w-full max-w-xl overflow-hidden rounded-2xl">
 
             {/* Imagem — ~10% menor */}
@@ -126,7 +153,7 @@ export default function BeeznoHero() {
             </span>
 
             {/* Card flutuante */}
-            <div className="absolute bottom-5 right-5 flex items-center gap-2.5 rounded-2xl bg-accent px-3.5 py-2.5 text-accent-foreground shadow-lg backdrop-blur-sm">
+            <motion.div className="absolute bottom-5 right-5 flex items-center gap-2.5 rounded-2xl bg-accent px-3.5 py-2.5 text-accent-foreground shadow-lg backdrop-blur-sm" whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-accent-foreground">
                 <Leaf className="h-3.5 w-3.5" />
               </span>
@@ -134,10 +161,10 @@ export default function BeeznoHero() {
                 Equipamentos que impulsionam os teus projetos.
               </span>
               <ArrowRight className="h-3.5 w-3.5 shrink-0" />
-            </div>
+            </motion.div>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 }

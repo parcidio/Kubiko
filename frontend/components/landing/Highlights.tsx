@@ -1,3 +1,9 @@
+"use client";
+
+import { motion } from "framer-motion";
+
+const ease = [0.25, 0.1, 0.25, 1] as const;
+
 const tableRows = [
   { label: "Custo inicial", buy: "Alto",          kubiko: "Só o dia de uso"  },
   { label: "Manutenção",    buy: "Por tua conta", kubiko: "Não aplicável"    },
@@ -28,12 +34,12 @@ const featured = [
 
 export default function BeeznoHighlights() {
   return (
-    <section className="bg-background px-6 py-16 sm:px-8 sm:py-20">
+    <motion.section className="bg-background px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
       <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
           {/* ── Comprar vs Alugar ── */}
-          <div className="flex flex-col rounded-2xl border border-border-bg bg-card p-6 sm:p-8">
+          <motion.div className="flex flex-col rounded-2xl border border-border-bg bg-card p-6 sm:p-8" whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
             <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
               Comprar vs<br />Alugar
             </h2>
@@ -61,10 +67,10 @@ export default function BeeznoHighlights() {
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
           {/* ── Em destaque ── */}
-          <div className="flex flex-col rounded-2xl border border-border-bg bg-card p-6 sm:p-8">
+          <motion.div className="flex flex-col rounded-2xl border border-border-bg bg-card p-6 sm:p-8" whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
             <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
               Em destaque
             </h2>
@@ -72,18 +78,23 @@ export default function BeeznoHighlights() {
               Alguns dos equipamentos disponíveis em Luanda
             </p>
 
-            <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
+            <motion.div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }} initial="hidden" whileInView="visible" viewport={{ once: true }}>
               {featured.map(({ name, price, rating, image }) => (
-                <div
+                <motion.div
                   key={name}
-                  className="overflow-hidden rounded-xl border border-border-bg transition-all duration-200 hover:scale-[1.02] hover:shadow-md cursor-pointer"
+                  className="cursor-pointer overflow-hidden rounded-xl border border-border-bg"
+                  variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
+                  whileHover={{ scale: 1.03 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
                 >
                   {/* Imagem */}
                   <div className="relative h-28 sm:h-32 overflow-hidden bg-sand">
-                    <img
+                    <motion.img
                       src={image}
                       alt={name}
-                      className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                      className="h-full w-full object-cover"
+                      whileHover={{ scale: 1.05 }}
+                      transition={{ duration: 0.3, ease }}
                     />
                   </div>
 
@@ -96,13 +107,13 @@ export default function BeeznoHighlights() {
                       <span className="text-xs font-semibold text-foreground">{rating}</span>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 }
