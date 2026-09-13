@@ -1,8 +1,16 @@
 "use client";
-
-import { ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+
+function BeeznoMark() {
+  return (
+    <svg viewBox="0 0 32 32" className="h-7 w-7" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" fill="#1F3A2E" />
+      <path d="M16 2 L28 9 L16 16 L4 9 Z" fill="#2F6B4F" />
+      <path d="M16 16 L28 9 V23 L16 30 Z" fill="#16291F" />
+    </svg>
+  );
+}
 
 export default function BeeznoFooter()
 {
@@ -12,7 +20,9 @@ export default function BeeznoFooter()
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="flex items-center gap-2 font-display text-lg font-semibold">
-            <ShieldCheck className="size-5 text-shield" aria-hidden="true" />
+            <a href="#" className="flex shrink-0 items-center gap-2">
+              <BeeznoMark />
+            </a>
             Beeznoo
           </p>
           <p className="mt-3 text-sm text-muted-foreground">

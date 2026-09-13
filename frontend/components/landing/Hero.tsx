@@ -67,11 +67,6 @@ export default function BeeznoHero() {
         {/* Coluna de texto */}
         <motion.div className="relative z-10 flex flex-col justify-center" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
 
-          {/* Badge */}
-          <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-[#E4DFD3] bg-white px-3.5 py-1 text-xs text-[#4A4A45]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#2F5D45]" />
-            Aluguer de equipamentos em Luanda
-          </div>
 
           {/* Título — ~10% menor */}
           <h1 className="text-[2.3rem] font-semibold leading-[1.08] text-foreground sm:text-[2.8rem] lg:text-[2.9rem]">
