@@ -46,7 +46,7 @@ export default function BeeznoNavbar() {
             >
               {label}
               {active && (
-                <span className="absolute -bottom-[17px] left-0 right-0 h-0.5 bg-foreground" />
+                <span className="absolute -bottom-4.25 left-0 right-0 h-0.5 bg-foreground" />
               )}
             </a>
           ))}

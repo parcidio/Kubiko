@@ -47,7 +47,7 @@ export default function BeeznoHero() {
       />
 
       {/* Estatísticas */}
-      <div className="absolute bottom-8 left-8 z-10 flex flex-wrap gap-6 lg:flex hidden">
+      <div className="absolute bottom-8 left-8 z-10 flex flex-wrap gap-6 lg:flex">
         {stats.map(({ icon: Icon, value, prefix, suffix, decimals, label }) => (
           <motion.div key={label} className="flex items-start gap-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, ease }}>
             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
@@ -55,7 +55,7 @@ export default function BeeznoHero() {
             </span>
             <div className="leading-tight">
               <div className="text-sm font-semibold text-primary-foreground"><StatCounter value={value} prefix={prefix} suffix={suffix} decimals={decimals} /></div>
-              <div className="max-w-[8rem] text-[11px] text-primary-foreground/60">{label}</div>
+              <div className="max-w-32 text-[11px] text-primary-foreground/60">{label}</div>
             </div>
           </motion.div>
         ))}
@@ -103,7 +103,7 @@ export default function BeeznoHero() {
                 </span>
                 <div className="leading-tight">
                   <div className="text-sm font-semibold text-foreground"><StatCounter value={value} prefix={prefix} suffix={suffix} decimals={decimals} /></div>
-                  <div className="max-w-[8rem] text-[11px] text-muted-foreground">{label}</div>
+                  <div className="max-w-32 text-[11px] text-muted-foreground">{label}</div>
                 </div>
               </div>
             ))}
@@ -118,7 +118,7 @@ export default function BeeznoHero() {
             <img
               src={HERO_IMAGE}
               alt="Equipamento de fotografia e vídeo disponível para arrendar na Beeznoo"
-              className="h-[420px] w-full object-cover sm:h-[460px] lg:h-[500px]"
+              className="h-105 w-full object-cover sm:h-115 lg:h-125"
             />
 
             {/* Camada desfocada */}
@@ -126,7 +126,7 @@ export default function BeeznoHero() {
               src={HERO_IMAGE}
               alt=""
               aria-hidden="true"
-              className="absolute inset-0 h-[420px] w-full scale-105 object-cover blur-lg sm:h-[460px] lg:h-[500px]"
+              className="absolute inset-0 h-105 w-full scale-105 object-cover blur-lg sm:h-115 lg:h-125"
               style={{
                 WebkitMaskImage:
                   "radial-gradient(ellipse 65% 55% at 42% 68%, transparent 35%, black 75%)",
@@ -152,7 +152,7 @@ export default function BeeznoHero() {
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-accent-foreground">
                 <Leaf className="h-3.5 w-3.5" />
               </span>
-              <span className="max-w-[9rem] text-[11px] leading-snug">
+              <span className="max-w-36 text-[11px] leading-snug">
                 Equipamentos que impulsionam os teus projetos.
               </span>
               <ArrowRight className="h-3.5 w-3.5 shrink-0" />
