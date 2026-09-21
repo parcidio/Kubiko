@@ -86,12 +86,12 @@ export default function BeeznoHero() {
 
           {/* CTAs */}
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <button className="cursor-pointer rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
+            <a href="https://tally.so/r/dW7yGK" target="_blank" className="cursor-pointer rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
               Explorar items
-            </button>
-            <button className="cursor-pointer rounded-md border border-border-bg bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition-opacity hover:opacity-80">
+            </a>
+            <a href="https://tally.so/r/5BN0JZ" target="_blank" className="cursor-pointer rounded-md border border-border-bg bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition-opacity hover:opacity-80">
               Publicar o meu item
-            </button>
+            </a>
           </div>
 
           {/* Estatísticas inline — mobile/tablet */}

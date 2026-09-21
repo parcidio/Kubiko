@@ -20,6 +20,17 @@ function BeeznoMark() {
   );
 }
 
+function abrirWhatsapp(): void {
+  const NUMERO_KUBIKO = "244939351150";
+  const mensagemBase = "Olá! Tenho interesse em avançar com a Beeznoo.";
+
+  const texto = encodeURIComponent(mensagemBase);
+  const link = `https://wa.me/${NUMERO_KUBIKO}?text=${texto}`;
+  fetch(`/api/track-click`).catch(() => {});
+
+  window.open(link, "_blank");
+}
+
 export default function BeeznoNavbar() {
   const [open, setOpen] = useState(false);
 
@@ -59,7 +70,7 @@ export default function BeeznoNavbar() {
             Luanda
           </div>
 
-          <button className="flex items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-colors cursor-pointer hover:bg-secondary/80 hover:border-border-bg/90">
+          <button className="flex items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-colors cursor-pointer hover:bg-secondary/80 hover:border-border-bg/90" onClick={abrirWhatsapp}>
             <MessageCircle className="h-4 w-4" />
             WhatsApp
           </button>
