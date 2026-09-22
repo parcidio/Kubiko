@@ -1,105 +1,123 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, ChevronDown, MessageCircle, Menu, X } from "lucide-react";
+import Image from "next/image";
 
 const navLinks = [
-  { label: "Explorar", href: "#", active: true },
-  { label: "Como funciona", href: "#" },
-  { label: "Arrendar", href: "#" },
-  { label: "Ganhar dinheiro", href: "#" },
+  { label: "Explorar",         href: "#explore",    id: "explore"    },
+  { label: "Como funciona",    href: "#howworks",   id: "howworks"   },
+  { label: "Categorias",       href: "#categories", id: "categories" },
+  { label: "Comprar vs Alugar",href: "#compare",    id: "compare"    },
 ];
 
-function BeeznoMark() {
-  return (
-    <svg viewBox="0 0 32 32" className="h-7 w-7" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 2 L28 9 V23 L16 30 L4 23 V9 Z" fill="#1F3A2E" />
-      <path d="M16 2 L28 9 L16 16 L4 9 Z" fill="#2F6B4F" />
-      <path d="M16 16 L28 9 V23 L16 30 Z" fill="#16291F" />
-    </svg>
-  );
-}
-
 function abrirWhatsapp(): void {
-  const NUMERO_KUBIKO = "244939351150";
-  const mensagemBase = "Olá! Tenho interesse em avançar com a Beeznoo.";
-
-  const texto = encodeURIComponent(mensagemBase);
-  const link = `https://wa.me/${NUMERO_KUBIKO}?text=${texto}`;
+  const NUMERO = "244939351150";
+  const texto  = encodeURIComponent("Olá! Tenho interesse em avançar com a Beeznoo.");
   fetch(`/api/track-click`).catch(() => {});
-
-  window.open(link, "_blank");
+  window.open(`https://wa.me/${NUMERO}?text=${texto}`, "_blank");
 }
 
 export default function BeeznoNavbar() {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]               = useState(false);
+  const [activeSection, setActive]    = useState("explore");
+
+  /* ── Detecta qual secção está visível ── */
+  useEffect(() => {
+    const observers: IntersectionObserver[] = [];
+
+    navLinks.forEach(({ id }) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActive(id); },
+        { threshold: 0.4 }
+      );
+      obs.observe(el);
+      observers.push(obs);
+    });
+
+    return () => observers.forEach((o) => o.disconnect());
+  }, []);
+
+  /* ── Fecha menu mobile ao clicar num link ── */
+  const handleLink = () => setOpen(false);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-border-bg bg-background shadow-sm backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-10">
+
         {/* Logo */}
         <a href="#" className="flex shrink-0 items-center gap-2">
-          <BeeznoMark />
+          <Image src="/png/beeznoo-icon-512.png" alt="logo" width={30} height={30} />
           <span className="text-lg font-semibold text-foreground">Beeznoo</span>
         </a>
 
-        {/* Links (desktop) */}
+        {/* Links desktop */}
         <nav className="hidden items-center gap-8 lg:flex">
-          {navLinks.map(({ label, href, active }) => (
-            <a
-              key={label}
-              href={href}
-              className={`relative text-sm transition-colors ${
-                active
-                  ? "text-foreground"
-                  : "text-[#5C5C55] hover:text-foreground"
-              }`}
-            >
-              {label}
-              {active && (
-                <span className="absolute -bottom-4.25 left-0 right-0 h-0.5 bg-foreground" />
-              )}
-            </a>
-          ))}
+          {navLinks.map(({ label, href, id }) => {
+            const active = id === activeSection;
+            return (
+              <a
+                key={id}
+                href={href}
+                className={`relative text-sm transition-colors ${
+                  active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {label}
+                {active && (
+                  <span className="absolute -bottom-[1.1rem] left-0 right-0 h-0.5 bg-foreground" />
+                )}
+              </a>
+            );
+          })}
         </nav>
 
-        {/* Ações (desktop) */}
+        {/* Acções desktop */}
         <div className="hidden items-center gap-3 lg:flex">
-          <div className="flex items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-3.5 py-2 text-sm text-secondary-foreground cursor-pointer transition-colors hover:bg-secondary/80 hover:border-border-bg/90">
+          <div className="flex cursor-pointer items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-3.5 py-2 text-sm text-secondary-foreground transition-colors hover:bg-secondary/80">
             <MapPin className="h-4 w-4" />
             Luanda
           </div>
 
-          <button className="flex items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-colors cursor-pointer hover:bg-secondary/80 hover:border-border-bg/90" onClick={abrirWhatsapp}>
+          <button
+            onClick={abrirWhatsapp}
+            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+          >
             <MessageCircle className="h-4 w-4" />
             WhatsApp
           </button>
 
-          <button className="rounded-full bg-primary px-5 py-2 text-sm font-medium cursor-pointer text-primary-foreground transition-colors hover:bg-primary/90">
+          <button className="cursor-pointer rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">
             Entrar
           </button>
         </div>
 
-        {/* Botão menu (mobile) */}
+        {/* Botão menu mobile */}
         <button
           onClick={() => setOpen((v) => !v)}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border-bg bg-secondary lg:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary lg:hidden"
           aria-label={open ? "Fechar menu" : "Abrir menu"}
         >
           {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
       </div>
 
-      {/* Menu (mobile) */}
+      {/* Menu mobile */}
       {open && (
-        <div className="border-t border-border-bg bg-background px-6 py-4 lg:hidden">
+        <div className="border-t border-border bg-background px-6 py-4 lg:hidden">
           <nav className="flex flex-col gap-4">
-            {navLinks.map(({ label, href, active }) => (
+            {navLinks.map(({ label, href, id }) => (
               <a
-                key={label}
+                key={id}
                 href={href}
+                onClick={handleLink}
                 className={`text-sm ${
-                  active ? "font-medium text-foreground" : "text-[#5C5C55]"
+                  id === activeSection
+                    ? "font-medium text-foreground"
+                    : "text-muted-foreground"
                 }`}
               >
                 {label}
@@ -108,12 +126,15 @@ export default function BeeznoNavbar() {
           </nav>
 
           <div className="mt-5 flex flex-col gap-2.5">
-            <button className="flex items-center justify-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2.5 text-sm text-secondary-foreground">
-              <MapPin className="h-4 w-4 " />
+            <button className="flex items-center justify-center gap-1.5 rounded-full border border-border bg-secondary px-4 py-2.5 text-sm text-secondary-foreground">
+              <MapPin className="h-4 w-4" />
               Luanda
               <ChevronDown className="h-3.5 w-3.5" />
             </button>
-            <button className="flex items-center justify-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2.5 text-sm font-medium text-secondary-foreground">
+            <button
+              onClick={abrirWhatsapp}
+              className="flex items-center justify-center gap-1.5 rounded-full border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-secondary-foreground"
+            >
               <MessageCircle className="h-4 w-4" />
               WhatsApp
             </button>

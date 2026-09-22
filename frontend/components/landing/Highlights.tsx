@@ -34,7 +34,7 @@ const featured = [
 
 export default function BeeznoHighlights() {
   return (
-    <motion.section className="bg-background px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
+    <motion.section id="compare" className="bg-background px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
       <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 

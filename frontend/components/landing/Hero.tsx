@@ -14,6 +14,35 @@ const stats = [
   { icon: Shield, value: 100, suffix: "%", label: "Transações seguras" },
   { icon: Star, value: 4.8, decimals: 1, label: "Avaliação média (baseada em 300+ reviews)" },
 ];
+/*
+type TipoContacto = "arrendador" | "arrendatario";
+
+function abrirWhatsapp(tipo: TipoContacto, imovelId?: string): void {
+  const mensagens: Record<TipoContacto, string> = {
+    arrendador: "Olá! Quero anunciar o meu imóvel na Kubiko.",
+    arrendatario: "Olá! Vi um imóvel na Kubiko e tenho interesse em avançar.",
+  };
+
+  const NUMERO_KUBIKO = "244923000000";
+  const texto = encodeURIComponent(mensagens[tipo]);
+  const link = `https://wa.me/${NUMERO_KUBIKO}?text=${texto}`;
+
+  const query = imovelId ? `&imovel_id=${imovelId}` : "";
+  fetch(`/api/track-click?tipo=${tipo}${query}`).catch(() => {});
+
+  window.open(link, "_blank");
+}
+*/
+function abrirWhatsapp(): void {
+  const NUMERO_KUBIKO = "244939351150";
+  const mensagemBase = "Olá! Tenho interesse em avançar com a Beeznoo.";
+
+  const texto = encodeURIComponent(mensagemBase);
+  const link = `https://wa.me/${NUMERO_KUBIKO}?text=${texto}`;
+  fetch(`/api/track-click`).catch(() => {});
+
+  window.open(link, "_blank");
+}
 
 function StatCounter({ value, prefix = "", suffix = "", decimals = 0 }: {
   value: number;
@@ -38,7 +67,7 @@ function StatCounter({ value, prefix = "", suffix = "", decimals = 0 }: {
 
 export default function BeeznoHero() {
   return (
-    <motion.section className="relative flex min-h-screen items-center overflow-hidden bg-background" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
+    <motion.section id="explore" className="relative flex min-h-screen items-center overflow-hidden bg-background" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
 
       {/* Curva — ~10% menor */}
       <div
@@ -84,14 +113,43 @@ export default function BeeznoHero() {
             simples, segura e perto de ti.
           </p>
 
-          {/* CTAs */}
+         {/* CTAs linha 1 */}
           <div className="mt-5 flex flex-wrap items-center gap-3">
-            <a href="https://tally.so/r/dW7yGK" target="_blank" className="cursor-pointer rounded-md bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
-              Explorar items
-            </a>
-            <a href="https://tally.so/r/5BN0JZ" target="_blank" className="cursor-pointer rounded-md border border-border-bg bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition-opacity hover:opacity-80">
+
+          {/* CTA 1 — Procurar um item: primary → teal sliding */}
+          <a
+            href="https://tally.so/r/dW7yGK"
+            target="_blank"
+            className="group relative overflow-hidden cursor-pointer rounded-sm bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-card transition-shadow duration-300 hover:shadow-lift"
+          >
+            <span className="absolute inset-0 -translate-x-full bg-shield/90 transition-transform duration-300 ease-out group-hover:translate-x-0" />
+            <span className="relative">Procurar um item</span>
+          </a>
+
+          {/* CTA 2 — Publicar: outline → fills with primary */}
+          <a
+            href="https://tally.so/r/5BN0JZ"
+            target="_blank"
+            className="group relative overflow-hidden cursor-pointer rounded-sm border border-border-bg bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition-shadow duration-300 hover:shadow-card"
+          >
+            <span className="absolute inset-0 -translate-x-full bg-primary/70 transition-transform duration-300 ease-out group-hover:translate-x-0" />
+            <span className="relative transition-colors duration-300 group-hover:text-primary-foreground">
               Publicar o meu item
-            </a>
+            </span>
+          </a>
+          </div>
+
+          {/* CTA 3 — WhatsApp: accent → shield sliding */}
+          <div className="mt-4 flex">
+          <button
+            onClick={abrirWhatsapp}
+            className="group relative overflow-hidden text-sm cursor-pointer rounded-sm bg-accent px-14 py-2 font-semibold text-accent-foreground transition-shadow duration-300 hover:shadow-card"
+          >
+            <span className="absolute inset-0 -translate-x-full bg-shield transition-transform duration-300 ease-out group-hover:translate-x-0" />
+            <span className="relative transition-colors duration-300 group-hover:text-shield-foreground">
+              Entrar em contacto pelo WhatsApp
+            </span>
+          </button>
           </div>
 
           {/* Estatísticas inline — mobile/tablet */}
