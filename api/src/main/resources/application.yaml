@@ -14,9 +14,17 @@ spring:
     locations: classpath:db/migration
   rabbitmq:
     host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT:5672}
+    port: ${RABBITMQ_PORT}
     username: ${RABBITMQ_USER}
     password: ${RABBITMQ_PASSWORD}
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: openid,profile,email
 
 server:
   port: 8080
@@ -31,3 +39,11 @@ jwt:
   secret: ${JWT_SECRET}
   expiration-minutes: ${JWT_EXPIRATION_MINUTES}
   refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS}
+
+whatsapp:
+  api-url: https://graph.facebook.com/v19.0
+  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:teste}
+  business-account-id: ${WHATSAPP_BUSINESS_ACCOUNT_ID:teste}
+  token: ${WHATSAPP_TOKEN:teste}
+  otp-template-name: ${WHATSAPP_OTP_TEMPLATE_NAME:beeznoo_otp}
+  otp-expiration-minutes: ${WHATSAPP_OTP_EXPIRATION_MINUTES:10}
