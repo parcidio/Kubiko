@@ -44,4 +44,4 @@ ombala:
   api-url: https://api.useombala.ao/v1
   token: ${OMBALA_TOKEN}
   sender: ${OMBALA_SENDER}
-  otp-expiration-minutes: ${OMBALA_OTP_EXPIRATION_MINUTES}
+  otp-expiration-minutes: ${OMBALA_OTP_EXPIRATION_MINUTES:10}
