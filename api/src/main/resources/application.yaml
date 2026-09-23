@@ -37,8 +37,8 @@ management:
 
 jwt:
   secret: ${JWT_SECRET}
-  expiration-minutes: ${JWT_EXPIRATION_MINUTES}
-  refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS}
+  expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:30}
 
 ombala:
   api-url: https://api.useombala.ao/v1
