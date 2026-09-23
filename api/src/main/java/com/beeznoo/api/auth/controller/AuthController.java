@@ -22,21 +22,21 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Auth", description = "Autenticação por OTP via WhatsApp + Google OAuth")
+@Tag(name = "Auth", description = "Autenticação por OTP via SMS + Google OAuth")
 public class AuthController {
 
     private final AuthService authService;
 
     @Operation(
             summary = "Enviar OTP",
-            description = "Envia um código OTP de 6 dígitos para o número de WhatsApp indicado. " +
+            description = "Envia um código OTP de 6 dígitos para o número indicado. " +
                     "O código expira em 10 minutos. Qualquer código anterior para o mesmo número é inválido."
     )
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "OTP enviado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Número de telefone inválido",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "503", description = "Falha ao contactar a WhatsApp API",
+            @ApiResponse(responseCode = "503", description = "Falha ao contactar a SMS API",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/otp/send")

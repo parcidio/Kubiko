@@ -2,12 +2,10 @@ package com.beeznoo.api.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "whatsapp")
-public record WhatsAppProperties(
+@ConfigurationProperties(prefix = "ombala")
+public record OmbalaProperties(
         String apiUrl,
-        String phoneNumberId,
-        String businessAccountId,
         String token,
-        String otpTemplateName,
+        String sender,
         int otpExpirationMinutes
 ) {}

@@ -40,10 +40,8 @@ jwt:
   expiration-minutes: ${JWT_EXPIRATION_MINUTES}
   refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS}
 
-whatsapp:
-  api-url: https://graph.facebook.com/v19.0
-  phone-number-id: ${WHATSAPP_PHONE_NUMBER_ID:teste}
-  business-account-id: ${WHATSAPP_BUSINESS_ACCOUNT_ID:teste}
-  token: ${WHATSAPP_TOKEN:teste}
-  otp-template-name: ${WHATSAPP_OTP_TEMPLATE_NAME:beeznoo_otp}
-  otp-expiration-minutes: ${WHATSAPP_OTP_EXPIRATION_MINUTES:10}
+ombala:
+  api-url: https://api.useombala.ao/v1
+  token: ${OMBALA_TOKEN}
+  sender: ${OMBALA_SENDER}
+  otp-expiration-minutes: ${OMBALA_OTP_EXPIRATION_MINUTES}

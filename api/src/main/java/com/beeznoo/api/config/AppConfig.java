@@ -6,11 +6,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestClient;
 
 @Configuration
-@EnableConfigurationProperties({ JwtProperties.class, WhatsAppProperties.class})
+@EnableConfigurationProperties({ JwtProperties.class, OmbalaProperties.class})
 public class AppConfig {
 
     @Bean
-    public RestClient WhatsAppRestClient(WhatsAppProperties props) {
+    public RestClient ombalaRestClient(OmbalaProperties props) {
         return RestClient.builder()
                 .baseUrl(props.apiUrl())
                 .defaultHeader("Authorization", "Bearer " + props.token())

@@ -7,7 +7,7 @@ import com.beeznoo.api.auth.entity.RefreshToken;
 import com.beeznoo.api.auth.repository.OtpCodeRepository;
 import com.beeznoo.api.auth.repository.RefreshTokenRepository;
 import com.beeznoo.api.config.JwtProperties;
-import com.beeznoo.api.config.WhatsAppProperties;
+import com.beeznoo.api.config.OmbalaProperties;
 import com.beeznoo.api.profile.dto.CreateProfileRequest;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.service.ProfileService;
@@ -29,10 +29,10 @@ public class AuthService {
     private final OtpCodeRepository otpCodeRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final ProfileService profileService;
-    private final WhatsAppOtpService whatsAppOtpService;
+    private final OmbalaSmsService ombalaSmsService;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
-    private final WhatsAppProperties whatsAppProperties;
+    private final OmbalaProperties ombalaProperties;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private final SecureRandom secureRandom = new SecureRandom();
@@ -47,12 +47,12 @@ public class AuthService {
         OtpCode otpCode = OtpCode.builder()
                 .phone(phone)
                 .codeHash(encoder.encode(code))
-                .expiresAt(OffsetDateTime.now().plusMinutes(whatsAppProperties.otpExpirationMinutes()))
+                .expiresAt(OffsetDateTime.now().plusMinutes(ombalaProperties.otpExpirationMinutes()))
                 .build();
 
         otpCodeRepository.save(otpCode);
 
-        whatsAppOtpService.sendOtp(phone, code);
+        ombalaSmsService.sendOtp(phone, code);
     }
 
     @Transactional
