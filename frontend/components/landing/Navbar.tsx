@@ -13,7 +13,7 @@ const navLinks = [
 
 function abrirWhatsapp(): void {
   const NUMERO = "244939351150";
-  const texto  = encodeURIComponent("Olá! Tenho interesse em avançar com a Beeznoo.");
+  const texto  = encodeURIComponent("Olá! Sou um cliente e tenho interesse em saber sobre a Beeznoo.");
   fetch(`/api/track-click`).catch(() => {});
   window.open(`https://wa.me/${NUMERO}?text=${texto}`, "_blank");
 }
@@ -68,7 +68,7 @@ export default function BeeznoNavbar() {
               >
                 {label}
                 {active && (
-                  <span className="absolute -bottom-[1.1rem] left-0 right-0 h-0.5 bg-foreground" />
+                  <span className="absolute bottom-[-1.1rem] left-0 right-0 h-0.5 bg-foreground" />
                 )}
               </a>
             );
@@ -77,20 +77,16 @@ export default function BeeznoNavbar() {
 
         {/* Acções desktop */}
         <div className="hidden items-center gap-3 lg:flex">
-          <div className="flex cursor-pointer items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-3.5 py-2 text-sm text-secondary-foreground transition-colors hover:bg-secondary/80">
-            <MapPin className="h-4 w-4" />
-            Luanda
-          </div>
 
-          <button
-            onClick={abrirWhatsapp}
-            className="flex cursor-pointer items-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
-          >
-            <MessageCircle className="h-4 w-4" />
-            WhatsApp
+          <button onClick={abrirWhatsapp} className="group flex cursor-pointer items-center gap-2 rounded-full border border-border-bg bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-secondary/70 hover:shadow-md active:translate-y-0">
+            <svg viewBox="0 0 24 24" className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" fill="currentColor" aria-hidden="true">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+              <path d="M20.52 3.449A11.82 11.82 0 0 0 12.04 0C5.495 0 .16 5.335.157 11.882c0 2.096.547 4.142 1.588 5.946L.057 24l6.304-1.654a11.88 11.88 0 0 0 5.674 1.447h.005c6.542 0 11.88-5.335 11.883-11.882a11.82 11.82 0 0 0-3.403-8.462zM12.04 21.785h-.004a9.86 9.86 0 0 1-5.031-1.378l-.361-.214-3.741.982.999-3.648-.235-.374a9.87 9.87 0 0 1-1.509-5.27c.002-5.45 4.437-9.884 9.89-9.884a9.83 9.83 0 0 1 7.008 2.906 9.83 9.83 0 0 1 2.903 7.01c-.003 5.45-4.438 9.87-9.919 9.87z" />
+            </svg>
+            <span>WhatsApp</span>
           </button>
 
-          <button className="cursor-pointer rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">
+          <button className="cursor-pointer rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/85 hover:shadow-lg active:translate-y-0">
             Entrar
           </button>
         </div>

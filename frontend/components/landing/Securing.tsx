@@ -1,5 +1,4 @@
 "use client";
-
 import { motion } from "framer-motion";
 import { ShieldCheck, BadgeCheck, Truck } from "lucide-react";
 
@@ -11,6 +10,13 @@ const checklistItems = [
   "Pagamento por Multicaixa Express",
   "Suporte via WhatsApp",
 ];
+
+function abrirWhatsapp(): void {
+  const NUMERO = "244939351150";
+  const texto  = encodeURIComponent("Olá! Sou um cliente e tenho interesse em saber sobre a Beeznoo.");
+  fetch(`/api/track-click`).catch(() => {});
+  window.open(`https://wa.me/${NUMERO}?text=${texto}`, "_blank");
+}
 
 export default function BeeznoSecuring() {
   return (
@@ -42,7 +48,7 @@ export default function BeeznoSecuring() {
           </motion.div>
 
           {/* Card 2: destaque escuro centrado */}
-          <motion.div className="flex min-h-[240px] flex-col items-center justify-center rounded-2xl bg-primary p-6 text-center sm:p-8" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+          <motion.div className="flex min-h-60 flex-col items-center justify-center rounded-2xl bg-primary p-6 text-center sm:p-8" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
             <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-shield-soft">
               <ShieldCheck className="h-7 w-7 text-shield" />
             </div>
@@ -55,21 +61,34 @@ export default function BeeznoSecuring() {
           </motion.div>
 
           {/* Card 3: waitlist */}
-          <motion.div className="rounded-2xl bg-shield-soft p-6 sm:p-8" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-            <h2 className="text-xl font-bold text-foreground">Entra na lista de espera</h2>
+          <motion.div
+            className="rounded-2xl bg-shield-soft p-6 sm:p-8"
+            variants={{
+              hidden: { opacity: 0, y: 20 },
+              visible: { opacity: 1, y: 0 },
+            }}
+            whileHover={{ scale: 1.03 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <h2 className="text-xl font-bold text-foreground">
+              Encontra o teu próximo equipamento
+            </h2>
+
             <p className="mt-2 text-sm text-muted-foreground">
-              Sê dos primeiros a usar a Beeznoo em Luanda.
+              Diz-nos o que procuras e ajuda-nos a encontrar o equipamento certo para ti
+              assim que a Beeznoo estiver disponível.
             </p>
-            <div className="mt-6 flex gap-2">
-              <input
-                type="tel"
-                placeholder="O teu WhatsApp"
-                className="flex-1 rounded-lg border border-border-bg bg-white px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
-              />
-              <button className="cursor-pointer rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90">
-                Entrar
-              </button>
-            </div>
+
+            <button
+              onClick={abrirWhatsapp}
+              className="group relative mt-6 w-full cursor-pointer overflow-hidden rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:shadow-lg"
+            >
+              <span className="absolute inset-0 -translate-x-full skew-x-[-20deg] cursor-pointer bg-linear-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
+
+              <span className="relative cursor-pointer">
+                Quero encontrar o meu próximo imóvel
+              </span>
+            </button>
           </motion.div>
         </motion.div>
 

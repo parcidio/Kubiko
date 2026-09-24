@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { animate, motion, useInView, useMotionValue, useTransform } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, animate, motion, useInView, useMotionValue, useTransform } from "framer-motion";
 import { ArrowRight, Package, Shield, Star, Leaf } from "lucide-react";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
@@ -14,32 +14,26 @@ const stats = [
   { icon: Shield, value: 100, suffix: "%", label: "Transações seguras" },
   { icon: Star, value: 4.8, decimals: 1, label: "Avaliação média (baseada em 300+ reviews)" },
 ];
-/*
+
+type ContactModalProps = {
+  setContactModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  abrirWhatsapp: (tipo: TipoContacto) => void;
+};
+
 type TipoContacto = "arrendador" | "arrendatario";
 
 function abrirWhatsapp(tipo: TipoContacto, imovelId?: string): void {
   const mensagens: Record<TipoContacto, string> = {
-    arrendador: "Olá! Quero anunciar o meu imóvel na Kubiko.",
-    arrendatario: "Olá! Vi um imóvel na Kubiko e tenho interesse em avançar.",
+    arrendador: "Olá! Sou um arrendador. Quero anunciar o meu item na Beeznoo.",
+    arrendatario: "Olá! Sou um arrendatário. Vi um item na Beeznoo e tenho interesse em avançar.",
   };
 
-  const NUMERO_KUBIKO = "244923000000";
+  const NUMERO_KUBIKO = "244939351150";
   const texto = encodeURIComponent(mensagens[tipo]);
   const link = `https://wa.me/${NUMERO_KUBIKO}?text=${texto}`;
 
   const query = imovelId ? `&imovel_id=${imovelId}` : "";
   fetch(`/api/track-click?tipo=${tipo}${query}`).catch(() => {});
-
-  window.open(link, "_blank");
-}
-*/
-function abrirWhatsapp(): void {
-  const NUMERO_KUBIKO = "244939351150";
-  const mensagemBase = "Olá! Tenho interesse em avançar com a Beeznoo.";
-
-  const texto = encodeURIComponent(mensagemBase);
-  const link = `https://wa.me/${NUMERO_KUBIKO}?text=${texto}`;
-  fetch(`/api/track-click`).catch(() => {});
 
   window.open(link, "_blank");
 }
@@ -65,7 +59,72 @@ function StatCounter({ value, prefix = "", suffix = "", decimals = 0 }: {
   return <motion.span ref={ref}>{displayValue}</motion.span>;
 }
 
+function ContactModal({
+  setContactModalOpen,
+  abrirWhatsapp,
+}: ContactModalProps)
+{
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6 backdrop-blur-md"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={() => setContactModalOpen(false)}
+    >
+      <motion.div
+        className="w-full max-w-sm rounded-2xl border border-white/20 bg-background/90 p-6 shadow-2xl backdrop-blur-xl"
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 20 }}
+        transition={{ duration: 0.2, ease }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-foreground">
+            Como vais utilizar a Beeznoo?
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Escolhe uma opção para continuarmos pelo WhatsApp.
+          </p>
+        </div>
+
+        <div className="grid gap-3">
+          <button onClick={() => {abrirWhatsapp("arrendador"); setContactModalOpen(false)}} className="group flex items-center cursor-pointer justify-between rounded-xl border border-border-bg bg-secondary px-4 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-card">
+            <div>
+              <div className="font-semibold text-secondary-foreground">
+                Arrendador
+              </div>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                Quero publicar o meu equipamento
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+          </button>
+
+          <button onClick={() => {abrirWhatsapp("arrendatario"); setContactModalOpen(false)}} className="group flex items-center cursor-pointer justify-between rounded-xl bg-primary px-4 py-4 text-left text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift">
+            <div>
+              <div className="font-semibold">
+                Arrendatário
+              </div>
+              <div className="mt-0.5 text-xs text-primary-foreground/70">
+                Quero encontrar um equipamento
+              </div>
+            </div>
+            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+          </button>
+        </div>
+
+        <button onClick={() => setContactModalOpen(false)} className="mt-5 w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground">
+          Cancelar
+        </button>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 export default function BeeznoHero() {
+  const [contactModalOpen, setContactModalOpen] = useState(false);
   return (
     <motion.section id="explore" className="relative flex min-h-screen items-center overflow-hidden bg-background" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
 
@@ -141,11 +200,13 @@ export default function BeeznoHero() {
 
           {/* CTA 3 — WhatsApp: accent → shield sliding */}
           <div className="mt-4 flex">
-          <button
-            onClick={abrirWhatsapp}
-            className="group relative overflow-hidden text-sm cursor-pointer rounded-sm bg-accent px-14 py-2 font-semibold text-accent-foreground transition-shadow duration-300 hover:shadow-card"
-          >
+          <button onClick={() => setContactModalOpen(true)} className="group relative flex items-center gap-2 overflow-hidden text-sm cursor-pointer rounded-sm bg-accent px-14 py-2 font-semibold text-accent-foreground transition-shadow duration-300 hover:shadow-card">
             <span className="absolute inset-0 -translate-x-full bg-shield transition-transform duration-300 ease-out group-hover:translate-x-0" />
+
+            <svg viewBox="0 0 24 24" className="h-4 w-4 transition-transform duration-200 group-hover:scale-110 group-hover:text-shield-foreground" fill="currentColor" aria-hidden="true">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+              <path d="M20.52 3.449A11.82 11.82 0 0 0 12.04 0C5.495 0 .16 5.335.157 11.882c0 2.096.547 4.142 1.588 5.946L.057 24l6.304-1.654a11.88 11.88 0 0 0 5.674 1.447h.005c6.542 0 11.88-5.335 11.883-11.882a11.82 11.82 0 0 0-3.403-8.462zM12.04 21.785h-.004a9.86 9.86 0 0 1-5.031-1.378l-.361-.214-3.741.982.999-3.648-.235-.374a9.87 9.87 0 0 1-1.509-5.27c.002-5.45 4.437-9.884 9.89-9.884a9.83 9.83 0 0 1 7.008 2.906 9.83 9.83 0 0 1 2.903 7.01c-.003 5.45-4.438 9.87-9.919 9.87z" />
+            </svg>
             <span className="relative transition-colors duration-300 group-hover:text-shield-foreground">
               Entrar em contacto pelo WhatsApp
             </span>
@@ -218,6 +279,9 @@ export default function BeeznoHero() {
           </div>
         </motion.div>
       </div>
+      <AnimatePresence>
+        {contactModalOpen && <ContactModal setContactModalOpen={setContactModalOpen} abrirWhatsapp={abrirWhatsapp}/>}
+      </AnimatePresence>
     </motion.section>
   );
 }
