@@ -61,7 +61,7 @@ export default function BeeznoCategories() {
   };
 
   return (
-    <motion.section className="bg-background px-6 py-10 sm:px-8" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
+    <motion.section id="categories" className="bg-background px-6 py-10 sm:px-8" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
       <h1 className="mb-8 text-3xl font-bold font-display sm:text-4xl">
         Explora por categorias
       </h1>

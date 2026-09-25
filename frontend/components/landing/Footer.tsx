@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 
 function BeeznoMark() {
   return (
@@ -21,7 +22,7 @@ export default function BeeznoFooter()
         <div>
           <p className="flex items-center gap-2 font-display text-lg font-semibold">
             <a href="#" className="flex shrink-0 items-center gap-2">
-              <BeeznoMark />
+            <Image src="/png/beeznoo-icon-512.png" alt="logo" width={30} height={30}/>
             </a>
             Beeznoo
           </p>

@@ -17,7 +17,7 @@ interface StepCardProps {
 const StepCard: React.FC<StepCardProps> = ({ icon, step, title, description }) => (
   <motion.div
     className={cn(
-      "relative rounded-2xl border border-border-bg/10 bg-primary cursor-pointer p-6 text-primary-foreground",
+      "relative rounded-md border border-border-bg/10 bg-primary cursor-pointer p-6 text-primary-foreground",
       "transition-all duration-300 ease-in-out",
       "hover:shadow-xl hover:border-white/20 hover:bg-white/10"
     )}
@@ -71,7 +71,7 @@ export default function BeeznoHowItWorks() {
   ];
 
   return (
-    <motion.section className="overflow-hidden bg-primary px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
+    <motion.section id="howworks" className="overflow-hidden bg-primary px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
