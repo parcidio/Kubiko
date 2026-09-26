@@ -1,4 +1,4 @@
-import { MapPin, Banknote, Tag, Bookmark, Calendar } from "lucide-react"
+import { MapPin, Banknote, Tag, Bookmark, Calendar, ChevronDown } from "lucide-react"
 
 export default function BeeznoFilters()
 {
@@ -22,6 +22,22 @@ export default function BeeznoFilters()
                     <div className="rounded-lg bg-background px-6 py-8">
                         <div>
                             <h1 className="font-bold">Editar preferências</h1>
+                        </div>
+                        <div>
+                            <h1 className="font-bold">Editar preferências</h1>
+                            {stats.map((stat) => (
+                                <div key={stat.label}>
+                                <button className="mt-4 flex w-full cursor-pointer items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <stat.icon className="h-5 w-5 text-muted-foreground" />
+                                    <span className="text-sm font-bold text-foreground">
+                                      {stat.label}
+                                    </span>
+                                  </div>
+                                  <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200" />
+                                </button>
+                              </div>
+                            ))}
                         </div>
                     </div>
                 </div>
