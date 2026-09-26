@@ -23,9 +23,6 @@ export default function BeeznoFilters()
                     <div className="rounded-lg bg-background px-6 py-8">
                         <div>
                             <h1 className="font-bold">Editar preferências</h1>
-                        </div>
-                        <div>
-                            <h1 className="font-bold">Editar preferências</h1>
                             {stats.map((stat) => (
                                 <div key={stat.label}>
                                 <button className="mt-4 flex w-full cursor-pointer items-center justify-between">
