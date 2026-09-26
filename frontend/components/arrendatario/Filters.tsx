@@ -1,12 +1,13 @@
-import { MapPin, Banknote, Tag, Bookmark, Calendar, ChevronDown } from "lucide-react"
+import { MapPin, Banknote, Search, Bookmark, Calendar, ChevronDown } from "lucide-react"
 
 export default function BeeznoFilters()
 {
     const stats = [
-  { icon: MapPin, label: "Província" },
-  { icon: Banknote, label: "Preço" },
-  { icon: Bookmark, label: "Categoria" },
-];
+        { icon: Search, label: "Pesquisar" },
+        { icon: Bookmark, label: "Categoria" },
+        { icon: Banknote, label: "Preço" },
+        { icon: Calendar, label: "Datas" },
+      ];
     return (
         <div className="px-6 py-16 sm:px-8 sm:py-20">
             <div className="fixed rounded-lg bg-card border border-border-bg max-w-2xl">
