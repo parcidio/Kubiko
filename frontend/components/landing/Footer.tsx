@@ -27,8 +27,8 @@ export default function BeeznoFooter()
             Beeznoo
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            Arrendamento de bens entre particulares e empresas, com seguro incluído em cada contrato.
-            Luanda, Angola.
+            Arrendamento de equipamento entre particulares e empresas, com caução incluído em cada contrato.
+            Luanda.
           </p>
         </div>
         <div className="text-sm">
@@ -52,6 +52,8 @@ export default function BeeznoFooter()
           </ul>
         </div>
         <div className="text-sm">
+          {/**
+           * 
           <p className="font-semibold">Seguro</p>
           <ul className="mt-3 space-y-2 text-muted-foreground">
             <li>
@@ -70,6 +72,7 @@ export default function BeeznoFooter()
               </Link>
             </li>
           </ul>
+           */}
         </div>
         <div className="text-sm">
           <p className="font-semibold">Pagamentos</p>

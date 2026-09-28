@@ -5,10 +5,10 @@ import { motion } from "framer-motion";
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
 const tableRows = [
-  { label: "Custo inicial", buy: "Alto",          kubiko: "Só o dia de uso"  },
-  { label: "Manutenção",    buy: "Por tua conta", kubiko: "Não aplicável"    },
-  { label: "Proteção",      buy: "—",             kubiko: "Caução incluída"  },
-  { label: "Variedade",     buy: "1 equipamento", kubiko: "Catálogo todo"    },
+  { label: "Custo inicial", buy: "Alto",          beeznoo: "Só o dia de uso"  },
+  { label: "Manutenção",    buy: "Por tua conta", beeznoo: "Não aplicável"    },
+  { label: "Proteção",      buy: "—",             beeznoo: "Caução incluída"  },
+  { label: "Variedade",     buy: "1 equipamento", beeznoo: "Catálogo todo"    },
 ];
 
 const featured = [
@@ -51,10 +51,10 @@ export default function BeeznoHighlights() {
               <div className="grid grid-cols-3 border-b border-border-bg pb-3">
                 <div />
                 <p className="text-center text-sm font-medium text-muted-foreground">Comprar</p>
-                <p className="text-center text-sm font-semibold text-foreground">Kubiko</p>
+                <p className="text-center text-sm font-semibold text-foreground">Beeznoo</p>
               </div>
 
-              {tableRows.map(({ label, buy, kubiko }, i) => (
+              {tableRows.map(({ label, buy, beeznoo }, i) => (
                 <div
                   key={label}
                   className={`grid grid-cols-3 items-center py-4 ${
@@ -63,7 +63,7 @@ export default function BeeznoHighlights() {
                 >
                   <span className="text-sm text-foreground">{label}</span>
                   <span className="text-center text-sm text-muted-foreground">{buy}</span>
-                  <span className="text-center text-sm font-semibold text-shield">{kubiko}</span>
+                  <span className="text-center text-sm font-semibold text-shield">{beeznoo}</span>
                 </div>
               ))}
             </div>

@@ -12,7 +12,7 @@ const checklistItems = [
 ];
 
 function abrirWhatsapp(): void {
-  const NUMERO = "244939351150";
+  const NUMERO = "244932300335";
   const texto  = encodeURIComponent("Olá! Sou um cliente e tenho interesse em saber sobre a Beeznoo.");
   fetch(`/api/track-click`).catch(() => {});
   window.open(`https://wa.me/${NUMERO}?text=${texto}`, "_blank");
@@ -86,7 +86,7 @@ export default function BeeznoSecuring() {
               <span className="absolute inset-0 -translate-x-full skew-x-[-20deg] cursor-pointer bg-linear-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
 
               <span className="relative cursor-pointer">
-                Quero encontrar o meu próximo imóvel
+                Quero encontrar o meu próximo equipamento
               </span>
             </button>
           </motion.div>
