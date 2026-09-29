@@ -13,7 +13,7 @@ const navLinks = [
 ];
 
 function abrirWhatsapp(): void {
-  const NUMERO = "244939351150";
+  const NUMERO = "244932300335";
   const texto  = encodeURIComponent("Olá! Sou um cliente e tenho interesse em saber sobre a Beeznoo.");
   fetch(`/api/track-click`).catch(() => {});
   window.open(`https://wa.me/${NUMERO}?text=${texto}`, "_blank");
@@ -87,15 +87,15 @@ export default function BeeznoNavbar() {
             <span>WhatsApp</span>
           </button>
 
-          <Link href="/arrendatario" className="cursor-pointer rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/85 hover:shadow-lg active:translate-y-0">
+          <button className="cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 rounded-full bg-primary px-5 py-2 text-sm font-medium text-primary-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/85 hover:shadow-lg active:translate-y-0">
             Entrar
-          </Link>
+          </button>
         </div>
 
         {/* Botão menu mobile */}
         <button
           onClick={() => setOpen((v) => !v)}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary lg:hidden"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-border-bg bg-secondary lg:hidden"
           aria-label={open ? "Fechar menu" : "Abrir menu"}
         >
           {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -104,7 +104,7 @@ export default function BeeznoNavbar() {
 
       {/* Menu mobile */}
       {open && (
-        <div className="border-t border-border bg-background px-6 py-4 lg:hidden">
+        <div className="border-t border-border-bg bg-background px-6 py-4 lg:hidden">
           <nav className="flex flex-col gap-4">
             {navLinks.map(({ label, href, id }) => (
               <a
@@ -123,21 +123,21 @@ export default function BeeznoNavbar() {
           </nav>
 
           <div className="mt-5 flex flex-col gap-2.5">
-            <button className="flex items-center justify-center gap-1.5 rounded-full border border-border bg-secondary px-4 py-2.5 text-sm text-secondary-foreground">
+            <button className="flex items-center justify-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2.5 text-sm text-secondary-foreground">
               <MapPin className="h-4 w-4" />
               Luanda
               <ChevronDown className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={abrirWhatsapp}
-              className="flex items-center justify-center gap-1.5 rounded-full border border-border bg-secondary px-4 py-2.5 text-sm font-medium text-secondary-foreground"
+              className="flex items-center justify-center gap-1.5 rounded-full border border-border-bg bg-secondary px-4 py-2.5 text-sm font-medium text-secondary-foreground"
             >
               <MessageCircle className="h-4 w-4" />
               WhatsApp
             </button>
-            <button className="rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground">
+            <Link href="/items" className="rounded-full bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground text-center">
               Entrar
-            </button>
+            </Link>
           </div>
         </div>
       )}
