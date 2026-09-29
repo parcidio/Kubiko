@@ -36,7 +36,7 @@ management:
         include: health,info
 
 jwt:
-  secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET:beeznoo-super-secret-jwt-token-key-256bits-minimum-length-key}
   expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
   refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:30}
 
@@ -45,3 +45,6 @@ ombala:
   token: ${OMBALA_TOKEN}
   sender: ${OMBALA_SENDER}
   otp-expiration-minutes: ${OMBALA_OTP_EXPIRATION_MINUTES:10}
+
+app:
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}

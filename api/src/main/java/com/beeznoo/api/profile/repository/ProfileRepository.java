@@ -10,6 +10,8 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
 
     Optional<Profile> findByPhone(String phone);
 
+    Optional<Profile> findByEmail(String email);
+
     Optional<Profile> findByGoogleId(String googleId);
 
     boolean existsByPhone(String phone);

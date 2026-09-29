@@ -36,6 +36,7 @@ public class ProfileService {
                 .fullName(request.fullName())
                 .email(request.email())
                 .role(request.role())
+                .passwordHash("")
                 .build();
 
         profile = profileRepository.save(profile);

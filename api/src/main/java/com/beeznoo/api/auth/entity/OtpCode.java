@@ -16,6 +16,11 @@ import java.util.UUID;
 @Builder
 public class OtpCode {
 
+    public enum Purpose {
+        REGISTRATION,
+        PASSWORD_RESET
+    }
+
     @Id
     @GeneratedValue
     @UuidGenerator
@@ -24,6 +29,10 @@ public class OtpCode {
 
     @Column(nullable = false)
     private String phone;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private Purpose purpose;
 
     @Column(name = "code_hash", nullable = false)
     private String codeHash;

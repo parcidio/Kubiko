@@ -1,7 +1,8 @@
 -- ============================================================
 -- V1__init_profiles_accounts.sql
--- Auth: OTP via WhatsApp (principal) + Google OAuth (opcional)
--- Sem password — o OTP é o único fator de autenticação
+-- Auth: telefone + password (principal) + Google OAuth (opcional)
+-- OTP via Ombala SMS: verificação de número no registo
+--                     e recuperação de password
 -- ============================================================
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
@@ -10,29 +11,31 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- PROFILES
 -- ============================================================
 CREATE TABLE profiles (
-    id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    full_name    TEXT        NOT NULL,
-    phone        TEXT        NOT NULL UNIQUE,
-    email        TEXT        UNIQUE,
-    google_id    TEXT        UNIQUE,
-    avatar_url   TEXT,
-    province     TEXT,
-    city         TEXT,
-    role         VARCHAR(20) NOT NULL DEFAULT 'RENTER'
-                    CONSTRAINT chk_profiles_role
-                    CHECK (role IN ('OWNER','RENTER','BOTH','ADMIN')),
-    is_verified  BOOLEAN     NOT NULL DEFAULT FALSE,
-    rating_avg   NUMERIC(3,2),
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                          id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+                          full_name     TEXT        NOT NULL,
+                          phone         TEXT        NOT NULL UNIQUE,
+                          email         TEXT        UNIQUE,
+                          password_hash TEXT        NOT NULL,
+                          google_id     TEXT        UNIQUE,
+                          avatar_url    TEXT,
+                          province      TEXT,
+                          city          TEXT,
+                          role          VARCHAR(20) NOT NULL DEFAULT 'RENTER'
+                              CONSTRAINT chk_profiles_role
+                                  CHECK (role IN ('OWNER','RENTER','BOTH','ADMIN')),
+                          is_verified   BOOLEAN     NOT NULL DEFAULT FALSE,
+                          rating_avg    NUMERIC(3,2),
+                          created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                          updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX idx_profiles_phone     ON profiles (phone);
+CREATE INDEX idx_profiles_email     ON profiles (email);
 CREATE INDEX idx_profiles_google_id ON profiles (google_id);
 CREATE INDEX idx_profiles_role      ON profiles (role);
 
 -- ============================================================
--- ACCOUNTS
+-- ACCOUNTS — wallet 1:1 com profiles
 -- ============================================================
 CREATE TABLE accounts (
     id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -42,7 +45,6 @@ CREATE TABLE accounts (
     currency          VARCHAR(3)    NOT NULL DEFAULT 'AOA',
     created_at        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-
     CONSTRAINT chk_accounts_available_balance CHECK (available_balance >= 0),
     CONSTRAINT chk_accounts_held_balance      CHECK (held_balance >= 0)
 );
@@ -51,18 +53,21 @@ CREATE INDEX idx_accounts_profile_id ON accounts (profile_id);
 
 -- ============================================================
 -- OTP_CODES
--- Código temporário enviado via WhatsApp — guardado como hash
+-- Usado em: verificação de número (registo) + recuperação de password
 -- ============================================================
 CREATE TABLE otp_codes (
     id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     phone       TEXT        NOT NULL,
+    purpose     VARCHAR(30) NOT NULL
+                CONSTRAINT chk_otp_purpose
+                CHECK (purpose IN ('REGISTRATION','PASSWORD_RESET')),
     code_hash   TEXT        NOT NULL,
     expires_at  TIMESTAMPTZ NOT NULL,
     used_at     TIMESTAMPTZ,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_otp_codes_phone ON otp_codes (phone);
+CREATE INDEX idx_otp_codes_phone_purpose ON otp_codes (phone, purpose);
 
 -- ============================================================
 -- REFRESH_TOKENS

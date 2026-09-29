@@ -32,6 +32,9 @@ public class Profile {
     @Column(unique = true)
     private String email;
 
+    @Column(name = "password_hash", nullable = false)
+    private String passwordHash;
+
     @Column(name = "google_id", unique = true)
     private String googleId;
 
