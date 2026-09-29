@@ -1,6 +1,7 @@
     package com.beeznoo.api.config;
     
     import com.beeznoo.api.auth.security.JwtAuthFiltter;
+    import com.beeznoo.api.auth.security.OAuth2SuccessHandler;
     import lombok.RequiredArgsConstructor;
     import org.springframework.context.annotation.Bean;
     import org.springframework.context.annotation.Configuration;
@@ -18,6 +19,7 @@
     public class SecurityConfig {
     
         private final JwtAuthFiltter jwtAuthFiltter;
+        private final OAuth2SuccessHandler oAuth2SuccessHandler;
     
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http)  throws Exception {
@@ -26,24 +28,23 @@
                     .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers(
-                                    "/api/v1/auth/**",
+                                    "/api/v1/auth/register",
+                                    "/api/v1/auth/register/verify",
+                                    "/api/v1/auth/login",
+                                    "/api/v1/auth/refresh",
+                                    "/api/v1/auth/password/reset/request",
+                                    "/api/v1/auth/password/reset/confirm",
                                     "/api/v1/items/**",
+                                    "/oauth2/**",
                                     "/swagger-ui/**",
                                     "/swagger-ui.html",
-                                    "/v3/api-docs",
                                     "/v3/api-docs/**",
-                                    "/swagger-resources/",
-                                    "/webjars/**",
                                     "/actuator/health"
                             ).permitAll()
                             .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "MODERADOR")
                             .anyRequest().authenticated()
                     )
-                    .oauth2Login(oauth2 -> oauth2
-                            .successHandler((request, response, authentication) -> {
-                                response.sendRedirect("/api/v1/auth/oauth/success");
-                            })
-                    )
+                    .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2SuccessHandler))
                     .addFilterBefore(jwtAuthFiltter, UsernamePasswordAuthenticationFilter.class)
                     .build();
         }

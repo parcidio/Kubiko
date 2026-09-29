@@ -12,7 +12,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, UUID
 
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE RefreshToken r SET r.revokedAt = CURRENT_TIMESTAMP WHERE r.profile.id = :profileId AND r.revokedAt IS NULL")
     void revokedAllForProfile(UUID profileId);
 }

@@ -1,16 +1,17 @@
 package com.beeznoo.api.auth.service;
 
-import com.beeznoo.api.auth.dto.AuthResponse;
-import com.beeznoo.api.auth.dto.VerifyOptRequest;
+import com.beeznoo.api.auth.dto.AuthDtos.*;
 import com.beeznoo.api.auth.entity.OtpCode;
+import com.beeznoo.api.auth.entity.OtpCode.Purpose;
 import com.beeznoo.api.auth.entity.RefreshToken;
 import com.beeznoo.api.auth.repository.OtpCodeRepository;
 import com.beeznoo.api.auth.repository.RefreshTokenRepository;
 import com.beeznoo.api.config.JwtProperties;
 import com.beeznoo.api.config.OmbalaProperties;
-import com.beeznoo.api.profile.dto.CreateProfileRequest;
 import com.beeznoo.api.profile.entity.Profile;
-import com.beeznoo.api.profile.service.ProfileService;
+import com.beeznoo.api.profile.repository.ProfileRepository;
+import com.beeznoo.api.transaction.entity.Account;
+import com.beeznoo.api.transaction.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -26,9 +27,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private final AccountRepository accountRepository;
     private final OtpCodeRepository otpCodeRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final ProfileService profileService;
+    private final ProfileRepository profileRepository;
     private final OmbalaSmsService ombalaSmsService;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
@@ -38,98 +40,172 @@ public class AuthService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
-    public void sendOtp(String phone) {
+    public void register(RegisterRequest request) {
+        if (profileRepository.existsByPhone(request.phone())) {
+            throw new IllegalArgumentException("Ester número já está registado.");
+        }
+        if (request.email() != null && profileRepository.existsByEmail(request.email())) {
+            throw  new IllegalArgumentException("Este email já está em uso.");
+        }
 
-        otpCodeRepository.invalidateAllForPhone(phone);
-
-        String code = generateOtpCode();
-
-        OtpCode otpCode = OtpCode.builder()
-                .phone(phone)
-                .codeHash(encoder.encode(code))
-                .expiresAt(OffsetDateTime.now().plusMinutes(ombalaProperties.otpExpirationMinutes()))
+        Profile profile = Profile.builder()
+                .fullName(request.fullName())
+                .phone(request.phone())
+                .email(request.email())
+                .passwordHash(encoder.encode(request.password()))
+                .role(request.role())
+                .isVerified(false)
                 .build();
 
-        otpCodeRepository.save(otpCode);
+        profileRepository.save(profile);
 
-        ombalaSmsService.sendOtp(phone, code);
+        accountRepository.save(Account.builder().profile(profile).build());
+
+        sendOtp(request.phone(), Purpose.REGISTRATION);
     }
 
     @Transactional
-    public AuthResponse verifyOtp(VerifyOptRequest request) {
+    public AuthResponse verifyRegistration(VerifyRegistrationRequest request) {
+        consumeOtp(request.phone(), request.code(), Purpose.REGISTRATION);
 
-        OtpCode otpCode = otpCodeRepository
-                .findLatestValidByPhone(request.phone())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Código inválido ou expirado. Solicita um novo código."
-                ));
+        Profile profile = profileRepository.findByPhone(request.phone())
+                .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado."));
 
-        if (!encoder.matches(request.code(), otpCode.getCodeHash())) {
-            throw new IllegalArgumentException("Código incorreto.");
-        }
+        profile.setVerified(true);
+        profileRepository.save(profile);
 
-        otpCode.setUsedAt(OffsetDateTime.now());
-        otpCodeRepository.save(otpCode);
-
-        Profile profile = profileService.findByPhone(request.phone())
-                .orElseGet(() -> profileService.createProfile(
-                        new CreateProfileRequest(
-                                request.phone(),
-                                request.fullName(),
-                                request.email(),
-                                request.role()
-                        )
-                ));
+        log.info("Registo concluído para {}", maskPhone(request.phone()));
         return issueTokens(profile);
     }
 
     @Transactional
-    public AuthResponse refreshToken(String rawRefreshToken) {
-
-        String tokenHash = encoder.encode(rawRefreshToken);
-
-        RefreshToken refreshToken = refreshTokenRepository
-                .findByTokenHash(tokenHash)
-                .orElseThrow(() -> new IllegalArgumentException("Refresh token inválido"));
-
-        if (!refreshToken.isValid()) {
-            throw new IllegalArgumentException("Refresh token expirado ou revogado");
+    public AuthResponse login(LoginRequest request) {
+        if (request.phone() == null && request.email() == null) {
+            throw new IllegalArgumentException("Número de telefone ou email é obrigatório.");
         }
 
-        refreshToken.setRevokedAt(OffsetDateTime.now());
-        refreshTokenRepository.save(refreshToken);
+        Profile profile = request.phone() != null
+                ? profileRepository.findByPhone(request.phone())
+                .orElseThrow(() -> new IllegalArgumentException("Credenciais inválidas."))
+                : profileRepository.findByEmail(request.email())
+                .orElseThrow(() -> new IllegalArgumentException("Credenciais inválidas."));
 
-        return issueTokens(refreshToken.getProfile());
+        if (!encoder.matches(request.password(), profile.getPasswordHash())) {
+            throw new IllegalArgumentException("Credenciais inválidas.");
+        }
+
+        if (!profile.isVerified()) {
+            throw new IllegalArgumentException("Número de Telefone ainda não verificado. Verifica o teu SMS.");
+        }
+
+        return issueTokens(profile);
+    }
+
+    @Transactional
+    public void requestPassword(PasswordResetRequest request) {
+        if (profileRepository.existsByPhone(request.phone())) {
+            sendOtp(request.phone(), Purpose.PASSWORD_RESET);
+        }
+    }
+
+    @Transactional
+    public void confirmPasswordReset(PasswordResetConfirmRequest request) {
+        consumeOtp(request.phone(), request.code(), Purpose.PASSWORD_RESET);
+
+        Profile profile = profileRepository.findByPhone(request.phone())
+                .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado."));
+
+        profile.setPasswordHash(encoder.encode(request.newPassword()));
+        profileRepository.save(profile);
+
+        refreshTokenRepository.revokedAllForProfile(profile.getId());
+
+        log.info("Password redefinida para {}", maskPhone(request.phone()));
+    }
+
+    @Transactional
+    public AuthResponse refresh(String rawRefreshToken) {
+        String hashedToken = hashToken(rawRefreshToken);
+        RefreshToken token = refreshTokenRepository
+                .findByTokenHash(hashedToken)
+                .orElseThrow(() -> new IllegalArgumentException("Refresh token inválido."));
+
+        if (!token.isValid()) {
+            throw new IllegalArgumentException("Refresh token expirado ou revogado.");
+        }
+
+        token.setRevokedAt(OffsetDateTime.now());
+        refreshTokenRepository.save(token);
+
+        return issueTokens(token.getProfile());
     }
 
     @Transactional
     public void logout(UUID profileId) {
         refreshTokenRepository.revokedAllForProfile(profileId);
-        log.info("Logout: todos os refresh tokens revogados para o perfil {}" ,profileId);
+        log.info("Logout: refresh tokens revogados para profileId={}", profileId);
+    }
+
+    private void sendOtp(String phone, Purpose purpose) {
+        otpCodeRepository.invalidateAllForPhone(phone, purpose);
+
+        String code = String.valueOf(100_000 + secureRandom.nextInt(900_00));
+
+        otpCodeRepository.save(OtpCode.builder()
+                .phone(phone)
+                .purpose(purpose)
+                .codeHash(encoder.encode(code))
+                .expiresAt(OffsetDateTime.now().plusMinutes(ombalaProperties.otpExpirationMinutes()))
+                .build());
+
+        ombalaSmsService.sendOtp(phone, code);
+    }
+
+    private void consumeOtp(String phone, String code, Purpose purpose) {
+        OtpCode otpCode = otpCodeRepository.findLatestValid(phone, purpose)
+                .orElseThrow(() -> new IllegalArgumentException("Código inválido ou expirado. Solicita um novo."));
+
+        if (!encoder.matches(code, otpCode.getCodeHash())) {
+            throw new IllegalArgumentException("Código incorreto.");
+        }
+
+        otpCode.setUsedAt(OffsetDateTime.now());
+        otpCodeRepository.save(otpCode);
     }
 
     private AuthResponse issueTokens(Profile profile) {
+        String accessToken = jwtService.generateAccessToken(
+                profile.getId(), profile.getRole().name());
 
-        String accessToken = jwtService.generateAccessToken(profile.getId(), profile.getRole().name());
-
-        String rawRefreshToken = UUID.randomUUID().toString();
+        String rawRefresh = UUID.randomUUID().toString();
 
         refreshTokenRepository.save(RefreshToken.builder()
                 .profile(profile)
-                .tokenHash(encoder.encode(rawRefreshToken))
+                .tokenHash(hashToken(rawRefresh))
                 .expiresAt(OffsetDateTime.now().plusDays(jwtProperties.refreshExpirationDays()))
-                .build()
-        );
+                .build());
 
-        return new AuthResponse(
-                accessToken,
-                rawRefreshToken,
-                jwtService.accessTokenExpiresInSeconds()
-        );
+        return new AuthResponse(accessToken, rawRefresh, jwtService.accessTokenExpiresInSeconds());
     }
 
-    private String generateOtpCode() {
-        int code = 100_000 + secureRandom.nextInt(900_000);
-        return String.valueOf(code);
+    private String hashToken(String rawToken) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawToken.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 não disponível", e);
+        }
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() < 6) return "***";
+        return phone.substring(0, phone.length() - 6) + "***" + phone.substring(phone.length() - 3);
     }
 }
