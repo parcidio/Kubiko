@@ -8,6 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.rmi.AccessException;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -63,5 +64,10 @@ public class GlobalExceptionHandler {
         public ErrorBody(int status, String message, Map<String, String> fields) {
             this(status, message, fields, OffsetDateTime.now());
         }
+    }
+
+    @ExceptionHandler(AccessException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDenied(AccessException ex) {
+        return ResponseEntity.status(403).body(Map.of("error", ex.getMessage()));
     }
 }

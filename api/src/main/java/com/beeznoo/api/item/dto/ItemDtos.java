@@ -24,6 +24,7 @@ public class ItemDtos {
     public record UpdateItemRequest(
             @Size(max = 200) String title,
             String description,
+            UUID categoryId,
             ItemCondition condition,
             @DecimalMin("0.01") BigDecimal pricePerDay,
             @DecimalMin("0.01") BigDecimal depositAmount,
@@ -64,7 +65,17 @@ public class ItemDtos {
             OffsetDateTime updatedAt
     ) {}
 
-
+    public record ItemSummaryResponse(
+            UUID id,
+            String title,
+            String condition,
+            BigDecimal pricePerDay,
+            String province,
+            String city,
+            String status,
+            String coverPhoto,
+            OffsetDateTime createdAt
+    ) {}
 }
 
 
