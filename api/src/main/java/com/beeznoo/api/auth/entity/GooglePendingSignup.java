@@ -1,5 +1,6 @@
 package com.beeznoo.api.auth.entity;
 
+import com.beeznoo.api.profile.entity.UserRole;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
@@ -8,41 +9,39 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "otp_codes")
+@Table(name = "google_pending_signups")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class OtpCode {
-
-    public enum Purpose {
-        REGISTRATION,
-        PASSWORD_RESET,
-        GOOGLE_REGISTRATION
-    }
+public class GooglePendingSignup {
 
     @Id
     @GeneratedValue
     @UuidGenerator
     @Column(updatable = false, nullable = false)
-    private UUID id;
+    private UUID token;
 
-    @Column(nullable = false)
+    @Column(name = "google_id", nullable = false)
+    private String googleId;
+
+    private String email;
+
+    @Column(name = "full_name")
+    private String fullName;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
     private String phone;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private Purpose purpose;
+    @Column(length = 20)
+    private UserRole role;
 
-    @Column(name = "code_hash", nullable = false)
-    private String codeHash;
-
-    @Column(name = "expires_at")
+    @Column(name = "expires_at", nullable = false)
     private OffsetDateTime expiresAt;
-
-    @Column(name = "used_at")
-    private  OffsetDateTime usedAt;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -54,13 +53,5 @@ public class OtpCode {
 
     public boolean isExpired() {
         return OffsetDateTime.now().isAfter(expiresAt);
-    }
-
-    public boolean isUsed() {
-        return usedAt != null;
-    }
-
-    public boolean isValid() {
-        return !isExpired() && !isUsed();
     }
 }

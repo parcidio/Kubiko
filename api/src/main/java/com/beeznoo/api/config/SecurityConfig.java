@@ -3,6 +3,7 @@
     import com.beeznoo.api.auth.security.JwtAuthFiltter;
     import com.beeznoo.api.auth.security.OAuth2SuccessHandler;
     import lombok.RequiredArgsConstructor;
+    import org.springframework.http.HttpMethod;
     import org.springframework.context.annotation.Bean;
     import org.springframework.context.annotation.Configuration;
     import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -28,19 +29,24 @@
                     .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                     .authorizeHttpRequests(auth -> auth
                             .requestMatchers(
+                                    "/",
                                     "/api/v1/auth/register",
                                     "/api/v1/auth/register/verify",
                                     "/api/v1/auth/login",
                                     "/api/v1/auth/refresh",
                                     "/api/v1/auth/password/reset/request",
                                     "/api/v1/auth/password/reset/confirm",
-                                    "/api/v1/items/**",
+                                    "/api/v1/auth/google/register",
+                                    "/api/v1/auth/google/verify",
                                     "/oauth2/**",
                                     "/swagger-ui/**",
                                     "/swagger-ui.html",
                                     "/v3/api-docs/**",
                                     "/actuator/health"
                             ).permitAll()
+                            .requestMatchers("/api/v1/items/me").authenticated()
+                            .requestMatchers(HttpMethod.GET, "/api/v1/items/**", "/api/v1/categories/**")
+                            .permitAll()
                             .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "MODERADOR")
                             .anyRequest().authenticated()
                     )
