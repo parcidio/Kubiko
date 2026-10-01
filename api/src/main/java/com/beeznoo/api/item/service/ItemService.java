@@ -14,7 +14,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.file.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -48,6 +49,7 @@ public class ItemService {
                 .category(category)
                 .title(request.title())
                 .description(request.description())
+                .condition(request.itemCondition())
                 .pricePerDay(request.pricePerDay())
                 .depositAmount(request.depositAmount())
                 .province(request.province())

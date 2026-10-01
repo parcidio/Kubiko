@@ -161,5 +161,43 @@ public class AuthController {
         return ResponseEntity.status(302).build();
     }
 
+    @Operation(
+            summary = "Registo via Google - passo 1",
+            description = """
+                    Completa o registo iniciado pelo callback do Google (que devolveu um
+                    `pendingToken` porque não existia perfil correspondente). Submete o
+                    número de telefone e o tipo de conta, e envia um OTP por SMS para
+                    confirmar o número.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "OTP enviado"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos, token expirado ou número já registado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/google/register")
+    public ResponseEntity<Void> registerGoogle(@Valid @RequestBody GoogleRegisterRequest request) {
+        authService.registerGoogle(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Registo via Google - passo 2",
+            description = """
+                    Confirma o número de telefone com o OTP recebido por SMS e cria o
+                    perfil já associado à conta Google. Devolve os tokens de sessão.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Perfil criado - tokens emitidos",
+                    content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Código inválido, expirado ou token de registo inválido",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/google/verify")
+    public ResponseEntity<AuthResponse> verifyGoogleRegistration(@Valid @RequestBody GoogleVerifyRequest request) {
+        return ResponseEntity.ok(authService.verifyGoogleRegistration(request));
+    }
+
     record ErrorResponse(String message, int status) {}
 }

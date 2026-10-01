@@ -1,9 +1,11 @@
 package com.beeznoo.api.auth.service;
 
 import com.beeznoo.api.auth.dto.AuthDtos.*;
+import com.beeznoo.api.auth.entity.GooglePendingSignup;
 import com.beeznoo.api.auth.entity.OtpCode;
 import com.beeznoo.api.auth.entity.OtpCode.Purpose;
 import com.beeznoo.api.auth.entity.RefreshToken;
+import com.beeznoo.api.auth.repository.GooglePendingSignupRepository;
 import com.beeznoo.api.auth.repository.OtpCodeRepository;
 import com.beeznoo.api.auth.repository.RefreshTokenRepository;
 import com.beeznoo.api.config.JwtProperties;
@@ -31,6 +33,7 @@ public class AuthService {
     private final OtpCodeRepository otpCodeRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final ProfileRepository profileRepository;
+    private final GooglePendingSignupRepository googlePendingSignupRepository;
     private final OmbalaSmsService ombalaSmsService;
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
@@ -99,6 +102,80 @@ public class AuthService {
         }
 
         return issueTokens(profile);
+    }
+
+    @Transactional
+    public AuthResponse issueTokensForProfile(UUID profileId) {
+        Profile profile = profileRepository.findById(profileId)
+                .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado."));
+        return issueTokens(profile);
+    }
+
+    @Transactional
+    public void registerGoogle(GoogleRegisterRequest request) {
+        GooglePendingSignup pending = findValidPendingSignup(request.pendingToken());
+
+        if (profileRepository.existsByPhone(request.phone())) {
+            throw new IllegalArgumentException("Ester número já está registado.");
+        }
+
+        pending.setPhone(request.phone());
+        pending.setRole(request.role());
+        googlePendingSignupRepository.save(pending);
+
+        sendOtp(request.phone(), Purpose.GOOGLE_REGISTRATION);
+    }
+
+    @Transactional
+    public AuthResponse verifyGoogleRegistration(GoogleVerifyRequest request) {
+        GooglePendingSignup pending = findValidPendingSignup(request.pendingToken());
+
+        if (pending.getPhone() == null || pending.getRole() == null) {
+            throw new IllegalArgumentException("Submete primeiro o teu número de telefone.");
+        }
+
+        consumeOtp(pending.getPhone(), request.code(), Purpose.GOOGLE_REGISTRATION);
+
+        if (profileRepository.existsByGoogleId(pending.getGoogleId())) {
+            throw new IllegalStateException("Esta conta Google já está associada a outro perfil.");
+        }
+
+        Profile profile = Profile.builder()
+                .fullName(pending.getFullName() != null ? pending.getFullName() : "Utilizador Beeznoo")
+                .phone(pending.getPhone())
+                .email(pending.getEmail())
+                .passwordHash("")
+                .googleId(pending.getGoogleId())
+                .avatarUrl(pending.getAvatarUrl())
+                .role(pending.getRole())
+                .isVerified(true)
+                .build();
+
+        profileRepository.save(profile);
+        accountRepository.save(Account.builder().profile(profile).build());
+        googlePendingSignupRepository.delete(pending);
+
+        log.info("Registo via Google concluído para {}", maskPhone(pending.getPhone()));
+        return issueTokens(profile);
+    }
+
+    private GooglePendingSignup findValidPendingSignup(String token) {
+        UUID tokenId;
+        try {
+            tokenId = UUID.fromString(token);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Pedido de registo Google inválido ou expirado.");
+        }
+
+        GooglePendingSignup pending = googlePendingSignupRepository.findById(tokenId)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido de registo Google inválido ou expirado."));
+
+        if (pending.isExpired()) {
+            googlePendingSignupRepository.delete(pending);
+            throw new IllegalArgumentException("Pedido de registo Google expirado. Inicia sessão com o Google novamente.");
+        }
+
+        return pending;
     }
 
     @Transactional

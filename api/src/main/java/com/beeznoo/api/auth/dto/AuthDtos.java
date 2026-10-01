@@ -60,6 +60,24 @@ public class AuthDtos {
             String newPassword
     ) {}
 
+    // ---- Registo via Google: passo 1 — submete telefone + role, envia OTP ----
+    public record GoogleRegisterRequest(
+            @NotBlank String pendingToken,
+
+            @NotBlank
+            @Pattern(regexp = "^\\+244[0-9]{9}$",
+                    message = "Número deve estar no formato angolano: +244XXXXXXXXX")
+            String phone,
+
+            @NotNull UserRole role
+    ) {}
+
+    // ---- Registo via Google: passo 2 — confirma número com OTP, cria o perfil ----
+    public record GoogleVerifyRequest(
+            @NotBlank String pendingToken,
+            @NotBlank String code
+    ) {}
+
     // ---- Refresh token ----
     public record RefreshRequest(
             @NotBlank String refreshToken

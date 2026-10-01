@@ -1,5 +1,7 @@
 package com.beeznoo.api.auth.security;
 
+import com.beeznoo.api.auth.entity.GooglePendingSignup;
+import com.beeznoo.api.auth.repository.GooglePendingSignupRepository;
 import com.beeznoo.api.auth.service.AuthService;
 import com.beeznoo.api.auth.dto.AuthDtos.*;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -15,6 +17,9 @@ import org.springframework.stereotype.Component;
 
 import com.beeznoo.api.profile.entity.Profile;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -42,6 +47,9 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final ProfileService profileService;
     private final ProfileRepository profileRepository;
     private final AuthService authService;
+    private final GooglePendingSignupRepository googlePendingSignupRepository;
+
+    private static final long PENDING_SIGNUP_TTL_MINUTES = 15;
 
     @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -62,7 +70,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         if (existingGoogle.isPresent()) {
             Profile profile = existingGoogle.get();
             log.info("Google OAuth: perfil já associado — profileId={}", profile.getId());
-            redirectWithSuccess(response, profile.getId());
+            redirectWithSuccess(response, profile.getId(), authService.issueTokensForProfile(profile.getId()));
             return;
         }
 
@@ -77,7 +85,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 }
                 profileRepository.save(profile);
                 log.info("Google OAuth: conta associada por email — profileId={}", profile.getId());
-                redirectWithSuccess(response, profile.getId());
+                redirectWithSuccess(response, profile.getId(), authService.issueTokensForProfile(profile.getId()));
                 return;
             }
         }
@@ -89,7 +97,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
                 UUID profileId = UUID.fromString(stateParam);
                 profileService.linkGoogle(profileId, googleId, email, avatarUrl);
                 log.info("Google OAuth: conta associada via state — profileId={}", profileId);
-                redirectWithSuccess(response, profileId);
+                redirectWithSuccess(response, profileId, authService.issueTokensForProfile(profileId));
                 return;
             } catch (IllegalArgumentException e) {
                 log.info("Google OAuth: state parâmetro não é UUID de perfil (CSRF state)");
@@ -100,17 +108,41 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             }
         }
 
-        log.warn("Google OAuth: nenhum perfil encontrado para associar ao googleId={}", googleId);
-        redirectWithError(response, "account_not_found");
+        // Caso 4: nenhum perfil encontrado — não há como criar um perfil sem telefone
+        // (profiles.phone é obrigatório), por isso guardamos os dados do Google
+        // temporariamente e pedimos ao frontend para completar o registo com o telefone.
+        GooglePendingSignup pending = googlePendingSignupRepository.save(GooglePendingSignup.builder()
+                .googleId(googleId)
+                .email(email)
+                .fullName(oidcUser.getFullName())
+                .avatarUrl(avatarUrl)
+                .expiresAt(OffsetDateTime.now().plusMinutes(PENDING_SIGNUP_TTL_MINUTES))
+                .build());
+
+        log.info("Google OAuth: nenhum perfil encontrado, registo pendente criado — pendingToken={}", pending.getToken());
+        redirectWithPendingPhone(response, pending.getToken());
     }
 
     private String getBaseRedirectUrl() {
         return (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl : "";
     }
 
-    private void redirectWithSuccess(HttpServletResponse response, UUID profileId) {
+    private void redirectWithSuccess(HttpServletResponse response, UUID profileId, AuthResponse tokens) {
         try {
-            response.sendRedirect(getBaseRedirectUrl() + "/oauth2/callback?status=success&profileId=" + profileId);
+            String url = getBaseRedirectUrl() + "/oauth2/callback?status=success"
+                    + "&profileId=" + profileId
+                    + "&accessToken=" + URLEncoder.encode(tokens.accessToken(), StandardCharsets.UTF_8)
+                    + "&refreshToken=" + URLEncoder.encode(tokens.refreshToken(), StandardCharsets.UTF_8)
+                    + "&expiresIn=" + tokens.expiresIn();
+            response.sendRedirect(url);
+        } catch (IOException e) {
+            log.error("Redirect falhou: {}", e.getMessage());
+        }
+    }
+
+    private void redirectWithPendingPhone(HttpServletResponse response, UUID pendingToken) {
+        try {
+            response.sendRedirect(getBaseRedirectUrl() + "/oauth2/callback?status=pending_phone&pendingToken=" + pendingToken);
         } catch (IOException e) {
             log.error("Redirect falhou: {}", e.getMessage());
         }

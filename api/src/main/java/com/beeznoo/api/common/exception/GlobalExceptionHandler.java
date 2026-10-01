@@ -3,12 +3,14 @@ package com.beeznoo.api.common.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import java.rmi.AccessException;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -46,6 +48,14 @@ public class GlobalExceptionHandler {
                 .body(new ErrorBody(HttpStatus.CONFLICT.value(), ex.getMessage(), null));
     }
 
+    // Rota desconhecida — sem isto, cai no fallback genérico abaixo e devolve 500 em vez de 404
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ResponseEntity<ErrorBody> handleNotFound(Exception ex) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(new ErrorBody(HttpStatus.NOT_FOUND.value(), "Rota não encontrada.", null));
+    }
+
     // Fallback — erros inesperados
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorBody> handleGeneral(Exception ex) {
@@ -66,8 +76,8 @@ public class GlobalExceptionHandler {
         }
     }
 
-    @ExceptionHandler(AccessException.class)
-    public ResponseEntity<Map<String, String>> handleAccessDenied(AccessException ex) {
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(403).body(Map.of("error", ex.getMessage()));
     }
 }
