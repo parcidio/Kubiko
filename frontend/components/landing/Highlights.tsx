@@ -34,18 +34,18 @@ const featured = [
 
 export default function BeeznoHighlights() {
   return (
-    <motion.section id="compare" className="bg-background px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
+    <motion.section id="compare" className="bg-card px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
       <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
           {/* ── Comprar vs Alugar ── */}
-          <motion.div className="flex flex-col rounded-2xl border border-border-bg bg-card p-6 sm:p-8" whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
-              Comprar vs<br />Alugar
-            </h2>
+          <motion.div className="flex flex-col rounded-2xl bg-chart-2 p-6 sm:p-8" whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
             <p className="mt-3 text-sm text-muted-foreground sm:text-base">
               Faz sentido alugar quando o uso é pontual.
             </p>
+            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
+              Comprar vs<br />Alugar
+            </h2>
 
             <div className="mt-8 flex-1">
               <div className="grid grid-cols-3 border-b border-border-bg pb-3">
@@ -70,13 +70,13 @@ export default function BeeznoHighlights() {
           </motion.div>
 
           {/* ── Em destaque ── */}
-          <motion.div className="flex flex-col rounded-2xl border border-border-bg bg-card p-6 sm:p-8" whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
-              Em destaque
-            </h2>
-            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+          <motion.div className="flex flex-col rounded-2xl bg-chart-3 p-6 sm:p-8" whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+            <p className="mt-2 text-sm text-primary-foreground sm:text-base">
               Alguns dos equipamentos disponíveis em Luanda
             </p>
+            <h2 className="font-display text-3xl font-bold text-shield-foreground sm:text-4xl">
+              Em destaque
+            </h2>
 
             <motion.div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }} initial="hidden" whileInView="visible" viewport={{ once: true }}>
               {featured.map(({ name, price, rating, image }) => (

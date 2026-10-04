@@ -17,24 +17,24 @@ interface StepCardProps {
 const StepCard: React.FC<StepCardProps> = ({ icon, step, title, description }) => (
   <motion.div
     className={cn(
-      "relative rounded-md border border-border-bg/10 bg-primary cursor-pointer p-6 text-primary-foreground",
+      "relative rounded-lg bg-background cursor-pointer p-8 text-primary-foreground",
       "transition-all duration-300 ease-in-out",
-      "hover:shadow-xl hover:border-white/20 hover:bg-white/10"
+      "hover:shadow-xl hover:border-white/20 hover:bg-background/90"
     )}
     variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
     whileHover={{ scale: 1.03 }}
     transition={{ type: "spring", stiffness: 300, damping: 20 }}
   >
     {/* Icon */}
-    <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-white/10 text-primary-foreground">
+    <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
       {icon}
     </div>
     {/* Step number */}
-    <p className="mb-2 text-sm font-medium text-primary-foreground/40">{step}</p>
+    <p className="mb-2 text-sm font-medium text-primary-foreground">{step}</p>
     {/* Title */}
-    <h3 className="mb-3 text-lg font-bold leading-snug">{title}</h3>
+    <h3 className="mb-3 text-lg font-bold leading-snug text-primary">{title}</h3>
     {/* Description */}
-    <p className="text-sm leading-relaxed text-primary-foreground/60">{description}</p>
+    <p className="text-sm leading-relaxed text-primary">{description}</p>
   </motion.div>
 );
 
@@ -71,15 +71,15 @@ export default function BeeznoHowItWorks() {
   ];
 
   return (
-    <motion.section id="howworks" className="overflow-hidden bg-primary px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
+    <motion.section id="howworks" className="overflow-hidden bg-card px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
         <div className="mb-12">
-          <h1 className="text-4xl font-semibold text-primary-foreground sm:text-5xl">
+          <h1 className="text-4xl font-semibold text-card-foreground sm:text-5xl">
             Como funciona
           </h1>
-          <p className="mt-4 text-base text-primary-foreground/50">
+          <p className="mt-4 text-base text-card-foreground/50">
             Quatro passos para transformar equipamento parado em rendimento
           </p>
         </div>

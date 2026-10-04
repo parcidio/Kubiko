@@ -88,9 +88,12 @@ export default function BeeznoCategories() {
       initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }} transition={{ duration: 0.7, ease }}
     >
-      <h1 className="mb-8 font-display text-3xl font-bold sm:text-4xl">
-        Explora por categorias
-      </h1>
+      <div className="flex flex-col gap-4 px-6 mx-auto">
+        <h1 className="uppercase tracking-widest text-xs font-sans font-bold text-shield">O que vais encontrar</h1>
+        <h1 className="mb-8 font-display text-3xl font-extrabold sm:text-4xl">
+          Do berbequim à betoneira.
+        </h1>
+      </div>
 
       {/* Desktop */}
       <motion.div
