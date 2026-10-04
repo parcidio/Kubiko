@@ -136,18 +136,26 @@ function HexIcon({ icon: Icon, hexColor, iconColor }: {
 // ── Componente principal ───────────────────────────────
 export default function BeeznoUseCases() {
   const [active, setActive] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval>>();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startTimer = useCallback(() => {
-    clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
+    if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }    
+      timerRef.current = setInterval(() => {
       setActive(prev => (prev + 1) % slides.length);
     }, INTERVAL);
   }, []);
 
   useEffect(() => {
     startTimer();
-    return () => clearInterval(timerRef.current);
+    return () => {
+        if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      };
+    }
   }, [startTimer]);
 
   const go = (dir: 1 | -1) => {
@@ -221,7 +229,7 @@ export default function BeeznoUseCases() {
             transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
           >
             {/* ── Desktop: lado a lado ── */}
-            <div className="hidden min-h-[300px] grid-cols-2 lg:grid">
+            <div className="hidden min-h-75 grid-cols-2 lg:grid">
               {/* Texto */}
               <div className="flex flex-col justify-center p-10">
                 <p className={`text-sm font-bold ${slide.counterColor}`}>
