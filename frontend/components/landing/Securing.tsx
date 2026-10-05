@@ -1,15 +1,8 @@
 "use client";
 import { motion } from "framer-motion";
-import { ShieldCheck, BadgeCheck, Truck } from "lucide-react";
+import { ShieldCheck, BadgeCheck, Truck, Search, Banknote, FileCheck2 } from "lucide-react";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
-
-const checklistItems = [
-  "Contrato gerado automaticamente",
-  "Caução protegida",
-  "Pagamento por Multicaixa Express",
-  "Suporte via WhatsApp",
-];
 
 function abrirWhatsapp(): void {
   const NUMERO = "244932300335";
@@ -19,77 +12,52 @@ function abrirWhatsapp(): void {
 }
 
 export default function BeeznoSecuring() {
+  const cards = [
+    {
+      title: "Perfis verificados",
+      icon: <Search className="h-5 w-5" />,
+      description:
+        "Todos os utilizadores confirmam a identidade antes de alugar ou disponibilizar.",
+    },
+    {
+      title: "Pagamentos pela plataforma",
+      icon: <ShieldCheck className="h-5 w-5" />,
+      description:
+        "Pagas e recebes dentro do Beeznoo, com registo de cada transação.",
+    },
+    {
+      title: "Caução protegida",
+      icon: <Banknote className="h-5 w-5" />,
+      description:
+        "A caução fica guardada durante o aluguer e é devolvida quando o equipamento é devolvido em bom estado.",
+    },
+    {
+      title: "Contrato em cada reserva",
+      icon: <FileCheck2 className="h-5 w-5" />,
+      description:
+        "Datas, preço, caução e condições ficam por escrito. Para os dois lados.",
+    },
+  ];
   return (
-    <motion.section className="bg-background px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
+    <motion.section className="bg-accent px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
       <div className="mx-auto max-w-6xl space-y-6">
 
-        {/* ── Linha 1: três cards distintos ── */}
         <motion.div className="grid grid-cols-1 gap-6 md:grid-cols-3" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }} initial="hidden" whileInView="visible" viewport={{ once: true }}>
 
           {/* Card 1: checklist */}
-          <motion.div className="rounded-2xl border border-border-bg bg-card p-6 sm:p-8" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-            <h2 className="text-xl font-bold text-foreground">Simples e transparente</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Do pedido à entrega, sem complicações.
-            </p>
-            <ul className="mt-6 space-y-0">
-              {checklistItems.map((item, i) => (
-                <li
-                  key={item}
-                  className={`flex items-center gap-3 py-3 ${
-                    i < checklistItems.length - 1 ? "border-b border-border-bg" : ""
-                  }`}
-                >
-                  <span className="text-sm font-bold text-shield">✓</span>
-                  <span className="text-sm text-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Card 2: destaque escuro centrado */}
-          <motion.div className="flex min-h-60 flex-col items-center justify-center rounded-2xl bg-primary p-6 text-center sm:p-8" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-shield-soft">
-              <ShieldCheck className="h-7 w-7 text-shield" />
-            </div>
-            <h2 className="text-xl font-bold text-primary-foreground">
-              Protegemos a transação
-            </h2>
-            <p className="mt-3 text-sm leading-relaxed text-primary-foreground/70">
-              Verificação de identidade e caução em toda reserva.
-            </p>
-          </motion.div>
-
-          {/* Card 3: waitlist */}
-          <motion.div
-            className="rounded-2xl bg-shield-soft p-6 sm:p-8"
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              visible: { opacity: 1, y: 0 },
-            }}
-            whileHover={{ scale: 1.03 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <h2 className="text-xl font-bold text-foreground">
-              Encontra o teu próximo equipamento
-            </h2>
-
-            <p className="mt-2 text-sm text-muted-foreground">
-              Diz-nos o que procuras e ajuda-nos a encontrar o equipamento certo para ti
-              assim que a Beeznoo estiver disponível.
-            </p>
-
-            <button
-              onClick={abrirWhatsapp}
-              className="group relative mt-6 w-full cursor-pointer overflow-hidden rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:shadow-lg"
-            >
-              <span className="absolute inset-0 -translate-x-full skew-x-[-20deg] cursor-pointer bg-linear-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
-
-              <span className="relative cursor-pointer">
-                Quero encontrar o meu próximo equipamento
-              </span>
-            </button>
-          </motion.div>
+            {
+              cards.map((card, index) => (
+                <motion.div key={index} className="rounded-2xl bg-card sm:p-8 mb-6 last:mb-0 items-start gap-4" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
+                  <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-chart-2/40 text-primary">
+                    {card.icon}
+                  </div>
+                  <h2 className="text-xl font-bold text-foreground">{card.title}</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {card.description}
+                  </p>
+              </motion.div>
+              ))
+            }
         </motion.div>
 
       </div>

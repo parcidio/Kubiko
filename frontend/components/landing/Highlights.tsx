@@ -4,112 +4,100 @@ import { motion } from "framer-motion";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
-const tableRows = [
-  { label: "Custo inicial", buy: "Alto",          beeznoo: "Só o dia de uso"  },
-  { label: "Manutenção",    buy: "Por tua conta", beeznoo: "Não aplicável"    },
-  { label: "Proteção",      buy: "—",             beeznoo: "Caução incluída"  },
-  { label: "Variedade",     buy: "1 equipamento", beeznoo: "Catálogo todo"    },
-];
-
-const featured = [
-  {
-    name:   "Canon EOS R6",
-    price:  "15.000 Kz/dia",
-    rating: 4.8,
-    image:  "https://images.unsplash.com/photo-1516724562728-afc824a36e84?w=400&auto=format&fit=crop",
-  },
-  {
-    name:   "Coluna JBL PartyBox",
-    price:  "8.000 Kz/dia",
-    rating: 4.6,
-    image:  "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&auto=format&fit=crop",
-  },
-  {
-    name:   "DJI Mavic 3",
-    price:  "20.000 Kz/dia",
-    rating: 4.9,
-    image:  "https://images.unsplash.com/photo-1579829366248-204fe8413f31?w=400&auto=format&fit=crop",
-  },
-];
+function CardHex({ stroke }: { stroke: string }) {
+  return (
+    <svg
+      className="absolute -bottom-10 -right-10 h-44 w-44 opacity-20"
+      viewBox="0 0 180 180"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M90 8 L165 50 L165 130 L90 172 L15 130 L15 50 Z"
+        stroke={stroke}
+        strokeWidth="2"
+      />
+    </svg>
+  );
+}
 
 export default function BeeznoHighlights() {
   return (
-    <motion.section id="compare" className="bg-card px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
+    <motion.section
+      id="highlights"
+      className="bg-background px-6 py-16 sm:px-8 sm:py-20"
+      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }} transition={{ duration: 0.7, ease }}
+    >
       <div className="mx-auto max-w-6xl">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-          {/* ── Comprar vs Alugar ── */}
-          <motion.div className="flex flex-col rounded-2xl bg-chart-2 p-6 sm:p-8" whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-            <p className="mt-3 text-sm text-muted-foreground sm:text-base">
-              Faz sentido alugar quando o uso é pontual.
+          {/* ── Para quem precisa ── */}
+          <motion.div
+            className="relative flex flex-col overflow-hidden rounded-2xl bg-warning p-8 sm:p-10"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <CardHex stroke="#0E3B2C" />
+
+            <p className="text-xs font-bold uppercase tracking-widest text-primary">
+              Para quem precisa
             </p>
-            <h2 className="font-display text-3xl font-bold text-foreground sm:text-4xl">
-              Comprar vs<br />Alugar
+
+            <h2 className="mt-4 text-[2rem] font-bold leading-tight text-primary sm:text-[2.4rem]">
+              Usa só quando precisas.
+              <br />
+              Paga só quando usas.
             </h2>
 
-            <div className="mt-8 flex-1">
-              <div className="grid grid-cols-3 border-b border-border-bg pb-3">
-                <div />
-                <p className="text-center text-sm font-medium text-muted-foreground">Comprar</p>
-                <p className="text-center text-sm font-semibold text-foreground">Beeznoo</p>
-              </div>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-primary/70 sm:text-base">
+              Uma obra em casa, um evento no fim de semana, um trabalho pontual — não
+              precisas de comprar equipamento que vai ficar parado.
+            </p>
 
-              {tableRows.map(({ label, buy, beeznoo }, i) => (
-                <div
-                  key={label}
-                  className={`grid grid-cols-3 items-center py-4 ${
-                    i < tableRows.length - 1 ? "border-b border-border-bg" : ""
-                  }`}
-                >
-                  <span className="text-sm text-foreground">{label}</span>
-                  <span className="text-center text-sm text-muted-foreground">{buy}</span>
-                  <span className="text-center text-sm font-semibold text-shield">{beeznoo}</span>
-                </div>
-              ))}
+            <div className="mt-8">
+              <a
+                href="https://tally.so/r/dW7yGK"
+                target="_blank"
+                className="inline-block rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/85 hover:shadow-lg"
+              >
+                Quero alugar
+              </a>
             </div>
           </motion.div>
 
-          {/* ── Em destaque ── */}
-          <motion.div className="flex flex-col rounded-2xl bg-chart-3 p-6 sm:p-8" whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-            <p className="mt-2 text-sm text-primary-foreground sm:text-base">
-              Alguns dos equipamentos disponíveis em Luanda
+          {/* ── Para quem tem equipamento ── */}
+          <motion.div
+            className="relative flex flex-col overflow-hidden rounded-2xl bg-primary p-8 sm:p-10"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <CardHex stroke="#FFC72C" />
+
+            <p className="text-xs font-bold uppercase tracking-widest text-warning">
+              Para quem tem equipamento
             </p>
-            <h2 className="font-display text-3xl font-bold text-shield-foreground sm:text-4xl">
-              Em destaque
+
+            <h2 className="mt-4 text-[2rem] font-bold leading-tight text-primary-foreground sm:text-[2.4rem]">
+              Equipamento parado?
+              <br />
+              Põe-no a render.
             </h2>
 
-            <motion.div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-              {featured.map(({ name, price, rating, image }) => (
-                <motion.div
-                  key={name}
-                  className="cursor-pointer overflow-hidden rounded-xl border border-border-bg"
-                  variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-                  whileHover={{ scale: 1.03 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                >
-                  {/* Imagem */}
-                  <div className="relative h-28 sm:h-32 overflow-hidden bg-sand">
-                    <motion.img
-                      src={image}
-                      alt={name}
-                      className="h-full w-full object-cover"
-                      whileHover={{ scale: 1.05 }}
-                      transition={{ duration: 0.3, ease }}
-                    />
-                  </div>
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-primary-foreground/70 sm:text-base">
+              Particular ou empresa, disponibiliza o que tens, define o preço e as
+              datas, e recebe por cada aluguer — com caução e contrato em cada reserva.
+            </p>
 
-                  {/* Info */}
-                  <div className="p-3">
-                    <h3 className="text-sm font-bold leading-tight text-foreground">{name}</h3>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{price}</p>
-                    <div className="mt-1.5 flex items-center gap-1">
-                      <span className="text-xs text-warning">★</span>
-                      <span className="text-xs font-semibold text-foreground">{rating}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+            <div className="mt-8">
+              <a
+                href="https://tally.so/r/5BN0JZ"
+                target="_blank"
+                className="inline-block rounded-full bg-warning px-6 py-3 text-sm font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-warning/90 hover:shadow-lg"
+              >
+                Quero disponibilizar
+              </a>
+            </div>
           </motion.div>
 
         </div>
