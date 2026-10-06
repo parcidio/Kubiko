@@ -14,10 +14,10 @@ interface StepCardProps {
   description: string;
 }
 
-const StepCard: React.FC<StepCardProps> = ({ icon, step, title, description }) => (
+const StepCard: React.FC<StepCardProps> = ({ step, icon, title, description }) => (
   <motion.div
     className={cn(
-      "relative rounded-lg bg-background cursor-pointer p-8 text-primary-foreground",
+      "relative rounded-2xl bg-background cursor-pointer p-6 text-primary-foreground",
       "transition-all duration-300 ease-in-out",
       "hover:shadow-xl hover:border-white/20 hover:bg-background/90"
     )}
@@ -26,11 +26,15 @@ const StepCard: React.FC<StepCardProps> = ({ icon, step, title, description }) =
     transition={{ type: "spring", stiffness: 300, damping: 20 }}
   >
     {/* Icon */}
-    <div className="mb-5 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-      {icon}
+    <div className="flex gap-12 items-center justify-between">
+      <div className="mb-5 mt-8 flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        {icon}
+      </div>
+      {/* Step number */}
+      <span className="mb-5 mt-8 absolute right-4 font-display text-5xl font-extrabold text-chart-4">
+        {step}
+      </span>
     </div>
-    {/* Step number */}
-    <p className="mb-2 text-sm font-medium text-primary-foreground">{step}</p>
     {/* Title */}
     <h3 className="mb-3 text-lg font-bold leading-snug text-primary">{title}</h3>
     {/* Description */}
@@ -75,32 +79,15 @@ export default function BeeznoHowItWorks() {
       <div className="mx-auto max-w-6xl">
 
         {/* Header */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-semibold text-card-foreground sm:text-5xl">
+        <div className="mb-12 flex flex-col items-center gap-3 text-center">
+          <p className="uppercase tracking-widest text-xs font-sans font-bold text-shield">
             Como funciona
-          </h1>
-          <p className="mt-4 text-base text-card-foreground/50">
-            Quatro passos para transformar equipamento parado em rendimento
           </p>
+          <h1 className="text-4xl font-semibold text-card-foreground sm:text-5xl">
+            Alugar em quatro passos
+          </h1>
         </div>
 
-        {/* Step indicators com linha de ligação — apenas desktop */}
-        <div className="relative mx-auto mb-8 hidden lg:block">
-          <div
-            aria-hidden="true"
-            className="absolute left-[12.5%] top-1/2 h-px w-3/4 -translate-y-1/2 bg-white/10"
-          />
-          <div className="relative grid grid-cols-4">
-            {steps.map(({ step }) => (
-              <div
-                key={step}
-                className="flex h-8 w-8 items-center justify-center justify-self-center rounded-full bg-white/10 text-xs font-semibold text-primary-foreground ring-4 ring-primary"
-              >
-                {step}
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Cards */}
         <motion.div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }} initial="hidden" whileInView="visible" viewport={{ once: true }}>

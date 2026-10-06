@@ -4,10 +4,12 @@ import { motion } from "framer-motion";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
-function CardHex({ stroke }: { stroke: string }) {
+function CardHex({ stroke, width, height, strokeWidth }: { stroke: string, width?: number, height?: number, strokeWidth?: number }) {
   return (
     <svg
-      className="absolute -bottom-10 -right-10 h-44 w-44 opacity-20"
+      className="absolute -bottom-10 -right-10  opacity-20"
+      width={width || 180}
+      height={height || 180}
       viewBox="0 0 180 180"
       fill="none"
       aria-hidden="true"
@@ -15,7 +17,7 @@ function CardHex({ stroke }: { stroke: string }) {
       <path
         d="M90 8 L165 50 L165 130 L90 172 L15 130 L15 50 Z"
         stroke={stroke}
-        strokeWidth="2"
+        strokeWidth={strokeWidth || 4}
       />
     </svg>
   );
@@ -38,13 +40,16 @@ export default function BeeznoHighlights() {
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
-            <CardHex stroke="#0E3B2C" />
+            <div>
+              <CardHex stroke="#0E3B2C" width={176} height={176} />
+              <CardHex stroke="#0E3B2C" width={150} height={150} />
+            </div>
 
             <p className="text-xs font-bold uppercase tracking-widest text-primary">
               Para quem precisa
             </p>
 
-            <h2 className="mt-4 text-[2rem] font-bold leading-tight text-primary sm:text-[2.4rem]">
+            <h2 className="mt-4 text-[2rem] font-black leading-tight text-primary sm:text-[2.4rem]">
               Usa só quando precisas.
               <br />
               Paga só quando usas.
@@ -72,19 +77,22 @@ export default function BeeznoHighlights() {
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
-            <CardHex stroke="#FFC72C" />
+            <div>
+              <CardHex stroke="#FFC72C" width={176} height={176}/>
+              <CardHex stroke="#FFC72C" width={150} height={150}/>
+            </div>
 
             <p className="text-xs font-bold uppercase tracking-widest text-warning">
               Para quem tem equipamento
             </p>
 
-            <h2 className="mt-4 text-[2rem] font-bold leading-tight text-primary-foreground sm:text-[2.4rem]">
+            <h2 className="mt-4 text-[2rem] font-black leading-tight text-shield-foreground sm:text-[2.4rem]">
               Equipamento parado?
               <br />
               Põe-no a render.
             </h2>
 
-            <p className="mt-4 max-w-sm text-sm leading-relaxed text-primary-foreground/70 sm:text-base">
+            <p className="mt-4 max-w-sm text-sm leading-relaxed text-shield-foreground/70 sm:text-base">
               Particular ou empresa, disponibiliza o que tens, define o preço e as
               datas, e recebe por cada aluguer — com caução e contrato em cada reserva.
             </p>

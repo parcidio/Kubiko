@@ -48,11 +48,16 @@ function getTimeLeft(target: Date) {
 }
 
 function useCountdown(target: Date) {
-  const [timeLeft, setTimeLeft] = useState(getTimeLeft(target));
+  // Começa com zeros no servidor — evita mismatch de hidratação
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
   useEffect(() => {
+    // Só corre no cliente — define o valor real imediatamente
+    setTimeLeft(getTimeLeft(target));
     const id = setInterval(() => setTimeLeft(getTimeLeft(target)), 1000);
     return () => clearInterval(id);
   }, [target]);
+
   return timeLeft;
 }
 
@@ -214,7 +219,7 @@ export default function BeeznoHero() {
                   <button
                     key={op} type="button"
                     onClick={() => setObjetivo(op)}
-                    className={`flex-1 rounded-lg py-2.5 text-xs font-semibold transition-all duration-150 ${
+                    className={`flex-1 rounded-lg py-2.5 text-xs font-semibold cursor-pointer transition-all duration-150 ${
                       objetivo === op
                         ? "bg-primary text-primary-foreground"
                         : "border border-border-bg bg-secondary text-foreground hover:border-primary"
@@ -266,7 +271,7 @@ export default function BeeznoHero() {
                 <select
                   value={provincia}
                   onChange={e => setProvincia(e.target.value)}
-                  className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                  className="w-full rounded-lg border border-input bg-background cursor-pointer px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-shield"
                 >
                   {PROVINCIAS.map(p => <option key={p}>{p}</option>)}
                 </select>
@@ -278,7 +283,7 @@ export default function BeeznoHero() {
                     <button
                       key={p} type="button"
                       onClick={() => setPerfil(p)}
-                      className={`flex-1 rounded-lg py-2.5 text-xs font-semibold transition-all duration-150 ${
+                      className={`flex-1 rounded-lg py-2.5 text-xs cursor-pointer font-semibold transition-all duration-150 ${
                         perfil === p
                           ? "bg-primary text-primary-foreground"
                           : "border border-border-bg bg-secondary text-foreground hover:border-primary"
@@ -294,7 +299,7 @@ export default function BeeznoHero() {
             {/* Submit */}
             <button
               type="submit"
-              className="group relative w-full overflow-hidden rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-shadow hover:shadow-lift"
+              className="group relative w-full overflow-hidden cursor-pointer rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-shadow hover:shadow-lift"
             >
               <span className="absolute inset-0 -translate-x-full bg-shield transition-transform duration-300 ease-out group-hover:translate-x-0" />
               <span className="relative flex items-center justify-center gap-2">

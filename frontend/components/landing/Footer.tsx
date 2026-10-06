@@ -14,32 +14,63 @@ function abrirWhatsapp() {
 }
 
 function HexBg() {
+
   const s = 52;
   const h = s * 0.866;
+
+  const hexWidth = s * 0.72 * 2;
+  const rowSpacing = h * 1.5;
+
   const rows = [
-    { y: 0,     xs: [52, 156, 260, 364, 468, 572, 676, 780, 884] },
-    { y: h,     xs: [0, 104, 208, 312, 416, 520, 624, 728, 832, 936] },
-    { y: h * 2, xs: [52, 156, 260, 364, 468, 572, 676, 780, 884] },
+    {
+      y: 0,
+      xs: Array.from({ length: 13 }, (_, i) => i * hexWidth),
+    },
+    {
+      y: rowSpacing,
+      xs: Array.from({ length: 13 }, (_, i) => i * hexWidth + hexWidth / 2),
+    },
+    {
+      y: rowSpacing * 2,
+      xs: Array.from({ length: 13 }, (_, i) => i * hexWidth),
+    },
   ];
+
   const hexPath = (cx: number, cy: number) =>
-    [
-      [cx - s, cy], [cx - s / 2, cy - h], [cx + s / 2, cy - h],
-      [cx + s, cy], [cx + s / 2, cy + h], [cx - s / 2, cy + h],
-    ].map(([x, y]) => `${x},${y}`).join(" ");
+  [
+    [cx, cy - h],
+    [cx + s * 0.72, cy - h * 0.5],
+    [cx + s * 0.72, cy + h * 0.5],
+    [cx, cy + h],
+    [cx - s * 0.72, cy + h * 0.5],
+    [cx - s * 0.72, cy - h * 0.5],
+  ]
+    .map(([x, y]) => `${x},${y}`)
+    .join(" ");
 
   return (
-    <svg className="absolute inset-0 h-full w-full" viewBox="0 0 960 250"
-      fill="none" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <svg
+      className="absolute inset-0 h-full w-full"
+      viewBox="0 0 960 250"
+      fill="none"
+      preserveAspectRatio="xMidYMid slice"
+      aria-hidden="true"
+    >
       {rows.flatMap(({ y, xs }) =>
         xs.map((x, i) => (
-          <polygon key={`${y}-${i}`} points={hexPath(x, y)}
-            stroke="#FFC72C" strokeWidth="1" fill="none" opacity="0.08" />
+          <polygon
+            key={`${y}-${i}`}
+            points={hexPath(x, y)}
+            stroke="#FFC72C"
+            strokeWidth="1"
+            fill="none"
+            opacity="0.08"
+          />
         ))
       )}
     </svg>
   );
 }
-
 export default function BeeznoFooter() {
   return (
     <motion.footer
@@ -66,13 +97,14 @@ export default function BeeznoFooter() {
         </div>
 
         {/* Headline */}
-        <h2 className="relative z-10 mx-auto max-w-2xl text-[2rem] font-bold leading-tight text-primary-foreground sm:text-4xl lg:text-5xl">
+        <h2 className="relative z-10 mx-auto max-w-2xl text-[2rem] font-bold leading-tight text-shield-foreground sm:text-4xl lg:text-5xl">
           Sê dos primeiros a entrar para o{" "}
-          <span className="text-warning">Beeznoo.</span>
+          <span className="text-warning">Beeznoo</span>
+          <span className="text-shield-foreground">.</span>
         </h2>
 
         {/* Descrição */}
-        <p className="relative z-10 mx-auto mt-4 max-w-md text-sm leading-relaxed text-primary-foreground/70 sm:text-base">
+        <p className="relative z-10 mx-auto mt-4 max-w-md text-sm leading-relaxed text-shield-soft sm:text-base">
           A lista de espera está aberta. Inscreve-te e avisamos-te no dia do lançamento.
         </p>
 
@@ -80,7 +112,7 @@ export default function BeeznoFooter() {
         <div className="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-4">
           <button
             onClick={abrirWhatsapp}
-            className="flex cursor-pointer items-center gap-2 rounded-full border border-primary-foreground/30 px-6 py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-foreground/60 hover:bg-primary-foreground/5"
+            className="flex cursor-pointer items-center gap-2 rounded-full border-2 border-primary-foreground px-6 py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-foreground/60 hover:bg-primary-foreground/5"
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
@@ -90,7 +122,7 @@ export default function BeeznoFooter() {
           </button>
 
           <a
-            href="https://tally.so/r/dW7yGK"
+            href="https://tally.so/r/5BN0JZ"
             target="_blank"
             className="flex cursor-pointer items-center gap-2 rounded-full bg-warning px-6 py-3 text-sm font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-warning/90 hover:shadow-lg"
           >
@@ -107,21 +139,21 @@ export default function BeeznoFooter() {
           {/* Esquerda: logo + tagline */}
           <div className="flex items-center gap-3">
             <Image src="/png/beeznoo-icon-512.png" alt="logo" width={24} height={24} />
-            <span className="font-bold text-primary-foreground/90">beeznoo</span>
-            <span className="hidden text-xs text-primary-foreground/40 sm:block">
-              · Marketplace de aluguer de equipamentos · Angola
+            <span className="font-bold text-shield-foreground">beeznoo</span>
+            <span className="hidden text-xs text-shield-foreground/60 sm:block">
+               Marketplace de aluguer de equipamentos · Angola
             </span>
           </div>
 
           {/* Direita: links + copyright */}
-          <div className="flex items-center gap-5 text-xs text-primary-foreground/50">
-            <a href="https://instagram.com" target="_blank" className="transition-colors hover:text-primary-foreground">
+          <div className="flex items-center gap-5 text-sm font-light text-shield-foreground">
+            <a href="https://www.instagram.com/beeznoo.ao?stkn=b2t1dzE0MnZla2R4" target="_blank" className="transition-colors hover:text-primary-foreground">
               Instagram
             </a>
             <a href="mailto:hello@beeznoo.ao" className="transition-colors hover:text-primary-foreground">
               hello@beeznoo.ao
             </a>
-            <span>© 2026 Beeznoo</span>
+            <span className="text-shield-foreground/50">© 2026 Beeznoo</span>
           </div>
         </div>
       </div>

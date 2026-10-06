@@ -67,26 +67,28 @@ const slides = [
 
 // ── Fundo hexagonal ────────────────────────────────────
 function HexBg({ color }: { color: string }) {
-  const s = 46;
-  const h = s * 0.866;
-  const rows = [
-    { y: h * 0,   xs: [46,  138, 230, 322] },
-    { y: h * 1,   xs: [0,   92,  184, 276, 368] },
-    { y: h * 2,   xs: [46,  138, 230, 322] },
-    { y: h * 3,   xs: [0,   92,  184, 276, 368] },
-    { y: h * 4,   xs: [46,  138, 230, 322] },
-    { y: h * 5,   xs: [0,   92,  184, 276, 368] },
-  ];
+  const width = 46;
+  const height = width * 1.13;
+
+  const horizontalGap = width * 2;
+  const verticalGap = height * 1.5;
+
+  const rows = Array.from({ length: 6 }, (_, row) => ({
+    y: row * verticalGap,
+    offset: row % 2 === 0 ? width : 0,
+  }));
 
   const hexPath = (cx: number, cy: number) =>
     [
-      [cx - s,     cy        ],
-      [cx - s / 2, cy - h    ],
-      [cx + s / 2, cy - h    ],
-      [cx + s,     cy        ],
-      [cx + s / 2, cy + h    ],
-      [cx - s / 2, cy + h    ],
-    ].map(([x, y]) => `${x},${y}`).join(" ");
+      [cx, cy - height],
+      [cx + width, cy - height * 0.5],
+      [cx + width, cy + height * 0.5],
+      [cx, cy + height],
+      [cx - width, cy + height * 0.5],
+      [cx - width, cy - height * 0.5],
+    ]
+      .map(([x, y]) => `${x},${y}`)
+      .join(" ");
 
   return (
     <svg
@@ -96,24 +98,31 @@ function HexBg({ color }: { color: string }) {
       preserveAspectRatio="xMidYMid slice"
       aria-hidden="true"
     >
-      {rows.flatMap(({ y, xs }) =>
-        xs.map((x, i) => (
-          <polygon
-            key={`${y}-${i}`}
-            points={hexPath(x, y)}
-            stroke={color}
-            strokeWidth="1.2"
-            fill="none"
-            opacity="0.18"
-          />
-        ))
+      {rows.flatMap(({ y, offset }) =>
+        Array.from({ length: 6 }, (_, i) => {
+          const x = i * horizontalGap + offset;
+
+          return (
+            <polygon
+              key={`${x}-${y}`}
+              points={hexPath(x, y)}
+              stroke={color}
+              strokeWidth="1.1"
+              fill="none"
+              opacity="0.16"
+            />
+          );
+        })
       )}
     </svg>
   );
 }
-
 // ── Ícone hexagonal ────────────────────────────────────
-function HexIcon({ icon: Icon, hexColor, iconColor }: {
+function HexIcon({
+  icon: Icon,
+  hexColor,
+  iconColor,
+}: {
   icon: React.ElementType;
   hexColor: string;
   iconColor: string;
@@ -125,7 +134,8 @@ function HexIcon({ icon: Icon, hexColor, iconColor }: {
         width: 164,
         height: 164,
         backgroundColor: hexColor,
-        clipPath: "polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)",
+        clipPath:
+          "polygon(50% 0%, 95% 25%, 95% 75%, 50% 100%, 5% 75%, 5% 25%)",
       }}
     >
       <Icon size={66} color={iconColor} strokeWidth={1.5} />
