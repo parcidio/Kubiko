@@ -50,7 +50,7 @@ function hasDraft(f: Filters) {
 
 interface BeeznoFiltersProps {
   mobile?:        boolean;
-  onSave:         (filters: Filters) => void;
+  onSave?: (filters: Filters) => void;
   initialFilters?: Filters;  // ← para pré-seleccionar categoria vinda da URL
 }
 
@@ -71,14 +71,14 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
 
   const handleSave = () => {
     setSaved({ ...draft });
-    onSave({ ...draft });   // ← notifica o pai
+    onSave?.({ ...draft });   // ← notifica o pai
     setOpen(null);
   };
 
   const handleClear = () => {
     setDraft(EMPTY_FILTERS);
     setSaved(EMPTY_FILTERS);
-    onSave(EMPTY_FILTERS);  // ← limpa no pai também
+    onSave?.(EMPTY_FILTERS);  // ← limpa no pai também
     setOpen(null);
   };
 
