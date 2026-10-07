@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
-import BeeznoFilters from "../../../components/arrendatario/Filters";
+import BeeznoFilters, { EMPTY_FILTERS, type Filters } from "../../../components/arrendatario/Filters";
 import BeeznoItems from "../../../components/arrendatario/Items";
 
 export default function Arrendatario() {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,9 +25,9 @@ export default function Arrendatario() {
         {/* Layout desktop */}
         <div className="flex items-start gap-6">
           <div className="hidden lg:block">
-            <BeeznoFilters />
+            <BeeznoFilters onSave={setFilters} initialFilters={filters} />
           </div>
-          <BeeznoItems />
+          <BeeznoItems filters={filters} />
         </div>
       </div>
 
@@ -59,7 +60,7 @@ export default function Arrendatario() {
 
         {/* Conteúdo do filtro */}
         <div className="max-h-[75vh] overflow-y-auto px-6 py-5">
-          <BeeznoFilters mobile />
+          <BeeznoFilters mobile onSave={setFilters} initialFilters={filters} />
         </div>
       </div>
     </div>
