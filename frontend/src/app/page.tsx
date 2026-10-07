@@ -5,6 +5,8 @@ import BeeznoHighlights from "../../components/landing/Highlights";
 import BeeznoHowItWorks from "../../components/landing/HowWorks";
 import BeeznoNavbar from "../../components/landing/Navbar";
 import BeeznoSecuring from "../../components/landing/Securing";
+import BeeznoUseCases from "../../components/landing/UseCases";
+import BeeznoWaitlist from "../../components/landing/Waitlist";
 
 export default function Home() {
   return (
@@ -12,10 +14,12 @@ export default function Home() {
       <main>
         <BeeznoNavbar />
         <BeeznoHero />
-        <BeeznoHowItWorks />
         <BeeznoCategories />
+        <BeeznoUseCases />
+        <BeeznoHowItWorks />
         <BeeznoHighlights />
         <BeeznoSecuring />
+        <BeeznoWaitlist />
         <BeeznoFooter />
       </main>
     </div>

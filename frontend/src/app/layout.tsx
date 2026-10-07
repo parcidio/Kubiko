@@ -1,29 +1,42 @@
 import type { Metadata } from "next";
-import { Manrope, Sora } from "next/font/google";
+import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import "./globals.css";
 
-const sora = Sora({
-  variable: "--font-sans",
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
+  weight: ["500", "700", "800"],
+  variable: "--font-display",
+  display: "swap",
 });
 
-const manrope = Manrope({
-  variable: "--font-display",
+const dmSans = DM_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-sans",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Beeznoo",
-  description: "Beeznoo",
+  title: "Beeznoo — Aluga o que precisas em Angola",
+  description: "A plataforma que liga quem precisa de equipamento a quem o tem parado.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
-      lang="en"
-      className={`${manrope.variable} ${sora.variable} h-full antialiased scroll-smooth`}
+      lang="pt"
+      className={`${bricolage.variable} ${dmSans.variable} scroll-smooth`}
     >
-      <body className="min-h-full flex flex-col ">{children}</body>
+      <body>
+        {/* pt-[65px] compensa a navbar fixa */}
+        <main className="pt-16.25">
+          {children}
+        </main>
+      </body>
     </html>
   );
 }

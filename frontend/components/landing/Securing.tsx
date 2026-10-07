@@ -1,97 +1,81 @@
 "use client";
+
 import { motion } from "framer-motion";
-import { ShieldCheck, BadgeCheck, Truck } from "lucide-react";
+import { Contact, Lock, ShieldCheck, FileText } from "lucide-react";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
-const checklistItems = [
-  "Contrato gerado automaticamente",
-  "Caução protegida",
-  "Pagamento por Multicaixa Express",
-  "Suporte via WhatsApp",
+const cards = [
+  {
+    icon: <Contact className="h-5 w-5" />,
+    title: "Perfis verificados",
+    description: "Todos os utilizadores confirmam a identidade antes de alugar ou disponibilizar.",
+  },
+  {
+    icon: <Lock className="h-5 w-5" />,
+    title: "Pagamento pela plataforma",
+    description: "Pagas e recebes dentro do Beeznoo, com registo de cada transação.",
+  },
+  {
+    icon: <ShieldCheck className="h-5 w-5" />,
+    title: "Caução protegida",
+    description: "A caução fica guardada durante o aluguer e é devolvida quando o equipamento volta em bom estado.",
+  },
+  {
+    icon: <FileText className="h-5 w-5" />,
+    title: "Contrato em cada reserva",
+    description: "Datas, preço, caução e condições ficam por escrito — para os dois lados.",
+  },
 ];
-
-function abrirWhatsapp(): void {
-  const NUMERO = "244932300335";
-  const texto  = encodeURIComponent("Olá! Sou um cliente e tenho interesse em saber sobre a Beeznoo.");
-  fetch(`/api/track-click`).catch(() => {});
-  window.open(`https://wa.me/${NUMERO}?text=${texto}`, "_blank");
-}
 
 export default function BeeznoSecuring() {
   return (
-    <motion.section className="bg-background px-6 py-16 sm:px-8 sm:py-20" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
-      <div className="mx-auto max-w-6xl space-y-6">
+    <motion.section
+      id="securing"
+      className="bg-shield-soft px-6 py-16 sm:px-8 sm:py-20"
+      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }} transition={{ duration: 0.7, ease }}
+    >
+      <div className="mx-auto max-w-6xl">
 
-        {/* ── Linha 1: três cards distintos ── */}
-        <motion.div className="grid grid-cols-1 gap-6 md:grid-cols-3" variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-
-          {/* Card 1: checklist */}
-          <motion.div className="rounded-2xl border border-border-bg bg-card p-6 sm:p-8" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-            <h2 className="text-xl font-bold text-foreground">Simples e transparente</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Do pedido à entrega, sem complicações.
+        {/* Cabeçalho — label + headline à esq, descrição à dir */}
+        <div className="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-end">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-shield">
+              Confiança em primeiro lugar
             </p>
-            <ul className="mt-6 space-y-0">
-              {checklistItems.map((item, i) => (
-                <li
-                  key={item}
-                  className={`flex items-center gap-3 py-3 ${
-                    i < checklistItems.length - 1 ? "border-b border-border-bg" : ""
-                  }`}
-                >
-                  <span className="text-sm font-bold text-shield">✓</span>
-                  <span className="text-sm text-foreground">{item}</span>
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          {/* Card 2: destaque escuro centrado */}
-          <motion.div className="flex min-h-60 flex-col items-center justify-center rounded-2xl bg-primary p-6 text-center sm:p-8" variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }} whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
-            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full bg-shield-soft">
-              <ShieldCheck className="h-7 w-7 text-shield" />
-            </div>
-            <h2 className="text-xl font-bold text-primary-foreground">
-              Protegemos a transação
+            <h2 className="mt-3 text-3xl font-bold text-foreground sm:text-4xl">
+              Alugar a um desconhecido,
+              <br />sem desconfiança.
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-primary-foreground/70">
-              Verificação de identidade e caução em toda reserva.
-            </p>
-          </motion.div>
+          </div>
+          <p className="text-sm leading-relaxed text-muted-foreground lg:ml-auto lg:max-w-xs lg:text-base">
+            Cada aluguer no Beeznoo tem regras claras para os dois lados.
+          </p>
+        </div>
 
-          {/* Card 3: waitlist */}
-          <motion.div
-            className="rounded-2xl bg-shield-soft p-6 sm:p-8"
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              visible: { opacity: 1, y: 0 },
-            }}
-            whileHover={{ scale: 1.03 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <h2 className="text-xl font-bold text-foreground">
-              Encontra o teu próximo equipamento
-            </h2>
-
-            <p className="mt-2 text-sm text-muted-foreground">
-              Diz-nos o que procuras e ajuda-nos a encontrar o equipamento certo para ti
-              assim que a Beeznoo estiver disponível.
-            </p>
-
-            <button
-              onClick={abrirWhatsapp}
-              className="group relative mt-6 w-full cursor-pointer overflow-hidden rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-all duration-300 hover:shadow-lg"
+        {/* Cards — 1 col mobile, 2 tablet, 4 desktop */}
+        <motion.div
+          className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
+          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
+          initial="hidden" whileInView="visible" viewport={{ once: true }}
+        >
+          {cards.map(({ icon, title, description }, i) => (
+            <motion.div
+              key={i}
+              className="rounded-2xl bg-card p-6"
+              variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
             >
-              <span className="absolute inset-0 -translate-x-full skew-x-[-20deg] cursor-pointer bg-linear-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
-
-              <span className="relative cursor-pointer">
-                Quero encontrar o meu próximo equipamento
-              </span>
-            </button>
-          </motion.div>
+              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-warning/30 text-primary">
+                {icon}
+              </div>
+              <h3 className="font-bold text-foreground">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {description}
+              </p>
+            </motion.div>
+          ))}
         </motion.div>
-
       </div>
     </motion.section>
   );

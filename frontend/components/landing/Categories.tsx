@@ -88,36 +88,20 @@ export default function BeeznoCategories() {
       initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }} transition={{ duration: 0.7, ease }}
     >
-      <h1 className="mb-8 font-display text-3xl font-bold sm:text-4xl">
-        Explora por categorias
-      </h1>
+      <div className="mx-auto max-w-6xl">
 
-      {/* Desktop */}
-      <motion.div
-        className="hidden lg:flex lg:flex-wrap lg:justify-center lg:gap-8"
-        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
-        initial="hidden" whileInView="visible" viewport={{ once: true }}
-      >
-        {items.map(({ label, icon }) => (
-          <CategoryItem
-            key={label} label={label} icon={icon}
-            onClick={() => handleCategoryClick(label)}
-          />
-        ))}
-      </motion.div>
+        <div className="flex flex-col gap-4">
+          <h1 className="uppercase tracking-widest text-xs font-sans font-bold text-shield">O que vais encontrar</h1>
+          <h1 className="mb-8 font-display text-3xl font-extrabold sm:text-4xl">
+            Do berbequim à betoneira.
+          </h1>
+        </div>
 
-      {/* Mobile / Tablet */}
-      <div className="relative lg:hidden">
-        <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-10 bg-linear-to-r from-background to-transparent sm:w-14" />
-        <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-10 bg-linear-to-l from-background to-transparent sm:w-14" />
-
+        {/* Desktop */}
         <motion.div
-          ref={scrollRef}
-          onScroll={handleScroll}
-          className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory sm:gap-6"
+          className="hidden lg:flex lg:flex-wrap lg:justify-center lg:gap-8"
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
           initial="hidden" whileInView="visible" viewport={{ once: true }}
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {items.map(({ label, icon }) => (
             <CategoryItem
@@ -127,16 +111,38 @@ export default function BeeznoCategories() {
           ))}
         </motion.div>
 
-        <div className="mt-6 flex justify-center gap-2">
-          {items.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => scrollToItem(i)}
-              className={`h-2 rounded-full transition-opacity hover:opacity-90 ${
-                i === activeIndex ? "w-6 bg-primary" : "w-2 bg-border-bg"
-              }`}
-            />
-          ))}
+        {/* Mobile / Tablet */}
+        <div className="relative lg:hidden">
+          <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-10 sm:w-14" />
+          <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-10 sm:w-14" />
+
+          <motion.div
+            ref={scrollRef}
+            onScroll={handleScroll}
+            className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory sm:gap-6"
+            variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
+            initial="hidden" whileInView="visible" viewport={{ once: true }}
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          >
+            {items.map(({ label, icon }) => (
+              <CategoryItem
+                key={label} label={label} icon={icon}
+                onClick={() => handleCategoryClick(label)}
+              />
+            ))}
+          </motion.div>
+
+          <div className="mt-6 flex justify-center gap-2">
+            {items.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => scrollToItem(i)}
+                className={`h-2 rounded-full transition-opacity hover:opacity-90 ${
+                  i === activeIndex ? "w-6 bg-primary" : "w-2 bg-border-bg"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </motion.section>

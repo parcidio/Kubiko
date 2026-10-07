@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Calendar, Clock, Timer, Zap, Leaf } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, Check, Calendar, Clock, Timer, Zap } from "lucide-react";
 
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
@@ -10,14 +10,30 @@ const ease = [0.25, 0.1, 0.25, 1] as const;
 const LAUNCH_DATE = new Date("2026-10-18T00:00:00");
 // ───────────────────────────────────────────────────────
 
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1200&auto=format&fit=crop";
+const NUMERO = "244932300335";
 
-type TipoContacto = "arrendador" | "arrendatario";
-type ContactModalProps = {
-  setContactModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  abrirWhatsapp: (tipo: TipoContacto) => void;
-};
+const PROVINCIAS = [
+  "Luanda", "Benguela", "Huambo", "Bié", "Cabinda",
+  "Cuando Cubango", "Cuanza Norte", "Cuanza Sul", "Cunene",
+  "Huíla", "Lunda Norte", "Lunda Sul", "Malanje", "Moxico",
+  "Namibe", "Uíge", "Zaire", "Bengo",
+];
+
+const BENEFICIOS = [
+  "Acesso antecipado à plataforma",
+  "Aviso assim que abrirmos na tua província",
+  "Benefícios exclusivos para os primeiros inscritos",
+];
+
+const countdownUnits = [
+  { icon: Calendar, label: "dias",   key: "days"    as const },
+  { icon: Clock,    label: "horas",  key: "hours"   as const },
+  { icon: Timer,    label: "min",    key: "minutes" as const },
+  { icon: Zap,      label: "seg",    key: "seconds" as const },
+];
+
+type Objetivo = "alugar" | "disponibilizar" | "ambos";
+type Perfil   = "particular" | "empresa";
 
 // ── Countdown ──────────────────────────────────────────
 function getTimeLeft(target: Date) {
@@ -32,228 +48,277 @@ function getTimeLeft(target: Date) {
 }
 
 function useCountdown(target: Date) {
-  const [timeLeft, setTimeLeft] = useState(getTimeLeft(target));
+  // Começa com zeros no servidor — evita mismatch de hidratação
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
   useEffect(() => {
+    // Só corre no cliente — define o valor real imediatamente
+    setTimeLeft(getTimeLeft(target));
     const id = setInterval(() => setTimeLeft(getTimeLeft(target)), 1000);
     return () => clearInterval(id);
   }, [target]);
+
   return timeLeft;
 }
 
-const countdownUnits = [
-  { icon: Calendar, label: "Dias",     key: "days"    as const },
-  { icon: Clock,    label: "Horas",    key: "hours"   as const },
-  { icon: Timer,    label: "Minutos",  key: "minutes" as const },
-  { icon: Zap,      label: "Segundos", key: "seconds" as const },
-];
-
-// ── WhatsApp ───────────────────────────────────────────
-function abrirWhatsapp(tipo: TipoContacto, imovelId?: string): void {
-  const mensagens: Record<TipoContacto, string> = {
-    arrendador:  "Olá! Sou um arrendador. Quero anunciar o meu item no Beeznoo.",
-    arrendatario:"Olá! Sou um arrendatário. Vi um item no Beeznoo e tenho interesse em avançar.",
-  };
-  const NUMERO = "244932300335";
-  const texto  = encodeURIComponent(mensagens[tipo]);
-  const query  = imovelId ? `&imovel_id=${imovelId}` : "";
-  fetch(`/api/track-click?tipo=${tipo}${query}`).catch(() => {});
-  window.open(`https://wa.me/${NUMERO}?text=${texto}`, "_blank");
-}
-
-// ── Modal ──────────────────────────────────────────────
-function ContactModal({ setContactModalOpen, abrirWhatsapp }: ContactModalProps) {
+// ── Decoração hexagonal ────────────────────────────────
+function HexDecor({ size, style, opacity = 0.07 }: {
+  size: number;
+  style: React.CSSProperties;
+  opacity?: number;
+}) {
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6 backdrop-blur-md"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={() => setContactModalOpen(false)}
+    <svg
+      width={size} height={size} viewBox="0 0 220 220"
+      style={{ position: "absolute", pointerEvents: "none", ...style }}
+      fill="none" stroke="currentColor" strokeWidth="1"
+      opacity={opacity} aria-hidden="true"
     >
-      <motion.div
-        className="w-full max-w-sm rounded-2xl border border-white/20 bg-background/90 p-6 shadow-2xl backdrop-blur-xl"
-        initial={{ opacity: 0, scale: 0.92, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.92, y: 20 }}
-        transition={{ duration: 0.2, ease }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-foreground">Como vais utilizar a Beeznoo?</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Escolhe uma opção para continuarmos pelo WhatsApp.</p>
-        </div>
-        <div className="grid gap-3">
-          <button onClick={() => { abrirWhatsapp("arrendador"); setContactModalOpen(false); }} className="group flex cursor-pointer items-center justify-between rounded-xl border border-border-bg bg-secondary px-4 py-4 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-card">
-            <div>
-              <div className="font-semibold text-secondary-foreground">Arrendador</div>
-              <div className="mt-0.5 text-xs text-muted-foreground">Quero publicar o meu equipamento</div>
-            </div>
-            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-          </button>
-          <button onClick={() => { abrirWhatsapp("arrendatario"); setContactModalOpen(false); }} className="group flex cursor-pointer items-center justify-between rounded-xl bg-primary px-4 py-4 text-left text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lift">
-            <div>
-              <div className="font-semibold">Arrendatário</div>
-              <div className="mt-0.5 text-xs text-primary-foreground/70">Quero encontrar um equipamento</div>
-            </div>
-            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
-          </button>
-        </div>
-        <button onClick={() => setContactModalOpen(false)} className="mt-5 w-full text-center text-xs text-muted-foreground transition-colors hover:text-foreground">
-          Cancelar
-        </button>
-      </motion.div>
-    </motion.div>
+      <path d="M55 10 L88 29 L88 67 L55 86 L22 67 L22 29 Z" />
+      <path d="M121 10 L154 29 L154 67 L121 86 L88 67 L88 29 Z" />
+      <path d="M187 10 L220 29 L220 67 L187 86 L154 67 L154 29 Z" />
+      <path d="M88 67 L121 86 L121 124 L88 143 L55 124 L55 86 Z" />
+      <path d="M154 67 L187 86 L187 124 L154 143 L121 124 L121 86 Z" />
+      <path d="M55 124 L88 143 L88 181 L55 200 L22 181 L22 143 Z" />
+      <path d="M121 124 L154 143 L154 181 L121 200 L88 181 L88 143 Z" />
+      <path d="M187 124 L220 143 L220 181 L187 200 L154 181 L154 143 Z" />
+    </svg>
   );
 }
 
-// ── Hero ───────────────────────────────────────────────
+// ── Componente principal ───────────────────────────────
 export default function BeeznoHero() {
-  const [contactModalOpen, setContactModalOpen] = useState(false);
   const timeLeft = useCountdown(LAUNCH_DATE);
+
+  const [objetivo,  setObjetivo]  = useState<Objetivo>("alugar");
+  const [nome,      setNome]      = useState("");
+  const [email,     setEmail]     = useState("");
+  const [telefone,  setTelefone]  = useState("");
+  const [provincia, setProvincia] = useState("Luanda");
+  const [perfil,    setPerfil]    = useState<Perfil>("particular");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const objetivoTexto = {
+      alugar:         "alugar equipamento",
+      disponibilizar: "disponibilizar equipamento",
+      ambos:          "alugar e disponibilizar equipamento",
+    }[objetivo];
+
+    const msg =
+      `Olá! Quero entrar na lista de espera do Beeznoo.\n\n` +
+      `Nome: ${nome}\n` +
+      `Email: ${email}\n` +
+      `Telefone/WhatsApp: ${telefone}\n` +
+      `Província: ${provincia}\n` +
+      `Perfil: ${perfil === "particular" ? "Particular" : "Empresa"}\n` +
+      `Objetivo: ${objetivoTexto}`;
+
+    fetch(`/api/track-click?tipo=${objetivo}`).catch(() => {});
+    window.open(`https://wa.me/${NUMERO}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   return (
     <motion.section
       id="explore"
-      className="relative flex min-h-screen items-center overflow-hidden bg-background"
-      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }} transition={{ duration: 0.7, ease }}
+      className="relative min-h-screen overflow-hidden bg-primary"
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
     >
-      {/* Curva */}
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-36 bg-primary sm:h-48 lg:h-56"
-        style={{ clipPath: "ellipse(65% 60% at 30% 100%)" }}
+      {/* Decorações hexagonais */}
+      <HexDecor
+        size={580}
+        style={{ right: -160, top: -180, color: "var(--color-primary-foreground)" }}
+        opacity={0.06}
+      />
+      <HexDecor
+        size={260}
+        style={{ left: -70, bottom: 80, color: "var(--color-primary-foreground)" }}
+        opacity={0.04}
       />
 
-      {/* Countdown — desktop (sobre a curva) */}
-      <div className="absolute bottom-8 left-8 z-10 hidden flex-wrap gap-6 lg:flex">
-        <div className="mb-1 w-full text-[10px] font-semibold uppercase tracking-widest text-primary-foreground/50">
-          Lançamento em
-        </div>
-        {countdownUnits.map(({ icon: Icon, label, key }) => (
-          <motion.div key={label} className="flex items-start gap-2" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, ease }}>
-            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-              <Icon className="h-3.5 w-3.5" />
-            </span>
-            <div className="leading-tight">
-              <div className="text-sm font-semibold text-primary-foreground">
-                {String(timeLeft[key]).padStart(2, "0")}
-              </div>
-              <div className="text-[11px] text-primary-foreground/60">{label}</div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+      <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-20 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-10 lg:py-24">
 
-      {/* Grid */}
-      <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-6 px-6 py-10 lg:grid-cols-2 lg:gap-6 lg:px-10 lg:py-12">
+        {/* ── Coluna esquerda ── */}
+        <motion.div
+          className="flex flex-col gap-6"
+          initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease }}
+        >
+          {/* Badge */}
+          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-primary-foreground/20 font-black px-4 py-1.5 text-xs text-primary-foreground/80">
+            <span className="h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
+            Em breve em Angola · Lista de espera aberta
+          </div>
 
-        {/* Coluna de texto */}
-        <motion.div className="relative z-10 flex flex-col justify-center" initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, ease }}>
-
-          <h1 className="text-[2.3rem] font-semibold leading-[1.08] text-foreground sm:text-[2.8rem] lg:text-[2.9rem]">
-            Para quem precisa
+          {/* Headline */}
+          <h1 className="text-[3.5rem] font-black leading-[1.06] text-background sm:text-5xl lg:text-[4.0rem]">
+            Precisas de
             <br />
-            <span className="text-primary/90">usar</span>, não precisa
+            equipamento?
             <br />
-            possuir.
+            <span className="text-warning font-black">Aluga, não compres.</span>
           </h1>
 
-          <p className="mt-4 max-w-md text-[13.5px] leading-relaxed text-foreground/80 sm:text-[15px] lg:max-w-lg lg:text-base">
-            No Beeznoo, encontras e alugas equipamentos de qualidade para
-            fotografia, vídeo, áudio, eventos e muito mais. Tudo de forma
-            simples, segura e perto de ti.
+          {/* Descrição */}
+          <p className="max-w-md text-[15px] leading-relaxed font-light text-accent lg:text-base">
+            O Beeznoo liga quem precisa de equipamento a quem o tem parado —
+            particulares e empresas, em Angola. Entra na lista e sê dos primeiros.
           </p>
 
-          {/* CTAs */}
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            <a href="https://tally.so/r/dW7yGK" target="_blank" className="group relative cursor-pointer overflow-hidden rounded-sm bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-card transition-shadow duration-300 hover:shadow-lift">
-              <span className="absolute inset-0 -translate-x-full bg-shield/90 transition-transform duration-300 ease-out group-hover:translate-x-0" />
-              <span className="relative">Procurar um item</span>
-            </a>
-            <a href="https://tally.so/r/5BN0JZ" target="_blank" className="group relative cursor-pointer overflow-hidden rounded-sm border border-border-bg bg-secondary px-5 py-2 text-sm font-semibold text-secondary-foreground transition-shadow duration-300 hover:shadow-card">
-              <span className="absolute inset-0 -translate-x-full bg-primary/70 transition-transform duration-300 ease-out group-hover:translate-x-0" />
-              <span className="relative transition-colors duration-300 group-hover:text-primary-foreground">Publicar o meu item</span>
-            </a>
-          </div>
+          {/* Benefícios */}
+          <ul className="space-y-3">
+            {BENEFICIOS.map(b => (
+              <li key={b} className="flex items-center font-bold gap-3 text-sm text-background">
+                <Check className="h-4 w-4 shrink-0 text-warning" />
+                {b}
+              </li>
+            ))}
+          </ul>
 
-          <div className="mt-4 flex">
-            <button onClick={() => setContactModalOpen(true)} className="group relative flex cursor-pointer items-center gap-2 overflow-hidden rounded-sm bg-accent px-14 py-2 text-sm font-semibold text-accent-foreground transition-shadow duration-300 hover:shadow-card">
-              <span className="absolute inset-0 -translate-x-full bg-shield transition-transform duration-300 ease-out group-hover:translate-x-0" />
-              <svg viewBox="0 0 24 24" className="h-4 w-4 transition-transform duration-200 group-hover:scale-110 group-hover:text-shield-foreground" fill="currentColor" aria-hidden="true">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                <path d="M20.52 3.449A11.82 11.82 0 0 0 12.04 0C5.495 0 .16 5.335.157 11.882c0 2.096.547 4.142 1.588 5.946L.057 24l6.304-1.654a11.88 11.88 0 0 0 5.674 1.447h.005c6.542 0 11.88-5.335 11.883-11.882a11.82 11.82 0 0 0-3.403-8.462zM12.04 21.785h-.004a9.86 9.86 0 0 1-5.031-1.378l-.361-.214-3.741.982.999-3.648-.235-.374a9.87 9.87 0 0 1-1.509-5.27c.002-5.45 4.437-9.884 9.89-9.884a9.83 9.83 0 0 1 7.008 2.906 9.83 9.83 0 0 1 2.903 7.01c-.003 5.45-4.438 9.87-9.919 9.87z" />
-              </svg>
-              <span className="relative transition-colors duration-300 group-hover:text-shield-foreground">Entrar na lista de espera</span>
-            </button>
-          </div>
-
-          {/* Countdown — mobile (inline, abaixo dos CTAs) */}
-          <div className="mt-8 lg:hidden">
-            <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Lançamento em
+          {/* Countdown */}
+          <div>
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-accent">
+              Próxima release em
             </p>
-            <div className="flex flex-wrap gap-4">
-              {countdownUnits.map(({ icon: Icon, label, key }) => (
-                <div key={label} className="flex items-start gap-2">
-                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground">
-                    <Icon className="h-3.5 w-3.5" />
+            <div className="flex gap-4">
+              {countdownUnits.map(({ label, key }) => (
+                <div
+                  key={key}
+                  className="flex min-w-14.5 flex-col items-center rounded-lg bg-white/10 px-8 py-3 sm:min-w-17 sm:px-4"
+                >
+                  <span className="num text-2xl font-bold text-warning sm:text-3xl">
+                    {String(timeLeft[key]).padStart(2, "0")}
                   </span>
-                  <div className="leading-tight">
-                    <div className="text-sm font-semibold text-foreground">
-                      {String(timeLeft[key]).padStart(2, "0")}
-                    </div>
-                    <div className="text-[11px] text-muted-foreground">{label}</div>
-                  </div>
+                  <span className="mt-0.5 text-[10px] text-primary-foreground/50">{label}</span>
                 </div>
               ))}
             </div>
           </div>
         </motion.div>
 
-        {/* Coluna de imagem */}
-        <motion.div className="relative z-10 flex items-center justify-center lg:justify-end" initial={{ opacity: 0, x: 40 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.8, delay: 0.2, ease }}>
-          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl">
+        {/* ── Coluna direita: formulário ── */}
+        <motion.div
+          className="rounded-2xl bg-card p-6 shadow-lift sm:p-8"
+          initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.2, ease }}
+        >
+          <h2 className="text-xl font-bold text-foreground">Entra na lista de espera</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Leva menos de um minuto.</p>
 
-            {/* mobile: h-[280px], resto igual ao original */}
-            <img
-              src={HERO_IMAGE}
-              alt="Equipamento de fotografia e vídeo disponível para arrendar no Beeznoo"
-              className="h-70 w-full object-cover sm:h-105 lg:h-125"
-            />
-            <img
-              src={HERO_IMAGE}
-              alt="" aria-hidden="true"
-              className="absolute inset-0 h-70 w-full scale-105 object-cover blur-lg sm:h-105 lg:h-125"
-              style={{
-                WebkitMaskImage: "radial-gradient(ellipse 65% 55% at 42% 68%, transparent 35%, black 75%)",
-                maskImage:       "radial-gradient(ellipse 65% 55% at 42% 68%, transparent 35%, black 75%)",
-              }}
-            />
+          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
 
-            {/* Nota manuscrita — oculta em mobile pequeno */}
-            <span
-              className="absolute left-8 top-8 hidden rotate-[-4deg] font-serif text-base italic text-primary-foreground/90 sm:block sm:text-lg lg:text-xl"
-              style={{ textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}
+            {/* Objetivo */}
+            <div>
+              <label className="mb-2 block text-xs font-bold text-foreground">
+                O que queres fazer?
+              </label>
+              <div className="flex gap-2">
+                {(["alugar", "disponibilizar", "ambos"] as Objetivo[]).map(op => (
+                  <button
+                    key={op} type="button"
+                    onClick={() => setObjetivo(op)}
+                    className={`flex-1 rounded-lg py-2.5 text-xs font-semibold cursor-pointer transition-all duration-150 ${
+                      objetivo === op
+                        ? "bg-primary text-primary-foreground"
+                        : "border border-border-bg bg-secondary text-foreground hover:border-primary"
+                    }`}
+                  >
+                    {op === "alugar" ? "Quero alugar" : op === "disponibilizar" ? "Quero disponibilizar" : "Ambos"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Nome */}
+            <div>
+              <label className="mb-1 block text-xs font-bold text-foreground">Nome</label>
+              <input
+                type="text" required value={nome}
+                onChange={e => setNome(e.target.value)}
+                placeholder="O teu nome"
+                className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+              />
+            </div>
+
+            {/* Email + Telefone */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-bold text-foreground">Email</label>
+                <input
+                  type="email" value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="nome@email.com"
+                  className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-foreground">Telefone / WhatsApp</label>
+                <input
+                  type="tel" required value={telefone}
+                  onChange={e => setTelefone(e.target.value)}
+                  placeholder="+244 9XX XXX XXX"
+                  className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                />
+              </div>
+            </div>
+
+            {/* Província + Perfil */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-bold text-foreground">Província</label>
+                <select
+                  value={provincia}
+                  onChange={e => setProvincia(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background cursor-pointer px-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                >
+                  {PROVINCIAS.map(p => <option key={p}>{p}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold text-foreground">Sou</label>
+                <div className="flex gap-2">
+                  {(["particular", "empresa"] as Perfil[]).map(p => (
+                    <button
+                      key={p} type="button"
+                      onClick={() => setPerfil(p)}
+                      className={`flex-1 rounded-lg py-2.5 text-xs cursor-pointer font-semibold transition-all duration-150 ${
+                        perfil === p
+                          ? "bg-primary text-primary-foreground"
+                          : "border border-border-bg bg-secondary text-foreground hover:border-primary"
+                      }`}
+                    >
+                      {p === "particular" ? "Particular" : "Empresa"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              className="group relative w-full overflow-hidden cursor-pointer rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-shadow hover:shadow-lift"
             >
-              Mais<br />liberdade<br />para criar
-            </span>
-
-            {/* Card flutuante */}
-            <motion.div
-              className="absolute bottom-5 right-5 flex items-center gap-2.5 rounded-2xl bg-accent px-3.5 py-2.5 text-accent-foreground shadow-lg backdrop-blur-sm"
-              whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-accent-foreground">
-                <Leaf className="h-3.5 w-3.5" />
+              <span className="absolute inset-0 -translate-x-full bg-shield transition-transform duration-300 ease-out group-hover:translate-x-0" />
+              <span className="relative flex items-center justify-center gap-2">
+                Entrar na lista de espera
+                <ArrowRight className="h-4 w-4" />
               </span>
-              <span className="max-w-36 text-[11px] leading-snug">Equipamentos que impulsionam os teus projetos.</span>
-              <ArrowRight className="h-3.5 w-3.5 shrink-0" />
-            </motion.div>
-          </div>
+            </button>
+
+            {/* Privacidade */}
+            <p className="text-center text-[11px] text-muted-foreground">
+              Sem spam. Só te escrevemos com novidades do lançamento.{" "}
+              <a href="/privacidade" className="underline transition-colors hover:text-foreground">
+                Política de Privacidade
+              </a>
+              .
+            </p>
+          </form>
         </motion.div>
       </div>
-
-      <AnimatePresence>
-        {contactModalOpen && <ContactModal setContactModalOpen={setContactModalOpen} abrirWhatsapp={abrirWhatsapp} />}
-      </AnimatePresence>
     </motion.section>
   );
 }
