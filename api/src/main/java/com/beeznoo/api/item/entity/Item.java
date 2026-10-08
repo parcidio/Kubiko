@@ -66,7 +66,7 @@ public class Item {
     private int viewCount = 0;
 
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("positon ASC")
+    @OrderBy("position ASC")
     @Builder.Default
     private List<ItemPhoto> photos = new ArrayList<>();
 
