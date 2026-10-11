@@ -3,6 +3,7 @@
 import { Bookmark, Star } from "lucide-react";
 import { catalogo } from "@/lib/marketplace";
 import { EMPTY_FILTERS, type Filters } from "./Filters";
+import Link from "next/link";
 
 interface BeeznoItemsProps {
   filters?: Filters;
@@ -48,8 +49,9 @@ export default function BeeznoItems({ filters = EMPTY_FILTERS }: BeeznoItemsProp
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:gap-5 xl:grid-cols-4">
           {filtered.map((item) => (
-            <div
+            <Link
               key={item.id}
+              href={`/items/${item.id}`}
               className="group relative h-64 sm:h-84 cursor-pointer overflow-hidden rounded-sm border border-border-bg"
             >
               <img
@@ -104,7 +106,7 @@ export default function BeeznoItems({ filters = EMPTY_FILTERS }: BeeznoItemsProp
                   </p>
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
