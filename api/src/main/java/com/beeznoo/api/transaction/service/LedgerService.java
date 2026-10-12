@@ -126,6 +126,14 @@ public class LedgerService {
         record(owner, booking, EntryType.PAYMENT_CREDIT, deposit, "Caução recebida por disputa");
     }
 
+    // true se a reserva tem valor retido ainda não libertado nem pago
+    @Transactional(readOnly = true)
+    public boolean hasActiveHold(UUID bookingId) {
+        return ledgerEntryRepository.existsByBookingIdAndType(bookingId, EntryType.HOLD)
+                && !ledgerEntryRepository.existsByBookingIdAndType(bookingId, EntryType.HOLD_RELEASE)
+                && !ledgerEntryRepository.existsByBookingIdAndType(bookingId, EntryType.PAYMENT_DEBIT);
+    }
+
     // Ajuste manual (admin) — positivo credita, negativo debita
     public AccountResponse adjust(UUID accountId, AdjustmentRequest request) {
         if (request.amount().signum() == 0) {
