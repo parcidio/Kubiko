@@ -43,7 +43,7 @@ public class Account {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
-    @Column(name = "updated_at", nullable = false, updatable = false)
+    @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
 
@@ -95,5 +95,15 @@ public class Account {
             throw new IllegalArgumentException("Valor a creditar tem de ser positivo");
         }
         availableBalance = availableBalance.add(amount);
+    }
+
+    public void debit(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Valor a debitar tem de ser positivo");
+        }
+        if (availableBalance.compareTo(amount) < 0) {
+            throw new IllegalStateException("Saldo disponível insuficiente para débito");
+        }
+        availableBalance = availableBalance.subtract(amount);
     }
 }

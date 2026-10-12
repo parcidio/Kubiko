@@ -10,6 +10,7 @@ import com.beeznoo.api.item.repository.ItemRepository;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
+import com.beeznoo.api.transaction.service.LedgerService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -32,11 +33,14 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final ItemRepository itemRepository;
     private final ProfileRepository profileRepository;
+    private final LedgerService ledgerService;
 
-    public BookingService(BookingRepository bookingRepository, ItemRepository itemRepository, ProfileRepository profileRepository) {
+    public BookingService(BookingRepository bookingRepository, ItemRepository itemRepository,
+                          ProfileRepository profileRepository, LedgerService ledgerService) {
         this.bookingRepository = bookingRepository;
         this.itemRepository = itemRepository;
         this.profileRepository = profileRepository;
+        this.ledgerService = ledgerService;
     }
 
     public BookingResponse create(UUID renterId, CreateBookingRequest request) {
@@ -110,6 +114,9 @@ public class BookingService {
             throw new IllegalStateException("O item já tem uma reserva confirmada para estas datas");
         }
 
+        // Retém total + caução no saldo do arrendatário; falha se não houver saldo
+        ledgerService.holdForBooking(bookingId);
+
         booking.setStatus(BookingStatus.ACCEPTED);
         if (request != null) booking.setOwnerNote(request.ownerNote());
         return toResponse(booking);
@@ -131,6 +138,10 @@ public class BookingService {
             throw new AccessDeniedException("Sem permissão para cancelar esta reserva");
         }
 
+        if (ledgerService.hasActiveHold(bookingId)) {
+            ledgerService.releaseHold(bookingId);
+        }
+
         return toResponse(booking);
     }
 
@@ -139,6 +150,7 @@ public class BookingService {
         assertAdmin(requesterId);
         Booking booking = findBooking(bookingId);
         assertStatus(booking, BookingStatus.ACCEPTED);
+        ledgerService.confirmPayment(bookingId);
         booking.setStatus(BookingStatus.ACTIVE);
         return toResponse(booking);
     }
@@ -148,6 +160,7 @@ public class BookingService {
         assertAdmin(requesterId);
         Booking booking = findBooking(bookingId);
         assertStatus(booking, BookingStatus.ACTIVE);
+        ledgerService.completeBooking(bookingId);
         booking.setStatus(BookingStatus.COMPLETED);
         return toResponse(booking);
     }
