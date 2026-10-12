@@ -42,7 +42,7 @@ export default function BeeznoItems({ filters = EMPTY_FILTERS }: BeeznoItemsProp
       </p>
 
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-border-bg bg-card py-20 text-center">
+        <div className="flex flex-col items-center justify-center rounded-sm border border-border-bg bg-card py-20 text-center">
           <p className="text-base font-semibold text-foreground">Nenhum item encontrado</p>
           <p className="mt-1 text-sm text-muted-foreground">Tenta ajustar os filtros.</p>
         </div>
@@ -52,7 +52,7 @@ export default function BeeznoItems({ filters = EMPTY_FILTERS }: BeeznoItemsProp
             <Link
               key={item.id}
               href={`/items/${item.id}`}
-              className="group relative h-64 sm:h-84 cursor-pointer overflow-hidden rounded-sm border border-border-bg"
+              className="group relative h-64 sm:h-84 cursor-pointer overflow-hidden rounded-xs border border-border-bg"
             >
               <img
                 src={item.foto}

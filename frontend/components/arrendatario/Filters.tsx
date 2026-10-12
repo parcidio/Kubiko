@@ -156,7 +156,7 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
   ];
 
   const content = (
-    <div className="rounded-lg border border-border-bg bg-card">
+    <div className="rounded-sm border border-border-bg bg-card">
       {!mobile && (
         <div className="flex justify-center border-b border-border-bg px-6 py-1.5">
           <h2 className="font-light text-card-foreground">Filtros</h2>
