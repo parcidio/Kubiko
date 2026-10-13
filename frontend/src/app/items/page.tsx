@@ -3,8 +3,8 @@
 import { useState, Suspense } from "react";
 import { SlidersHorizontal, X } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import BeeznoFilters, { EMPTY_FILTERS, type Filters } from "../../../components/arrendatario/Filters";
-import BeeznoItems from "../../../components/arrendatario/Items";
+import BeeznoFilters, { EMPTY_FILTERS, type Filters } from "../../../components/items/Filters";
+import BeeznoItems from "../../../components/items/Items";
 
 // useSearchParams precisa de Suspense no App Router
 function ArrendatarioInner() {

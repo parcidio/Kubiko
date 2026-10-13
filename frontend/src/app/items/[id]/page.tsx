@@ -7,25 +7,23 @@ const { id } = await params
 const item = catalogo.find(item => item.id === id)
 
 return (
-    <div>
-        <div className="flex gap-4">
-            <div className="flex items-center">
-                <div className="flex items-center justify-center">
-                    <img className="flex items-center justify-center" src={item?.foto || ''} alt={item?.nome} />
+    <div className="min-h-screen bg-background">
+        <div className="mx-auto max-w-7xl px-6 pt-8 lg:px-10">
+            <div className="grid h-70 grid-cols-3 gap-3">
+            <div className="col-span-2 overflow-hidden rounded-xs bg-muted">
+                <img src={item?.foto} alt={item?.nome} className="h-full w-full object-cover" />
+            </div>
+            <div className="flex flex-col gap-3">
+                <div className="flex-1 overflow-hidden rounded-xs bg-muted">
+                <img src={item?.foto} alt="Traseira" className="h-full w-full object-cover" />
                 </div>
-                <div>
-                    <div>
-                        <img src={item?.foto || ''} alt={item?.nome} width={400} height={250}/>
-                    </div>
-                    <div>
-                        <img src={item?.foto || ''} alt={item?.nome} width={400} height={250}/>
-                    </div>
+                <div className="flex-1 overflow-hidden rounded-xs bg-muted">
+                <img src={item?.foto} alt="Acessórios" className="h-full w-full object-cover" />
                 </div>
             </div>
-            <div>
             </div>
         </div>
-        <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-20 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-10 lg:py-24">
+        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-20 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-10 lg:py-24 m-6">
             <div>
                 <div className="flex gap-2">
                     <div className="bg-input rounded-xs">
