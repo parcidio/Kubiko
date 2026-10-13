@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { SlidersHorizontal, X, ChevronLeft } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import BeeznoFilters, { EMPTY_FILTERS, type Filters } from "../../../components/arrendatario/Filters";
-import BeeznoItems from "../../../components/arrendatario/Items";
+import { SlidersHorizontal, X } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import BeeznoFilters, { EMPTY_FILTERS, type Filters } from "../../../components/items/Filters";
+import BeeznoItems from "../../../components/items/Items";
 
 // useSearchParams precisa de Suspense no App Router
 function ArrendatarioInner() {
-  const router       = useRouter();
   const searchParams = useSearchParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -22,14 +21,6 @@ function ArrendatarioInner() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto max-w-7xl px-2 py-16 sm:px-8">
-
-        <button
-          onClick={() => router.back()}
-          className="mb-5 flex items-center gap-1.5 text-sm font-semibold cursor-pointer text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Voltar
-        </button>
 
         <button
           onClick={() => setDrawerOpen(true)}
@@ -46,7 +37,9 @@ function ArrendatarioInner() {
               initialFilters={activeFilters}
             />
           </div>
-          <BeeznoItems filters={activeFilters} />
+          <div className="flex-1 min-w-0 lg:ml-78">
+            <BeeznoItems filters={activeFilters} />
+          </div>
         </div>
       </div>
 

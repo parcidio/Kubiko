@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Banknote, Search, Bookmark, Calendar, ChevronDown } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Banknote, Search, Bookmark, Calendar, ChevronDown, ChevronLeft } from "lucide-react";
 
 const CATEGORIAS = [
   "Fotografia", "Vídeo", "Áudio", "Eventos",
@@ -155,7 +156,7 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
   ];
 
   const content = (
-    <div className="rounded-lg border border-border-bg bg-card">
+    <div className="rounded-sm border border-border-bg bg-card">
       {!mobile && (
         <div className="flex justify-center border-b border-border-bg px-6 py-1.5">
           <h2 className="font-light text-card-foreground">Filtros</h2>
@@ -228,6 +229,17 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
     </div>
   );
 
-  if (!mobile) return <aside className="w-72 shrink-0 sticky top-24">{content}</aside>;
+
+  if (!mobile) 
+  {
+      const router = useRouter();
+      return <aside className="w-72 shrink-0 fixed top-24 overflow-y-auto max-h-[calc(100vh-6rem)]">
+                <button onClick={() => router.back()} className="mb-5 flex items-center gap-1.5 text-sm font-semibold cursor-pointer text-muted-foreground transition-colors hover:text-foreground">
+                  <ChevronLeft className="h-4 w-4" />
+                  Voltar
+                </button>
+                {content}
+              </aside>;
+  }
   return <div>{content}</div>;
 }

@@ -19,6 +19,9 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: "Beeznoo — Aluga o que precisas em Angola",
   description: "A plataforma que liga quem precisa de equipamento a quem o tem parado.",
+  icons: {
+    icon: '/svg/beeznoo-simbolo.svg'
+  }
 };
 
 export default function RootLayout({

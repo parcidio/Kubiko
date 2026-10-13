@@ -7,7 +7,7 @@ import { ArrowRight, Check, Calendar, Clock, Timer, Zap } from "lucide-react";
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
 // ── Altera esta linha para mudar a data de lançamento ──
-const LAUNCH_DATE = new Date("2026-10-18T00:00:00");
+const LAUNCH_DATE = new Date("2026-12-18T00:00:00");
 // ───────────────────────────────────────────────────────
 
 const NUMERO = "244932300335";
@@ -97,26 +97,81 @@ export default function BeeznoHero() {
   const [provincia, setProvincia] = useState("Luanda");
   const [perfil,    setPerfil]    = useState<Perfil>("particular");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const perfilTexto = perfil === "particular" ? "Particular" : "Empresa";
+
+  const trackObjetivo = (tipo: Objetivo) => {
+    fetch(`/api/track-click?tipo=${encodeURIComponent(tipo)}`).catch(() => {});
+  };
+
+  const criarParametros = (tipo: Exclude<Objetivo, "ambos">) =>
+    new URLSearchParams({
+      nome,
+      email,
+      telefone,
+      provincia,
+      perfil: perfilTexto,
+      tipo_usuario: tipo,
+      objetivo:
+        tipo === "alugar"
+          ? "alugar equipamento"
+          : "disponibilizar equipamento",
+    });
+
+  const handleAlugar = () => {
+    trackObjetivo("alugar");
+
+    const params = criarParametros("alugar");
+    window.open(
+      `https://tally.so/r/dW7yGK?${params.toString()}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  const handleDisponibilizar = () => {
+    trackObjetivo("disponibilizar");
+
+    const params = criarParametros("disponibilizar");
+    window.open(
+      `https://tally.so/r/5BN0JZ?${params.toString()}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  const handleAmbos = () => {
+    const msg =
+      `Olá! Quero conhecer a Beeznoo e utilizar a plataforma nos dois perfis.\\n\\n` +
+      `Nome: ${nome}\\n` +
+      `Email: ${email}\\n` +
+      `Telefone/WhatsApp: ${telefone}\\n` +
+      `Província: ${provincia}\\n` +
+      `Perfil: ${perfilTexto}\\n` +
+      `Objetivo: Alugar e disponibilizar equipamentos`;
+
+    trackObjetivo("ambos");
+
+    window.open(
+      `https://wa.me/${NUMERO}?text=${encodeURIComponent(msg)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const objetivoTexto = {
-      alugar:         "alugar equipamento",
-      disponibilizar: "disponibilizar equipamento",
-      ambos:          "alugar e disponibilizar equipamento",
-    }[objetivo];
-
-    const msg =
-      `Olá! Quero entrar na lista de espera do Beeznoo.\n\n` +
-      `Nome: ${nome}\n` +
-      `Email: ${email}\n` +
-      `Telefone/WhatsApp: ${telefone}\n` +
-      `Província: ${provincia}\n` +
-      `Perfil: ${perfil === "particular" ? "Particular" : "Empresa"}\n` +
-      `Objetivo: ${objetivoTexto}`;
-
-    fetch(`/api/track-click?tipo=${objetivo}`).catch(() => {});
-    window.open(`https://wa.me/${NUMERO}?text=${encodeURIComponent(msg)}`, "_blank");
+    switch (objetivo) {
+      case "alugar":
+        handleAlugar();
+        break;
+      case "disponibilizar":
+        handleDisponibilizar();
+        break;
+      case "ambos":
+        handleAmbos();
+        break;
+    }
   };
 
   return (
