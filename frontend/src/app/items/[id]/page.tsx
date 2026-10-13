@@ -1,110 +1,134 @@
-import { catalogo } from "@/lib/marketplace"
-import { Clock, IdCard, ShieldCheck, Smartphone } from "lucide-react"
-import Image from "next/image"
+"use client";
 
-export default async function ItemPage({params}: { params: Promise<{ id: string }> }) {
-const { id } = await params
-const item = catalogo.find(item => item.id === id)
+import { useState } from "react";
+import { useParams } from "next/navigation";
+import { catalogo } from "@/lib/marketplace";
+import ItemGallery from "../../../../components/items/id/Gallery";
+import Calendar from "../../../../components/items/id/Calendar";
+import ItemConservation from "../../../../components/items/id/Conservation";
+import ItemBooking from "../../../../components/items/id/Booking";
+import ItemOwner from "../../../../components/items/id/Owner";
+import ItemInformation from "../../../../components/items/id/Information";
+import ItemDescription from "../../../../components/items/id/Description";
+import ItemProtection from "../../../../components/items/id/Protection";
 
-return (
-    <div className="min-h-screen bg-background">
-        <div className="mx-auto max-w-7xl px-6 pt-8 lg:px-10">
-            <div className="grid h-70 grid-cols-3 gap-3">
-            <div className="col-span-2 overflow-hidden rounded-xs bg-muted">
-                <img src={item?.foto} alt={item?.nome} className="h-full w-full object-cover" />
-            </div>
-            <div className="flex flex-col gap-3">
-                <div className="flex-1 overflow-hidden rounded-xs bg-muted">
-                <img src={item?.foto} alt="Traseira" className="h-full w-full object-cover" />
-                </div>
-                <div className="flex-1 overflow-hidden rounded-xs bg-muted">
-                <img src={item?.foto} alt="Acessórios" className="h-full w-full object-cover" />
-                </div>
-            </div>
-            </div>
+// Dados de demonstração — substituir pela resposta da API quando estiver disponível.
+const EXTRA: Record<
+  string,
+  {
+    location: string;
+    conservation: string;
+    conditionNotes: string[];
+    lastCheck: string;
+    description: string;
+    includes: string[];
+    weekly: number;
+    monthly: number;
+    caucao: number;
+  }
+> = {
+  "1": {
+    location: "Talatona",
+    conservation: "muito-bom",
+    conditionNotes: [
+      "Sensor limpo, cerca de 12.000 disparos",
+      "Pequeno risco na base (visível na foto 5)",
+      "Ecrã e botões sem falhas",
+    ],
+    lastCheck: "28 Set 2026",
+    description:
+      "Câmara full-frame ideal para casamentos, eventos e vídeo 4K. Vai com lente zoom 28–70mm, pronta a usar.",
+    includes: [
+      "Corpo + lente FE 28–70mm",
+      "2 baterias e carregador",
+      "Cartão SD 64 GB",
+      "Mochila de transporte",
+    ],
+    weekly: 150000,
+    monthly: 500000,
+    caucao: 150000,
+  },
+};
+
+const defaultExtra = {
+  location: "Luanda",
+  conservation: "bom",
+  conditionNotes: ["Equipamento em bom estado de conservação"],
+  lastCheck: "Out 2026",
+  description: "Equipamento disponível para arrendamento em Luanda.",
+  includes: ["Equipamento principal", "Acessórios incluídos"],
+  weekly: 0,
+  monthly: 0,
+  caucao: 0,
+};
+
+type CalendarSelection = { start: number | null; end: number | null };
+
+export default function ItemPage() {
+  const { id } = useParams<{ id: string }>();
+  const item = catalogo.find((entry) => entry.id === id);
+  const extra = EXTRA[id] ?? defaultExtra;
+  const [calDates, setCalDates] = useState<CalendarSelection>({
+    start: null,
+    end: null,
+  });
+
+
+  const handleCalDay = (day: number) => {
+    setCalDates((previous) => {
+      if (previous.start === null || previous.end !== null) {
+        return { start: day, end: null };
+      }
+      if (day < previous.start) return { start: day, end: previous.start };
+      return { start: previous.start, end: day };
+    });
+  };
+
+  if (!item) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-6">
+        <p className="text-muted-foreground">Item não encontrado.</p>
+      </div>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-10">
+        <ItemGallery id={id} />
+      </div>
+
+      {/* Layout principal: detalhes à esquerda, reserva à direita */}
+      <div className="mx-auto grid max-w-7xl grid-cols-1 items-start gap-6 px-4 pb-8 pt-2 sm:px-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8 lg:px-10 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          {/* Informações principais */}
+          <ItemInformation item={item} extra={extra} />
+
+          {/* Estado de conservação */}
+          <ItemConservation id={id} />
+
+          {/* Descrição e acessórios */}
+          <ItemDescription extra={extra} />
+
+          {/* Disponibilidade */}
+          <section className="min-w-0 rounded-xs border border-border bg-card p-4">
+            <h2 className="mb-4 font-bold text-foreground">Disponibilidade</h2>
+            <Calendar selected={calDates} onSelect={handleCalDay} />
+          </section>
         </div>
-        <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-20 lg:grid-cols-2 lg:items-center lg:gap-16 lg:px-10 lg:py-24 m-6">
-            <div>
-                <div className="flex gap-2">
-                    <div className="bg-input rounded-xs">
-                        <h1 className="text-secondary-foreground text-xs font-bold">{item?.categoria}</h1>
-                    </div>
-                    <div className="bg-input rounded-xs">
-                        <h1 className="text-secondary-foreground text-xs font-bold">Particular</h1>
-                    </div>
-                </div>
-                <div>
-                    <h1 className="text-4xl font-bold">{item?.nome}</h1>
-                    <h1 className="text-2xl font-bold">{item?.precoPorDia.toLocaleString("pt-AO")} Kz
-                        <span className="text-[10px] sm:text-xs font-normal text-muted-foreground"> /dia</span>
-                    </h1>
-                </div>
-            </div>
-            <div className="flex flex-col gap-6">
-                <div className="bg-card border border-border-bg rounded-xs">
-                    <h1 className="font-bold text-card-foreground mx-6 mt-6">Pedir reserva</h1>
-                    <div className="flex mx-6 gap-6 py-4">
-                        <div className="">
-                            <h1 className="text-card-foreground text-xs">Levantar</h1>
-                            <input type="date" className="bg-card rounded-xs border-2 border-border-bg/40 px-6 py-2"/>
-                        </div>
-                        <div className="">
-                            <h1 className="text-card-foreground text-xs">Devolver</h1>
-                            <input type="date" className="bg-card rounded-xs border-2 border-border-bg/40 px-6 py-2"/>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-card border border-border-bg rounded-xs">
-                    <div className="flex gap-4 mx-6 mt-6">
-                        <div className="bg-ring/30 rounded-full justify-center w-12 h-12 flex items-center">
-                            <h1 className="uppercase text-accent-foreground font-bold">EM</h1>
-                        </div>
-                        <div>
-                            <div className="flex gap-2 items-center">
-                                <h1 className="font-bold text-sm">Edson Mateus</h1>
-                                <div className="flex gap-1 bg-accent px-2 py-0.5 rounded-xs items-center">
-                                    <ShieldCheck className="w-3 h-3"/>
-                                    <h1 className="text-xs font-semibold">Verificado</h1>
-                                </div>
-                            </div>
-                            <div className="mt-2 flex gap-1.5">
-                                <h1 className="text-xs text-muted-foreground">Particular · </h1>
-                                <h1 className="text-xs text-muted-foreground">Talatona · </h1>
-                                <h1 className="text-xs text-muted-foreground">Membro desde 2023</h1>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-2 mx-8 mt-6 font-display mb-6">
-                        <div className="flex gap-1.5">
-                            <IdCard className="w-4 h-4 text-muted-foreground"/>
-                            <h1 className="text-xs text-muted-foreground">BI e selfie verificados pela equipa</h1>
-                        </div>
-                        <div className="flex gap-1.5">
-                            <Smartphone className="w-4 h-4 text-muted-foreground"/>
-                            <h1 className="text-xs text-muted-foreground">Telefone confirmado</h1>
-                        </div>
-                        <div className="flex gap-1.5">
-                            <Clock className="w-4 h-4 text-muted-foreground"/>
-                            <h1 className="text-xs text-muted-foreground">Costuma responder em ~3 horas</h1>
-                        </div>
-                    </div>
-                </div>
-                <div className="rounded-xs bg-accent">
-                    <div className="flex gap-2 mx-6 mt-6 mb-6 items-center">
-                        <ShieldCheck className="w-4 h-4 font-bold"/>
-                        <div className="text-sm">
-                            <h1 className="font-bold">Protecção Beeznoo</h1>
-                            <p>Caução retida pela Beeznoo, checklist com fotos</p>
-                            <p>na entrega e na devolução, e podes reportar o</p>
-                            <p>problema até 24h depois de receber o</p>
-                            <p>equipamento.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-)
 
+        {/* Coluna lateral */}
+        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24">
+          {/* Reserva — visível também em mobile */}
+          <ItemBooking id={id} extra={extra} />
 
+          {/* Proprietário */}
+          <ItemOwner />
+
+          {/* Proteção Beeznoo */}
+          <ItemProtection />
+        </aside>
+      </div>
+    </main>
+  );
 }
