@@ -150,8 +150,8 @@ export default function BeeznoFooter() {
             <a href="https://www.instagram.com/beeznoo.ao?stkn=b2t1dzE0MnZla2R4" target="_blank" className="transition-colors hover:text-primary-foreground">
               Instagram
             </a>
-            <a href="mailto:hello@beeznoo.ao" className="transition-colors hover:text-primary-foreground">
-              hello@beeznoo.ao
+            <a href="mailto:equipa@beeznoo.ao" className="transition-colors hover:text-primary-foreground">
+              equipa@beeznoo.ao
             </a>
             <span className="text-shield-foreground/50">© 2026 Beeznoo</span>
           </div>

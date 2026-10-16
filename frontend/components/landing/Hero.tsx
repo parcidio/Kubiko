@@ -7,7 +7,7 @@ import { ArrowRight, Check, Calendar, Clock, Timer, Zap } from "lucide-react";
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
 // ── Altera esta linha para mudar a data de lançamento ──
-const LAUNCH_DATE = new Date("2026-12-18T00:00:00");
+const LAUNCH_DATE = new Date("2026-11-17T00:00:00");
 // ───────────────────────────────────────────────────────
 
 const NUMERO = "244932300335";
