@@ -48,3 +48,12 @@ ombala:
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  payments:
+    # simulated (MVP) | emis (futuro) — ver claude/decisoes-produto.md
+    provider: ${PAYMENTS_PROVIDER:simulated}
+    service-fee-rate: ${PAYMENTS_SERVICE_FEE_RATE:0.08}
+    reference-ttl: ${PAYMENTS_REFERENCE_TTL:24h}
+    simulated:
+      entity: ${PAYMENTS_SIMULATED_ENTITY:00000}
+      # true só em dev/demo: "Já paguei" confirma logo. Em produção fica false (admin valida).
+      auto-confirm: ${PAYMENTS_AUTO_CONFIRM:false}
