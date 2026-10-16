@@ -89,6 +89,30 @@ public class LedgerService {
         record(owner, booking, EntryType.PAYMENT_CREDIT, booking.getTotalPrice(), "Recebimento da reserva");
     }
 
+    // Pagamento por referência confirmado — liquida tudo numa transação:
+    // TOPUP (valor recebido) → SERVICE_FEE → HOLD/DEPOSIT_HOLD → PAYMENT_DEBIT/CREDIT
+    public void settleReferencePayment(UUID bookingId, BigDecimal amountPaid, BigDecimal serviceFee) {
+        Booking booking = findBooking(bookingId);
+        assertNotRegistered(bookingId, EntryType.TOPUP, "O pagamento desta reserva já foi registado");
+
+        BigDecimal expected = booking.getTotalPrice().add(depositOf(booking)).add(serviceFee);
+        if (amountPaid.compareTo(expected) != 0) {
+            throw new IllegalStateException("Montante pago não corresponde ao valor da reserva");
+        }
+
+        Account renter = lockByProfile(booking.getRenter().getId());
+        renter.credit(amountPaid);
+        record(renter, booking, EntryType.TOPUP, amountPaid, "Pagamento por referência recebido");
+
+        if (serviceFee.signum() > 0) {
+            renter.debit(serviceFee);
+            record(renter, booking, EntryType.SERVICE_FEE, serviceFee, "Taxa de serviço Beeznoo");
+        }
+
+        holdForBooking(bookingId);
+        confirmPayment(bookingId);
+    }
+
     // COMPLETED — devolve a caução ao arrendatário
     public void completeBooking(UUID bookingId) {
         Booking booking = findBooking(bookingId);
