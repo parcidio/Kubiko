@@ -201,3 +201,33 @@
 @utility num {
   font-variant-numeric: tabular-nums;
 }
+/* ── Identidade Verde (CLAUDE.md §7) — usar nos ecrãs da app (auth, arrendatário, dono) ── */
+@theme {
+  --color-ambar:        #F0A22E;
+  --color-ambar-hover:  #E08F17;
+  --color-ambar-tint:   #FDF0DC;
+  --color-aviso-texto:  #7A4A0B;
+  --color-verde:        #0E2A1F;
+  --color-verde-medio:  #1F5C42;
+  --color-areia:        #FAF6EF;
+  --color-areia-2:      #F3E9D8;
+  --color-branco:       #FFFFFF;
+  --color-mel:          #B76E12;
+  --color-mel-texto:    #9A5C0E;
+  --color-salvia:       #8FC0A8;
+  --color-salvia-tint:  #E3F0E9;
+  --color-texto-corpo:  #2C3A33;
+  --color-cinza:        #5E6B64;
+  --color-borda:        #E1E5DB;
+  --color-borda-forte:  #B9C2B5;
+  --color-erro:         #B3261E;
+  --color-erro-tint:    #FBEAE8;
+  --color-skeleton:     #ECE6DA;
+
+  --font-heading: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-bz-sm: 3px;
+  --radius-bz-md: 4px;
+
+  --shadow-cta: 0 -8px 24px rgba(14, 42, 31, .12);
+}

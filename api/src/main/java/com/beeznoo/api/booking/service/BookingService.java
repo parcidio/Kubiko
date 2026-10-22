@@ -11,6 +11,7 @@ import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import com.beeznoo.api.transaction.service.LedgerService;
+import com.beeznoo.api.transaction.service.PaymentService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -34,13 +35,16 @@ public class BookingService {
     private final ItemRepository itemRepository;
     private final ProfileRepository profileRepository;
     private final LedgerService ledgerService;
+    private final PaymentService paymentService;
 
     public BookingService(BookingRepository bookingRepository, ItemRepository itemRepository,
-                          ProfileRepository profileRepository, LedgerService ledgerService) {
+                          ProfileRepository profileRepository, LedgerService ledgerService,
+                          PaymentService paymentService) {
         this.bookingRepository = bookingRepository;
         this.itemRepository = itemRepository;
         this.profileRepository = profileRepository;
         this.ledgerService = ledgerService;
+        this.paymentService = paymentService;
     }
 
     public BookingResponse create(UUID renterId, CreateBookingRequest request) {
@@ -114,9 +118,7 @@ public class BookingService {
             throw new IllegalStateException("O item já tem uma reserva confirmada para estas datas");
         }
 
-        // Retém total + caução no saldo do arrendatário; falha se não houver saldo
-        ledgerService.holdForBooking(bookingId);
-
+        // Sem retenção aqui: o arrendatário paga depois por referência (decisoes-produto.md, 2026-10-16)
         booking.setStatus(BookingStatus.ACCEPTED);
         if (request != null) booking.setOwnerNote(request.ownerNote());
         return toResponse(booking);
@@ -138,6 +140,7 @@ public class BookingService {
             throw new AccessDeniedException("Sem permissão para cancelar esta reserva");
         }
 
+        paymentService.cancelOpen(bookingId);
         if (ledgerService.hasActiveHold(bookingId)) {
             ledgerService.releaseHold(bookingId);
         }
@@ -145,13 +148,13 @@ public class BookingService {
         return toResponse(booking);
     }
 
-    // Interno/admin — sem integração Multicaixa por agora
+    // Interno/admin — validação manual de comprovativo (alternativa à referência)
     public BookingResponse confirmPayment(UUID requesterId, UUID bookingId) {
         assertAdmin(requesterId);
         Booking booking = findBooking(bookingId);
         assertStatus(booking, BookingStatus.ACCEPTED);
-        ledgerService.confirmPayment(bookingId);
-        booking.setStatus(BookingStatus.ACTIVE);
+        // Validação manual (comprovativo): liquida no ledger e passa a ACTIVE
+        paymentService.confirmManually(booking);
         return toResponse(booking);
     }
 

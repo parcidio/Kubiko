@@ -8,5 +8,7 @@ public enum EntryType {
     DEPOSIT_HOLD,     // caução retida do arrendatário
     DEPOSIT_RETURN,   // caução devolvida após conclusão sem disputa
     DEPOSIT_FORFEIT,  // caução retida após disputa ganha pelo dono
-    ADJUSTMENT        // ajuste manual pelo admin
+    ADJUSTMENT,       // ajuste manual pelo admin
+    TOPUP,            // valor recebido por referência entra no saldo do arrendatário
+    SERVICE_FEE       // taxa de serviço Beeznoo debitada ao arrendatário
 }
