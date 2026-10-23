@@ -94,6 +94,12 @@ export default function BeeznoHero() {
   const [nome,      setNome]      = useState("");
   const [email,     setEmail]     = useState("");
   const [telefone,  setTelefone]  = useState("");
+  const [equipamento,  setEquipamento]  = useState("");
+  const [dataInicio,  setDataInicio]  = useState("");
+  const [valorAluguer,  setValorAluguer]  = useState("");
+  const [dataRenda,  setDataRenda]  = useState("");
+  const [dataFinal,  setDataFinal]  = useState("");
+  const [valorRenda,  setValorRenda]  = useState("");
   const [provincia, setProvincia] = useState("Luanda");
   const [perfil,    setPerfil]    = useState<Perfil>("particular");
 
@@ -318,6 +324,82 @@ export default function BeeznoHero() {
                 />
               </div>
             </div>
+
+            {/* Campos específicos arrendatários*/}
+            
+            {objetivo === "alugar" && (
+              <div>
+                 <div>
+                  <label className="mb-1 block text-xs font-bold text-foreground">O que é que precisas?</label>
+                  <input
+                    type="text" required value={equipamento}
+                    onChange={e => setEquipamento(e.target.value)}
+                    placeholder="Nome do item"
+                    className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-6">
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">Para quando?</label>
+                    <input
+                      type="date" value={dataRenda}
+                      onChange={e => setDataRenda(e.target.value)}
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">Quanto pagarias? (por semana)</label>
+                    <input
+                      type="number" required value={valorRenda}
+                      onChange={e => setValorRenda(e.target.value)}
+                      placeholder="Ex.: 5.000"
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          {/* Campos específicos arrendadores*/}
+          {objetivo === "disponibilizar" && (
+            <div>
+              <div>
+                  <label className="mb-1 block text-xs font-bold text-foreground">O que é queres disponibilizar?</label>
+                  <input
+                    type="text" required value={equipamento}
+                    onChange={e => setEquipamento(e.target.value)}
+                    placeholder="Nome do teu item"
+                    className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mt-6">
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">De quando?</label>
+                    <input
+                      type="date" value={dataInicio}
+                      onChange={e => setDataInicio(e.target.value)}
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">Até quando?</label>
+                    <input
+                      type="date" value={dataFinal}
+                      onChange={e => setDataFinal(e.target.value)}
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                   <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">Por quanto?</label>
+                    <input
+                      type="number" value={valorAluguer}
+                      onChange={e => setValorAluguer(e.target.value)}
+                      placeholder="Ex.: 5.000"
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                </div>
+            </div>
+          )}
 
             {/* Província + Perfil */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
