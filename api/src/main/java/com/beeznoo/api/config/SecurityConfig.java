@@ -4,6 +4,9 @@
     import com.beeznoo.api.auth.security.OAuth2SuccessHandler;
     import lombok.RequiredArgsConstructor;
     import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
     import org.springframework.context.annotation.Bean;
     import org.springframework.context.annotation.Configuration;
     import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -50,6 +53,10 @@
                             .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "MODERADOR")
                             .anyRequest().authenticated()
                     )
+                    // API responde 401 (não 302 para o Google) — o frontend renova o token com /auth/refresh
+                    .exceptionHandling(e -> e.defaultAuthenticationEntryPointFor(
+                            new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
+                            PathPatternRequestMatcher.withDefaults().matcher("/api/**")))
                     .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2SuccessHandler))
                     .addFilterBefore(jwtAuthFiltter, UsernamePasswordAuthenticationFilter.class)
                     .build();

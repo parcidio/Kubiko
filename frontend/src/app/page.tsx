@@ -10,7 +10,8 @@ import BeeznoWaitlist from "../../components/landing/Waitlist";
 
 export default function Home() {
   return (
-    <div>
+    // pt-[65px] compensa a navbar fixa
+    <div className="pt-16.25">
       <main>
         <BeeznoNavbar />
         <BeeznoHero />

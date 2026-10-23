@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
-import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
+import { Bricolage_Grotesque, DM_Sans, Space_Grotesk } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
   subsets: ["latin"],
   weight: ["500", "700", "800"],
   variable: "--font-display",
+  display: "swap",
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["700"],
+  variable: "--font-space-grotesk",
   display: "swap",
 });
 
@@ -32,13 +40,11 @@ export default function RootLayout({
   return (
     <html
       lang="pt"
-      className={`${bricolage.variable} ${dmSans.variable} scroll-smooth`}
+      className={`${bricolage.variable} ${spaceGrotesk.variable} ${dmSans.variable} scroll-smooth`}
     >
       <body>
-        {/* pt-[65px] compensa a navbar fixa */}
-        <main className="pt-16.25">
-          {children}
-        </main>
+        {children}
+        <Toaster position="top-center" />
       </body>
     </html>
   );
