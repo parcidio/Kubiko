@@ -1,0 +1,5 @@
+# Perfil "seed": enche a BD de desenvolvimento com dados de demonstração e termina (ver seed/DevSeeder).
+# Nunca activar em staging ou produção.
+spring:
+  main:
+    web-application-type: none
