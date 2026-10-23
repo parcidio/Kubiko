@@ -139,6 +139,8 @@ public class BookingService {
         assertOwner(requesterId, booking);
         assertStatus(booking, BookingStatus.PENDING_OWNER);
 
+        // Lock no item: dois "aceitar" ao mesmo tempo para datas sobrepostas ficam em série
+        itemRepository.findByIdForUpdate(booking.getItem().getId());
         // Outra reserva pode ter sido aceite entretanto para as mesmas datas
         if (bookingRepository.existsOverlapping(booking.getItem().getId(),
                 booking.getStartDate(), booking.getEndDate(), BLOCKING_STATUSES)) {

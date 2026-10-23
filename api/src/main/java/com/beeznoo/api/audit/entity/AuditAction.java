@@ -5,6 +5,7 @@ public enum AuditAction {
     KYC_APPROVED,
     KYC_REJECTED,
     KYC_INFO_REQUESTED,
+    KYC_DOCUMENTS_VIEWED,       // admin abriu os documentos (URLs assinadas) de uma verificação
     PAYMENT_CONFIRMED_MANUALLY,
     BALANCE_ADJUSTED,
     DEPOSIT_RELEASED,

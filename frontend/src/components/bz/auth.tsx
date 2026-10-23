@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Camera, PackageOpen, Repeat } from "lucide-react";
-import { RadioCards } from "./form";
-import { buttonClass } from "./ui";
+import { OtpField, RadioCards } from "./form";
+import { Button, buttonClass } from "./ui";
+import { authApi } from "@/lib/api";
+import { signIn } from "@/lib/auth";
 import type { UserRole } from "@/lib/types";
 
 export function AuthTitle({ title, subtitle }: { title: string; subtitle?: React.ReactNode }) {
@@ -12,6 +14,43 @@ export function AuthTitle({ title, subtitle }: { title: string; subtitle?: React
       <h1 className="font-titulo text-[30px] leading-[1.05] font-extrabold tracking-tight text-verde md:text-[38px]">{title}</h1>
       {subtitle && <p className="text-[15px] text-cinza">{subtitle}</p>}
     </div>
+  );
+}
+
+/** 2.º passo do login de uma conta ADMIN: código enviado por SMS (2FA). */
+export function AdminMfaStep({ mfaToken, phoneHint, onDone }: { mfaToken: string; phoneHint?: string | null; onDone: () => void }) {
+  const [code, setCode] = useState("");
+  const [error, setError] = useState<string | undefined>();
+  const [loading, setLoading] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (code.length !== 6) return setError("O código tem 6 dígitos.");
+    setLoading(true);
+    setError(undefined);
+    try {
+      signIn(await authApi.loginMfa({ mfaToken, code }));
+      onDone();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível confirmar o código.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <AuthTitle
+        title="Confirma que és tu"
+        subtitle={`Enviámos um código por SMS${phoneHint ? ` para ${phoneHint}` : ""}. As contas da equipa têm verificação em dois passos.`}
+      />
+      <form onSubmit={submit} className="grid gap-5" noValidate>
+        <OtpField value={code} onChange={setCode} error={error} />
+        <Button type="submit" loading={loading} block size="lg">
+          {loading ? "A confirmar…" : "Confirmar e entrar"}
+        </Button>
+      </form>
+    </>
   );
 }
 

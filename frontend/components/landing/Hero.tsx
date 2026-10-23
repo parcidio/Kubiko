@@ -52,10 +52,14 @@ function useCountdown(target: Date) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
-    // Só corre no cliente — define o valor real imediatamente
-    setTimeLeft(getTimeLeft(target));
-    const id = setInterval(() => setTimeLeft(getTimeLeft(target)), 1000);
-    return () => clearInterval(id);
+    // Só corre no cliente — o primeiro valor real chega logo a seguir (callback, não setState síncrono no efeito)
+    const tick = () => setTimeLeft(getTimeLeft(target));
+    const first = setTimeout(tick, 0);
+    const id = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
   }, [target]);
 
   return timeLeft;

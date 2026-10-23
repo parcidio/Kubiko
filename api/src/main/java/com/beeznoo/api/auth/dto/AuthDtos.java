@@ -87,14 +87,45 @@ public class AuthDtos {
     ) {}
 
     // ---- Refresh token ----
+    // Cliente web: corpo vazio — o refresh vem no cookie httpOnly bz_refresh
     public record RefreshRequest(
-            @NotBlank @Size(max = 200) String refreshToken
+            @Size(max = 200) String refreshToken
     ) {}
 
     // ---- Resposta após autenticação bem-sucedida ----
+    // mfaRequired = true (contas ADMIN): sem tokens; foi enviado um código por SMS → POST /auth/login/mfa.
+    // Cliente web (X-Beeznoo-Client: web): refreshToken vem a null — vai no cookie httpOnly bz_refresh.
     public record AuthResponse(
             String accessToken,
             String refreshToken,
-            long expiresIn
+            long expiresIn,
+            boolean mfaRequired,
+            String mfaPhoneHint,
+            // desafio opaco (10 min, uso único) a enviar com o código em POST /auth/login/mfa
+            String mfaToken
+    ) {
+        public AuthResponse(String accessToken, String refreshToken, long expiresIn) {
+            this(accessToken, refreshToken, expiresIn, false, null, null);
+        }
+
+        public static AuthResponse mfa(String phoneHint, String mfaToken) {
+            return new AuthResponse(null, null, 0, true, phoneHint, mfaToken);
+        }
+
+        public AuthResponse withoutRefreshToken() {
+            return new AuthResponse(accessToken, null, expiresIn, mfaRequired, mfaPhoneHint, mfaToken);
+        }
+    }
+
+    // ---- 2FA de admin: código recebido por SMS depois da password (ou do Google) ----
+    public record AdminMfaRequest(
+            @NotBlank @Size(max = 100) String mfaToken,
+            @NotBlank @Pattern(regexp = OTP, message = "O código tem 6 dígitos") String code
+    ) {}
+
+    // ---- Mudar password com sessão iniciada ----
+    public record ChangePasswordRequest(
+            @NotBlank @Size(max = 128) String currentPassword,
+            @NotBlank @Size(min = 8, max = 72, message = "A password deve ter entre 8 e 72 caracteres") String newPassword
     ) {}
 }

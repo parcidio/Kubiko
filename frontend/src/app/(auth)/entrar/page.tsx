@@ -3,7 +3,7 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AuthTitle, Divider, GoogleButton } from "@/components/bz/auth";
+import { AdminMfaStep, AuthTitle, Divider, GoogleButton } from "@/components/bz/auth";
 import { FormError, PasswordField, PhoneField, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { Segmented } from "@/components/bz/tabs";
 import { Button } from "@/components/bz/ui";
@@ -21,6 +21,14 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [loading, setLoading] = useState(false);
+  const [mfa, setMfa] = useState<{ token: string; hint?: string | null } | null>(null);
+
+  function goHome() {
+    // Sem ?next, cada papel começa no seu ecrã
+    const role = readSession()?.role;
+    const home = role === "ADMIN" ? "/admin" : role === "OWNER" ? "/painel" : "/explorar";
+    router.replace(safeNext(nextParam, home));
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,17 +41,21 @@ function LoginForm() {
     setLoading(true);
     setErrors({ fields: {} });
     try {
-      signIn(await authApi.login(mode === "phone" ? { phone: normalizePhone(phone), password } : { email: email.trim(), password }));
-      // Sem ?next, cada papel começa no seu ecrã
-      const role = readSession()?.role;
-      const home = role === "ADMIN" ? "/admin" : role === "OWNER" ? "/painel" : "/explorar";
-      router.replace(safeNext(nextParam, home));
+      const res = await authApi.login(mode === "phone" ? { phone: normalizePhone(phone), password } : { email: email.trim(), password });
+      if (res.mfaRequired && res.mfaToken) {
+        setMfa({ token: res.mfaToken, hint: res.mfaPhoneHint });
+        return;
+      }
+      signIn(res);
+      goHome();
     } catch (err) {
       setErrors(toFormErrors(err));
     } finally {
       setLoading(false);
     }
   }
+
+  if (mfa) return <AdminMfaStep mfaToken={mfa.token} phoneHint={mfa.hint} onDone={goHome} />;
 
   return (
     <>

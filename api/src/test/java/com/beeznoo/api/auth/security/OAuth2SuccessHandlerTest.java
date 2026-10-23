@@ -38,6 +38,7 @@ class OAuth2SuccessHandlerTest {
     @Mock private OidcUser oidcUser;
     @Mock private GooglePendingSignupRepository googlePendingSignupRepository;
     @Mock private AuthService authService;
+    @Mock private com.beeznoo.api.security.service.SecurityEventService securityEvents;
 
     @InjectMocks
     private OAuth2SuccessHandler oAuth2SuccessHandler;
@@ -84,6 +85,22 @@ class OAuth2SuccessHandlerTest {
         verify(profileRepository, never()).save(any());
         verify(authService, never()).issueLoginCode(any());
         assertThat(other.getGoogleId()).isNull();
+    }
+
+    @Test
+    @DisplayName("Email verificado na Beeznoo e no Google: associa e entra")
+    void verifiedEmailBothSides_linksAndLogsIn() throws Exception {
+        UUID profileId = UUID.randomUUID();
+        Profile profile = Profile.builder().id(profileId).email(email)
+                .emailVerifiedAt(java.time.OffsetDateTime.now()).build();
+        when(profileRepository.findByGoogleId(googleId)).thenReturn(Optional.empty());
+        when(profileRepository.findByEmail(email)).thenReturn(Optional.of(profile));
+        when(authService.issueLoginCode(profileId)).thenReturn("code-x");
+
+        oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
+
+        assertThat(profile.getGoogleId()).isEqualTo(googleId);
+        verify(response).sendRedirect("/oauth2/callback?status=success&code=code-x");
     }
 
     @Test

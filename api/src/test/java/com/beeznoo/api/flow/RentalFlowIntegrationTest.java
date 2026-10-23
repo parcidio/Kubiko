@@ -84,7 +84,7 @@ class RentalFlowIntegrationTest {
         }
     }
 
-    private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
+    private static final byte[] JPEG = com.beeznoo.api.common.storage.TestImages.JPEG;
     private static final AtomicInteger PHONE = new AtomicInteger(923500000);
     // 3 dias × 5.000 = 15.000 · taxa 1.200 · caução 20.000
     private static final BigDecimal RENTAL = new BigDecimal("15000.00");

@@ -16,5 +16,6 @@ public enum NotificationType {
     BOOKING_RETURNED,            // → admins: caução a decidir
     DEPOSIT_RELEASED,            // → arrendatário
     DEPOSIT_WITHHELD,            // → arrendatário e dono
-    INCIDENT_REPORTED            // → admins
+    INCIDENT_REPORTED,           // → admins
+    SECURITY_ALERT               // → admins: refresh roubado, 2FA de admin bloqueado
 }

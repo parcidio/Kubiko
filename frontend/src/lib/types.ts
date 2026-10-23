@@ -2,10 +2,15 @@
 
 export type UserRole = "OWNER" | "RENTER" | "BOTH" | "ADMIN";
 
+// Web: o refresh vem num cookie httpOnly (bz_refresh), nunca no corpo.
+// mfaRequired (contas ADMIN): sem tokens — pedir o código SMS e chamar authApi.loginMfa.
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
+  accessToken: string | null;
+  refreshToken?: string | null;
   expiresIn: number;
+  mfaRequired?: boolean;
+  mfaPhoneHint?: string | null;
+  mfaToken?: string | null;
 }
 
 export interface Page<T> {

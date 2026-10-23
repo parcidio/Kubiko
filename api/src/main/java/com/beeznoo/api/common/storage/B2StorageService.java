@@ -4,6 +4,8 @@ import jakarta.annotation.PreDestroy;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -37,6 +39,9 @@ public class B2StorageService implements StorageService {
                 .endpointOverride(endpoint)
                 .region(region)
                 .credentialsProvider(credentials)
+                // o B2 não suporta as checksums que o SDK ≥ 2.30 envia por omissão
+                .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
+                .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
                 .build();
         this.presigner = S3Presigner.builder()
                 .endpointOverride(endpoint)

@@ -88,7 +88,7 @@ class NotificationServiceIntegrationTest {
     }
 
     private static final AtomicInteger PHONE = new AtomicInteger(923400000);
-    private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
+    private static final byte[] JPEG = com.beeznoo.api.common.storage.TestImages.JPEG;
 
     @Autowired NotificationService notificationService;
     @Autowired NotificationRepository notificationRepository;

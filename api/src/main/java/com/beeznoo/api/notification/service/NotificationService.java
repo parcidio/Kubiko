@@ -184,6 +184,17 @@ public class NotificationService {
         }
     }
 
+    // Sem detalhes pessoais: o admin vê o resto em /admin/security-events
+    public void securityAlert(String eventType) {
+        for (Profile admin : profileRepository.findByRole(UserRole.ADMIN)) {
+            notify(admin, NotificationType.SECURITY_ALERT, null,
+                    "Alerta de segurança: " + eventType,
+                    List.of("Foi registado um evento de segurança grave (" + eventType + ").",
+                            "Revê os eventos de segurança e a auditoria."),
+                    "Ver eventos", "/admin");
+        }
+    }
+
     // ── KYC ───────────────────────────────────────────────────────────────
 
     public void kycSubmitted(KycVerification k) {

@@ -10,7 +10,12 @@ import com.beeznoo.api.auth.repository.GooglePendingSignupRepository;
 import com.beeznoo.api.auth.repository.OAuthLoginCodeRepository;
 import com.beeznoo.api.auth.repository.OtpCodeRepository;
 import com.beeznoo.api.auth.repository.RefreshTokenRepository;
+import com.beeznoo.api.common.security.RateLimitExceededException;
 import com.beeznoo.api.common.security.RateLimiter;
+import com.beeznoo.api.common.security.SecurityProperties;
+import com.beeznoo.api.profile.entity.UserRole;
+import com.beeznoo.api.security.entity.SecurityEventType;
+import com.beeznoo.api.security.service.SecurityEventService;
 import com.beeznoo.api.config.JwtProperties;
 import com.beeznoo.api.config.OmbalaProperties;
 import com.beeznoo.api.profile.entity.Profile;
@@ -28,6 +33,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.Base64;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -43,8 +49,10 @@ public class AuthService {
     static final int OTP_VERIFY_ATTEMPTS = 10;
     static final int OTP_FAILURES_PER_CODE = 5;
     static final Duration LOGIN_CODE_TTL = Duration.ofSeconds(60);
-    // bcrypt ignora tudo depois de 72 bytes
-    static final int MAX_PASSWORD_BYTES = 72;
+    static final Duration MFA_TOKEN_TTL = Duration.ofMinutes(10);
+    // os desafios de 2FA partilham a tabela oauth_login_codes, separados pelo prefixo do hash
+    private static final String MFA_PREFIX = "mfa:";
+    static final int PASSWORD_CHANGE_ATTEMPTS = 5;
 
     private final AccountRepository accountRepository;
     private final OtpCodeRepository otpCodeRepository;
@@ -57,6 +65,9 @@ public class AuthService {
     private final OmbalaProperties ombalaProperties;
     private final OAuthLoginCodeRepository oAuthLoginCodeRepository;
     private final RateLimiter rateLimiter;
+    private final PasswordPolicy passwordPolicy;
+    private final SecurityEventService securityEvents;
+    private final SecurityProperties securityProperties;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private final SecureRandom secureRandom = new SecureRandom();
@@ -65,7 +76,8 @@ public class AuthService {
 
     @Transactional
     public void register(RegisterRequest request) {
-        assertPasswordLength(request.password());
+        assertSelfServiceRole(request.role());
+        passwordPolicy.validate(request.password(), request.phone(), request.fullName());
         if (profileRepository.existsByPhone(request.phone())) {
             throw new IllegalArgumentException("Ester número já está registado.");
         }
@@ -110,8 +122,13 @@ public class AuthService {
         }
 
         String identifier = request.phone() != null ? request.phone().strip() : request.email().strip().toLowerCase();
-        rateLimiter.check("login-id:" + identifier, LOGIN_ATTEMPTS, LOGIN_WINDOW,
-                "Demasiadas tentativas de entrar com esta conta. Tenta daqui a 15 minutos ou recupera a password.");
+        try {
+            rateLimiter.check("login-id:" + identifier, LOGIN_ATTEMPTS, LOGIN_WINDOW,
+                    "Demasiadas tentativas de entrar com esta conta. Tenta daqui a 15 minutos ou recupera a password.");
+        } catch (RateLimitExceededException e) {
+            securityEvents.record(SecurityEventType.LOGIN_LOCKED, null, identifier, Map.of());
+            throw e;
+        }
 
         var found = request.phone() != null
                 ? profileRepository.findByPhone(request.phone())
@@ -131,6 +148,39 @@ public class AuthService {
         }
 
         rateLimiter.reset("login-id:" + identifier);
+        return issueTokensOrMfa(profile);
+    }
+
+    // 2.º passo do login de um ADMIN (código por SMS)
+    @Transactional
+    public AuthResponse verifyAdminMfa(AdminMfaRequest request) {
+        OAuthLoginCode challenge = oAuthLoginCodeRepository.findByCodeHashForUpdate(hashToken(MFA_PREFIX + request.mfaToken()))
+                .filter(c -> c.isUsableAt(OffsetDateTime.now()))
+                .orElseThrow(() -> new IllegalArgumentException("A verificação expirou. Entra outra vez."));
+        Profile profile = challenge.getProfile();
+        consumeOtp(profile.getPhone(), request.code(), Purpose.ADMIN_LOGIN);
+        challenge.setUsedAt(OffsetDateTime.now());
+        securityEvents.record(SecurityEventType.ADMIN_LOGIN, profile.getId(), null, Map.of());
+        return issueTokens(profile);
+    }
+
+    // Com sessão iniciada: pede a password atual; revoga as outras sessões e devolve tokens novos
+    @Transactional
+    public AuthResponse changePassword(UUID profileId, ChangePasswordRequest request) {
+        rateLimiter.check("password-change:" + profileId, PASSWORD_CHANGE_ATTEMPTS, Duration.ofMinutes(15),
+                "Demasiadas tentativas. Tenta daqui a 15 minutos.");
+        Profile profile = profileRepository.findById(profileId)
+                .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado."));
+        if (profile.getPasswordHash().isBlank() || !encoder.matches(request.currentPassword(), profile.getPasswordHash())) {
+            throw new IllegalArgumentException("A password atual não está certa.");
+        }
+        passwordPolicy.validate(request.newPassword(), profile.getPhone(), profile.getFullName());
+        if (encoder.matches(request.newPassword(), profile.getPasswordHash())) {
+            throw new IllegalArgumentException("A nova password tem de ser diferente da atual.");
+        }
+        profile.setPasswordHash(encoder.encode(request.newPassword()));
+        refreshTokenRepository.revokedAllForProfile(profileId);
+        securityEvents.record(SecurityEventType.PASSWORD_CHANGED, profileId, null, Map.of());
         return issueTokens(profile);
     }
 
@@ -138,11 +188,12 @@ public class AuthService {
     public AuthResponse issueTokensForProfile(UUID profileId) {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado."));
-        return issueTokens(profile);
+        return issueTokensOrMfa(profile);
     }
 
     @Transactional
     public void registerGoogle(GoogleRegisterRequest request) {
+        assertSelfServiceRole(request.role());
         GooglePendingSignup pending = findValidPendingSignup(request.pendingToken());
 
         if (profileRepository.existsByPhone(request.phone())) {
@@ -217,16 +268,16 @@ public class AuthService {
 
     @Transactional
     public void confirmPasswordReset(PasswordResetConfirmRequest request) {
-        assertPasswordLength(request.newPassword());
-        consumeOtp(request.phone(), request.code(), Purpose.PASSWORD_RESET);
-
         Profile profile = profileRepository.findByPhone(request.phone())
-                .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado."));
+                .orElseThrow(() -> new IllegalArgumentException("Código inválido ou expirado. Solicita um novo."));
+        passwordPolicy.validate(request.newPassword(), profile.getPhone(), profile.getFullName());
+        consumeOtp(request.phone(), request.code(), Purpose.PASSWORD_RESET);
 
         profile.setPasswordHash(encoder.encode(request.newPassword()));
         profileRepository.save(profile);
 
         refreshTokenRepository.revokedAllForProfile(profile.getId());
+        securityEvents.record(SecurityEventType.PASSWORD_RESET, profile.getId(), null, Map.of());
 
         log.info("Password redefinida para {}", maskPhone(request.phone()));
     }
@@ -242,6 +293,7 @@ public class AuthService {
         if (token.isRevoked()) {
             // Um refresh já usado voltou a aparecer: alguém tem uma cópia. Fecha todas as sessões.
             refreshTokenRepository.revokedAllForProfile(token.getProfile().getId());
+            securityEvents.record(SecurityEventType.REFRESH_TOKEN_REUSE, token.getProfile().getId(), null, Map.of());
             log.warn("Refresh token reutilizado — todas as sessões revogadas para profileId={}", token.getProfile().getId());
             throw new IllegalArgumentException("Sessão terminada por segurança. Entra outra vez.");
         }
@@ -279,7 +331,7 @@ public class AuthService {
                 .filter(c -> c.isUsableAt(OffsetDateTime.now()))
                 .orElseThrow(() -> new IllegalArgumentException("Código de início de sessão inválido ou expirado. Entra outra vez."));
         code.setUsedAt(OffsetDateTime.now());
-        return issueTokens(code.getProfile());
+        return issueTokensOrMfa(code.getProfile());
     }
 
     // Limpeza dos códigos de login Google expirados (ficam só 60 s válidos)
@@ -327,6 +379,8 @@ public class AuthService {
             int count = rateLimiter.record(failures, Duration.ofMinutes(ombalaProperties.otpExpirationMinutes()));
             if (count >= OTP_FAILURES_PER_CODE) {
                 log.warn("OTP bloqueado após {} tentativas para {}", count, maskPhone(phone));
+                securityEvents.record(purpose == Purpose.ADMIN_LOGIN ? SecurityEventType.ADMIN_MFA_FAILED
+                        : SecurityEventType.OTP_LOCKED, null, phone, Map.of("purpose", purpose.name()));
                 throw new IllegalArgumentException("Demasiadas tentativas com este código. Pede um código novo.");
             }
             throw new IllegalArgumentException("Código incorreto.");
@@ -334,6 +388,21 @@ public class AuthService {
 
         otpCode.setUsedAt(OffsetDateTime.now());
         otpCodeRepository.save(otpCode);
+    }
+
+    // Contas ADMIN com 2FA: em vez de tokens, envia código por SMS
+    private AuthResponse issueTokensOrMfa(Profile profile) {
+        if (securityProperties.adminMfaEnabled() && profile.getRole() == UserRole.ADMIN) {
+            sendOtp(profile.getPhone(), Purpose.ADMIN_LOGIN);
+            String raw = randomToken();
+            oAuthLoginCodeRepository.save(OAuthLoginCode.builder()
+                    .codeHash(hashToken(MFA_PREFIX + raw))
+                    .profile(profile)
+                    .expiresAt(OffsetDateTime.now().plus(MFA_TOKEN_TTL))
+                    .build());
+            return AuthResponse.mfa(maskPhone(profile.getPhone()), raw);
+        }
+        return issueTokens(profile);
     }
 
     private AuthResponse issueTokens(Profile profile) {
@@ -351,17 +420,18 @@ public class AuthService {
         return new AuthResponse(accessToken, rawRefresh, jwtService.accessTokenExpiresInSeconds());
     }
 
+    // Ninguém se regista como ADMIN (OWASP A01): os admins são promovidos à mão na BD por quem gere a plataforma
+    private static void assertSelfServiceRole(UserRole role) {
+        if (role != UserRole.RENTER && role != UserRole.OWNER && role != UserRole.BOTH) {
+            throw new IllegalArgumentException("Tipo de conta inválido.");
+        }
+    }
+
     // 256 bits, base64url sem padding
     private String randomToken() {
         byte[] bytes = new byte[32];
         secureRandom.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private static void assertPasswordLength(String password) {
-        if (password != null && password.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
-            throw new IllegalArgumentException("A password pode ter no máximo 72 caracteres.");
-        }
     }
 
     private String maskIdentifier(String identifier) {

@@ -5,6 +5,8 @@ import com.beeznoo.api.auth.repository.GooglePendingSignupRepository;
 import com.beeznoo.api.auth.service.AuthService;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.repository.ProfileRepository;
+import com.beeznoo.api.security.entity.SecurityEventType;
+import com.beeznoo.api.security.service.SecurityEventService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -26,8 +29,9 @@ import java.util.Optional;
  *
  * 1. Já existe perfil com este googleId → redirect com um código de uso único (60 s), trocado por tokens em
  *    POST /auth/google/exchange. Os tokens nunca vão na URL (ficariam no histórico, nos logs e no Referer).
- * 2. O email do Google já pertence a outro perfil → NÃO associa (o email da Beeznoo não é verificado: associar
- *    deixaria alguém pré-sequestrar a conta). Pede para entrar com telefone.
+ * 2. O email do Google já pertence a um perfil:
+ *    - email verificado na Beeznoo E no Google, e o perfil sem Google → associa e entra (mesma pessoa provada dos dois lados);
+ *    - caso contrário NÃO associa (pré-sequestro: alguém podia ter registado o email de outra pessoa). Pede telefone.
  * 3. Caso contrário → registo pendente; o frontend pede o telefone e confirma por OTP.
  */
 @Slf4j
@@ -40,6 +44,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final ProfileRepository profileRepository;
     private final AuthService authService;
     private final GooglePendingSignupRepository googlePendingSignupRepository;
+    private final SecurityEventService securityEvents;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -61,7 +66,18 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             return;
         }
 
-        if (email != null && profileRepository.findByEmail(email).isPresent()) {
+        Optional<Profile> byEmail = email == null ? Optional.empty() : profileRepository.findByEmail(email);
+        if (byEmail.isPresent()) {
+            Profile profile = byEmail.get();
+            if (profile.getEmailVerifiedAt() != null && profile.getGoogleId() == null) {
+                profile.setGoogleId(googleId);
+                profileRepository.save(profile);
+                securityEvents.record(SecurityEventType.GOOGLE_LINKED, profile.getId(), null, Map.of());
+                log.info("Google OAuth: associado por email verificado — profileId={}", profile.getId());
+                redirect(response, "status=success&code=" + encode(authService.issueLoginCode(profile.getId())));
+                return;
+            }
+            securityEvents.record(SecurityEventType.GOOGLE_EMAIL_IN_USE, profile.getId(), null, Map.of());
             log.info("Google OAuth: email já usado por outra conta — sem associação automática");
             redirect(response, "status=email_in_use");
             return;

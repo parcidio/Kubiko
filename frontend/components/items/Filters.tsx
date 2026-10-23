@@ -56,6 +56,8 @@ interface BeeznoFiltersProps {
 }
 
 export default function BeeznoFilters({ mobile = false, onSave, initialFilters }: BeeznoFiltersProps) {
+  // hooks sempre no topo e pela mesma ordem (rules-of-hooks)
+  const router = useRouter();
   const [draft, setDraft] = useState<Filters>(initialFilters ?? EMPTY_FILTERS);
   const [saved, setSaved] = useState<Filters>(initialFilters ?? EMPTY_FILTERS);
   const [open,  setOpen]  = useState<string | null>(null);
@@ -232,7 +234,6 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
 
   if (!mobile) 
   {
-      const router = useRouter();
       return <aside className="w-72 shrink-0 fixed top-24 overflow-y-auto max-h-[calc(100vh-6rem)]">
                 <button onClick={() => router.back()} className="mb-5 flex items-center gap-1.5 text-sm font-semibold cursor-pointer text-muted-foreground transition-colors hover:text-foreground">
                   <ChevronLeft className="h-4 w-4" />

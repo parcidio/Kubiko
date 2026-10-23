@@ -69,6 +69,7 @@ public class ChecklistService {
         if (notes == null || notes.isBlank()) {
             throw new IllegalArgumentException("Descreve o estado do equipamento");
         }
+        if (notes.length() > 2000) throw new IllegalArgumentException("As notas podem ter no máximo 2000 caracteres");
         int count = photos == null ? 0 : photos.size();
         if (count < MIN_PHOTOS || count > MAX_PHOTOS) {
             throw new IllegalArgumentException("Envia entre " + MIN_PHOTOS + " e " + MAX_PHOTOS + " fotos do equipamento");

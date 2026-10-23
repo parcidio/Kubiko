@@ -48,7 +48,7 @@ class AuthServiceIntegrationTest {
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private static final String PHONE    = "+244923111000";
-    private static final String PASSWORD = "password123";
+    private static final String PASSWORD = "Kizomba#Talatona-77";
 
     @BeforeEach
     void setUp() {

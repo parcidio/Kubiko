@@ -41,11 +41,13 @@ public class ProfileService {
             String email = request.email().strip().toLowerCase();
             if (email.isEmpty()) {
                 profile.setEmail(null);
+                profile.setEmailVerifiedAt(null);
             } else if (!email.equalsIgnoreCase(profile.getEmail())) {
                 if (profileRepository.existsByEmail(email)) {
                     throw new IllegalStateException("Este email já está associado a outra conta");
                 }
                 profile.setEmail(email);
+                profile.setEmailVerifiedAt(null);
             }
         }
         if (request.province() != null) profile.setProvince(blankToNull(request.province()));

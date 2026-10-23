@@ -12,7 +12,7 @@ public class ItemDtos {
 
     public record PublishItemRequest(
             @NotBlank @Size(max = 200) String title,
-            String description,
+            @Size(max = 5000) String description,
             @NotNull UUID categoryId,
             @NotNull ItemCondition itemCondition,
             @NotNull @DecimalMin("0.01") BigDecimal pricePerDay,
@@ -23,7 +23,7 @@ public class ItemDtos {
 
     public record UpdateItemRequest(
             @Size(max = 200) String title,
-            String description,
+            @Size(max = 5000) String description,
             UUID categoryId,
             ItemCondition condition,
             @DecimalMin("0.01") BigDecimal pricePerDay,

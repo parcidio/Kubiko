@@ -127,10 +127,13 @@ public class KycService {
         return verificationRepository.findByStatusInOrderBySubmittedAtAsc(QUEUE, pageable).map(KycQueueItem::from);
     }
 
-    // Admin: documentos como URL assinada de 5 minutos + histórico de decisões
-    @Transactional(readOnly = true)
-    public KycDetailResponse getDetail(UUID kycId) {
+    // Admin: documentos como URL assinada de 5 minutos + histórico de decisões.
+    // Não é readOnly: cada leitura dos documentos de identidade fica na auditoria (quem viu o BI de quem).
+    @Transactional
+    public KycDetailResponse getDetail(UUID adminId, UUID kycId) {
         KycVerification verification = findVerification(kycId);
+        auditService.record(adminId, AuditAction.KYC_DOCUMENTS_VIEWED, AuditService.KYC, kycId, null,
+                Map.of("profileId", verification.getProfile().getId().toString()));
         OffsetDateTime expiresAt = OffsetDateTime.now().plus(DOCUMENT_URL_TTL);
 
         List<DocumentResponse> documents = documentRepository.findByVerificationIdOrderByCreatedAtDesc(kycId).stream()

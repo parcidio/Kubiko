@@ -63,7 +63,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         limiter.check("ip:" + ip, 300, Duration.ofMinutes(1), "Demasiados pedidos. Espera um pouco.");
 
-        if (write && path.equals(AUTH + "login")) {
+        if (write && (path.equals(AUTH + "login") || path.equals(AUTH + "login/mfa"))) {
             limiter.check("login-ip:" + ip, 30, Duration.ofMinutes(15), "Demasiadas tentativas de entrar. Tenta mais tarde.");
         } else if (write && OTP_SENDERS.contains(path)) {
             limiter.check("otp-ip:" + ip, 10, Duration.ofHours(1), "Pediste demasiados códigos. Tenta daqui a uma hora.");

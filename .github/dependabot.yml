@@ -11,10 +11,8 @@ updates:
     groups:
       spring:
         patterns: ["org.springframework*"]
-    ignore:
-      # B2: versões ≥ 2.30 mudam as checksums por omissão — testar contra o B2 antes de subir (decisoes-produto.md)
-      - dependency-name: "software.amazon.awssdk:*"
-        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+    # AWS SDK (B2): atualiza normalmente; B2StorageService fixa as checksums em WHEN_REQUIRED.
+    # Antes de fazer merge de um PR do SDK, correr o teste manual do bucket (docs/SERVICOS_EXTERNOS.md).
   - package-ecosystem: npm
     directory: /frontend
     schedule:

@@ -1,12 +1,11 @@
 import type { AuthResponse, UserRole } from "./types";
 
-// Tokens em localStorage: simples para o MVP. Contrapartida conhecida: vulnerável a XSS.
-// Quando houver tempo, mover para cookie httpOnly emitido por um route handler do Next.
+// O refresh token (30 dias) vive num cookie httpOnly emitido pela API (bz_refresh) — fora do alcance de JavaScript.
+// Aqui fica só o access token (15 min) e o que se lê dele. Ver docs/SEGURANCA.md.
 const KEY = "beeznoo.session";
 
 export interface Session {
   accessToken: string;
-  refreshToken: string;
   profileId: string;
   role: UserRole;
 }
@@ -17,14 +16,21 @@ function decode(token: string): { sub: string; role: UserRole } {
 }
 
 export function toSession(res: AuthResponse): Session {
+  if (!res.accessToken) throw new Error("Resposta sem token");
   const { sub, role } = decode(res.accessToken);
-  return { accessToken: res.accessToken, refreshToken: res.refreshToken, profileId: sub, role };
+  return { accessToken: res.accessToken, profileId: sub, role };
 }
 
 export function readSession(): Session | null {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Session) : null;
+    const parsed = raw ? (JSON.parse(raw) as Session & { refreshToken?: string }) : null;
+    if (parsed?.refreshToken) {
+      // sessão antiga (refresh em localStorage): limpa-a; a pessoa entra outra vez
+      localStorage.removeItem(KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }

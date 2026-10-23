@@ -66,6 +66,7 @@ public class SecurityConfig {
                                 "/api/v1/auth/google/register",
                                 "/api/v1/auth/google/verify",
                                 "/api/v1/auth/google/exchange",
+                                "/api/v1/auth/login/mfa",
                                 "/oauth2/**",
                                 "/login/oauth2/**",
                                 // só existem com API_DOCS_ENABLED=true (desligado por omissão)

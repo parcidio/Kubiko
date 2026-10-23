@@ -78,6 +78,7 @@ public class IncidentService {
         }
         if (type == null) throw new IllegalArgumentException("Escolhe o tipo de problema");
         if (description == null || description.isBlank()) throw new IllegalArgumentException("Descreve o que aconteceu");
+        if (description.length() > 2000) throw new IllegalArgumentException("A descrição pode ter no máximo 2000 caracteres");
         List<MultipartFile> files = photos == null ? List.of() : photos;
         if (files.size() > MAX_PHOTOS) throw new IllegalArgumentException("Máximo de " + MAX_PHOTOS + " fotos");
 

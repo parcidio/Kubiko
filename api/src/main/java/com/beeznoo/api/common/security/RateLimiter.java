@@ -1,41 +1,51 @@
 package com.beeznoo.api.common.security;
 
 import lombok.extern.slf4j.Slf4j;
+import com.beeznoo.api.security.entity.SecurityEventType;
+import com.beeznoo.api.security.service.SecurityEventService;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Limitador de janela fixa em memória (por instância). Chega para uma instância no Render;
- * com várias instâncias, passar para Redis. As chaves nunca entram nos logs (podem ter telefones).
+ * Limitador de janela fixa. Contadores em memória (uma instância) ou no Postgres (RATE_LIMIT_STORE=database).
+ * As chaves nunca entram nos logs (podem ter telefones).
  */
 @Slf4j
 @Component
 public class RateLimiter {
 
-    private record Window(long startMillis, long durationMillis, int count) {
-        boolean expiredAt(long now) {
-            return now - startMillis >= durationMillis;
-        }
-    }
-
-    private final Map<String, Window> windows = new ConcurrentHashMap<>();
+    private final RateLimitStore store;
     private final SecurityProperties properties;
+    // ObjectProvider: o registo de eventos é opcional e não cria dependência circular no arranque
+    private final ObjectProvider<SecurityEventService> securityEvents;
 
-    public RateLimiter(SecurityProperties properties) {
+    public RateLimiter(SecurityProperties properties, JdbcTemplate jdbc, PlatformTransactionManager transactionManager,
+                       ObjectProvider<SecurityEventService> securityEvents) {
         this.properties = properties;
+        this.securityEvents = securityEvents;
+        this.store = properties.useDatabaseStore()
+                ? new JdbcRateLimitStore(jdbc, transactionManager)
+                : new MemoryRateLimitStore();
     }
 
     // Conta esta tentativa; lança 429 se passar o limite da janela
     public void check(String key, int limit, Duration window, String message) {
         if (!properties.rateLimitsEnabled()) return;
-        Window w = increment(key, window);
+        RateLimitStore.Window w = store.increment(key, window);
         if (w.count() > limit) {
             long retryAfter = Math.max(1, (w.startMillis() + w.durationMillis() - System.currentTimeMillis()) / 1000);
-            log.warn("Limite atingido ({}): {} pedidos em {} s", category(key), w.count(), window.toSeconds());
+            if (w.count() == limit + 1) {
+                log.warn("Limite atingido ({}): {} pedidos em {} s", category(key), w.count(), window.toSeconds());
+                // uma vez por janela; a chave fica só em hash (pode ter um telefone)
+                securityEvents.ifAvailable(s -> s.record(SecurityEventType.RATE_LIMITED, null, key,
+                        Map.of("limit", category(key), "windowSeconds", window.toSeconds())));
+            }
             throw new RateLimitExceededException(message, retryAfter);
         }
     }
@@ -43,40 +53,32 @@ public class RateLimiter {
     // Só conta (ex.: tentativa falhada de OTP), sem lançar
     public int record(String key, Duration window) {
         if (!properties.rateLimitsEnabled()) return 0;
-        return increment(key, window).count();
+        return store.increment(key, window).count();
     }
 
     // Já passou o limite? Não conta.
     public boolean isExceeded(String key, int limit) {
         if (!properties.rateLimitsEnabled()) return false;
-        Window w = windows.get(key);
-        return w != null && !w.expiredAt(System.currentTimeMillis()) && w.count() >= limit;
+        RateLimitStore.Window w = store.current(key);
+        return w != null && w.count() >= limit;
     }
 
     public void reset(String key) {
-        windows.remove(key);
+        store.reset(key);
     }
 
     // Só para testes
     public void clear() {
-        windows.clear();
+        store.clear();
     }
 
     @Scheduled(fixedDelay = 300_000)
     void evictExpired() {
-        long now = System.currentTimeMillis();
-        windows.entrySet().removeIf(e -> e.getValue().expiredAt(now));
-    }
-
-    private Window increment(String key, Duration window) {
-        long now = System.currentTimeMillis();
-        return windows.compute(key, (k, w) -> w == null || w.expiredAt(now)
-                ? new Window(now, window.toMillis(), 1)
-                : new Window(w.startMillis(), w.durationMillis(), w.count() + 1));
+        store.evictExpired();
     }
 
     // "login-id:+2449..." → "login-id" — o resto da chave pode ser dado pessoal
-    private static String category(String key) {
+    static String category(String key) {
         int i = key.indexOf(':');
         return i < 0 ? key : key.substring(0, i);
     }

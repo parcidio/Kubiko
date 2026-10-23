@@ -32,6 +32,10 @@ public class Profile {
     @Column(unique = true)
     private String email;
 
+    // Email confirmado por código (V17). Mudar o email anula a verificação.
+    @Column(name = "email_verified_at")
+    private OffsetDateTime emailVerifiedAt;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 

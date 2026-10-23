@@ -163,7 +163,8 @@
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>
 			<artifactId>s3</artifactId>
-			<version>2.26.12</version>
+			<!-- ≥ 2.30 calcula checksums por omissão, que o B2 não aceita: B2StorageService usa WHEN_REQUIRED -->
+			<version>2.55.14</version>
 		</dependency>
 		<dependency>
 			<groupId>com.twilio.sdk</groupId>

@@ -64,12 +64,13 @@ class KycServiceIntegrationTest {
     }
 
     // Assinaturas mínimas — o KycService valida o tipo pelos primeiros bytes
-    private static final byte[] JPEG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10};
+    private static final byte[] JPEG = com.beeznoo.api.common.storage.TestImages.JPEG;
     private static final byte[] PDF = "%PDF-1.7\n".getBytes();
 
     private static final AtomicInteger PHONE = new AtomicInteger(923300000);
 
     @Autowired KycService kycService;
+    @Autowired com.beeznoo.api.audit.repository.AuditLogRepository auditLogRepository;
     @Autowired BookingService bookingService;
     @Autowired MockStorageService storage;
     @Autowired KycVerificationRepository verificationRepository;
@@ -225,7 +226,11 @@ class KycServiceIntegrationTest {
     void getDetail_devolveUrlsAssinadasSemStorageKeyNoDto() {
         UUID kycId = kycService.submit(user.getId(), AccountType.INDIVIDUAL, individualFiles()).id();
 
-        KycDetailResponse detail = kycService.getDetail(kycId);
+        KycDetailResponse detail = kycService.getDetail(admin.getId(), kycId);
+        // ver documentos de identidade fica na auditoria
+        assertThat(auditLogRepository.findByEntityIdOrderByCreatedAtAsc(kycId))
+                .extracting(a -> a.getAction())
+                .contains(com.beeznoo.api.audit.entity.AuditAction.KYC_DOCUMENTS_VIEWED);
 
         assertThat(detail.profileName()).isEqualTo("Ana Domingos");
         assertThat(detail.documents()).hasSize(3).allSatisfy(d -> {

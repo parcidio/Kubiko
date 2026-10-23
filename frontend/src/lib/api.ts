@@ -22,13 +22,17 @@ async function parseError(res: Response): Promise<ApiError> {
 
 let refreshing: Promise<boolean> | null = null;
 
+// Identifica o cliente web: a API devolve o refresh num cookie httpOnly em vez do corpo
+const CLIENT_HEADER = { "X-Beeznoo-Client": "web" };
+
 async function refreshTokens(): Promise<boolean> {
   const session = readSession();
   if (!session) return false;
+  // o cookie bz_refresh vai sozinho (mesma origem, via proxy do Next)
   refreshing ??= fetch("/api/v1/auth/refresh", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken: session.refreshToken }),
+    headers: CLIENT_HEADER,
+    credentials: "same-origin",
   })
     .then(async (res) => {
       if (!res.ok) {
@@ -46,12 +50,13 @@ async function refreshTokens(): Promise<boolean> {
 async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const session = readSession();
   const headers = new Headers(init.headers);
+  headers.set("X-Beeznoo-Client", CLIENT_HEADER["X-Beeznoo-Client"]);
   if (init.body) headers.set("Content-Type", "application/json");
   if (session) headers.set("Authorization", `Bearer ${session.accessToken}`);
 
   let res: Response;
   try {
-    res = await fetch(`/api/v1${path}`, { ...init, headers });
+    res = await fetch(`/api/v1${path}`, { ...init, headers, credentials: "same-origin" });
   } catch {
     throw new ApiError(0, NETWORK_ERROR);
   }
@@ -89,6 +94,9 @@ export const authApi = {
   // Código de uso único (60 s) do redirect do Google → tokens. Os tokens nunca vêm na URL.
   googleExchange: (code: string) => post<AuthResponse>("/auth/google/exchange", { code }),
   logout: () => post<void>("/auth/logout"),
+  // 2FA de contas ADMIN: desafio do 1.º passo + código SMS
+  loginMfa: (b: { mfaToken: string; code: string }) => post<AuthResponse>("/auth/login/mfa", b),
+  changePassword: (b: { currentPassword: string; newPassword: string }) => post<AuthResponse>("/auth/password/change", b),
 };
 
 export const catalogApi = {

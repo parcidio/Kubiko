@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AuthTitle, ResendCode, RolePicker, type SignupRole } from "@/components/bz/auth";
+import { AdminMfaStep, AuthTitle, ResendCode, RolePicker, type SignupRole } from "@/components/bz/auth";
 import { FormError, OtpField, PhoneField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { toast } from "@/components/bz/overlay";
 import { Button, ButtonLink } from "@/components/bz/ui";
@@ -22,6 +22,7 @@ function Callback() {
   // Lido no primeiro render: o replace abaixo tira o código da URL
   const [code] = useState(() => params.get("code"));
   const [exchangeFailed, setExchangeFailed] = useState(false);
+  const [mfa, setMfa] = useState<{ token: string; hint?: string | null } | null>(null);
   const failed = exchangeFailed || (status === "success" && !code);
 
   useEffect(() => {
@@ -32,11 +33,18 @@ function Callback() {
     authApi
       .googleExchange(code)
       .then((tokens) => {
+        // conta ADMIN: falta o 2.º passo (código por SMS)
+        if (tokens.mfaRequired && tokens.mfaToken) {
+          setMfa({ token: tokens.mfaToken, hint: tokens.mfaPhoneHint });
+          return;
+        }
         signIn(tokens);
         router.replace("/explorar");
       })
       .catch(() => setExchangeFailed(true));
   }, [status, code, router]);
+
+  if (mfa) return <AdminMfaStep mfaToken={mfa.token} phoneHint={mfa.hint} onDone={() => router.replace("/admin")} />;
 
   if (status === "pending_phone") return <CompletePhone pendingToken={params.get("pendingToken") ?? ""} />;
 

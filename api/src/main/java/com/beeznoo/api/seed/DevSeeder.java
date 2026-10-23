@@ -230,9 +230,16 @@ public class DevSeeder implements ApplicationRunner {
         checklistService.confirm(owner, bookingId, ChecklistType.RETURN);
     }
 
-    // JPEG mínimo (cabeçalho) — as checklists exigem 2 fotos; vão para o storage configurado (B2)
+    // JPEG real e pequeno (o servidor recodifica as imagens) — as checklists exigem 2 fotos; vão para o B2 configurado
     private static List<MultipartFile> seedPhotos() {
-        byte[] jpeg = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0, 0x10, 'J', 'F', 'I', 'F', 0};
+        java.awt.image.BufferedImage img = new java.awt.image.BufferedImage(64, 48, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        try {
+            javax.imageio.ImageIO.write(img, "jpeg", out);
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+        byte[] jpeg = out.toByteArray();
         return List.of(new SeedFile("frente.jpg", jpeg), new SeedFile("verso.jpg", jpeg));
     }
 

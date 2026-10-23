@@ -2,6 +2,7 @@ package com.beeznoo.api.profile.controller;
 
 import com.beeznoo.api.profile.dto.MeDtos.MeResponse;
 import com.beeznoo.api.profile.dto.MeDtos.UpdateMeRequest;
+import com.beeznoo.api.profile.service.EmailVerificationService;
 import com.beeznoo.api.profile.service.ProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class ProfileController {
 
     private final ProfileService profileService;
+    private final EmailVerificationService emailVerificationService;
 
     @Operation(
             summary = "O meu perfil",
@@ -71,6 +73,45 @@ public class ProfileController {
             @Valid @RequestBody UpdateMeRequest request) {
         return ResponseEntity.ok(profileService.updateMe(profileId, request));
     }
+
+    @Operation(
+            summary = "Pedir código para verificar o email",
+            description = "Envia um código de 6 dígitos (válido 15 min) para o email do perfil. 1 por minuto, 5 por hora."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Código enviado"),
+            @ApiResponse(responseCode = "400", description = "Perfil sem email",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "409", description = "Já verificado, ou envio de email desligado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "429", description = "Demasiados pedidos",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/me/email/verification")
+    public ResponseEntity<Void> requestEmailVerification(@AuthenticationPrincipal UUID profileId) {
+        emailVerificationService.request(profileId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Confirmar o email com o código", description = "5 tentativas por código.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Email verificado",
+                    content = @Content(schema = @Schema(implementation = MeResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Código errado, expirado ou bloqueado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Não autenticado")
+    })
+    @PostMapping("/me/email/verification/confirm")
+    public ResponseEntity<MeResponse> confirmEmail(@AuthenticationPrincipal UUID profileId,
+                                                   @Valid @RequestBody ConfirmEmailRequest request) {
+        emailVerificationService.confirm(profileId, request.code());
+        return ResponseEntity.ok(profileService.getMe(profileId));
+    }
+
+    public record ConfirmEmailRequest(
+            @jakarta.validation.constraints.NotBlank
+            @jakarta.validation.constraints.Pattern(regexp = "^[0-9]{6}$", message = "O código tem 6 dígitos") String code) {}
 
     record ErrorResponse(String error) {}
 }

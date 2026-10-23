@@ -56,7 +56,7 @@ public class AdminKycController {
 
                     Cada documento vem com `signedUrl` -- URL pré-assinada válida **5 minutos** (`expiresAt`).
                     Depois disso, volta a pedir o detalhe. Inclui todos os envios (re-submissões incluídas),
-                    do mais recente para o mais antigo. Apenas ADMIN.
+                    do mais recente para o mais antigo. Cada consulta fica na auditoria (`KYC_DOCUMENTS_VIEWED`). Apenas ADMIN.
                     """
     )
     @ApiResponses({
@@ -69,8 +69,8 @@ public class AdminKycController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/{id}")
-    public ResponseEntity<KycDetailResponse> detail(@PathVariable UUID id) {
-        return ResponseEntity.ok(kycService.getDetail(id));
+    public ResponseEntity<KycDetailResponse> detail(@AuthenticationPrincipal UUID adminId, @PathVariable UUID id) {
+        return ResponseEntity.ok(kycService.getDetail(adminId, id));
     }
 
     @Operation(

@@ -1,8 +1,12 @@
-# Workflow de CI - build e testes da API Beeznoo com Maven
-# Corre em todo push/PR para main. O pom.xml vive em api/, por isso
-# usamos working-directory + --file explicito.
+# Workflow de CI - Beeznoo
+# Corre em todo push/PR para main e bloqueia o merge se falhar:
+#   build     -> build e testes da API com Maven (inclui validação das migrações Flyway via Testcontainers)
+#   frontend  -> lint, typecheck e build do Next
+#   secrets   -> procura de segredos no histórico (gitleaks) — OWASP A02/A04
+#   deps      -> dependências com vulnerabilidades conhecidas (OSV-Scanner) — OWASP A03
+# Ver docs/SEGURANCA.md.
 
-name: Java CI with Maven
+name: CI
 
 on:
   push:
@@ -14,7 +18,7 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  build: # nome mantido: é o check obrigatório da proteção de main
     runs-on: ubuntu-latest
 
     defaults:
@@ -34,3 +38,54 @@ jobs:
 
       - name: Build and test with Maven
         run: mvn -B verify --file pom.xml
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  secrets:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # CLI em vez da action oficial (a action pede licença em repos de organizações)
+      - name: Scan for secrets (gitleaks)
+        run: |
+          curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz \
+            | tar -xz gitleaks
+          ./gitleaks git --redact --verbose --exit-code 1 .
+
+  deps:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan dependencies (OSV-Scanner)
+        run: |
+          curl -sSfL -o osv-scanner https://github.com/google/osv-scanner/releases/download/v1.9.2/osv-scanner_linux_amd64
+          chmod +x osv-scanner
+          ./osv-scanner --lockfile=api/pom.xml --lockfile=frontend/package-lock.json

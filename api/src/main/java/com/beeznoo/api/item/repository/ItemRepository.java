@@ -12,6 +12,11 @@ import java.util.UUID;
 
 public interface ItemRepository extends JpaRepository<Item, UUID> {
 
+    // SELECT ... FOR UPDATE — aceitar reservas do mesmo item em série (sem sobreposição por corrida)
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @org.springframework.data.jpa.repository.Query("SELECT i FROM Item i WHERE i.id = :id")
+    java.util.Optional<Item> findByIdForUpdate(UUID id);
+
     Page<Item> findByStatus(ItemStatus status, Pageable pageable);
 
     Page<Item> findByCategoryIdAndStatus(UUID categoryId, ItemStatus status, Pageable pageable);

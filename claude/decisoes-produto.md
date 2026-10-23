@@ -226,3 +226,34 @@ disponibilidade/bloqueios de datas, política de cancelamento depois de pago.
 
 **Em aberto.** WAF/proteção DDoS na borda (Cloudflare à frente do Render); alertas sobre eventos de segurança;
 2FA para contas ADMIN; política de passwords além de 8–72 caracteres (lista de passwords comuns).
+
+---
+
+## 2026-10-23 — Segurança, 2.ª ronda: fechar as lacunas que dependem só de código
+
+**Contexto.** O que ficou "em aberto" na ronda anterior e não depende de contas externas é resolvido agora.
+O resto (WAF, antivírus, Redis, etc.) fica em `docs/SEGURANCA.md`, e a configuração de cada serviço externo para
+passar das contas pessoais para as contas do projeto fica em `docs/SERVICOS_EXTERNOS.md`.
+
+**Decisões (equipa de backend, nesta data — ⚑ validar com o André):**
+
+1. **2FA para ADMIN por SMS** (reaproveita o OTP): password certa → `mfaRequired` + código por SMS → `POST /auth/login/mfa`.
+   Vale também para o login Google de uma conta ADMIN. ⚑ TOTP (app autenticadora) fica para quando houver mais admins.
+2. **Refresh token em cookie `httpOnly`** (`bz_refresh`, `SameSite=Strict`, `Path=/api/v1/auth`) para o cliente web;
+   deixa de estar em `localStorage`. O access token (15 min) continua no browser. Clientes não-web continuam a
+   receber o refresh no corpo.
+3. **Mudar password com sessão iniciada** (`POST /auth/password/change`, pede a atual) — revoga as outras sessões.
+4. **Política de passwords**: 8–72 bytes, recusa as mais comuns e as que contêm o telefone ou o nome.
+5. **Verificação de email** (código de 6 dígitos por email, 15 min, 5 tentativas). Mudar o email anula a verificação.
+   Com email verificado **dos dois lados** (Beeznoo e Google), o login Google volta a associar a conta.
+6. **Eventos de segurança** em tabela própria (`security_events`, sem dados pessoais em claro) + `GET /admin/security-events`.
+   Alerta aos admins (notificação + email) quando um refresh roubado é detetado ou um admin falha o 2FA.
+7. **Limites de pedidos com armazenamento escolhido por configuração**: memória (uma instância) ou Postgres
+   (`RATE_LIMIT_STORE=database`, várias instâncias; as chaves ficam em SHA-256).
+8. **Imagens recodificadas no servidor**: remove EXIF (incl. GPS da casa do dono), neutraliza ficheiros "poliglota",
+   recusa imagens acima de 40 megapíxeis (bomba de descompressão). PDFs ficam como estão.
+9. **Auditoria de leitura de documentos KYC** (`KYC_DOCUMENTS_VIEWED`): quem viu o BI de quem, e quando.
+10. **Aceitar reserva bloqueia o equipamento** (lock na linha do item) — dois aceites simultâneos não sobrepõem datas.
+11. **Identificador por pedido** (`X-Request-Id`) nos logs e na resposta, para investigar incidentes.
+12. **Frontend**: cabeçalhos de segurança no Next (CSP, HSTS, nosniff, frame deny). **CI**: lint/typecheck/build do
+    frontend, procura de segredos (gitleaks) e de dependências vulneráveis (OSV-Scanner).

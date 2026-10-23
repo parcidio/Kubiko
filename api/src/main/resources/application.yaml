@@ -53,6 +53,11 @@ server:
         secure: ${SESSION_COOKIE_SECURE:true}
         same-site: lax
 
+logging:
+  pattern:
+    # X-Request-Id em cada linha (RequestIdFilter)
+    level: "%5p [%X{requestId:-}]"
+
 # Swagger desligado por omissão (OWASP A02); ligar em desenvolvimento com API_DOCS_ENABLED=true
 springdoc:
   api-docs:
@@ -107,6 +112,12 @@ app:
       from: ${RESEND_FROM:Beeznoo <noreply@beeznoo.ao>}
   security:
     rate-limits-enabled: ${RATE_LIMITS_ENABLED:true}
+    # memory (uma instância) | database (várias instâncias — contadores no Postgres)
+    rate-limit-store: ${RATE_LIMIT_STORE:memory}
+    # 2FA por SMS no login de contas ADMIN
+    admin-mfa-enabled: ${ADMIN_MFA_ENABLED:true}
+    # Secure nos cookies (refresh e sessão OAuth2); false só em http://localhost
+    cookie-secure: ${SESSION_COOKIE_SECURE:true}
     # nº de proxies à frente da API que acrescentam ao X-Forwarded-For (0 em local; Vercel + Render = 2)
     trusted-proxies: ${RATE_LIMIT_TRUSTED_PROXIES:0}
     max-json-bytes: 1048576
