@@ -3,6 +3,7 @@ package com.beeznoo.api.transaction.service;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.entity.BookingStatus;
 import com.beeznoo.api.booking.repository.BookingRepository;
+import com.beeznoo.api.notification.service.NotificationService;
 import com.beeznoo.api.transaction.config.PaymentProperties;
 import com.beeznoo.api.transaction.dto.PaymentDtos.PaymentResponse;
 import com.beeznoo.api.transaction.entity.Payment;
@@ -37,14 +38,17 @@ public class PaymentService {
     private final LedgerService ledgerService;
     private final PaymentGateway gateway;
     private final PaymentProperties properties;
+    private final NotificationService notificationService;
 
     public PaymentService(PaymentRepository paymentRepository, BookingRepository bookingRepository,
-                          LedgerService ledgerService, PaymentGateway gateway, PaymentProperties properties) {
+                          LedgerService ledgerService, PaymentGateway gateway, PaymentProperties properties,
+                          NotificationService notificationService) {
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
         this.ledgerService = ledgerService;
         this.gateway = gateway;
         this.properties = properties;
+        this.notificationService = notificationService;
     }
 
     // Emite a referência; se já houver uma válida em aberto, devolve essa (idempotente)
@@ -93,7 +97,8 @@ public class PaymentService {
         switch (status.state()) {
             case PAID -> settle(payment, status.transactionId());
             case FAILED -> payment.setStatus(PaymentStatus.FAILED);
-            case PENDING -> { /* continua à espera */ }
+            // continua à espera; a equipa é avisada para validar à mão
+            case PENDING -> notificationService.paymentAwaitingValidation(payment.getBooking(), payment.getAmount());
         }
         return PaymentResponse.from(payment);
     }
@@ -139,6 +144,7 @@ public class PaymentService {
         payment.setConfirmedAt(OffsetDateTime.now());
         payment.setProviderTransactionId(transactionId);
         booking.setStatus(BookingStatus.ACTIVE);
+        notificationService.paymentConfirmed(booking, payment.getAmount());
         // Sem referência nem montante no log (CLAUDE.md §6)
         log.info("Pagamento {} confirmado — reserva {} ACTIVE", payment.getId(), booking.getId());
     }

@@ -91,3 +91,36 @@ com Apache PDFBox, com hipótese e critério de sucesso próprios.
   (Lei 22/11) antes de entrarem documentos reais em produção. Confirmar com o André.
 - `audit_logs` ainda não existe; quando existir, aprovar KYC deve lá ficar também.
 - Prazo de retenção dos documentos depois de aprovados ou recusados.
+
+---
+
+## 2026-10-23 — Notificações: histórico na app + email (Resend), sem tempo real
+
+**Contexto.** Instruções do "Módulo 7" revistas contra o repo. Hipótese: avisar dono, arrendatário e equipa nos
+momentos que fazem o aluguer avançar (novo pedido, aceite, pago, KYC) reduz o tempo de resposta. Critério: tempo
+entre "pedido" e "aceite/recusado" — a medir no primeiro mês.
+
+**Decisões (aprovadas nesta data):**
+
+1. **Histórico na app é o canal principal**: uma linha em `notifications` por evento e destinatário, criada *na mesma
+   transação* da operação (se a reserva falhar, a notificação também não existe). `GET /notifications/me`,
+   contagem de não lidas e marcar como lida. O frontend consulta a cada ~60 s.
+2. **Email via Resend** (API REST, `RestClient`), enviado **depois do commit e em segundo plano**
+   (`@TransactionalEventListener(AFTER_COMMIT)` + `@Async`): uma chamada HTTP não segura transações nem locks do ledger,
+   e ninguém recebe email de uma operação que fez rollback. Falhas ficam em `email_status`/`email_error`; nunca
+   rebentam a operação principal. Sem email no perfil (é opcional no registo) → `SKIPPED`.
+   `Idempotency-Key` = id da notificação. Desligado por omissão (`NOTIFICATIONS_EMAIL_ENABLED`).
+3. **Sem WebSocket/STOMP por agora.** O Vercel não faz proxy de WebSocket, o Render free adormece e corta ligações,
+   o JWT expira com a ligação aberta e o broker em memória não escala. Polling chega para o volume do MVP.
+4. **Sem SMS por agora** (custo por mensagem). Fica estruturado para acrescentar um canal sem mexer nos serviços.
+5. **Eventos:** novo pedido (dono), aceite / recusado / cancelado (outra parte), pagamento confirmado (ambos),
+   pagamento à espera de validação (admins, uma vez por reserva), KYC submetido (admins), KYC aprovado / recusado /
+   informação pedida (pessoa). "Recusado" = dono cancela um pedido `PENDING_OWNER` (não existe `reject`).
+   Sem "fatura disponível" (faturas adiadas, ver 2026-10-23 KYC).
+6. Emails: um template Thymeleaf (`email/notification.html`) com as regras do design system — um botão âmbar com
+   texto verde, PT-PT com "tu", sem dados de BI/NIF. Conteúdo do utilizador sempre escapado.
+
+**Em aberto.**
+- Domínio `beeznoo.ao` tem de estar verificado no Resend (SPF/DKIM) antes de ligar o email em produção.
+- Se a API reiniciar entre o commit e o envio, o email fica `PENDING` e não é reenviado (sem retry no MVP).
+- SMS nos eventos "novo pedido" e "aceite", se os donos não responderem a tempo — decisão do André.

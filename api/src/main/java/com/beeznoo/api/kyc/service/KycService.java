@@ -6,6 +6,7 @@ import com.beeznoo.api.kyc.entity.*;
 import com.beeznoo.api.kyc.repository.KycDecisionRepository;
 import com.beeznoo.api.kyc.repository.KycDocumentRepository;
 import com.beeznoo.api.kyc.repository.KycVerificationRepository;
+import com.beeznoo.api.notification.service.NotificationService;
 import com.beeznoo.api.profile.entity.AccountType;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -47,15 +48,17 @@ public class KycService {
     private final KycDecisionRepository decisionRepository;
     private final ProfileRepository profileRepository;
     private final StorageService storageService;
+    private final NotificationService notificationService;
 
     public KycService(KycVerificationRepository verificationRepository, KycDocumentRepository documentRepository,
                       KycDecisionRepository decisionRepository, ProfileRepository profileRepository,
-                      StorageService storageService) {
+                      StorageService storageService, NotificationService notificationService) {
         this.verificationRepository = verificationRepository;
         this.documentRepository = documentRepository;
         this.decisionRepository = decisionRepository;
         this.profileRepository = profileRepository;
         this.storageService = storageService;
+        this.notificationService = notificationService;
     }
 
     // Primeira submissão, nova depois de REJECTED, ou re-submissão na mesma verificação depois de INFO_REQUESTED
@@ -104,6 +107,7 @@ public class KycService {
         });
 
         profile.setAccountType(accountType);
+        notificationService.kycSubmitted(verification);
         log.info("KYC {} submetido ({} documentos)", verification.getId(), valid.size());
         return KycStatusResponse.from(verification);
     }
@@ -174,6 +178,13 @@ public class KycService {
         }
 
         recordDecision(verification, admin, action, note);
+        Profile subject = verification.getProfile();
+        switch (action) {
+            case APPROVE -> notificationService.kycApproved(subject);
+            case REJECT -> notificationService.kycRejected(subject, note);
+            case REQUEST_INFO -> notificationService.kycInfoRequested(subject, note);
+            default -> { /* START_REVIEW: sem aviso */ }
+        }
         log.info("KYC {} → {} por {}", verification.getId(), verification.getStatus(), adminId);
         return KycStatusResponse.from(verification);
     }

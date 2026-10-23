@@ -8,6 +8,7 @@ import com.beeznoo.api.item.entity.Item;
 import com.beeznoo.api.item.entity.ItemStatus;
 import com.beeznoo.api.item.repository.ItemRepository;
 import com.beeznoo.api.kyc.service.KycService;
+import com.beeznoo.api.notification.service.NotificationService;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -38,16 +39,19 @@ public class BookingService {
     private final LedgerService ledgerService;
     private final PaymentService paymentService;
     private final KycService kycService;
+    private final NotificationService notificationService;
 
     public BookingService(BookingRepository bookingRepository, ItemRepository itemRepository,
                           ProfileRepository profileRepository, LedgerService ledgerService,
-                          PaymentService paymentService, KycService kycService) {
+                          PaymentService paymentService, KycService kycService,
+                          NotificationService notificationService) {
         this.bookingRepository = bookingRepository;
         this.itemRepository = itemRepository;
         this.profileRepository = profileRepository;
         this.ledgerService = ledgerService;
         this.paymentService = paymentService;
         this.kycService = kycService;
+        this.notificationService = notificationService;
     }
 
     public BookingResponse create(UUID renterId, CreateBookingRequest request) {
@@ -91,6 +95,7 @@ public class BookingService {
                 .build();
 
         bookingRepository.save(booking);
+        notificationService.bookingReceived(booking);
         return toResponse(booking);
     }
 
@@ -127,6 +132,7 @@ public class BookingService {
         // Sem retenção aqui: o arrendatário paga depois por referência (decisoes-produto.md, 2026-10-16)
         booking.setStatus(BookingStatus.ACCEPTED);
         if (request != null) booking.setOwnerNote(request.ownerNote());
+        notificationService.bookingAccepted(booking);
         return toResponse(booking);
     }
 
@@ -136,12 +142,17 @@ public class BookingService {
 
         if (isOwner(requesterId, booking)) {
             assertStatus(booking, BookingStatus.PENDING_OWNER, BookingStatus.ACCEPTED);
+            boolean wasPending = booking.getStatus() == BookingStatus.PENDING_OWNER;
             booking.setStatus(BookingStatus.CANCELLED_OWNER);
             if (request != null) booking.setOwnerNote(request.ownerNote());
+            // dono a cancelar um pedido por responder = recusar
+            if (wasPending) notificationService.bookingRejected(booking);
+            else notificationService.bookingCancelled(booking, booking.getOwner());
         } else if (isRenter(requesterId, booking)) {
             // Cancelamento após ACCEPTED é uma história futura
             assertStatus(booking, BookingStatus.PENDING_OWNER);
             booking.setStatus(BookingStatus.CANCELLED_RENTER);
+            notificationService.bookingCancelled(booking, booking.getRenter());
         } else {
             throw new AccessDeniedException("Sem permissão para cancelar esta reserva");
         }

@@ -154,6 +154,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-client</artifactId>
 		</dependency>
+		<!-- Templates de email. Só o motor (sem o starter), para não interferir com a resolução de views do MVC -->
+		<dependency>
+			<groupId>org.thymeleaf</groupId>
+			<artifactId>thymeleaf</artifactId>
+		</dependency>
 		<!-- Backblaze B2 pela API compatível com S3 (documentos KYC) -->
 		<dependency>
 			<groupId>software.amazon.awssdk</groupId>

@@ -70,3 +70,10 @@ app:
     secret-key: ${B2_SECRET_KEY:}
     bucket: ${B2_BUCKET:}
     signed-url-ttl: ${APP_STORAGE_SIGNED_URL_TTL:5m}
+  notifications:
+    email:
+      # false: notificações só na app (email_status SKIPPED). true exige RESEND_API_KEY e domínio verificado no Resend.
+      enabled: ${NOTIFICATIONS_EMAIL_ENABLED:false}
+      api-url: ${RESEND_API_URL:https://api.resend.com}
+      api-key: ${RESEND_API_KEY:}
+      from: ${RESEND_FROM:Beeznoo <noreply@beeznoo.ao>}
