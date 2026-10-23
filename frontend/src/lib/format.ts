@@ -1,4 +1,4 @@
-import type { BookingStatus, ItemCondition } from "./types";
+import type { ItemCondition } from "./types";
 
 // 25000 → "25.000 Kz"
 export function formatKz(value: number | null | undefined) {
@@ -41,21 +41,6 @@ export const CONDITION_LABEL: Record<ItemCondition, string> = {
   FAIR: "Sinais de uso",
 };
 
-export const BOOKING_STATUS: Record<
-  BookingStatus,
-  { label: string; badge: "pendente" | "analise" | "ok" | "erro" | "neutro" | "escuro" }
-> = {
-  PENDING_OWNER: { label: "À espera do dono", badge: "pendente" },
-  ACCEPTED: { label: "Aceite · por pagar", badge: "pendente" },
-  ACTIVE: { label: "Pago · em curso", badge: "ok" },
-  COMPLETED: { label: "Concluída", badge: "neutro" },
-  CANCELLED_RENTER: { label: "Cancelada por ti", badge: "neutro" },
-  CANCELLED_OWNER: { label: "Recusada pelo dono", badge: "erro" },
-  DISPUTED: { label: "Problema reportado", badge: "erro" },
-};
-
-export const ACTIVE_STATUSES: BookingStatus[] = ["PENDING_OWNER", "ACCEPTED", "ACTIVE", "DISPUTED"];
-
 // "+244 923 456 789" / "923456789" → "+244923456789"
 export function normalizePhone(input: string) {
   const digits = input.replace(/\D/g, "").replace(/^244/, "");
@@ -64,4 +49,44 @@ export function normalizePhone(input: string) {
 
 export function isValidPhone(input: string) {
   return /^\+2449\d{8}$/.test(normalizePhone(input));
+}
+
+// "2026-10-16" → "16 out" · com weekday: "sex, 16 out"
+export function formatDay(iso: string, weekday = false) {
+  const d = parse(iso);
+  const wd = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"][d.getDay()];
+  return `${weekday ? `${wd}, ` : ""}${d.getDate()} ${MONTHS[d.getMonth()]}`;
+}
+
+// instante → "16 out, 14:00"
+export function formatDateTime(value: string | Date) {
+  const d = new Date(value);
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}, ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
+// ms restantes → "9 h 12 min" · "45 min"
+export function formatDuration(ms: number) {
+  const min = Math.max(0, Math.round(ms / 60_000));
+  const h = Math.floor(min / 60);
+  const d = Math.floor(h / 24);
+  if (d >= 2) return `${d} dias`;
+  if (h > 0) return `${h} h${min % 60 ? ` ${min % 60} min` : ""}`;
+  return `${min} min`;
+}
+
+/** Caução sugerida (SPEC §5, regra [EM ABERTO]): o menor entre 10% do valor do equipamento e 3 diárias. */
+export function suggestedDeposit(declaredValue: number, pricePerDay: number) {
+  if (!declaredValue || !pricePerDay) return 0;
+  return Math.round(Math.min(declaredValue * 0.1, pricePerDay * 3));
+}
+
+export const LUANDA_AREAS = [
+  "Talatona", "Kilamba", "Maianga", "Ingombota", "Viana", "Benfica", "Miramar", "Alvalade", "Cazenga", "Camama", "Sambizanga", "Rangel",
+];
+
+// "2026-10-16", 2 → "2026-10-18"
+export function addDaysIso(iso: string, n: number) {
+  const d = parse(iso);
+  d.setDate(d.getDate() + n);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }

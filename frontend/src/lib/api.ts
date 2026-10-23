@@ -1,6 +1,6 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  AuthResponse, Booking, Category, Item, ItemSummary, Page, Payment, UserRole,
+  Account, AuthResponse, Booking, Category, Item, ItemCondition, ItemSummary, LedgerEntry, Page, Payment, UserRole,
 } from "./types";
 
 export class ApiError extends Error {
@@ -69,6 +69,7 @@ const post = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 const patch = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: "PATCH", body: body === undefined ? undefined : JSON.stringify(body) });
+const del = <T>(path: string) => request<T>(path, { method: "DELETE" });
 
 export function totalPages(page: Page<unknown>) {
   return page.page?.totalPages ?? page.totalPages ?? 1;
@@ -98,12 +99,49 @@ export const catalogApi = {
   item: (id: string) => request<Item>(`/items/${id}`),
 };
 
+export interface ItemInput {
+  title: string;
+  description?: string;
+  categoryId: string;
+  itemCondition: ItemCondition;
+  pricePerDay: number;
+  depositAmount?: number;
+  province?: string;
+  city?: string;
+}
+
+/** Equipamento do dono autenticado. */
+export const ownerItemApi = {
+  mine: (page = 0) => request<Page<ItemSummary>>(`/items/me?page=${page}&size=50&sort=createdAt,desc`),
+  publish: (b: ItemInput) => post<Item>("/items", b),
+  // UpdateItemRequest usa "condition" (o publish usa "itemCondition")
+  update: (id: string, { itemCondition, ...b }: Partial<ItemInput>) => patch<Item>(`/items/${id}`, { ...b, condition: itemCondition }),
+  deactivate: (id: string) => patch<void>(`/items/${id}/deactivate`),
+  remove: (id: string) => del<void>(`/items/${id}`),
+};
+
 export const bookingApi = {
   create: (b: { itemId: string; startDate: string; endDate: string; renterMessage?: string }) =>
     post<Booking>("/bookings", b),
   mine: (page = 0) => request<Page<Booking>>(`/bookings/me/renter?page=${page}&size=50&sort=createdAt,desc`),
   get: (id: string) => request<Booking>(`/bookings/${id}`),
   cancel: (id: string, note?: string) => patch<Booking>(`/bookings/${id}/cancel`, { ownerNote: note }),
+  // Dono
+  received: (page = 0) => request<Page<Booking>>(`/bookings/me/owner?page=${page}&size=50&sort=createdAt,desc`),
+  accept: (id: string, note?: string) => patch<Booking>(`/bookings/${id}/accept`, { ownerNote: note }),
+  // Arrendatário ou dono, só com a reserva ACTIVE
+  dispute: (id: string) => patch<Booking>(`/bookings/${id}/dispute`),
+};
+
+export const walletApi = {
+  account: () => request<Account>("/accounts/me"),
+  statement: (page = 0) => request<Page<LedgerEntry>>(`/accounts/me/statement?page=${page}&size=30&sort=createdAt,desc`),
+};
+
+/** Ações de admin que já existem (sem listagens — ver docs/BACKEND_GAPS.md). */
+export const adminApi = {
+  confirmPayment: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/confirm-payment`),
+  complete: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/complete`),
 };
 
 export const paymentApi = {

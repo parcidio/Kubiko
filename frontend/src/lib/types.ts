@@ -99,3 +99,20 @@ export interface Payment {
   expiresAt: string;
   confirmedAt: string | null;
 }
+
+export interface Account {
+  id: string;
+  availableBalance: number;
+  heldBalance: number;
+  currency: string;
+  updatedAt: string;
+}
+
+export interface LedgerEntry {
+  id: string;
+  type: string;
+  amount: number;
+  balanceAfter: number;
+  description: string | null;
+  createdAt: string;
+}

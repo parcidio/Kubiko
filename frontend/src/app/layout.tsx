@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, DM_Sans, Space_Grotesk } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/bz/overlay";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -39,12 +39,14 @@ export default function RootLayout({
 }) {
   return (
     <html
-      lang="pt"
+      lang="pt-PT"
       className={`${bricolage.variable} ${spaceGrotesk.variable} ${dmSans.variable} scroll-smooth`}
+      // Fontes da app (Identidade Verde v3): font-titulo / font-corpo em globals.css
+      style={{ "--bz-display": bricolage.style.fontFamily, "--bz-sans": dmSans.style.fontFamily } as React.CSSProperties}
     >
       <body>
         {children}
-        <Toaster position="top-center" />
+        <Toaster />
       </body>
     </html>
   );

@@ -3,21 +3,17 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  AuthTitle, Divider, FormError, GoogleButton, ResendCode, RolePicker, toFormErrors, type SignupRole,
-} from "@/components/beeznoo/auth-ui";
-import { OtpField, PasswordField, PhoneField, TextField } from "@/components/beeznoo/fields";
+import { AuthTitle, Divider, GoogleButton, ResendCode, RolePicker, type SignupRole } from "@/components/bz/auth";
+import { FormError, OtpField, PasswordField, PhoneField, StepProgress, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
+import { toast } from "@/components/bz/overlay";
+import { Button } from "@/components/bz/ui";
 import { authApi } from "@/lib/api";
 import { safeNext, signIn } from "@/lib/auth";
 import { isValidPhone, normalizePhone } from "@/lib/format";
 
-type Errors = { form?: string; fields: Record<string, string> };
-
 function RegisterFlow() {
   const router = useRouter();
-  const next = safeNext(useSearchParams().get("next"));
+  const nextParam = useSearchParams().get("next");
   const [step, setStep] = useState<"data" | "otp">("data");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -25,16 +21,10 @@ function RegisterFlow() {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<SignupRole>("RENTER");
   const [code, setCode] = useState("");
-  const [errors, setErrors] = useState<Errors>({ fields: {} });
+  const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [loading, setLoading] = useState(false);
 
-  const payload = () => ({
-    fullName: fullName.trim(),
-    phone: normalizePhone(phone),
-    email: email.trim() || undefined,
-    password,
-    role,
-  });
+  const payload = () => ({ fullName: fullName.trim(), phone: normalizePhone(phone), email: email.trim() || undefined, password, role });
 
   async function submitData(e: React.FormEvent) {
     e.preventDefault();
@@ -64,8 +54,9 @@ function RegisterFlow() {
     setErrors({ fields: {} });
     try {
       signIn(await authApi.verifyRegistration({ phone: normalizePhone(phone), code }));
-      toast.success("Conta criada. Bem-vindo ao Beeznoo.");
-      router.replace(next);
+      toast.success("Conta criada. Bem-vindo à Beeznoo.");
+      const home = role === "OWNER" ? "/painel" : "/explorar";
+      router.replace(`/bem-vindo?next=${encodeURIComponent(safeNext(nextParam, home))}`);
     } catch (err) {
       setErrors(toFormErrors(err));
     } finally {
@@ -76,20 +67,22 @@ function RegisterFlow() {
   if (step === "otp") {
     return (
       <>
+        <StepProgress step={2} total={2} label="Confirmar número" />
+        <div className="h-6" />
         <AuthTitle
           title="Confirma o teu número"
-          subtitle={<>Enviámos um código por SMS para <strong className="text-verde">{normalizePhone(phone)}</strong>.</>}
+          subtitle={<>Enviámos um código para <strong className="num text-verde">{normalizePhone(phone)}</strong>.</>}
         />
         <form onSubmit={submitOtp} className="grid gap-5" noValidate>
           <OtpField value={code} onChange={setCode} error={errors.fields.code} />
           <FormError message={errors.form} />
-          <Button type="submit" disabled={loading} className="w-full">
+          <Button type="submit" loading={loading} block size="lg">
             {loading ? "A confirmar…" : "Confirmar e criar conta"}
           </Button>
           <div className="flex items-center justify-between">
-            <Button type="button" variant="ghost" size="sm" onClick={() => { setCode(""); setStep("data"); }}>
+            <button type="button" className="min-h-11 text-sm font-medium text-verde hover:underline" onClick={() => { setCode(""); setStep("data"); }}>
               Mudar número
-            </Button>
+            </button>
             <ResendCode
               onResend={async () => {
                 try {
@@ -108,28 +101,17 @@ function RegisterFlow() {
 
   return (
     <>
-      <AuthTitle title="Criar conta" subtitle="Leva menos de um minuto. Confirmamos o teu número por SMS." />
+      <StepProgress step={1} total={2} label="Os teus dados" />
+      <div className="h-6" />
+      <AuthTitle title="Cria a tua conta" subtitle="Menos de um minuto. Confirmamos o teu número com um código." />
       <form onSubmit={submitData} className="grid gap-5" noValidate>
         <TextField label="Nome completo" autoComplete="name" value={fullName} onChange={setFullName} error={errors.fields.fullName} />
         <PhoneField value={phone} onChange={setPhone} error={errors.fields.phone} />
-        <TextField
-          label="Email (opcional)"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={setEmail}
-          error={errors.fields.email}
-        />
-        <PasswordField
-          value={password}
-          onChange={setPassword}
-          autoComplete="new-password"
-          hint="Pelo menos 8 caracteres."
-          error={errors.fields.password}
-        />
+        <TextField label="Email (opcional)" type="email" autoComplete="email" value={email} onChange={setEmail} error={errors.fields.email} />
+        <PasswordField value={password} onChange={setPassword} autoComplete="new-password" hint="Pelo menos 8 caracteres." error={errors.fields.password} />
         <RolePicker value={role} onChange={setRole} />
         <FormError message={errors.form} />
-        <Button type="submit" disabled={loading} className="w-full">
+        <Button type="submit" loading={loading} block size="lg">
           {loading ? "A enviar código…" : "Continuar"}
         </Button>
         <Divider />
@@ -137,7 +119,7 @@ function RegisterFlow() {
       </form>
       <p className="mt-8 text-center text-[15px] text-cinza">
         Já tens conta?{" "}
-        <Link href="/entrar" className="font-medium text-mel-texto hover:underline">
+        <Link href="/entrar" className="font-bold text-mel-texto hover:underline">
           Entrar
         </Link>
       </p>
