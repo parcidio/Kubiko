@@ -1,12 +1,10 @@
 package com.beeznoo.api.auth.security;
 
-import com.beeznoo.api.auth.dto.AuthDtos.AuthResponse;
 import com.beeznoo.api.auth.entity.GooglePendingSignup;
 import com.beeznoo.api.auth.repository.GooglePendingSignupRepository;
 import com.beeznoo.api.auth.service.AuthService;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.repository.ProfileRepository;
-import com.beeznoo.api.profile.service.ProfileService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,134 +15,113 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
-import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class OAuth2SuccessHandlerTest {
 
-    @Mock
-    private ProfileService profileService;
-
-    @Mock
-    private ProfileRepository profileRepository;
-
-    @Mock
-    private HttpServletRequest request;
-
-    @Mock
-    private HttpServletResponse response;
-
-    @Mock
-    private Authentication authentication;
-
-    @Mock
-    private OidcUser oidcUser;
-
-    @Mock
-    private GooglePendingSignupRepository googlePendingSignupRepository;
-
-    @Mock
-    private AuthService authService;
+    @Mock private ProfileRepository profileRepository;
+    @Mock private HttpServletRequest request;
+    @Mock private HttpServletResponse response;
+    @Mock private Authentication authentication;
+    @Mock private OidcUser oidcUser;
+    @Mock private GooglePendingSignupRepository googlePendingSignupRepository;
+    @Mock private AuthService authService;
 
     @InjectMocks
     private OAuth2SuccessHandler oAuth2SuccessHandler;
 
     private final String googleId = "google-user-123";
     private final String email = "user@example.com";
-    private final String avatarUrl = "https://example.com/avatar.jpg";
-    private final AuthResponse tokens = new AuthResponse("access-token", "refresh-token", 900L);
 
     @BeforeEach
     void setUp() {
         when(authentication.getPrincipal()).thenReturn(oidcUser);
         when(oidcUser.getSubject()).thenReturn(googleId);
         when(oidcUser.getEmail()).thenReturn(email);
-        when(oidcUser.getPicture()).thenReturn(avatarUrl);
+        when(oidcUser.getEmailVerified()).thenReturn(true);
+        when(oidcUser.getPicture()).thenReturn("https://example.com/avatar.jpg");
     }
 
     @Test
-    @DisplayName("Deve redirecionar com sucesso quando o perfil já está associado por googleId")
-    void shouldRedirectWhenProfileAlreadyLinked() throws Exception {
+    @DisplayName("Perfil já associado: redirect com código de uso único, nunca com tokens na URL")
+    void linkedProfile_redirectsWithOneTimeCode() throws Exception {
         UUID profileId = UUID.randomUUID();
-        Profile profile = Profile.builder().id(profileId).googleId(googleId).build();
-
-        when(profileRepository.findByGoogleId(googleId)).thenReturn(Optional.of(profile));
-        when(authService.issueTokensForProfile(profileId)).thenReturn(tokens);
+        when(profileRepository.findByGoogleId(googleId))
+                .thenReturn(Optional.of(Profile.builder().id(profileId).googleId(googleId).build()));
+        when(authService.issueLoginCode(profileId)).thenReturn("one-time-code");
 
         oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
-        verify(response).sendRedirect("/oauth2/callback?status=success&profileId=" + profileId
-                + "&accessToken=access-token&refreshToken=refresh-token&expiresIn=900");
-        verifyNoInteractions(profileService);
+        ArgumentCaptor<String> url = ArgumentCaptor.forClass(String.class);
+        verify(response).sendRedirect(url.capture());
+        assertThat(url.getValue()).isEqualTo("/oauth2/callback?status=success&code=one-time-code");
+        assertThat(url.getValue()).doesNotContain("accessToken", "refreshToken");
+        verify(response).setHeader("Referrer-Policy", "no-referrer");
     }
 
     @Test
-    @DisplayName("Deve associar automaticamente por email se perfil existir com mesmo email")
-    void shouldAutoLinkByEmailWhenProfileExistsWithEmail() throws Exception {
-        UUID profileId = UUID.randomUUID();
-        Profile profile = Profile.builder().id(profileId).email(email).build();
-
+    @DisplayName("Email do Google já usado noutra conta: NÃO associa (pré-sequestro de conta)")
+    void emailInUse_doesNotAutoLink() throws Exception {
+        Profile other = Profile.builder().id(UUID.randomUUID()).email(email).build();
         when(profileRepository.findByGoogleId(googleId)).thenReturn(Optional.empty());
-        when(profileRepository.findByEmail(email)).thenReturn(Optional.of(profile));
-        when(authService.issueTokensForProfile(profileId)).thenReturn(tokens);
+        when(profileRepository.findByEmail(email)).thenReturn(Optional.of(other));
 
         oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
-        verify(profileRepository).save(profile);
-        verify(response).sendRedirect("/oauth2/callback?status=success&profileId=" + profileId
-                + "&accessToken=access-token&refreshToken=refresh-token&expiresIn=900");
+        verify(response).sendRedirect("/oauth2/callback?status=email_in_use");
+        verify(profileRepository, never()).save(any());
+        verify(authService, never()).issueLoginCode(any());
+        assertThat(other.getGoogleId()).isNull();
     }
 
     @Test
-    @DisplayName("Deve criar registo pendente e redirecionar pending_phone quando state for um CSRF token do Spring e não houver perfil")
-    void shouldRedirectPendingPhoneForCsrfStateWhenProfileMissing() throws Exception {
-        UUID pendingToken = UUID.randomUUID();
-        when(profileRepository.findByGoogleId(googleId)).thenReturn(Optional.empty());
-        when(profileRepository.findByEmail(email)).thenReturn(Optional.empty());
-        when(request.getParameter("state")).thenReturn("SpringSecurityOAuth2CsrfStateTokenStringThatIsLongerThan36Chars");
-        when(oidcUser.getFullName()).thenReturn("Nova Conta");
-        when(googlePendingSignupRepository.save(any(GooglePendingSignup.class)))
-                .thenAnswer(invocation -> {
-                    GooglePendingSignup pending = invocation.getArgument(0);
-                    pending.setToken(pendingToken);
-                    return pending;
-                });
-
-        oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
-
-        ArgumentCaptor<GooglePendingSignup> captor = ArgumentCaptor.forClass(GooglePendingSignup.class);
-        verify(googlePendingSignupRepository).save(captor.capture());
-        GooglePendingSignup saved = captor.getValue();
-        assertThat(saved.getGoogleId()).isEqualTo(googleId);
-        assertThat(saved.getEmail()).isEqualTo(email);
-        assertThat(saved.getAvatarUrl()).isEqualTo(avatarUrl);
-        assertThat(saved.getExpiresAt()).isAfter(OffsetDateTime.now());
-
-        verify(response).sendRedirect("/oauth2/callback?status=pending_phone&pendingToken=" + pendingToken);
-        verifyNoInteractions(profileService);
-    }
-
-    @Test
-    @DisplayName("Deve associar conta Google via state quando state for um profileId UUID válido")
-    void shouldLinkGoogleAccountSuccessfullyWhenStateIsValidUuid() throws Exception {
-        UUID profileId = UUID.randomUUID();
+    @DisplayName("Parâmetro state com o UUID de outro perfil é ignorado (não associa contas)")
+    void stateWithProfileId_isIgnored() throws Exception {
+        when(request.getParameter("state")).thenReturn(UUID.randomUUID().toString());
         when(profileRepository.findByGoogleId(googleId)).thenReturn(Optional.empty());
         when(profileRepository.findByEmail(email)).thenReturn(Optional.empty());
-        when(request.getParameter("state")).thenReturn(profileId.toString());
-        when(authService.issueTokensForProfile(profileId)).thenReturn(tokens);
+        when(googlePendingSignupRepository.save(any())).thenAnswer(inv -> {
+            GooglePendingSignup p = inv.getArgument(0);
+            p.setToken(UUID.randomUUID());
+            return p;
+        });
 
         oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
-        verify(profileService).linkGoogle(profileId, googleId, email, avatarUrl);
-        verify(response).sendRedirect("/oauth2/callback?status=success&profileId=" + profileId
-                + "&accessToken=access-token&refreshToken=refresh-token&expiresIn=900");
+        verify(authService, never()).issueLoginCode(any());
+        ArgumentCaptor<String> url = ArgumentCaptor.forClass(String.class);
+        verify(response).sendRedirect(url.capture());
+        assertThat(url.getValue()).startsWith("/oauth2/callback?status=pending_phone&pendingToken=");
+    }
+
+    @Test
+    @DisplayName("Sem perfil: cria registo pendente; email não verificado pelo Google não é guardado")
+    void noProfile_createsPendingSignupWithoutUnverifiedEmail() throws Exception {
+        when(oidcUser.getEmailVerified()).thenReturn(false);
+        when(profileRepository.findByGoogleId(googleId)).thenReturn(Optional.empty());
+        when(googlePendingSignupRepository.save(any())).thenAnswer(inv -> {
+            GooglePendingSignup p = inv.getArgument(0);
+            p.setToken(UUID.randomUUID());
+            return p;
+        });
+
+        oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
+
+        ArgumentCaptor<GooglePendingSignup> saved = ArgumentCaptor.forClass(GooglePendingSignup.class);
+        verify(googlePendingSignupRepository).save(saved.capture());
+        assertThat(saved.getValue().getEmail()).isNull();
+        verify(profileRepository, never()).findByEmail(any());
     }
 }

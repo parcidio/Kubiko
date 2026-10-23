@@ -14,6 +14,11 @@ spring:
       # KYC: até 5 documentos de 5 MB (o limite por ficheiro também é validado no KycService)
       max-file-size: 5MB
       max-request-size: 26MB
+  data:
+    web:
+      pageable:
+        # páginas de 2.000 elementos eram aceites
+        max-page-size: 100
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -33,6 +38,27 @@ spring:
 
 server:
   port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-exception: false
+    whitelabel:
+      enabled: false
+  servlet:
+    session:
+      # Só o fluxo OAuth2 usa sessão
+      timeout: 10m
+      cookie:
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: lax
+
+# Swagger desligado por omissão (OWASP A02); ligar em desenvolvimento com API_DOCS_ENABLED=true
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}
 
 management:
   endpoints:
@@ -41,8 +67,10 @@ management:
         include: health,info
 
 jwt:
-  secret: ${JWT_SECRET:beeznoo-super-secret-jwt-token-key-256bits-minimum-length-key}
-  expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  # Sem valor por omissão: a API não arranca sem JWT_SECRET (≥ 32 bytes). Gera com: openssl rand -base64 64
+  secret: ${JWT_SECRET:}
+  # Curto de propósito: limita tokens roubados e mudanças de papel (o refresh renova)
+  expiration-minutes: ${JWT_EXPIRATION_MINUTES:15}
   refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:30}
 
 ombala:
@@ -77,3 +105,8 @@ app:
       api-url: ${RESEND_API_URL:https://api.resend.com}
       api-key: ${RESEND_API_KEY:}
       from: ${RESEND_FROM:Beeznoo <noreply@beeznoo.ao>}
+  security:
+    rate-limits-enabled: ${RATE_LIMITS_ENABLED:true}
+    # nº de proxies à frente da API que acrescentam ao X-Forwarded-For (0 em local; Vercel + Render = 2)
+    trusted-proxies: ${RATE_LIMIT_TRUSTED_PROXIES:0}
+    max-json-bytes: 1048576

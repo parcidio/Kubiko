@@ -7,3 +7,8 @@ app:
     secret-key: test
     bucket: test-bucket
     signed-url-ttl: 5m
+jwt:
+  secret: test-only-jwt-secret-with-more-than-32-bytes-0123456789
+springdoc:
+  api-docs:
+    enabled: true

@@ -77,7 +77,7 @@ api/                              # Backend Spring Boot (pacote com.beeznoo.api)
 │   ├── notification/  audit/      # notificações (app + email), auditoria
 │   ├── common/                    # storage (B2), formatos, erros
 │   └── seed/                      # dados de demonstração (perfil "seed")
-├── src/main/resources/db/migration/   # migrações Flyway V1–V15 (única fonte do schema)
+├── src/main/resources/db/migration/   # migrações Flyway V1–V16 (única fonte do schema)
 └── src/test/                      # testes de integração com Testcontainers
 frontend/                         # Next.js
 ├── src/app/                       # rotas (App Router) — ver docs/ECRAS.md
@@ -95,6 +95,7 @@ docker-compose.yml                # Postgres + RabbitMQ + API em local
 - **Backend do fluxo completo do MVP feito:** autenticação (telefone + OTP, Google), perfil, KYC com documentos no B2, equipamento com fotos, reservas, contrato, pagamento por referência **simulado** (validação manual pela equipa), ledger, entrega/devolução, caução (libertar/reter parcial), reportar problema, notificações na app e por email, auditoria. Swagger em `http://localhost:8081/swagger-ui.html`.
 - **Frontend:** vários ecrãs ainda mostram "Falta backend" (`BackendPending`) e estão a ser ligados à API. Estado por ecrã em [`docs/ECRAS.md`](docs/ECRAS.md); o que ainda falta na API em [`docs/BACKEND_GAPS.md`](docs/BACKEND_GAPS.md).
 - **Pagamento real (EMIS/Multicaixa) ainda não existe** — a referência é simulada e o pagamento é validado à mão.
+- **Segurança:** OWASP Top 10:2025, limites de pedidos e cabeçalhos — ver [`docs/SEGURANCA.md`](docs/SEGURANCA.md). Swagger só com `API_DOCS_ENABLED=true`.
 - **Vocabulário:** caução, proteção, reportar problema. Nunca "seguro", "apólice" ou "sinistro" (não existe seguradora parceira).
 
 ---
@@ -126,12 +127,13 @@ Lista completa e comentada em [`.env.example`](.env.example) (backend) e [`front
 | Variável | Para quê |
 |---|---|
 | `DB_*`, `RABBITMQ_*` | Postgres e RabbitMQ |
-| `JWT_SECRET` | assinatura dos tokens (`openssl rand -base64 64`) |
+| `JWT_SECRET` | assinatura dos tokens (`openssl rand -base64 64`, obrigatório, ≥ 32 bytes) |
 | `GOOGLE_CLIENT_ID/SECRET` | login com Google |
 | `OMBALA_TOKEN`, `OMBALA_SENDER` | SMS de OTP |
 | `B2_ENDPOINT`, `B2_REGION`, `B2_BUCKET`, `B2_ACCESS_KEY`, `B2_SECRET_KEY` | storage privado (obrigatório). Bucket **privado**, chave restrita a esse bucket |
 | `NOTIFICATIONS_EMAIL_ENABLED`, `RESEND_API_KEY`, `RESEND_FROM` | email (só com o domínio verificado no Resend) |
 | `PAYMENTS_*` | pagamento simulado; `PAYMENTS_AUTO_CONFIRM=false` em produção |
+| `API_DOCS_ENABLED`, `SESSION_COOKIE_SECURE`, `RATE_LIMITS_ENABLED`, `RATE_LIMIT_TRUSTED_PROXIES` | segurança — valores por ambiente em [`docs/SEGURANCA.md`](docs/SEGURANCA.md) |
 | `API_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WHATSAPP_NUMBER` | frontend |
 
 Valores com espaços ou `<>` vão entre aspas (ex.: `RESEND_FROM="Beeznoo <noreply@beeznoo.ao>"`). **Nunca** commitar `.env` nem chaves.

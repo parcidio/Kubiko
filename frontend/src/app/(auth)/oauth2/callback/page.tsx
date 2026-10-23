@@ -19,21 +19,42 @@ function Callback() {
   const status = params.get("status");
   const handled = useRef(false);
 
+  // Lido no primeiro render: o replace abaixo tira o código da URL
+  const [code] = useState(() => params.get("code"));
+  const [exchangeFailed, setExchangeFailed] = useState(false);
+  const failed = exchangeFailed || (status === "success" && !code);
+
   useEffect(() => {
-    if (handled.current || status !== "success") return;
+    if (handled.current || status !== "success" || !code) return;
     handled.current = true;
-    const accessToken = params.get("accessToken");
-    const refreshToken = params.get("refreshToken");
-    if (accessToken && refreshToken) {
-      signIn({ accessToken, refreshToken, expiresIn: Number(params.get("expiresIn") ?? 0) });
-      // replace remove os tokens do histórico do browser
-      router.replace("/explorar");
-    }
-  }, [status, params, router]);
+    // replace já: o código sai do histórico do browser mesmo antes da troca
+    router.replace("/oauth2/callback?status=success");
+    authApi
+      .googleExchange(code)
+      .then((tokens) => {
+        signIn(tokens);
+        router.replace("/explorar");
+      })
+      .catch(() => setExchangeFailed(true));
+  }, [status, code, router]);
 
   if (status === "pending_phone") return <CompletePhone pendingToken={params.get("pendingToken") ?? ""} />;
 
-  if (status === "success") return <p role="status" className="text-[15px] text-cinza">A entrar…</p>;
+  if (status === "success" && !failed) return <p role="status" className="text-[15px] text-cinza">A entrar…</p>;
+
+  if (status === "email_in_use") {
+    return (
+      <>
+        <AuthTitle
+          title="Este email já tem conta na Beeznoo"
+          subtitle="Entra com o teu número de telefone e password. Por segurança, não juntamos contas automaticamente."
+        />
+        <ButtonLink href="/entrar" block>
+          Entrar com telefone
+        </ButtonLink>
+      </>
+    );
+  }
 
   return (
     <>

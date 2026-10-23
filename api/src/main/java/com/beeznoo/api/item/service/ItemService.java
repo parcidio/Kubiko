@@ -71,7 +71,9 @@ public class ItemService {
 
     @Transactional(readOnly = true)
     public ItemResponse getById(UUID itemId) {
+        // itens apagados não se mostram a ninguém, nem por id
         Item item = itemRepository.findById(itemId)
+                .filter(i -> i.getStatus() != ItemStatus.DELETED)
                 .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
 
         return  toResponse(item);

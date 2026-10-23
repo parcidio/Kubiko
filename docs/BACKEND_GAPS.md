@@ -53,6 +53,9 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 - **`PATCH /bookings/{id}/dispute`** continua, mas o ecrã de problema deve usar `POST /bookings/{id}/incidents`.
 - **Fotos** (`photUrl`, `coverPhoto`) passam a ser URLs assinadas que expiram — não guardar em cache local por mais de 12 h.
 - Notificação "pedido aceite" leva a `/reservas/{id}/pagar`; a de checklist a `/reservas/{id}/checklist`.
+- **Login Google**: o redirect traz um `code` de uso único → `POST /auth/google/exchange` (já ligado em `oauth2/callback`). Estado novo `email_in_use`.
+- **Limites de pedidos**: tratar `429` + `Retry-After` em todos os formulários (sobretudo login e pedidos de código). Ver `docs/SEGURANCA.md`.
+- **Access token de 15 min** (antes 60): o frontend já renova com `/auth/refresh` ao receber `401` (`lib/api.ts`).
 
 ## Inconsistências encontradas
 

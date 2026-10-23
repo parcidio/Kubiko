@@ -86,6 +86,8 @@ export const authApi = {
   googleRegister: (b: { pendingToken: string; phone: string; role: UserRole }) =>
     post<void>("/auth/google/register", b),
   googleVerify: (b: { pendingToken: string; code: string }) => post<AuthResponse>("/auth/google/verify", b),
+  // Código de uso único (60 s) do redirect do Google → tokens. Os tokens nunca vêm na URL.
+  googleExchange: (code: string) => post<AuthResponse>("/auth/google/exchange", { code }),
   logout: () => post<void>("/auth/logout"),
 };
 

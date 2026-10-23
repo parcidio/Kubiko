@@ -150,15 +150,25 @@ public class AuthController {
     }
 
     @Operation(
-            summary = "Associar conta Google",
-            description = "Inicia o OAuth2 flow. Requer Bearer token. " +
-                    "Após callback, redireciona para /oatuh/callback."
+            summary = "Login Google — trocar código por tokens",
+            description = """
+                    Depois do login Google, o redirect para `/oauth2/callback?status=success&code=…` traz um código
+                    de **uso único válido 60 s** (os tokens nunca vão na URL). O frontend troca-o aqui por tokens.
+                    Outros estados do redirect: `pending_phone` (falta o telefone), `email_in_use` (o email do Google
+                    já pertence a uma conta — entrar com telefone), `error`.
+                    """
     )
-    @SecurityRequirement(name = "bearerAuth")
-    @ApiResponse(responseCode = "302", description = "Redireccinado para o Google")
-    @GetMapping("/google/link")
-    public ResponseEntity<Void> linkGoogle() {
-        return ResponseEntity.status(302).build();
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Tokens emitidos",
+                    content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Código inválido, expirado ou já usado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "429", description = "Demasiados pedidos",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/google/exchange")
+    public ResponseEntity<AuthResponse> exchangeGoogleCode(@Valid @RequestBody GoogleExchangeRequest request) {
+        return ResponseEntity.ok(authService.exchangeLoginCode(request.code()));
     }
 
     @Operation(

@@ -182,3 +182,47 @@ Devolução + checklist → Inspeção → Caução libertada / retida"). Decis�
 
 **Em aberto.** Comprovativo de pagamento (`payment_review`, gap #5), expiração de pedidos sem resposta em 24 h,
 disponibilidade/bloqueios de datas, política de cancelamento depois de pago.
+
+---
+
+## 2026-10-23 — Segurança do backend (OWASP Top 10:2025) e limites de pedidos
+
+**Contexto.** Auditoria do backend contra o OWASP Top 10. Falhas encontradas (por gravidade):
+- **Crítico** — `JWT_SECRET` tinha valor por omissão público no `application.yaml`: sem a variável, qualquer pessoa forjava
+  um token de ADMIN. O OTP tinha só ~90 mil combinações (bug em `nextInt(900_00)`) e **tentativas ilimitadas**: com o
+  `password/reset` dava para tomar conta de qualquer conta por força bruta. Sem limites, o envio de SMS podia ser abusado
+  (custo por SMS).
+- **Alto** — login Google associava contas **pelo email**, que nunca é verificado na Beeznoo (pré-sequestro de conta);
+  tokens de acesso e refresh iam na **URL** do redirect (ficam no histórico, logs e Referer); força bruta no login sem
+  limite; refresh token roubado não era detetado; Swagger público em produção.
+- **Médio** — erros de cliente (JSON inválido, parâmetro em falta) davam 500; sem cabeçalhos de segurança explícitos;
+  `pendingToken` escrito nos logs; páginas de 2.000 elementos aceites; itens apagados visíveis por id; papel no JWT válido
+  60 min depois de mudar.
+
+**Decisões (tomadas pela equipa de backend nesta data — ⚑ validar com o André):**
+
+1. **Segredos sem valor por omissão.** A API não arranca sem `JWT_SECRET` com ≥ 32 bytes. JWT com `iss`/`aud`/`typ`
+   verificados. Access token passa a **15 min** (antes 60) para limitar tokens roubados e mudanças de papel.
+2. **OTP**: 6 dígitos uniformes, **máx. 5 tentativas por código** (depois é invalidado), validade mantém-se.
+3. **Limites de pedidos** (em memória, por instância — chega para uma instância no Render; ⚑ Redis se escalarmos):
+   - login: 10 / 15 min por telefone/email e 30 / 15 min por IP;
+   - envio de OTP: 1 / 60 s por telefone e finalidade, 5 / hora por telefone, 10 / hora por IP;
+   - verificação de OTP: 10 / 15 min por telefone;
+   - uploads (KYC, fotos, checklists, problemas): 30 / hora por pessoa;
+   - escrita autenticada: 120 / min por pessoa; qualquer pedido: 300 / min por IP.
+   Resposta `429` com `Retry-After`. O IP do cliente vem do `X-Forwarded-For` contando só os proxies de confiança
+   (`RATE_LIMIT_TRUSTED_PROXIES`, 0 em local; em produção = nº de proxies à frente da API).
+4. **Refresh token**: 256 bits aleatórios; reutilizar um refresh já usado **revoga todas as sessões** da pessoa (sinal de roubo).
+5. **Login Google**: deixa de associar por email. Se o email do Google já existe noutra conta, o frontend diz para entrar
+   com telefone. Tokens deixam de ir na URL: o redirect leva um **código de uso único (60 s)** trocado em
+   `POST /auth/google/exchange`. Sai o `/auth/google/link`, que não fazia nada. ⚑ Associar Google a uma conta existente
+   fica para uma história própria (com sessão iniciada).
+6. **Swagger** só com `API_DOCS_ENABLED=true` (desligado por omissão; ligado no `.env` de desenvolvimento).
+7. **Cabeçalhos**: CSP `default-src 'none'`, `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy: no-referrer`,
+   HSTS em HTTPS, `Permissions-Policy` restrito. Corpo JSON até 1 MB. Páginas até 100 elementos.
+8. **Erros**: 4xx corretos para pedidos mal formados; nunca detalhes internos na resposta. Eventos de segurança
+   (login falhado, OTP bloqueado, limite atingido, refresh reutilizado) vão para o log com identificadores mascarados.
+9. **Cadeia de dependências**: Dependabot semanal (Maven, npm, GitHub Actions).
+
+**Em aberto.** WAF/proteção DDoS na borda (Cloudflare à frente do Render); alertas sobre eventos de segurança;
+2FA para contas ADMIN; política de passwords além de 8–72 caracteres (lista de passwords comuns).

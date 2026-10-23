@@ -53,7 +53,7 @@ Sprints semanais: segunda planning · terça–quinta execução · sexta demo, 
 - Neon: usar a connection string **pooled** e ligações Hikari de vida curta (o Neon fecha ligações inativas).
 - Pacotes Java organizados por domínio: `auth`, `profile`, `item`, `booking`, `contract`, `transaction`, `handover`, `deposit`, `kyc`, `claim`, `notification`, `audit`, `common`.
 - Usa branches do Neon para testar migrações antes de staging/produção.
-- **Migrações aplicadas: V1–V15.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V16).
+- **Migrações aplicadas: V1–V16.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V17).
 - **Estados da reserva:** `PENDING_OWNER → ACCEPTED → ACTIVE (pago) → IN_PROGRESS (entregue) → RETURNED (devolvido) → COMPLETED`, mais `CANCELLED_RENTER`, `CANCELLED_OWNER`, `DISPUTED`. Recusar = o dono faz `cancel` a um pedido `PENDING_OWNER`.
 - **"Verificado"** = KYC aprovado (`KycService.isVerified`). `profiles.is_verified` é o **telefone** confirmado — não confundir.
 - **Ficheiros:** validar com `UploadedFiles.validate(...)` (tipo pelos bytes, 5 MB) e ligar à transação com `StorageTransactions.deleteOnRollback(...)` / `deleteAfterCommit(...)`. A `storage_key` nunca sai em DTOs nem logs — só URLs assinadas.
@@ -87,6 +87,11 @@ Implementado · revisto · testado · integrado · responsivo · sem erros crít
 - Toda a autorização no backend verifica dono/papel por recurso (`owner`, `renter`, `admin`). Nunca confies no frontend.
 - Ações sensíveis (aprovar KYC, validar pagamento, libertar/reter caução) geram registo em `audit_logs`.
 - Não escrevas números de BI, NIF ou referências de pagamento em logs.
+- **OWASP Top 10:2025** — mapa de controlos, limites de pedidos e configuração por ambiente em `docs/SEGURANCA.md`. Ao criar um endpoint:
+  autorização por recurso no serviço, DTO com `@Valid` e limites de tamanho, erros 4xx (nunca 500 por input do cliente),
+  nada de segredos, tokens ou códigos em URLs ou logs, e ver se precisa de limite em `RateLimitFilter`.
+- Segredos sem valor por omissão: a API não arranca sem `JWT_SECRET` (≥ 32 bytes) nem `B2_*`.
+- Migrações aplicadas: V1–V16 (próxima: V17).
 
 ## 7. Design — "Identidade Verde v3"
 
@@ -116,7 +121,7 @@ App mobile nativa, chat interno, IA/recomendações, mapas avançados, loyalty, 
 
 - `SPEC.md` — especificação funcional do MVP.
 - `claude/decisoes-produto.md` — registo de decisões (fonte de verdade).
-- `docs/DESIGN_SYSTEM.md`, `docs/ECRAS.md`, `docs/BACKEND_GAPS.md`, `docs/DB-MODEL.md` (schema atual).
+- `docs/DESIGN_SYSTEM.md`, `docs/ECRAS.md`, `docs/BACKEND_GAPS.md`, `docs/DB-MODEL.md` (schema atual), `docs/SEGURANCA.md` (OWASP).
 - Swagger da API em local: `http://localhost:8081/swagger-ui.html`.
 - `Beeznoo — App v2.html` (raiz): exportação do Claude Design que serviu de ponto de partida (substituída pela v3).
 - Roadmap de 24 semanas: `Kubiko_Roadmap_Startup.pdf`.

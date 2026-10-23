@@ -2,12 +2,15 @@ package com.beeznoo.api.auth.service;
 
 import com.beeznoo.api.auth.dto.AuthDtos.*;
 import com.beeznoo.api.auth.entity.GooglePendingSignup;
+import com.beeznoo.api.auth.entity.OAuthLoginCode;
 import com.beeznoo.api.auth.entity.OtpCode;
 import com.beeznoo.api.auth.entity.OtpCode.Purpose;
 import com.beeznoo.api.auth.entity.RefreshToken;
 import com.beeznoo.api.auth.repository.GooglePendingSignupRepository;
+import com.beeznoo.api.auth.repository.OAuthLoginCodeRepository;
 import com.beeznoo.api.auth.repository.OtpCodeRepository;
 import com.beeznoo.api.auth.repository.RefreshTokenRepository;
+import com.beeznoo.api.common.security.RateLimiter;
 import com.beeznoo.api.config.JwtProperties;
 import com.beeznoo.api.config.OmbalaProperties;
 import com.beeznoo.api.profile.entity.Profile;
@@ -20,14 +23,28 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.Base64;
 import java.util.UUID;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
+    // Limites por identificador (os por IP estão no RateLimitFilter). Ver claude/decisoes-produto.md (2026-10-23, segurança).
+    static final int LOGIN_ATTEMPTS = 10;
+    static final Duration LOGIN_WINDOW = Duration.ofMinutes(15);
+    static final Duration OTP_RESEND_COOLDOWN = Duration.ofSeconds(60);
+    static final int OTP_SENDS_PER_HOUR = 5;
+    static final int OTP_VERIFY_ATTEMPTS = 10;
+    static final int OTP_FAILURES_PER_CODE = 5;
+    static final Duration LOGIN_CODE_TTL = Duration.ofSeconds(60);
+    // bcrypt ignora tudo depois de 72 bytes
+    static final int MAX_PASSWORD_BYTES = 72;
 
     private final AccountRepository accountRepository;
     private final OtpCodeRepository otpCodeRepository;
@@ -38,12 +55,17 @@ public class AuthService {
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
     private final OmbalaProperties ombalaProperties;
+    private final OAuthLoginCodeRepository oAuthLoginCodeRepository;
+    private final RateLimiter rateLimiter;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private final SecureRandom secureRandom = new SecureRandom();
+    // Comparado quando o perfil não existe, para o tempo de resposta não revelar se o número está registado
+    private final String dummyHash = encoder.encode("beeznoo-timing-guard");
 
     @Transactional
     public void register(RegisterRequest request) {
+        assertPasswordLength(request.password());
         if (profileRepository.existsByPhone(request.phone())) {
             throw new IllegalArgumentException("Ester número já está registado.");
         }
@@ -87,20 +109,28 @@ public class AuthService {
             throw new IllegalArgumentException("Número de telefone ou email é obrigatório.");
         }
 
-        Profile profile = request.phone() != null
-                ? profileRepository.findByPhone(request.phone())
-                .orElseThrow(() -> new IllegalArgumentException("Credenciais inválidas."))
-                : profileRepository.findByEmail(request.email())
-                .orElseThrow(() -> new IllegalArgumentException("Credenciais inválidas."));
+        String identifier = request.phone() != null ? request.phone().strip() : request.email().strip().toLowerCase();
+        rateLimiter.check("login-id:" + identifier, LOGIN_ATTEMPTS, LOGIN_WINDOW,
+                "Demasiadas tentativas de entrar com esta conta. Tenta daqui a 15 minutos ou recupera a password.");
 
-        if (!encoder.matches(request.password(), profile.getPasswordHash())) {
+        var found = request.phone() != null
+                ? profileRepository.findByPhone(request.phone())
+                : profileRepository.findByEmail(request.email());
+
+        // Compara sempre um hash (real ou fictício): mesma resposta e mesmo tempo com ou sem conta
+        String hash = found.map(Profile::getPasswordHash).filter(h -> !h.isBlank()).orElse(dummyHash);
+        boolean matches = encoder.matches(request.password(), hash);
+        if (found.isEmpty() || !matches || found.get().getPasswordHash().isBlank()) {
+            log.warn("Login falhado para {}", maskIdentifier(identifier));
             throw new IllegalArgumentException("Credenciais inválidas.");
         }
+        Profile profile = found.get();
 
         if (!profile.isVerified()) {
             throw new IllegalArgumentException("Número de Telefone ainda não verificado. Verifica o teu SMS.");
         }
 
+        rateLimiter.reset("login-id:" + identifier);
         return issueTokens(profile);
     }
 
@@ -187,6 +217,7 @@ public class AuthService {
 
     @Transactional
     public void confirmPasswordReset(PasswordResetConfirmRequest request) {
+        assertPasswordLength(request.newPassword());
         consumeOtp(request.phone(), request.code(), Purpose.PASSWORD_RESET);
 
         Profile profile = profileRepository.findByPhone(request.phone())
@@ -200,13 +231,20 @@ public class AuthService {
         log.info("Password redefinida para {}", maskPhone(request.phone()));
     }
 
-    @Transactional
+    // noRollbackFor: a revogação de todas as sessões (refresh reutilizado) tem de ficar gravada mesmo com o erro
+    @Transactional(noRollbackFor = IllegalArgumentException.class)
     public AuthResponse refresh(String rawRefreshToken) {
         String hashedToken = hashToken(rawRefreshToken);
         RefreshToken token = refreshTokenRepository
                 .findByTokenHash(hashedToken)
                 .orElseThrow(() -> new IllegalArgumentException("Refresh token inválido."));
 
+        if (token.isRevoked()) {
+            // Um refresh já usado voltou a aparecer: alguém tem uma cópia. Fecha todas as sessões.
+            refreshTokenRepository.revokedAllForProfile(token.getProfile().getId());
+            log.warn("Refresh token reutilizado — todas as sessões revogadas para profileId={}", token.getProfile().getId());
+            throw new IllegalArgumentException("Sessão terminada por segurança. Entra outra vez.");
+        }
         if (!token.isValid()) {
             throw new IllegalArgumentException("Refresh token expirado ou revogado.");
         }
@@ -223,10 +261,45 @@ public class AuthService {
         log.info("Logout: refresh tokens revogados para profileId={}", profileId);
     }
 
+    // Código de uso único para o redirect do Google (os tokens nunca vão na URL)
+    @Transactional
+    public String issueLoginCode(UUID profileId) {
+        String raw = randomToken();
+        oAuthLoginCodeRepository.save(OAuthLoginCode.builder()
+                .codeHash(hashToken(raw))
+                .profile(profileRepository.getReferenceById(profileId))
+                .expiresAt(OffsetDateTime.now().plus(LOGIN_CODE_TTL))
+                .build());
+        return raw;
+    }
+
+    @Transactional
+    public AuthResponse exchangeLoginCode(String rawCode) {
+        OAuthLoginCode code = oAuthLoginCodeRepository.findByCodeHashForUpdate(hashToken(rawCode))
+                .filter(c -> c.isUsableAt(OffsetDateTime.now()))
+                .orElseThrow(() -> new IllegalArgumentException("Código de início de sessão inválido ou expirado. Entra outra vez."));
+        code.setUsedAt(OffsetDateTime.now());
+        return issueTokens(code.getProfile());
+    }
+
+    // Limpeza dos códigos de login Google expirados (ficam só 60 s válidos)
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 3_600_000)
+    @Transactional
+    public void purgeExpiredLoginCodes() {
+        oAuthLoginCodeRepository.deleteExpiredBefore(OffsetDateTime.now().minusHours(1));
+    }
+
     private void sendOtp(String phone, Purpose purpose) {
+        // Contra abuso de SMS (custam dinheiro) e força bruta por reenvio
+        rateLimiter.check("otp-cooldown:" + purpose + ":" + phone, 1, OTP_RESEND_COOLDOWN,
+                "Espera um minuto antes de pedir outro código.");
+        rateLimiter.check("otp-send:" + phone, OTP_SENDS_PER_HOUR, Duration.ofHours(1),
+                "Pediste demasiados códigos para este número. Tenta daqui a uma hora.");
+
         otpCodeRepository.invalidateAllForPhone(phone, purpose);
 
-        String code = String.valueOf(100_000 + secureRandom.nextInt(900_00));
+        // 6 dígitos uniformes: 100000–999999
+        String code = String.valueOf(100_000 + secureRandom.nextInt(900_000));
 
         otpCodeRepository.save(OtpCode.builder()
                 .phone(phone)
@@ -239,10 +312,23 @@ public class AuthService {
     }
 
     private void consumeOtp(String phone, String code, Purpose purpose) {
+        rateLimiter.check("otp-verify:" + phone, OTP_VERIFY_ATTEMPTS, Duration.ofMinutes(15),
+                "Demasiadas tentativas. Pede um código novo daqui a 15 minutos.");
+
         OtpCode otpCode = otpCodeRepository.findLatestValid(phone, purpose)
                 .orElseThrow(() -> new IllegalArgumentException("Código inválido ou expirado. Solicita um novo."));
 
+        // Contador em memória: sobrevive ao rollback da transação quando o código está errado
+        String failures = "otp-fail:" + otpCode.getId();
+        if (rateLimiter.isExceeded(failures, OTP_FAILURES_PER_CODE)) {
+            throw new IllegalArgumentException("Demasiadas tentativas com este código. Pede um código novo.");
+        }
         if (!encoder.matches(code, otpCode.getCodeHash())) {
+            int count = rateLimiter.record(failures, Duration.ofMinutes(ombalaProperties.otpExpirationMinutes()));
+            if (count >= OTP_FAILURES_PER_CODE) {
+                log.warn("OTP bloqueado após {} tentativas para {}", count, maskPhone(phone));
+                throw new IllegalArgumentException("Demasiadas tentativas com este código. Pede um código novo.");
+            }
             throw new IllegalArgumentException("Código incorreto.");
         }
 
@@ -254,7 +340,7 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(
                 profile.getId(), profile.getRole().name());
 
-        String rawRefresh = UUID.randomUUID().toString();
+        String rawRefresh = randomToken();
 
         refreshTokenRepository.save(RefreshToken.builder()
                 .profile(profile)
@@ -263,6 +349,27 @@ public class AuthService {
                 .build());
 
         return new AuthResponse(accessToken, rawRefresh, jwtService.accessTokenExpiresInSeconds());
+    }
+
+    // 256 bits, base64url sem padding
+    private String randomToken() {
+        byte[] bytes = new byte[32];
+        secureRandom.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private static void assertPasswordLength(String password) {
+        if (password != null && password.getBytes(StandardCharsets.UTF_8).length > MAX_PASSWORD_BYTES) {
+            throw new IllegalArgumentException("A password pode ter no máximo 72 caracteres.");
+        }
+    }
+
+    private String maskIdentifier(String identifier) {
+        if (identifier.contains("@")) {
+            int at = identifier.indexOf('@');
+            return (at <= 1 ? "*" : identifier.charAt(0) + "***") + identifier.substring(at);
+        }
+        return maskPhone(identifier);
     }
 
     private String hashToken(String rawToken) {

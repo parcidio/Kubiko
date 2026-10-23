@@ -9,19 +9,22 @@ import jakarta.validation.constraints.Size;
 
 public class AuthDtos {
 
+    static final String PHONE = "^\\+244[0-9]{9}$";
+    static final String OTP = "^[0-9]{6}$";
+
     // ---- Registo: passo 1 — dados + envia OTP ----
     public record RegisterRequest(
-            @NotBlank String fullName,
+            @NotBlank @Size(max = 120) String fullName,
 
             @NotBlank
             @Pattern(regexp = "^\\+244[0-9]{9}$",
                     message = "Número deve estar no formato angolano: +244XXXXXXXXX")
             String phone,
 
-            @Email String email,      // opcional
+            @Email @Size(max = 254) String email,      // opcional
 
             @NotBlank
-            @Size(min = 8, message = "A password deve ter pelo menos 8 caracteres")
+            @Size(min = 8, max = 72, message = "A password deve ter entre 8 e 72 caracteres")
             String password,
 
             @NotNull UserRole role
@@ -29,17 +32,17 @@ public class AuthDtos {
 
     // ---- Registo: passo 2 — confirmar número com OTP ----
     public record VerifyRegistrationRequest(
-            @NotBlank String phone,
-            @NotBlank String code
+            @NotBlank @Pattern(regexp = PHONE) String phone,
+            @NotBlank @Pattern(regexp = OTP, message = "O código tem 6 dígitos") String code
     ) {}
 
     // ---- Login: telefone ou email + password ----
     public record LoginRequest(
             // Um dos dois é obrigatório — validado no serviço
-            String phone,
-            String email,
+            @Size(max = 20) String phone,
+            @Size(max = 254) String email,
 
-            @NotBlank String password
+            @NotBlank @Size(max = 128) String password
     ) {}
 
     // ---- Recuperação: passo 1 — pede OTP ----
@@ -52,17 +55,17 @@ public class AuthDtos {
 
     // ---- Recuperação: passo 2 — confirma OTP + nova password ----
     public record PasswordResetConfirmRequest(
-            @NotBlank String phone,
-            @NotBlank String code,
+            @NotBlank @Pattern(regexp = PHONE) String phone,
+            @NotBlank @Pattern(regexp = OTP, message = "O código tem 6 dígitos") String code,
 
             @NotBlank
-            @Size(min = 8, message = "A password deve ter pelo menos 8 caracteres")
+            @Size(min = 8, max = 72, message = "A password deve ter entre 8 e 72 caracteres")
             String newPassword
     ) {}
 
     // ---- Registo via Google: passo 1 — submete telefone + role, envia OTP ----
     public record GoogleRegisterRequest(
-            @NotBlank String pendingToken,
+            @NotBlank @Size(max = 64) String pendingToken,
 
             @NotBlank
             @Pattern(regexp = "^\\+244[0-9]{9}$",
@@ -74,13 +77,18 @@ public class AuthDtos {
 
     // ---- Registo via Google: passo 2 — confirma número com OTP, cria o perfil ----
     public record GoogleVerifyRequest(
-            @NotBlank String pendingToken,
-            @NotBlank String code
+            @NotBlank @Size(max = 64) String pendingToken,
+            @NotBlank @Pattern(regexp = OTP, message = "O código tem 6 dígitos") String code
+    ) {}
+
+    // ---- Login Google: código de uso único do redirect → tokens ----
+    public record GoogleExchangeRequest(
+            @NotBlank @Size(max = 100) String code
     ) {}
 
     // ---- Refresh token ----
     public record RefreshRequest(
-            @NotBlank String refreshToken
+            @NotBlank @Size(max = 200) String refreshToken
     ) {}
 
     // ---- Resposta após autenticação bem-sucedida ----

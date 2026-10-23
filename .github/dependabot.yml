@@ -1,0 +1,27 @@
+# Atualizações de dependências (OWASP A03 — cadeia de fornecimento). Ver docs/SEGURANCA.md.
+# Os PRs do Dependabot passam pelo mesmo CI e review cruzado que os outros.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /api
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      spring:
+        patterns: ["org.springframework*"]
+    ignore:
+      # B2: versões ≥ 2.30 mudam as checksums por omissão — testar contra o B2 antes de subir (decisoes-produto.md)
+      - dependency-name: "software.amazon.awssdk:*"
+        update-types: ["version-update:semver-minor", "version-update:semver-major"]
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

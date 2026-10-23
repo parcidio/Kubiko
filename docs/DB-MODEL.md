@@ -1,6 +1,6 @@
 # Modelo de dados — schema atual
 
-Gerado a partir das migrações Flyway **V1–V15** (`api/src/main/resources/db/migration/`), a 2026-10-23.
+Gerado a partir das migrações Flyway **V1–V16** (`api/src/main/resources/db/migration/`), a 2026-10-23.
 As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
 A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
 
@@ -204,7 +204,7 @@ erDiagram
     }
 ```
 
-Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códigos OTP com hash), `google_pending_signups` (registo Google à espera do telefone), `item_availability` (ainda sem endpoints — ver `BACKEND_GAPS.md` #8).
+Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códigos OTP com hash), `google_pending_signups` (registo Google à espera do telefone), `oauth_login_codes` (código de 60 s do login Google, só o hash), `item_availability` (ainda sem endpoints — ver `BACKEND_GAPS.md` #8).
 
 ## Migrações
 
@@ -225,3 +225,4 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V13 | estados `IN_PROGRESS`/`RETURNED`; `checklists`, `checklist_photos`; tipos novos de notificação |
 | V14 | `deposits` (com backfill a partir do ledger) |
 | V15 | `incident_reports`, `incident_photos` |
+| V16 | `oauth_login_codes` (código de uso único do login Google) |

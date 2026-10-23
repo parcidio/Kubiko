@@ -44,6 +44,7 @@ class AuthServiceIntegrationTest {
     @Autowired OtpCodeRepository otpCodeRepository;
     @Autowired RefreshTokenRepository refreshTokenRepository;
     @Autowired ProfileRepository profileRepository;
+    @Autowired com.beeznoo.api.common.security.RateLimiter rateLimiter;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private static final String PHONE    = "+244923111000";
@@ -51,6 +52,7 @@ class AuthServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        rateLimiter.clear();
         doNothing().when(ombalaSmsService).sendOtp(anyString(), anyString());
     }
 
