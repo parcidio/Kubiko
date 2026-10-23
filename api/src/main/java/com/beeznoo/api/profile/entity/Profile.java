@@ -32,6 +32,10 @@ public class Profile {
     @Column(unique = true)
     private String email;
 
+    // Email confirmado por código (V17). Mudar o email anula a verificação.
+    @Column(name = "email_verified_at")
+    private OffsetDateTime emailVerifiedAt;
+
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
@@ -50,6 +54,13 @@ public class Profile {
     @Builder.Default
     private UserRole role = UserRole.RENTER;
 
+    // definido na submissão do KYC
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_type", nullable = false, length = 20)
+    @Builder.Default
+    private AccountType accountType = AccountType.INDIVIDUAL;
+
+    // telefone confirmado por OTP — NÃO é a verificação de identidade (essa é o KYC)
     @Column(name = "is_verified", nullable = false)
     @Builder.Default
     private boolean isVerified = false;

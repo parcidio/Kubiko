@@ -1,8 +1,10 @@
 package com.beeznoo.api.profile.repository;
 
 import com.beeznoo.api.profile.entity.Profile;
+import com.beeznoo.api.profile.entity.UserRole;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,6 +17,8 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
     Optional<Profile> findByGoogleId(String googleId);
 
     boolean existsByPhone(String phone);
+
+    List<Profile> findByRole(UserRole role);
 
     boolean existsByEmail(String email);
 

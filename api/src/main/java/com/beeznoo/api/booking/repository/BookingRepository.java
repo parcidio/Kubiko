@@ -17,6 +17,10 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     Page<Booking> findByOwnerId(UUID ownerId, Pageable pageable);
 
+    /** [itemId, nº de reservas concluídas] para uma página de itens. */
+    @Query("SELECT b.item.id, COUNT(b) FROM Booking b WHERE b.item.id IN :itemIds AND b.status = 'COMPLETED' GROUP BY b.item.id")
+    java.util.List<Object[]> completedCountByItem(Collection<UUID> itemIds);
+
     // end_date é o dia de devolução — dois períodos sobrepõem-se se start < outro.end e end > outro.start
     @Query("""
             SELECT COUNT(b) > 0 FROM Booking b

@@ -2,10 +2,15 @@
 
 export type UserRole = "OWNER" | "RENTER" | "BOTH" | "ADMIN";
 
+// Web: o refresh vem num cookie httpOnly (bz_refresh), nunca no corpo.
+// mfaRequired (contas ADMIN): sem tokens — pedir o código SMS e chamar authApi.loginMfa.
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
+  accessToken: string | null;
+  refreshToken?: string | null;
   expiresIn: number;
+  mfaRequired?: boolean;
+  mfaPhoneHint?: string | null;
+  mfaToken?: string | null;
 }
 
 export interface Page<T> {
@@ -36,7 +41,24 @@ export interface ItemSummary {
   status: string;
   coverPhoto: string | null;
   createdAt: string;
+  /** Média 1–5 com 1 casa; null sem avaliações */
+  ratingAverage: number | null;
+  ratingCount: number;
+  completedRentals: number;
+  featured: boolean;
 }
+
+export interface Review {
+  id: string;
+  bookingId: string;
+  rating: number;
+  comment: string | null;
+  /** Encurtado pela API: "Ana D." */
+  reviewerName: string;
+  createdAt: string;
+}
+
+export type ItemOrder = "RECENT" | "POPULAR" | "RATING";
 
 export interface Item {
   id: string;
@@ -52,6 +74,10 @@ export interface Item {
   city: string | null;
   status: string;
   photos: { id: string; photUrl: string; position: number }[];
+  ratingAverage: number | null;
+  ratingCount: number;
+  completedRentals: number;
+  featured: boolean;
 }
 
 export type BookingStatus =
@@ -98,4 +124,21 @@ export interface Payment {
   status: PaymentStatus;
   expiresAt: string;
   confirmedAt: string | null;
+}
+
+export interface Account {
+  id: string;
+  availableBalance: number;
+  heldBalance: number;
+  currency: string;
+  updatedAt: string;
+}
+
+export interface LedgerEntry {
+  id: string;
+  type: string;
+  amount: number;
+  balanceAfter: number;
+  description: string | null;
+  createdAt: string;
 }

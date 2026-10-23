@@ -1,25 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { MapPin, PackageSearch, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ItemPhoto } from "@/components/beeznoo/booking-ui";
-import { CardGridSkeleton, EmptyState, ErrorState } from "@/components/beeznoo/states";
+import { LayoutGrid, MapPin, PackageSearch, Search, SlidersHorizontal, X } from "lucide-react";
+import { HexGlow, categoryIcon } from "@/components/bz/brand";
+import { CategoryTile, EquipmentCard } from "@/components/bz/equipment";
+import { ChipGroup, MoneyField } from "@/components/bz/form";
+import { Sheet } from "@/components/bz/overlay";
+import { EmptyState, ErrorState, GridSkeleton } from "@/components/bz/states";
+import { Button } from "@/components/bz/ui";
 import { catalogApi, totalPages } from "@/lib/api";
-import { CONDITION_LABEL, formatKz } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import type { ItemSummary } from "@/lib/types";
+import { useSession } from "@/lib/auth";
+import { LUANDA_AREAS } from "@/lib/format";
+import type { ItemCondition, ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
+type Filters = { area?: string; maxPrice: number | ""; condition?: ItemCondition | "ANY" };
+
 export default function ExplorarPage() {
+  const session = useSession();
   const [categoryId, setCategoryId] = useState<string | undefined>();
   const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<Filters>({ maxPrice: "" });
+  const [draft, setDraft] = useState<Filters>({ maxPrice: "" });
+  const [sheet, setSheet] = useState(false);
+
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
   const listKey = `items:${categoryId ?? "all"}`;
   const first = useResource(listKey, () => catalogApi.items({ categoryId, page: 0 }));
-  // Páginas seguintes ("Ver mais"), válidas só para a categoria em que foram pedidas
   const [more, setMore] = useState<{ key: string; page: number; items: ItemSummary[] } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -39,100 +46,189 @@ export default function ExplorarPage() {
     }
   }
 
-  // A API ainda não tem pesquisa por texto: filtramos o que já foi carregado.
+  // A API só filtra por categoria (ver BACKEND_GAPS): texto, bairro, preço e estado filtram o que já veio.
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return q ? items.filter((i) => i.title.toLowerCase().includes(q)) : items;
-  }, [items, query]);
+    return items.filter(
+      (i) =>
+        (!q || i.title.toLowerCase().includes(q)) &&
+        (!filters.area || `${i.city ?? ""} ${i.province ?? ""}`.toLowerCase().includes(filters.area.toLowerCase())) &&
+        (filters.maxPrice === "" || Number(i.pricePerDay) <= filters.maxPrice) &&
+        (!filters.condition || filters.condition === "ANY" || i.condition === filters.condition),
+    );
+  }, [items, query, filters]);
 
-  const chips = [{ id: undefined as string | undefined, name: "Tudo" }, ...categories.filter((c) => !c.parentId)];
+  const activeFilters = [filters.area, filters.maxPrice !== "" ? 1 : null, filters.condition && filters.condition !== "ANY" ? 1 : null].filter(Boolean).length;
+  const roots = categories.filter((c) => !c.parentId);
+  const iconFor = (id?: string) => categoryIcon(categories.find((c) => c.id === id)?.slug);
 
   return (
-    <div className="grid gap-5">
-      <div className="grid gap-1">
-        <h1 className="font-heading text-[26px] text-verde md:text-[32px]">Explorar</h1>
-        <p className="text-cinza">Por que comprar quando podes alugar?</p>
-      </div>
-
-      <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-3 size-5 -translate-y-1/2 text-cinza" strokeWidth={1.8} aria-hidden />
-        <Input
-          type="search"
-          placeholder="Procura câmara, lente, coluna…"
-          aria-label="Pesquisar equipamento"
-          className="pl-10"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
-
-      <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0" role="group" aria-label="Categorias">
-        {chips.map((c) => {
-          const active = c.id === categoryId;
-          return (
+    <div className="grid gap-6">
+      {/* Herói */}
+      <section className="relative -mx-4 -mt-5 overflow-hidden bg-verde-noite px-4 pt-7 pb-8 text-areia md:mx-0 md:mt-0 md:rounded-sheet md:px-10 md:py-12">
+        <HexGlow />
+        <div className="relative grid gap-5 md:max-w-2xl">
+          <p className="text-sm font-medium text-salvia">{session ? "Bem-vindo de volta" : "Luanda · fotografia, vídeo e eventos"}</p>
+          <h1 className="font-titulo text-[34px] leading-[1] font-extrabold tracking-tight md:text-[52px]">
+            Do que precisas <span className="text-ambar">hoje?</span>
+          </h1>
+          <div className="flex gap-2">
+            <label className="relative flex-1">
+              <span className="sr-only">Pesquisar equipamento</span>
+              <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-cinza" strokeWidth={1.8} aria-hidden />
+              <input
+                type="search"
+                placeholder="Câmara, lente, coluna, projetor…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="h-14 w-full rounded-full bg-branco pr-4 pl-12 text-[15px] text-verde outline-none placeholder:text-cinza focus:ring-4 focus:ring-ambar/40"
+              />
+            </label>
             <button
-              key={c.id ?? "all"}
               type="button"
-              aria-pressed={active}
-              onClick={() => setCategoryId(c.id)}
-              className={cn(
-                "h-11 shrink-0 rounded-full border px-4 text-sm whitespace-nowrap",
-                active ? "border-verde bg-verde text-areia" : "border-borda-forte bg-branco text-verde hover:bg-areia-2",
-              )}
+              onClick={() => {
+                setDraft(filters);
+                setSheet(true);
+              }}
+              aria-label={`Filtros${activeFilters ? ` (${activeFilters} ativos)` : ""}`}
+              className="relative flex size-14 shrink-0 items-center justify-center rounded-full bg-ambar text-verde transition active:scale-95"
             >
-              {c.name}
+              <SlidersHorizontal className="size-5" strokeWidth={2} aria-hidden />
+              {activeFilters > 0 && (
+                <span className="num absolute -top-1 -right-1 flex size-6 items-center justify-center rounded-full bg-areia text-xs font-bold text-verde">{activeFilters}</span>
+              )}
             </button>
-          );
-        })}
-      </div>
+          </div>
+        </div>
+      </section>
 
-      {state === "loading" && <CardGridSkeleton />}
-      {state === "error" && <ErrorState message={first.error!} onRetry={first.reload} />}
-      {state === "ready" && visible.length === 0 && (
-        <EmptyState
-          icon={PackageSearch}
-          title="Nada por aqui ainda"
-          text={query ? `Não encontrámos "${query}". Experimenta outra palavra ou outra categoria.` : "Ainda não há equipamento nesta categoria."}
-          action={
-            <Button variant="outline" onClick={() => { setQuery(""); setCategoryId(undefined); }}>
-              Ver todo o equipamento
-            </Button>
-          }
-        />
-      )}
-      {state === "ready" && visible.length > 0 && (
-        <>
-          <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-            {visible.map((item) => (
-              <li key={item.id}>
-                <Link
-                  href={`/equipamento/${item.id}`}
-                  className="block overflow-hidden rounded-bz-md border border-borda bg-branco transition-colors hover:border-borda-forte focus-visible:ring-[3px] focus-visible:ring-verde-medio/30 focus-visible:outline-none"
-                >
-                  <ItemPhoto src={item.coverPhoto} alt={item.title} />
-                  <div className="grid gap-1 p-3">
-                    <h2 className="line-clamp-2 font-heading text-base leading-snug text-verde md:text-lg">{item.title}</h2>
-                    <p className="flex items-center gap-1 text-[13px] text-cinza">
-                      <MapPin className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
-                      <span className="truncate">{[item.city, item.province].filter(Boolean).join(", ") || "Luanda"}</span>
-                    </p>
-                    <p className="text-[13px] text-cinza">{CONDITION_LABEL[item.condition] ?? item.condition}</p>
-                    <p className="mt-1 text-verde">
-                      <span className="font-heading text-lg">{formatKz(item.pricePerDay)}</span>
-                      <span className="text-[13px] text-cinza"> /dia</span>
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          {page + 1 < pages && (
-            <Button variant="outline" className="justify-self-center" disabled={loadingMore} onClick={loadMore}>
-              {loadingMore ? "A carregar…" : "Ver mais"}
-            </Button>
+      {/* Categorias em mosaico */}
+      <section aria-label="Categorias" className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-6 md:px-0">
+        <CategoryTile label="Tudo" icon={LayoutGrid} active={!categoryId} onClick={() => setCategoryId(undefined)} tone={2} />
+        {roots.map((c, i) => (
+          <CategoryTile key={c.id} label={c.name} icon={categoryIcon(c.slug)} active={c.id === categoryId} onClick={() => setCategoryId(c.id)} tone={i} />
+        ))}
+      </section>
+
+      {activeFilters > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {filters.area && <FilterTag onClear={() => setFilters({ ...filters, area: undefined })}>{filters.area}</FilterTag>}
+          {filters.maxPrice !== "" && (
+            <FilterTag onClear={() => setFilters({ ...filters, maxPrice: "" })}>até {filters.maxPrice.toLocaleString("de-DE")} Kz/dia</FilterTag>
           )}
-        </>
+          {filters.condition && filters.condition !== "ANY" && (
+            <FilterTag onClear={() => setFilters({ ...filters, condition: undefined })}>{filters.condition === "NEW" ? "Novo" : "Como novo"}</FilterTag>
+          )}
+        </div>
       )}
+
+      <section aria-label="Equipamento" className="grid gap-4">
+        <div className="flex items-end justify-between">
+          <h2 className="font-titulo text-xl font-bold text-verde">{categoryId ? categories.find((c) => c.id === categoryId)?.name : "Disponível perto de ti"}</h2>
+          {state === "ready" && <span className="num text-[13px] text-cinza">{visible.length} resultados</span>}
+        </div>
+
+        {state === "loading" && <GridSkeleton />}
+        {state === "error" && <ErrorState message={first.error!} onRetry={first.reload} />}
+        {state === "ready" && visible.length === 0 && (
+          <EmptyState
+            icon={PackageSearch}
+            title="Nada por aqui ainda"
+            text={query ? `Não encontrámos "${query}". Experimenta outra palavra ou outra categoria.` : "Ainda não há equipamento com estes filtros."}
+            action={
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setQuery("");
+                  setCategoryId(undefined);
+                  setFilters({ maxPrice: "" });
+                }}
+              >
+                Ver todo o equipamento
+              </Button>
+            }
+          />
+        )}
+        {state === "ready" && visible.length > 0 && (
+          <>
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
+              {visible.map((item, i) => (
+                <li key={item.id}>
+                  <EquipmentCard item={item} href={`/equipamento/${item.id}`} icon={iconFor(categoryId)} index={i} />
+                </li>
+              ))}
+            </ul>
+            {page + 1 < pages && (
+              <Button variant="outline" className="justify-self-center" loading={loadingMore} onClick={loadMore}>
+                Ver mais
+              </Button>
+            )}
+          </>
+        )}
+      </section>
+
+      <Sheet
+        open={sheet}
+        onClose={() => setSheet(false)}
+        title="Filtros"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="ghost" onClick={() => setDraft({ maxPrice: "" })}>
+              Limpar
+            </Button>
+            <Button
+              variant="dark"
+              block
+              onClick={() => {
+                setFilters(draft);
+                setSheet(false);
+              }}
+            >
+              Aplicar filtros
+            </Button>
+          </div>
+        }
+      >
+        <div className="grid gap-6 pt-2">
+          <div className="grid gap-3">
+            <p className="flex items-center gap-2 text-sm font-medium text-verde">
+              <MapPin className="size-4 text-mel" strokeWidth={1.8} aria-hidden /> Bairro
+            </p>
+            <ChipGroup
+              label="Bairro"
+              value={draft.area}
+              onChange={(v) => setDraft({ ...draft, area: draft.area === v ? undefined : v })}
+              options={LUANDA_AREAS.map((a) => ({ value: a, label: a }))}
+            />
+          </div>
+          <MoneyField label="Preço máximo por dia" value={draft.maxPrice} onChange={(v) => setDraft({ ...draft, maxPrice: v })} hint="Deixa vazio para ver todos os preços." />
+          <div className="grid gap-3">
+            <p className="text-sm font-medium text-verde">Estado do equipamento</p>
+            <ChipGroup<ItemCondition | "ANY">
+              label="Estado"
+              value={draft.condition ?? "ANY"}
+              onChange={(v) => setDraft({ ...draft, condition: v })}
+              options={[
+                { value: "ANY", label: "Qualquer" },
+                { value: "NEW", label: "Novo" },
+                { value: "LIKE_NEW", label: "Como novo" },
+              ]}
+            />
+          </div>
+          <p className="text-[13px] text-cinza">Filtro por datas disponíveis chega quando a API tiver disponibilidade.</p>
+        </div>
+      </Sheet>
     </div>
+  );
+}
+
+function FilterTag({ children, onClear }: { children: React.ReactNode; onClear: () => void }) {
+  return (
+    <span className="inline-flex h-9 items-center gap-1 rounded-full bg-verde pr-1 pl-3 font-medium text-areia">
+      {children}
+      <button type="button" onClick={onClear} aria-label={`Remover filtro ${children}`} className="flex size-7 items-center justify-center rounded-full hover:bg-white/10">
+        <X className="size-4" strokeWidth={2} />
+      </button>
+    </span>
   );
 }

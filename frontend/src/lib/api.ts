@@ -1,6 +1,7 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  AuthResponse, Booking, Category, Item, ItemSummary, Page, Payment, UserRole,
+  Account, AuthResponse, Booking, Category, Item, ItemCondition, ItemOrder, ItemSummary, LedgerEntry, Page, Payment, Review,
+  UserRole,
 } from "./types";
 
 export class ApiError extends Error {
@@ -22,13 +23,17 @@ async function parseError(res: Response): Promise<ApiError> {
 
 let refreshing: Promise<boolean> | null = null;
 
+// Identifica o cliente web: a API devolve o refresh num cookie httpOnly em vez do corpo
+const CLIENT_HEADER = { "X-Beeznoo-Client": "web" };
+
 async function refreshTokens(): Promise<boolean> {
   const session = readSession();
   if (!session) return false;
+  // o cookie bz_refresh vai sozinho (mesma origem, via proxy do Next)
   refreshing ??= fetch("/api/v1/auth/refresh", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken: session.refreshToken }),
+    headers: CLIENT_HEADER,
+    credentials: "same-origin",
   })
     .then(async (res) => {
       if (!res.ok) {
@@ -46,12 +51,13 @@ async function refreshTokens(): Promise<boolean> {
 async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const session = readSession();
   const headers = new Headers(init.headers);
+  headers.set("X-Beeznoo-Client", CLIENT_HEADER["X-Beeznoo-Client"]);
   if (init.body) headers.set("Content-Type", "application/json");
   if (session) headers.set("Authorization", `Bearer ${session.accessToken}`);
 
   let res: Response;
   try {
-    res = await fetch(`/api/v1${path}`, { ...init, headers });
+    res = await fetch(`/api/v1${path}`, { ...init, headers, credentials: "same-origin" });
   } catch {
     throw new ApiError(0, NETWORK_ERROR);
   }
@@ -69,6 +75,7 @@ const post = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 const patch = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: "PATCH", body: body === undefined ? undefined : JSON.stringify(body) });
+const del = <T>(path: string) => request<T>(path, { method: "DELETE" });
 
 export function totalPages(page: Page<unknown>) {
   return page.page?.totalPages ?? page.totalPages ?? 1;
@@ -85,17 +92,47 @@ export const authApi = {
   googleRegister: (b: { pendingToken: string; phone: string; role: UserRole }) =>
     post<void>("/auth/google/register", b),
   googleVerify: (b: { pendingToken: string; code: string }) => post<AuthResponse>("/auth/google/verify", b),
+  // Código de uso único (60 s) do redirect do Google → tokens. Os tokens nunca vêm na URL.
+  googleExchange: (code: string) => post<AuthResponse>("/auth/google/exchange", { code }),
   logout: () => post<void>("/auth/logout"),
+  // 2FA de contas ADMIN: desafio do 1.º passo + código SMS
+  loginMfa: (b: { mfaToken: string; code: string }) => post<AuthResponse>("/auth/login/mfa", b),
+  changePassword: (b: { currentPassword: string; newPassword: string }) => post<AuthResponse>("/auth/password/change", b),
 };
 
 export const catalogApi = {
   categories: () => request<Category[]>("/categories"),
-  items: (p: { categoryId?: string; page?: number }) => {
-    const q = new URLSearchParams({ page: String(p.page ?? 0), size: "20", sort: "createdAt,desc" });
+  // order: RECENT (destaques primeiro) · POPULAR (mais alugados) · RATING (mais bem avaliados)
+  items: (p: { categoryId?: string; page?: number; size?: number; featured?: boolean; order?: ItemOrder }) => {
+    const q = new URLSearchParams({ page: String(p.page ?? 0), size: String(p.size ?? 20) });
     if (p.categoryId) q.set("categoryId", p.categoryId);
+    if (p.featured) q.set("featured", "true");
+    if (p.order) q.set("order", p.order);
     return request<Page<ItemSummary>>(`/items?${q}`);
   },
   item: (id: string) => request<Item>(`/items/${id}`),
+  reviews: (itemId: string, page = 0) => request<Page<Review>>(`/items/${itemId}/reviews?page=${page}&size=10`),
+};
+
+export interface ItemInput {
+  title: string;
+  description?: string;
+  categoryId: string;
+  itemCondition: ItemCondition;
+  pricePerDay: number;
+  depositAmount?: number;
+  province?: string;
+  city?: string;
+}
+
+/** Equipamento do dono autenticado. */
+export const ownerItemApi = {
+  mine: (page = 0) => request<Page<ItemSummary>>(`/items/me?page=${page}&size=50&sort=createdAt,desc`),
+  publish: (b: ItemInput) => post<Item>("/items", b),
+  // UpdateItemRequest usa "condition" (o publish usa "itemCondition")
+  update: (id: string, { itemCondition, ...b }: Partial<ItemInput>) => patch<Item>(`/items/${id}`, { ...b, condition: itemCondition }),
+  deactivate: (id: string) => patch<void>(`/items/${id}/deactivate`),
+  remove: (id: string) => del<void>(`/items/${id}`),
 };
 
 export const bookingApi = {
@@ -104,6 +141,26 @@ export const bookingApi = {
   mine: (page = 0) => request<Page<Booking>>(`/bookings/me/renter?page=${page}&size=50&sort=createdAt,desc`),
   get: (id: string) => request<Booking>(`/bookings/${id}`),
   cancel: (id: string, note?: string) => patch<Booking>(`/bookings/${id}/cancel`, { ownerNote: note }),
+  // Dono
+  received: (page = 0) => request<Page<Booking>>(`/bookings/me/owner?page=${page}&size=50&sort=createdAt,desc`),
+  accept: (id: string, note?: string) => patch<Booking>(`/bookings/${id}/accept`, { ownerNote: note }),
+  // Arrendatário ou dono, só com a reserva ACTIVE
+  dispute: (id: string) => patch<Booking>(`/bookings/${id}/dispute`),
+  // Avaliação: só o arrendatário, com a reserva COMPLETED, uma vez. GET devolve undefined (204) se ainda não há.
+  review: (id: string) => request<Review | undefined>(`/bookings/${id}/review`),
+  createReview: (id: string, b: { rating: number; comment?: string }) => post<Review>(`/bookings/${id}/review`, b),
+};
+
+export const walletApi = {
+  account: () => request<Account>("/accounts/me"),
+  statement: (page = 0) => request<Page<LedgerEntry>>(`/accounts/me/statement?page=${page}&size=30&sort=createdAt,desc`),
+};
+
+/** Ações de admin que já existem (sem listagens — ver docs/BACKEND_GAPS.md). */
+export const adminApi = {
+  confirmPayment: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/confirm-payment`),
+  complete: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/complete`),
+  setFeatured: (itemId: string, featured: boolean) => patch<Item>(`/admin/items/${itemId}/featured`, { featured }),
 };
 
 export const paymentApi = {

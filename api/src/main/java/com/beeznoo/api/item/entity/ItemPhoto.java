@@ -26,8 +26,18 @@ public class ItemPhoto {
     @JoinColumn(name = "item_id", nullable = false)
     private Item item;
 
-    @Column(name = "photo_url", nullable = false)
+    // URL externa antiga; as fotos novas usam storageKey (nunca exposta — sai como URL assinada)
+    @Column(name = "photo_url")
     private String photoUrl;
+
+    @Column(name = "storage_key", updatable = false, columnDefinition = "TEXT")
+    private String storageKey;
+
+    @Column(name = "content_type", length = 50, updatable = false)
+    private String contentType;
+
+    @Column(name = "size_bytes", updatable = false)
+    private Long sizeBytes;
 
     @Column(nullable = false)
     @Builder.Default
