@@ -28,13 +28,15 @@ public class ItemService {
     private final CategoryRepository categoryRepository;
     private final ProfileRepository profileRepository;
     private final KycService kycService;
+    private final PhotoUrls photoUrls;
 
     public ItemService(ItemRepository itemRepository, CategoryRepository categoryRepository,
-                       ProfileRepository profileRepository, KycService kycService) {
+                       ProfileRepository profileRepository, KycService kycService, PhotoUrls photoUrls) {
         this.itemRepository = itemRepository;
         this.categoryRepository = categoryRepository;
         this.profileRepository = profileRepository;
         this.kycService = kycService;
+        this.photoUrls = photoUrls;
     }
 
     public ItemResponse publish(UUID ownerId, PublishItemRequest request) throws AccessDeniedException {
@@ -144,7 +146,7 @@ public class ItemService {
 
     private ItemResponse toResponse(Item item) {
         List<PhotoResponse> photos = item.getPhotos().stream()
-                .map(p -> new PhotoResponse(p.getId(), p.getPhotoUrl(), p.getPosition()))
+                .map(p -> new PhotoResponse(p.getId(), photoUrls.of(p), p.getPosition()))
                 .toList();
 
         return new ItemResponse(
@@ -168,7 +170,7 @@ public class ItemService {
     }
 
     private ItemSummaryResponse toSummary(Item item) {
-        String cover = item.getPhotos().isEmpty() ? null : item.getPhotos().get(0).getPhotoUrl();
+        String cover = item.getPhotos().isEmpty() ? null : photoUrls.of(item.getPhotos().get(0));
         return new ItemSummaryResponse(
                 item.getId(),
                 item.getTitle(),

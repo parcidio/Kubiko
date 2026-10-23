@@ -124,3 +124,37 @@ entre "pedido" e "aceite/recusado" — a medir no primeiro mês.
 - Domínio `beeznoo.ao` tem de estar verificado no Resend (SPF/DKIM) antes de ligar o email em produção.
 - Se a API reiniciar entre o commit e o envio, o email fica `PENDING` e não é reenviado (sem retry no MVP).
 - SMS nos eventos "novo pedido" e "aceite", se os donos não responderem a tempo — decisão do André.
+
+---
+
+## 2026-10-23 — Fecho do fluxo do MVP: perfil, fotos, contrato, entrega/devolução, caução, problemas, auditoria
+
+**Contexto.** Itens P0/P1 do `docs/BACKEND_GAPS.md` que faltavam para o fluxo SPEC §7 ("Entrega + checklist → Uso →
+Devolução + checklist → Inspeção → Caução libertada / retida"). Decisões tomadas pela equipa de backend nesta data —
+**a validar pelo André na sexta**, sobretudo as marcadas com ⚑.
+
+1. **`audit_logs`** (append-only, trigger): autor, ação, entidade, motivo e metadados sem dados pessoais.
+   Regista: decisões de KYC, confirmação manual de pagamento, ajuste de saldo, libertar/reter caução, resolver problema.
+   `GET /admin/audit-logs`. Reter caução exige motivo; nas restantes o motivo é opcional mas guardado.
+2. **`GET/PATCH /profiles/me`**: nome, email, província, cidade editáveis; telefone não (muda-se com OTP, fora do MVP).
+   Devolve `phoneVerified` (= `is_verified`) e `identityVerified` + `kycStatus` (do KYC) — nomes distintos de propósito.
+3. **Fotos do equipamento** no mesmo bucket privado do B2 (`items/{itemId}/…`), servidas por URL assinada de 12 h.
+   JPEG/PNG até 5 MB, máx. 8 por item. Compressão no frontend antes do upload (o backend não redimensiona).
+   ⚑ Quando houver tráfego, passar para bucket público + CDN (URLs assinadas não ficam em cache entre pedidos).
+4. **Contrato** gerado quando o dono aceita (o aceitar do dono conta como aceitação do contrato, que lhe é mostrado
+   nesse ecrã). O arrendatário aceita antes de gerar a referência de pagamento. Texto versionado + hash SHA-256.
+   ⚑ **O texto `v1` é um rascunho técnico — tem de ser revisto por um jurista antes do primeiro aluguer real.**
+5. **Novos estados**: `ACTIVE` (pago) → `IN_PROGRESS` (entregue) → `RETURNED` (devolvido) → `COMPLETED`.
+   `ACTIVE` mantém o nome para não partir o frontend. A timeline de 6 passos passa a ser verdadeira.
+6. **Checklists** de entrega e devolução: uma das partes regista notas + pelo menos 2 fotos; a **outra** parte confirma
+   e a reserva avança. Se não concorda, reporta um problema em vez de confirmar. ⚑ Sem código de 4 dígitos no MVP.
+7. **Cauções** em tabela própria (`deposits`, opção B do SPEC), criada na confirmação do pagamento, com backfill a partir
+   do ledger. O admin liberta (total) ou retém (parcial em Kz ou total, motivo obrigatório) depois de `RETURNED`
+   ou `DISPUTED`; a reserva passa a `COMPLETED`. O valor retido vai para o dono, o resto volta ao arrendatário.
+   `PATCH /bookings/{id}/complete` continua a funcionar e equivale a libertar.
+8. **Reportar problema** (`incident_reports`): dano / perda / roubo / outro, descrição, até 6 fotos (bucket privado).
+   Põe a reserva em `DISPUTED` e avisa a equipa. O admin resolve com nota; o dinheiro decide-se na caução (ponto 7).
+9. **Filas de admin**: `GET /admin/payments`, `/admin/deposits`, `/admin/incidents`, mais antigos primeiro.
+
+**Em aberto.** Comprovativo de pagamento (`payment_review`, gap #5), expiração de pedidos sem resposta em 24 h,
+disponibilidade/bloqueios de datas, política de cancelamento depois de pago.

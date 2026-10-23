@@ -1,5 +1,6 @@
 package com.beeznoo.api.booking.controller;
 
+import com.beeznoo.api.audit.dto.AuditDtos.AdminActionRequest;
 import com.beeznoo.api.booking.dto.BookingDtos.*;
 import com.beeznoo.api.booking.service.BookingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -192,6 +193,8 @@ public class BookingController {
             description = """
                     Endpoint interno, restrito a perfis `ADMIN`, enquanto não existe
                     integração com Multicaixa. Transição `ACCEPTED` → `ACTIVE`.
+                    Exige que o arrendatário tenha aceite o contrato. Corpo opcional `{ "reason": "..." }`,
+                    guardado na auditoria.
                     """
     )
     @ApiResponses({
@@ -208,15 +211,17 @@ public class BookingController {
     @PatchMapping("/{id}/confirm-payment")
     public ResponseEntity<BookingResponse> confirmPayment(
             @AuthenticationPrincipal UUID profileId,
-            @PathVariable UUID id) {
-        return ResponseEntity.ok(bookingService.confirmPayment(profileId, id));
+            @PathVariable UUID id,
+            @Valid @RequestBody(required = false) AdminActionRequest request) {
+        return ResponseEntity.ok(bookingService.confirmPayment(profileId, id, request == null ? null : request.reason()));
     }
 
     @Operation(
             summary = "Completar reserva (admin)",
             description = """
-                    Endpoint interno, restrito a perfis `ADMIN`. Marca o equipamento
-                    como devolvido com sucesso. Transição `ACTIVE` → `COMPLETED`.
+                    Endpoint interno, restrito a perfis `ADMIN`. Liberta a caução inteira e conclui a reserva.
+                    Transição `RETURNED` | `DISPUTED` → `COMPLETED`. Para reter parte da caução usa
+                    `POST /admin/deposits/{bookingId}/withhold`. Corpo opcional `{ "reason": "..." }`.
                     """
     )
     @ApiResponses({
@@ -227,21 +232,23 @@ public class BookingController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Reserva não encontrada",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "409", description = "Reserva não está ACTIVE",
+            @ApiResponse(responseCode = "409", description = "Reserva não está RETURNED nem DISPUTED, ou caução já decidida",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PatchMapping("/{id}/complete")
     public ResponseEntity<BookingResponse> complete(
             @AuthenticationPrincipal UUID profileId,
-            @PathVariable UUID id) {
-        return ResponseEntity.ok(bookingService.complete(profileId, id));
+            @PathVariable UUID id,
+            @Valid @RequestBody(required = false) AdminActionRequest request) {
+        return ResponseEntity.ok(bookingService.complete(profileId, id, request == null ? null : request.reason()));
     }
 
     @Operation(
             summary = "Abrir disputa",
             description = """
-                    O arrendatário ou o dono abrem uma reclamação sobre a reserva
-                    em curso. Transição `ACTIVE` → `DISPUTED`.
+                    O arrendatário ou o dono abrem uma disputa sobre a reserva em curso, sem detalhes.
+                    Transição `ACTIVE` | `IN_PROGRESS` | `RETURNED` → `DISPUTED`.
+                    Preferir `POST /bookings/{id}/incidents` (tipo, descrição e fotos).
                     """
     )
     @ApiResponses({
@@ -252,7 +259,7 @@ public class BookingController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Reserva não encontrada",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "409", description = "Reserva não está ACTIVE",
+            @ApiResponse(responseCode = "409", description = "Reserva não está em curso (ACTIVE, IN_PROGRESS ou RETURNED)",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PatchMapping("/{id}/dispute")

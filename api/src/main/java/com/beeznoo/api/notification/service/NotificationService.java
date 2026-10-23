@@ -1,6 +1,7 @@
 package com.beeznoo.api.notification.service;
 
 import com.beeznoo.api.booking.entity.Booking;
+import com.beeznoo.api.common.util.Formats;
 import com.beeznoo.api.kyc.entity.KycVerification;
 import com.beeznoo.api.notification.dto.NotificationDtos.NotificationResponse;
 import com.beeznoo.api.notification.email.EmailTemplateRenderer;
@@ -68,7 +69,7 @@ public class NotificationService {
         notify(b.getRenter(), NotificationType.BOOKING_ACCEPTED, b,
                 b.getItem().getTitle() + ": pedido aceite",
                 List.of(b.getOwner().getFullName() + " aceitou o teu pedido para " + period(b) + ".",
-                        "Gera a referência e paga para confirmar a reserva."),
+                        "Aceita o contrato e paga para confirmar a reserva."),
                 "Pagar reserva", "/reservas/" + b.getId() + "/pagar");
     }
 
@@ -121,6 +122,65 @@ public class NotificationService {
                     List.of(b.getRenter().getFullName() + " diz que já pagou " + kz(amount)
                             + " (reserva de " + period(b) + ").", "Confirma o pagamento antes de o validar."),
                     "Abrir pagamentos", "/admin/pagamentos");
+        }
+    }
+
+    // ── Entrega, devolução, caução e problemas ────────────────────────────
+
+    public void checklistToConfirm(Booking b, boolean delivery, Profile recipient) {
+        String what = delivery ? "entrega" : "devolução";
+        notify(recipient, NotificationType.CHECKLIST_TO_CONFIRM, b,
+                b.getItem().getTitle() + ": confirma a " + what,
+                List.of("A outra parte registou a " + what + " com fotos e notas.",
+                        "Confirma se está tudo certo. Se não estiver, reporta um problema em vez de confirmar."),
+                "Ver " + what, "/reservas/" + b.getId() + "/checklist");
+    }
+
+    public void bookingInProgress(Booking b) {
+        for (Profile p : List.of(b.getRenter(), b.getOwner())) {
+            notify(p, NotificationType.BOOKING_IN_PROGRESS, b,
+                    b.getItem().getTitle() + ": entrega confirmada",
+                    List.of("A entrega foi confirmada pelas duas partes. Devolução até " + Formats.date(b.getEndDate()) + "."),
+                    "Ver reserva", "/reservas/" + b.getId());
+        }
+    }
+
+    public void bookingReturned(Booking b) {
+        for (Profile admin : profileRepository.findByRole(UserRole.ADMIN)) {
+            notify(admin, NotificationType.BOOKING_RETURNED, b,
+                    "Caução a decidir: " + b.getItem().getTitle(),
+                    List.of("A devolução foi confirmada. Revê as checklists e liberta ou retém a caução."),
+                    "Abrir cauções", "/admin/caucoes");
+        }
+    }
+
+    public void depositReleased(Booking b, BigDecimal amount) {
+        notify(b.getRenter(), NotificationType.DEPOSIT_RELEASED, b,
+                b.getItem().getTitle() + ": caução libertada",
+                List.of("Libertámos a caução de " + kz(amount) + ". Obrigado por alugares na Beeznoo."),
+                "Ver reserva", "/reservas/" + b.getId());
+    }
+
+    public void depositWithheld(Booking b, BigDecimal withheld, BigDecimal returned, String reason) {
+        List<String> lines = new ArrayList<>();
+        lines.add("A equipa reteve " + kz(withheld) + " da caução" + (returned.signum() > 0
+                ? " e devolveu " + kz(returned) + "." : "."));
+        lines.add("Motivo: " + reason);
+        notify(b.getRenter(), NotificationType.DEPOSIT_WITHHELD, b,
+                b.getItem().getTitle() + ": caução retida", lines,
+                "Ver reserva", "/reservas/" + b.getId());
+        notify(b.getOwner(), NotificationType.DEPOSIT_WITHHELD, b,
+                b.getItem().getTitle() + ": recebes " + kz(withheld) + " da caução",
+                List.of("A equipa reteve " + kz(withheld) + " da caução a teu favor.", "Motivo: " + reason),
+                "Ver pedidos", "/pedidos");
+    }
+
+    public void incidentReported(Booking b, Profile reporter, String typeLabel) {
+        for (Profile admin : profileRepository.findByRole(UserRole.ADMIN)) {
+            notify(admin, NotificationType.INCIDENT_REPORTED, b,
+                    "Problema reportado: " + b.getItem().getTitle(),
+                    List.of(reporter.getFullName() + " reportou " + typeLabel + " (reserva de " + period(b) + ")."),
+                    "Abrir problemas", "/admin/problemas");
         }
     }
 
@@ -204,17 +264,17 @@ public class NotificationService {
                 .build());
 
         if (sendEmail) {
-            String html = renderer.render(NotificationFormat.firstName(recipient.getFullName()), title, paragraphs,
+            String html = renderer.render(Formats.firstName(recipient.getFullName()), title, paragraphs,
                     ctaLabel, frontendUrl + linkPath);
             events.publishEvent(new EmailRequested(n.getId(), email, title, html));
         }
     }
 
     private static String period(Booking b) {
-        return NotificationFormat.period(b.getStartDate(), b.getEndDate());
+        return Formats.period(b.getStartDate(), b.getEndDate());
     }
 
     private static String kz(BigDecimal amount) {
-        return NotificationFormat.kz(amount);
+        return Formats.kz(amount);
     }
 }

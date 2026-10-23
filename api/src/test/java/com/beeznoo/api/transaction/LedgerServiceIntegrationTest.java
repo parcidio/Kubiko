@@ -190,12 +190,12 @@ class LedgerServiceIntegrationTest {
 
     @Test
     void adminAdjustment_changesBalanceAndRecordsAdjustmentEntry() {
-        AccountResponse credited = ledgerService.adjust(ownerAccount.getId(),
+        AccountResponse credited = ledgerService.adjust(null, ownerAccount.getId(),
                 new AdjustmentRequest(new BigDecimal("5000.00"), "Bónus de boas-vindas"));
 
         assertThat(credited.availableBalance()).isEqualByComparingTo("5000.00");
 
-        AccountResponse debited = ledgerService.adjust(ownerAccount.getId(),
+        AccountResponse debited = ledgerService.adjust(null, ownerAccount.getId(),
                 new AdjustmentRequest(new BigDecimal("-2000.00"), "Correcção de saldo"));
 
         assertThat(debited.availableBalance()).isEqualByComparingTo("3000.00");

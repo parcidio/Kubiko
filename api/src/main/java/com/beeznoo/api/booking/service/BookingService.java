@@ -4,9 +4,14 @@ import com.beeznoo.api.booking.dto.BookingDtos.*;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.entity.BookingStatus;
 import com.beeznoo.api.booking.repository.BookingRepository;
+import com.beeznoo.api.audit.entity.AuditAction;
+import com.beeznoo.api.audit.service.AuditService;
+import com.beeznoo.api.contract.service.ContractService;
+import com.beeznoo.api.deposit.service.DepositService;
 import com.beeznoo.api.item.entity.Item;
 import com.beeznoo.api.item.entity.ItemStatus;
 import com.beeznoo.api.item.repository.ItemRepository;
+import com.beeznoo.api.item.service.PhotoUrls;
 import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.notification.service.NotificationService;
 import com.beeznoo.api.profile.entity.Profile;
@@ -23,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -31,7 +37,7 @@ public class BookingService {
 
     // Reservas que bloqueiam as datas do item
     private static final List<BookingStatus> BLOCKING_STATUSES =
-            List.of(BookingStatus.ACCEPTED, BookingStatus.ACTIVE);
+            List.of(BookingStatus.ACCEPTED, BookingStatus.ACTIVE, BookingStatus.IN_PROGRESS, BookingStatus.RETURNED);
 
     private final BookingRepository bookingRepository;
     private final ItemRepository itemRepository;
@@ -40,11 +46,17 @@ public class BookingService {
     private final PaymentService paymentService;
     private final KycService kycService;
     private final NotificationService notificationService;
+    private final PhotoUrls photoUrls;
+    private final ContractService contractService;
+    private final DepositService depositService;
+    private final AuditService auditService;
 
     public BookingService(BookingRepository bookingRepository, ItemRepository itemRepository,
                           ProfileRepository profileRepository, LedgerService ledgerService,
                           PaymentService paymentService, KycService kycService,
-                          NotificationService notificationService) {
+                          NotificationService notificationService, PhotoUrls photoUrls,
+                          ContractService contractService, DepositService depositService,
+                          AuditService auditService) {
         this.bookingRepository = bookingRepository;
         this.itemRepository = itemRepository;
         this.profileRepository = profileRepository;
@@ -52,6 +64,10 @@ public class BookingService {
         this.paymentService = paymentService;
         this.kycService = kycService;
         this.notificationService = notificationService;
+        this.photoUrls = photoUrls;
+        this.contractService = contractService;
+        this.depositService = depositService;
+        this.auditService = auditService;
     }
 
     public BookingResponse create(UUID renterId, CreateBookingRequest request) {
@@ -132,6 +148,7 @@ public class BookingService {
         // Sem retenção aqui: o arrendatário paga depois por referência (decisoes-produto.md, 2026-10-16)
         booking.setStatus(BookingStatus.ACCEPTED);
         if (request != null) booking.setOwnerNote(request.ownerNote());
+        contractService.generateOnAccept(booking);
         notificationService.bookingAccepted(booking);
         return toResponse(booking);
     }
@@ -167,21 +184,37 @@ public class BookingService {
 
     // Interno/admin — validação manual de comprovativo (alternativa à referência)
     public BookingResponse confirmPayment(UUID requesterId, UUID bookingId) {
+        return confirmPayment(requesterId, bookingId, null);
+    }
+
+    public BookingResponse confirmPayment(UUID requesterId, UUID bookingId, String reason) {
         assertAdmin(requesterId);
         Booking booking = findBooking(bookingId);
         assertStatus(booking, BookingStatus.ACCEPTED);
         // Validação manual (comprovativo): liquida no ledger e passa a ACTIVE
         paymentService.confirmManually(booking);
+        auditService.record(requesterId, AuditAction.PAYMENT_CONFIRMED_MANUALLY, AuditService.BOOKING, bookingId,
+                reason, Map.of("status", booking.getStatus().name()));
         return toResponse(booking);
     }
 
     // Interno/admin
     public BookingResponse complete(UUID requesterId, UUID bookingId) {
+        return complete(requesterId, bookingId, null);
+    }
+
+    // Concluir = libertar a caução inteira (ver DepositService). Só depois da devolução ou de um problema.
+    public BookingResponse complete(UUID requesterId, UUID bookingId, String reason) {
         assertAdmin(requesterId);
         Booking booking = findBooking(bookingId);
-        assertStatus(booking, BookingStatus.ACTIVE);
-        ledgerService.completeBooking(bookingId);
-        booking.setStatus(BookingStatus.COMPLETED);
+        assertStatus(booking, BookingStatus.RETURNED, BookingStatus.DISPUTED);
+        if (depositService.hasHeldDeposit(bookingId)) {
+            depositService.release(requesterId, bookingId, reason);
+        } else {
+            booking.setStatus(BookingStatus.COMPLETED);
+            auditService.record(requesterId, AuditAction.BOOKING_COMPLETED, AuditService.BOOKING, bookingId,
+                    reason, Map.of());
+        }
         return toResponse(booking);
     }
 
@@ -190,7 +223,7 @@ public class BookingService {
         if (!isRenter(requesterId, booking) && !isOwner(requesterId, booking)) {
             throw new AccessDeniedException("Sem permissão para abrir disputa nesta reserva");
         }
-        assertStatus(booking, BookingStatus.ACTIVE);
+        assertStatus(booking, BookingStatus.ACTIVE, BookingStatus.IN_PROGRESS, BookingStatus.RETURNED);
         booking.setStatus(BookingStatus.DISPUTED);
         return toResponse(booking);
     }
@@ -242,7 +275,7 @@ public class BookingService {
 
     private BookingResponse toResponse(Booking booking) {
         Item item = booking.getItem();
-        String cover = item.getPhotos().isEmpty() ? null : item.getPhotos().get(0).getPhotoUrl();
+        String cover = item.getPhotos().isEmpty() ? null : photoUrls.of(item.getPhotos().get(0));
         return new BookingResponse(
                 booking.getId(),
                 item.getId(),

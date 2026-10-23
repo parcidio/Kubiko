@@ -3,8 +3,11 @@ package com.beeznoo.api.transaction.service;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.entity.BookingStatus;
 import com.beeznoo.api.booking.repository.BookingRepository;
+import com.beeznoo.api.contract.service.ContractService;
+import com.beeznoo.api.deposit.service.DepositService;
 import com.beeznoo.api.notification.service.NotificationService;
 import com.beeznoo.api.transaction.config.PaymentProperties;
+import com.beeznoo.api.transaction.dto.PaymentDtos.AdminPaymentItem;
 import com.beeznoo.api.transaction.dto.PaymentDtos.PaymentResponse;
 import com.beeznoo.api.transaction.entity.Payment;
 import com.beeznoo.api.transaction.entity.PaymentMethod;
@@ -13,12 +16,13 @@ import com.beeznoo.api.transaction.gateway.PaymentGateway;
 import com.beeznoo.api.transaction.gateway.PaymentGateway.GatewayStatus;
 import com.beeznoo.api.transaction.repository.PaymentRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -39,16 +43,23 @@ public class PaymentService {
     private final PaymentGateway gateway;
     private final PaymentProperties properties;
     private final NotificationService notificationService;
+    private final ServiceFees serviceFees;
+    private final ContractService contractService;
+    private final DepositService depositService;
 
     public PaymentService(PaymentRepository paymentRepository, BookingRepository bookingRepository,
                           LedgerService ledgerService, PaymentGateway gateway, PaymentProperties properties,
-                          NotificationService notificationService) {
+                          NotificationService notificationService, ServiceFees serviceFees,
+                          ContractService contractService, DepositService depositService) {
         this.paymentRepository = paymentRepository;
         this.bookingRepository = bookingRepository;
         this.ledgerService = ledgerService;
         this.gateway = gateway;
         this.properties = properties;
         this.notificationService = notificationService;
+        this.serviceFees = serviceFees;
+        this.contractService = contractService;
+        this.depositService = depositService;
     }
 
     // Emite a referência; se já houver uma válida em aberto, devolve essa (idempotente)
@@ -56,6 +67,7 @@ public class PaymentService {
         Booking booking = findBooking(bookingId);
         assertRenter(renterId, booking);
         assertAccepted(booking);
+        contractService.assertRenterAccepted(bookingId);
 
         OffsetDateTime now = OffsetDateTime.now();
         Optional<Payment> open = paymentRepository.findByBookingIdAndStatus(bookingId, PaymentStatus.AWAITING_PAYMENT);
@@ -106,6 +118,7 @@ public class PaymentService {
     // Validação manual pelo admin (comprovativo). Usa a referência aberta ou cria um registo MANUAL.
     public void confirmManually(Booking booking) {
         assertAccepted(booking);
+        contractService.assertRenterAccepted(booking.getId());
         Payment payment = paymentRepository
                 .findByBookingIdAndStatus(booking.getId(), PaymentStatus.AWAITING_PAYMENT)
                 .orElseGet(() -> paymentRepository.save(
@@ -129,6 +142,11 @@ public class PaymentService {
                 });
     }
 
+    @Transactional(readOnly = true)
+    public Page<AdminPaymentItem> adminQueue(PaymentStatus status, Pageable pageable) {
+        return paymentRepository.findByStatusOrderByCreatedAtAsc(status, pageable).map(AdminPaymentItem::from);
+    }
+
     // Reserva cancelada — a referência em aberto deixa de poder ser paga
     public void cancelOpen(UUID bookingId) {
         paymentRepository.findByBookingIdAndStatus(bookingId, PaymentStatus.AWAITING_PAYMENT)
@@ -139,6 +157,7 @@ public class PaymentService {
         Booking booking = payment.getBooking();
         assertAccepted(booking);
         ledgerService.settleReferencePayment(payment);
+        depositService.recordHeld(booking);
 
         payment.setStatus(PaymentStatus.CONFIRMED);
         payment.setConfirmedAt(OffsetDateTime.now());
@@ -152,8 +171,7 @@ public class PaymentService {
     private Payment newPayment(Booking booking, PaymentMethod method, String provider, OffsetDateTime expiresAt) {
         BigDecimal rental = booking.getTotalPrice();
         BigDecimal deposit = booking.getDepositAmount() == null ? BigDecimal.ZERO : booking.getDepositAmount();
-        // Kz inteiros: a taxa arredonda ao kwanza
-        BigDecimal fee = rental.multiply(properties.serviceFeeRate()).setScale(0, RoundingMode.HALF_UP).setScale(2);
+        BigDecimal fee = serviceFees.of(rental);
         return Payment.builder()
                 .booking(booking)
                 .renter(booking.getRenter())

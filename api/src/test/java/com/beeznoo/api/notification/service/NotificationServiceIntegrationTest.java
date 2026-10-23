@@ -7,6 +7,8 @@ import com.beeznoo.api.booking.entity.BookingStatus;
 import com.beeznoo.api.booking.repository.BookingRepository;
 import com.beeznoo.api.booking.service.BookingService;
 import com.beeznoo.api.common.storage.MockStorageService;
+import com.beeznoo.api.common.util.Formats;
+import com.beeznoo.api.contract.service.ContractService;
 import com.beeznoo.api.item.entity.Category;
 import com.beeznoo.api.item.entity.Item;
 import com.beeznoo.api.item.entity.ItemCondition;
@@ -93,6 +95,7 @@ class NotificationServiceIntegrationTest {
     @Autowired EmailTemplateRenderer renderer;
     @Autowired BookingService bookingService;
     @Autowired KycService kycService;
+    @Autowired ContractService contractService;
     @Autowired BookingRepository bookingRepository;
     @Autowired ItemRepository itemRepository;
     @Autowired CategoryRepository categoryRepository;
@@ -169,6 +172,8 @@ class NotificationServiceIntegrationTest {
         accountRepository.save(Account.builder().profile(owner).build());
         accountRepository.save(Account.builder().profile(renter).build());
         Booking booking = booking(BookingStatus.ACCEPTED);
+        contractService.generateOnAccept(booking);
+        contractService.acceptAsRenter(renter.getId(), booking.getId());
 
         bookingService.confirmPayment(admin.getId(), booking.getId());
 
@@ -264,10 +269,10 @@ class NotificationServiceIntegrationTest {
 
     @Test
     void formatos_kwanzasEPeriodo() {
-        assertThat(NotificationFormat.kz(new BigDecimal("331000.00"))).isEqualTo("331.000 Kz");
-        assertThat(NotificationFormat.kz(new BigDecimal("950"))).isEqualTo("950 Kz");
-        assertThat(NotificationFormat.period(LocalDate.of(2026, 10, 16), LocalDate.of(2026, 10, 18))).isEqualTo("16 a 18 out");
-        assertThat(NotificationFormat.period(LocalDate.of(2026, 10, 30), LocalDate.of(2026, 11, 2))).isEqualTo("30 out a 2 nov");
+        assertThat(Formats.kz(new BigDecimal("331000.00"))).isEqualTo("331.000 Kz");
+        assertThat(Formats.kz(new BigDecimal("950"))).isEqualTo("950 Kz");
+        assertThat(Formats.period(LocalDate.of(2026, 10, 16), LocalDate.of(2026, 10, 18))).isEqualTo("16 a 18 out");
+        assertThat(Formats.period(LocalDate.of(2026, 10, 30), LocalDate.of(2026, 11, 2))).isEqualTo("30 out a 2 nov");
     }
 
     // ── Histórico ─────────────────────────────────────────────────────────

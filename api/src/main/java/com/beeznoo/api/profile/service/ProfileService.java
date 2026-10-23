@@ -1,6 +1,9 @@
 package com.beeznoo.api.profile.service;
 
+import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.profile.dto.CreateProfileRequest;
+import com.beeznoo.api.profile.dto.MeDtos.MeResponse;
+import com.beeznoo.api.profile.dto.MeDtos.UpdateMeRequest;
 import com.beeznoo.api.profile.dto.ProfileResponse;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -19,6 +22,46 @@ public class ProfileService {
 
     private final ProfileRepository profileRepository;
     private final AccountRepository accountRepository;
+    private final KycService kycService;
+
+    @Transactional(readOnly = true)
+    public MeResponse getMe(UUID profileId) {
+        return MeResponse.from(findProfile(profileId), kycService.getMyStatus(profileId).status());
+    }
+
+    @Transactional
+    public MeResponse updateMe(UUID profileId, UpdateMeRequest request) {
+        Profile profile = findProfile(profileId);
+
+        if (request.fullName() != null) {
+            if (request.fullName().isBlank()) throw new IllegalArgumentException("O nome não pode ficar vazio");
+            profile.setFullName(request.fullName().strip());
+        }
+        if (request.email() != null) {
+            String email = request.email().strip().toLowerCase();
+            if (email.isEmpty()) {
+                profile.setEmail(null);
+            } else if (!email.equalsIgnoreCase(profile.getEmail())) {
+                if (profileRepository.existsByEmail(email)) {
+                    throw new IllegalStateException("Este email já está associado a outra conta");
+                }
+                profile.setEmail(email);
+            }
+        }
+        if (request.province() != null) profile.setProvince(blankToNull(request.province()));
+        if (request.city() != null) profile.setCity(blankToNull(request.city()));
+
+        return MeResponse.from(profile, kycService.getMyStatus(profileId).status());
+    }
+
+    private Profile findProfile(UUID profileId) {
+        return profileRepository.findById(profileId)
+                .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado"));
+    }
+
+    private static String blankToNull(String value) {
+        return value.isBlank() ? null : value.strip();
+    }
 
     @Transactional(readOnly = true)
     public Optional<Profile> findByPhone(String phone) {

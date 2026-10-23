@@ -4,6 +4,7 @@ import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.entity.BookingStatus;
 import com.beeznoo.api.booking.repository.BookingRepository;
 import com.beeznoo.api.booking.service.BookingService;
+import com.beeznoo.api.contract.service.ContractService;
 import com.beeznoo.api.item.entity.Category;
 import com.beeznoo.api.item.entity.Item;
 import com.beeznoo.api.item.entity.ItemCondition;
@@ -58,6 +59,7 @@ class PaymentServiceIntegrationTest {
     @MockitoBean PaymentGateway gateway;
 
     @Autowired PaymentService paymentService;
+    @Autowired ContractService contractService;
     @Autowired PaymentExpiryScheduler paymentExpiryScheduler;
     @Autowired BookingService bookingService;
     @Autowired PaymentRepository paymentRepository;
@@ -105,6 +107,9 @@ class PaymentServiceIntegrationTest {
                 .build());
 
         booking = booking(BookingStatus.ACCEPTED);
+        // pagar exige o contrato aceite pelo arrendatário
+        contractService.generateOnAccept(booking);
+        contractService.acceptAsRenter(renter.getId(), booking.getId());
 
         given(gateway.provider()).willReturn("TEST");
         given(gateway.issueReference(any(), any()))

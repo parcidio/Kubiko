@@ -1,5 +1,7 @@
 package com.beeznoo.api.transaction.service;
 
+import com.beeznoo.api.audit.entity.AuditAction;
+import com.beeznoo.api.audit.service.AuditService;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.repository.BookingRepository;
 import com.beeznoo.api.transaction.dto.LedgerDtos.*;
@@ -15,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -24,12 +27,14 @@ public class LedgerService {
     private final LedgerEntryRepository ledgerEntryRepository;
     private final AccountRepository accountRepository;
     private final BookingRepository bookingRepository;
+    private final AuditService auditService;
 
     public LedgerService(LedgerEntryRepository ledgerEntryRepository, AccountRepository accountRepository,
-                         BookingRepository bookingRepository) {
+                         BookingRepository bookingRepository, AuditService auditService) {
         this.ledgerEntryRepository = ledgerEntryRepository;
         this.accountRepository = accountRepository;
         this.bookingRepository = bookingRepository;
+        this.auditService = auditService;
     }
 
     // ACCEPTED — retém total + caução no saldo do arrendatário
@@ -141,6 +146,33 @@ public class LedgerService {
         record(renter, booking, EntryType.DEPOSIT_RETURN, deposit, "Reserva concluída — caução devolvida");
     }
 
+    // Retenção parcial ou total: withheld vai para o dono, o resto volta ao disponível do arrendatário
+    public void withholdDeposit(UUID bookingId, BigDecimal withheld) {
+        Booking booking = findBooking(bookingId);
+        assertRegistered(bookingId, EntryType.PAYMENT_DEBIT, "A reserva ainda não foi paga");
+
+        BigDecimal deposit = depositOf(booking);
+        if (withheld.signum() <= 0 || withheld.compareTo(deposit) > 0) {
+            throw new IllegalArgumentException("O valor retido tem de estar entre 1 Kz e a caução");
+        }
+        assertDepositStillHeld(bookingId);
+
+        Account[] accounts = lockRenterAndOwner(booking);
+        Account renter = accounts[0];
+        Account owner = accounts[1];
+
+        renter.withholdHeld(withheld);
+        record(renter, booking, EntryType.DEPOSIT_FORFEIT, withheld, "Caução retida");
+        owner.credit(withheld);
+        record(owner, booking, EntryType.PAYMENT_CREDIT, withheld, "Caução recebida");
+
+        BigDecimal remainder = deposit.subtract(withheld);
+        if (remainder.signum() > 0) {
+            renter.releaseHeld(remainder);
+            record(renter, booking, EntryType.DEPOSIT_RETURN, remainder, "Parte da caução devolvida");
+        }
+    }
+
     // Disputa resolvida a favor do dono — caução transferida para o dono
     public void forfeitDeposit(UUID bookingId) {
         Booking booking = findBooking(bookingId);
@@ -172,7 +204,7 @@ public class LedgerService {
     }
 
     // Ajuste manual (admin) — positivo credita, negativo debita
-    public AccountResponse adjust(UUID accountId, AdjustmentRequest request) {
+    public AccountResponse adjust(UUID adminId, UUID accountId, AdjustmentRequest request) {
         if (request.amount().signum() == 0) {
             throw new IllegalArgumentException("O valor do ajuste não pode ser zero");
         }
@@ -187,6 +219,8 @@ public class LedgerService {
             account.debit(amount);
         }
         record(account, null, EntryType.ADJUSTMENT, amount, request.description());
+        auditService.record(adminId, AuditAction.BALANCE_ADJUSTED, AuditService.ACCOUNT, accountId,
+                request.description(), Map.of("amount", request.amount().toPlainString()));
 
         return toAccountResponse(account);
     }

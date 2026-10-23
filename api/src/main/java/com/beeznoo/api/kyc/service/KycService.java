@@ -1,6 +1,11 @@
 package com.beeznoo.api.kyc.service;
 
+import com.beeznoo.api.audit.entity.AuditAction;
+import com.beeznoo.api.audit.service.AuditService;
 import com.beeznoo.api.common.storage.StorageService;
+import com.beeznoo.api.common.storage.StorageTransactions;
+import com.beeznoo.api.common.storage.UploadedFiles;
+import com.beeznoo.api.common.storage.UploadedFiles.ValidFile;
 import com.beeznoo.api.kyc.dto.KycDtos.*;
 import com.beeznoo.api.kyc.entity.*;
 import com.beeznoo.api.kyc.repository.KycDecisionRepository;
@@ -15,11 +20,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -33,7 +35,6 @@ import java.util.*;
 @Transactional
 public class KycService {
 
-    static final long MAX_FILE_BYTES = 5L * 1024 * 1024;
     static final Duration DOCUMENT_URL_TTL = Duration.ofMinutes(5);
 
     private static final Map<AccountType, Set<DocumentType>> REQUIRED = Map.of(
@@ -49,16 +50,19 @@ public class KycService {
     private final ProfileRepository profileRepository;
     private final StorageService storageService;
     private final NotificationService notificationService;
+    private final AuditService auditService;
 
     public KycService(KycVerificationRepository verificationRepository, KycDocumentRepository documentRepository,
                       KycDecisionRepository decisionRepository, ProfileRepository profileRepository,
-                      StorageService storageService, NotificationService notificationService) {
+                      StorageService storageService, NotificationService notificationService,
+                      AuditService auditService) {
         this.verificationRepository = verificationRepository;
         this.documentRepository = documentRepository;
         this.decisionRepository = decisionRepository;
         this.profileRepository = profileRepository;
         this.storageService = storageService;
         this.notificationService = notificationService;
+        this.auditService = auditService;
     }
 
     // Primeira submissão, nova depois de REJECTED, ou re-submissão na mesma verificação depois de INFO_REQUESTED
@@ -91,8 +95,7 @@ public class KycService {
         }
 
         String folder = "kyc/" + profileId + "/" + verification.getId();
-        List<String> uploaded = new ArrayList<>();
-        deleteOnRollback(uploaded);
+        List<String> uploaded = StorageTransactions.deleteOnRollback(storageService);
         valid.forEach((type, file) -> {
             String filename = type.name() + "_" + UUID.randomUUID() + "." + file.extension();
             String key = storageService.upload(folder, filename, file.content(), file.contentType());
@@ -178,6 +181,13 @@ public class KycService {
         }
 
         recordDecision(verification, admin, action, note);
+        auditService.record(adminId, switch (action) {
+            case START_REVIEW -> AuditAction.KYC_START_REVIEW;
+            case APPROVE -> AuditAction.KYC_APPROVED;
+            case REJECT -> AuditAction.KYC_REJECTED;
+            default -> AuditAction.KYC_INFO_REQUESTED;
+        }, AuditService.KYC, verification.getId(), note,
+                Map.of("profileId", verification.getProfile().getId().toString(), "status", verification.getStatus().name()));
         Profile subject = verification.getProfile();
         switch (action) {
             case APPROVE -> notificationService.kycApproved(subject);
@@ -245,65 +255,13 @@ public class KycService {
         }
 
         Map<DocumentType, ValidFile> valid = new EnumMap<>(DocumentType.class);
-        sent.forEach((type, file) -> valid.put(type, validateFile(type, file)));
+        sent.forEach((type, file) ->
+                valid.put(type, UploadedFiles.validate(file, "O documento " + type, UploadedFiles.IMAGES_AND_PDF)));
         return valid;
-    }
-
-    private static ValidFile validateFile(DocumentType type, MultipartFile file) {
-        if (file.getSize() > MAX_FILE_BYTES) {
-            throw new IllegalArgumentException("O documento " + type + " tem mais de 5 MB");
-        }
-        byte[] content;
-        try {
-            content = file.getBytes();
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Não foi possível ler o documento " + type);
-        }
-        // Tipo pelos primeiros bytes — a extensão e o Content-Type do browser não são de confiança
-        ValidFile detected = sniff(content);
-        if (detected == null) {
-            throw new IllegalArgumentException("O documento " + type + " tem de ser JPEG, PNG ou PDF");
-        }
-        return detected;
-    }
-
-    static ValidFile sniff(byte[] c) {
-        if (startsWith(c, 0xFF, 0xD8, 0xFF)) return new ValidFile(c, "image/jpeg", "jpg");
-        if (startsWith(c, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) return new ValidFile(c, "image/png", "png");
-        if (startsWith(c, 0x25, 0x50, 0x44, 0x46, 0x2D)) return new ValidFile(c, "application/pdf", "pdf");
-        return null;
-    }
-
-    private static boolean startsWith(byte[] content, int... magic) {
-        if (content.length < magic.length) return false;
-        for (int i = 0; i < magic.length; i++) {
-            if ((content[i] & 0xFF) != magic[i]) return false;
-        }
-        return true;
-    }
-
-    // Se a transação falhar depois dos uploads, apaga os ficheiros para não ficarem órfãos no bucket
-    private void deleteOnRollback(List<String> uploadedKeys) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCompletion(int status) {
-                if (status != STATUS_ROLLED_BACK) return;
-                for (String key : uploadedKeys) {
-                    try {
-                        storageService.delete(key);
-                    } catch (RuntimeException e) {
-                        // sem a exceção completa: a mensagem do S3 pode trazer a storage_key
-                        log.warn("KYC: falha ao apagar ficheiro órfão após rollback ({})", e.getClass().getSimpleName());
-                    }
-                }
-            }
-        });
     }
 
     private KycVerification findVerification(UUID kycId) {
         return verificationRepository.findById(kycId)
                 .orElseThrow(() -> new IllegalArgumentException("Verificação não encontrada"));
     }
-
-    record ValidFile(byte[] content, String contentType, String extension) {}
 }

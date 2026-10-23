@@ -100,9 +100,10 @@ public class LedgerController {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/admin/accounts/{accountId}/adjust")
     public ResponseEntity<AccountResponse> adjust(
+            @AuthenticationPrincipal UUID adminId,
             @PathVariable UUID accountId,
             @Valid @RequestBody AdjustmentRequest request) {
-        return ResponseEntity.ok(ledgerService.adjust(accountId, request));
+        return ResponseEntity.ok(ledgerService.adjust(adminId, accountId, request));
     }
 
     record ErrorResponse(String message, int status) {}

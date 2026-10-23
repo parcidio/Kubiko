@@ -10,5 +10,11 @@ public enum NotificationType {
     KYC_SUBMITTED,               // → admins
     KYC_APPROVED,
     KYC_REJECTED,
-    KYC_INFO_REQUESTED
+    KYC_INFO_REQUESTED,
+    CHECKLIST_TO_CONFIRM,        // → a outra parte: confirmar entrega/devolução
+    BOOKING_IN_PROGRESS,         // → ambos: entrega confirmada
+    BOOKING_RETURNED,            // → admins: caução a decidir
+    DEPOSIT_RELEASED,            // → arrendatário
+    DEPOSIT_WITHHELD,            // → arrendatário e dono
+    INCIDENT_REPORTED            // → admins
 }
