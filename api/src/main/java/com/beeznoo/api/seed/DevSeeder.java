@@ -1,5 +1,7 @@
 package com.beeznoo.api.seed;
 
+import com.beeznoo.api.review.dto.ReviewDtos.CreateReviewRequest;
+import com.beeznoo.api.review.service.ReviewService;
 import com.beeznoo.api.booking.dto.BookingDtos.BookingActionRequest;
 import com.beeznoo.api.booking.dto.BookingDtos.CreateBookingRequest;
 import com.beeznoo.api.booking.service.BookingService;
@@ -69,6 +71,7 @@ public class DevSeeder implements ApplicationRunner {
     private final ContractService contractService;
     private final ChecklistService checklistService;
     private final IncidentService incidentService;
+    private final ReviewService reviewService;
     private final ApplicationContext context;
     private final String password;
 
@@ -80,7 +83,7 @@ public class DevSeeder implements ApplicationRunner {
                      CategoryRepository categoryRepository, ItemService itemService,
                      BookingService bookingService, PaymentService paymentService,
                      ContractService contractService, ChecklistService checklistService,
-                     IncidentService incidentService,
+                     IncidentService incidentService, ReviewService reviewService,
                      ApplicationContext context, @Value("${SEED_PASSWORD:beeznoo123}") String password) {
         this.profileRepository = profileRepository;
         this.accountRepository = accountRepository;
@@ -92,6 +95,7 @@ public class DevSeeder implements ApplicationRunner {
         this.contractService = contractService;
         this.checklistService = checklistService;
         this.incidentService = incidentService;
+        this.reviewService = reviewService;
         this.context = context;
         this.password = password;
     }
@@ -193,6 +197,23 @@ public class DevSeeder implements ApplicationRunner {
         giveBack(telma, luzia, r7);
         bookingService.complete(admin, r7, "Seed: devolvido em bom estado");
 
+        // Mais concluídas, com avaliações (faixas "Mais alugados" e "Mais bem avaliados" do Explorar)
+        review(ana, r6, 5, "Som limpíssimo nas entrevistas. A Luzia explicou tudo na entrega.");
+        review(telma, r7, 4, "Luz muito boa. A softbox tinha uma pequena mancha, mas nada de grave.");
+        review(mauro, completed(admin, edson, mauro, "sony", -30, -28, "Batizado no Kilamba."), 5,
+                "Câmara impecável e o Edson foi super pontual.");
+        review(telma, completed(admin, edson, telma, "sony", -40, -37, "Lookbook de uma marca."), 5,
+                "Baterias carregadas e cartão formatado. Recomendo.");
+        completed(admin, edson, ana, "sony", -50, -48, "Sessão de família.");
+        review(ana, completed(admin, luzia, ana, "jbl", -25, -23, "Aniversário em Miramar."), 4,
+                "Aguentou a festa toda. Pesada para carregar sozinha.");
+        review(paulo, completed(admin, edson, paulo, "canon", -15, -13, "Casamento no Talatona."), 5, null);
+
+        // Destaques escolhidos pela equipa
+        itemService.setFeatured(admin, items.get("sony"), true);
+        itemService.setFeatured(admin, items.get("drone"), true);
+        itemService.setFeatured(admin, items.get("jbl"), true);
+
         // Recusada pelo dono
         UUID r8 = book(telma, "bmpcc", 10, 12, "Curta-metragem.");
         bookingService.cancel(luzia, r8, new BookingActionRequest("Já está alugado nessas datas — tenho livre a partir de dia 20."));
@@ -208,10 +229,23 @@ public class DevSeeder implements ApplicationRunner {
         incidentService.report(paulo, r10, IncidentType.DAMAGE,
                 "A tela rasgou num canto durante a montagem. O projetor está bom.", null);
 
-        log.info("Seed: 7 pessoas, {} equipamentos, 12 reservas.", items.size());
+        log.info("Seed: 7 pessoas, {} equipamentos, 17 reservas, 6 avaliações.", items.size());
     }
 
     // Dono aceita (gera o contrato), arrendatário aceita o contrato, equipa confirma o pagamento
+    private UUID completed(UUID admin, UUID owner, UUID renter, String itemKey, int start, int end, String message) {
+        UUID id = book(renter, itemKey, start, end, message);
+        pay(admin, owner, renter, id);
+        deliver(owner, renter, id);
+        giveBack(renter, owner, id);
+        bookingService.complete(admin, id, "Seed: devolvido em bom estado");
+        return id;
+    }
+
+    private void review(UUID renter, UUID bookingId, int rating, String comment) {
+        reviewService.create(renter, bookingId, new CreateReviewRequest(rating, comment));
+    }
+
     private void pay(UUID admin, UUID owner, UUID renter, UUID bookingId) {
         bookingService.accept(owner, bookingId, null);
         contractService.acceptAsRenter(renter, bookingId);

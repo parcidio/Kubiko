@@ -145,6 +145,10 @@ export default function PublicarPage() {
                 icon={categoryIcon(category?.slug)}
                 item={{
                   id: "preview",
+                  ratingAverage: null,
+                  ratingCount: 0,
+                  completedRentals: 0,
+                  featured: false,
                   title: draft.title,
                   condition: draft.condition,
                   pricePerDay: Number(draft.pricePerDay),

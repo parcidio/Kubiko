@@ -286,7 +286,7 @@ Uma tarefa só está _Done_ quando:
 
 ## Dados de demonstração (seed)
 
-Enche a BD **local** com 7 contas (todas com KYC aprovado), 14 equipamentos e 12 reservas em todos os estados — à espera do dono, aceite, com referência, paga, entregue, devolvida (caução a decidir), concluída, recusada, cancelada e com problema reportado (`api/src/main/java/com/beeznoo/api/seed/DevSeeder.java`).
+Enche a BD **local** com 7 contas (todas com KYC aprovado), 14 equipamentos (3 em destaque), 17 reservas e 6 avaliações, em todos os estados — à espera do dono, aceite, com referência, paga, entregue, devolvida (caução a decidir), concluída, recusada, cancelada e com problema reportado (`api/src/main/java/com/beeznoo/api/seed/DevSeeder.java`).
 Usa os serviços reais, por isso contratos, pagamentos, ledger, checklists e cauções ficam coerentes. As fotos das checklists vão para o bucket B2 configurado. Corre uma vez e sai; se já existir, não faz nada.
 
 ```bash

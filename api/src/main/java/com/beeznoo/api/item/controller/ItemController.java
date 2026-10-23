@@ -83,6 +83,10 @@ public class ItemController {
             description = """
                     Devolve os itens com estado `ACTIVE`, paginados.
                     Filtra opcionalmente por categoria através do parâmetro `categoryId`.
+                    `featured=true` devolve só os destaques escolhidos pelo admin.
+                    `order`: `RECENT` (por omissão; destaques primeiro), `POPULAR` (mais reservas concluídas),
+                    `RATING` (melhor média de avaliações). O parâmetro `sort` é ignorado.
+                    Cada item traz `ratingAverage`, `ratingCount`, `completedRentals` e `featured`.
 
                     Endpoint público, não requer autenticação.
                     """
@@ -92,8 +96,10 @@ public class ItemController {
     @GetMapping
     public ResponseEntity<Page<ItemSummaryResponse>> listActive(
             @RequestParam(required = false) UUID categoryId,
+            @RequestParam(defaultValue = "false") boolean featured,
+            @RequestParam(defaultValue = "RECENT") ItemOrder order,
             Pageable pageable) {
-        return ResponseEntity.ok(itemService.listActive(categoryId, pageable));
+        return ResponseEntity.ok(itemService.listActive(categoryId, featured, order, pageable));
     }
 
     @Operation(

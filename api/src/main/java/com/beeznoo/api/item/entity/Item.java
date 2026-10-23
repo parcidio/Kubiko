@@ -65,6 +65,10 @@ public class Item {
     @Builder.Default
     private int viewCount = 0;
 
+    // Destaque escolhido pelo admin (null = sem destaque); a mais recente aparece primeiro
+    @Column(name = "featured_at")
+    private OffsetDateTime featuredAt;
+
     @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("position ASC")
     @Builder.Default

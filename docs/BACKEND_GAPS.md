@@ -41,7 +41,7 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 | 18 | ⬜ | Preço semanal/mensal no item (o SPEC pede a tarifa mais vantajosa) | Publicar, Detalhe, PriceSummary |
 | 19 | ⬜ | Valor declarado (`declared_value`) para calcular a caução no backend | Publicar |
 | 20 | ⬜ | Reativar um item pausado (só existe `deactivate`) | O meu equipamento |
-| 21 | ⬜ | Avaliações (`reviews`) ligadas a reservas concluídas | Avaliar |
+| 21 | ✅ | Avaliações e destaques | `POST/GET /bookings/{id}/review` (arrendatário, reserva `COMPLETED`, uma vez), `GET /items/{id}/reviews`; `ratingAverage`/`ratingCount`/`completedRentals` nos itens; `GET /items?featured=true`, `?order=POPULAR|RATING`; admin: `PATCH /admin/items/{id}/featured` | Avaliar, Explorar, Detalhe |
 | 22 | ✅ | Notificações | `GET /notifications/me`, `/me/unread-count` (polling ~60 s), `PATCH /{id}/read`, `POST /me/read-all`. Email via Resend depois do commit; sem WebSocket nem SMS | Atividade |
 | 23 | ⬜ | Levantamento do saldo do dono e conta da plataforma para a taxa de 8% | Carteira |
 | 24 | ⬜ | Contadores por estado (`GET /bookings/me/owner?status=…`) | Painel, Pedidos |

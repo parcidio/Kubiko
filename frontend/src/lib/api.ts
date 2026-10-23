@@ -1,6 +1,7 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AuthResponse, Booking, Category, Item, ItemCondition, ItemSummary, LedgerEntry, Page, Payment, UserRole,
+  Account, AuthResponse, Booking, Category, Item, ItemCondition, ItemOrder, ItemSummary, LedgerEntry, Page, Payment, Review,
+  UserRole,
 } from "./types";
 
 export class ApiError extends Error {
@@ -101,12 +102,16 @@ export const authApi = {
 
 export const catalogApi = {
   categories: () => request<Category[]>("/categories"),
-  items: (p: { categoryId?: string; page?: number }) => {
-    const q = new URLSearchParams({ page: String(p.page ?? 0), size: "20", sort: "createdAt,desc" });
+  // order: RECENT (destaques primeiro) · POPULAR (mais alugados) · RATING (mais bem avaliados)
+  items: (p: { categoryId?: string; page?: number; size?: number; featured?: boolean; order?: ItemOrder }) => {
+    const q = new URLSearchParams({ page: String(p.page ?? 0), size: String(p.size ?? 20) });
     if (p.categoryId) q.set("categoryId", p.categoryId);
+    if (p.featured) q.set("featured", "true");
+    if (p.order) q.set("order", p.order);
     return request<Page<ItemSummary>>(`/items?${q}`);
   },
   item: (id: string) => request<Item>(`/items/${id}`),
+  reviews: (itemId: string, page = 0) => request<Page<Review>>(`/items/${itemId}/reviews?page=${page}&size=10`),
 };
 
 export interface ItemInput {
@@ -141,6 +146,9 @@ export const bookingApi = {
   accept: (id: string, note?: string) => patch<Booking>(`/bookings/${id}/accept`, { ownerNote: note }),
   // Arrendatário ou dono, só com a reserva ACTIVE
   dispute: (id: string) => patch<Booking>(`/bookings/${id}/dispute`),
+  // Avaliação: só o arrendatário, com a reserva COMPLETED, uma vez. GET devolve undefined (204) se ainda não há.
+  review: (id: string) => request<Review | undefined>(`/bookings/${id}/review`),
+  createReview: (id: string, b: { rating: number; comment?: string }) => post<Review>(`/bookings/${id}/review`, b),
 };
 
 export const walletApi = {
@@ -152,6 +160,7 @@ export const walletApi = {
 export const adminApi = {
   confirmPayment: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/confirm-payment`),
   complete: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/complete`),
+  setFeatured: (itemId: string, featured: boolean) => patch<Item>(`/admin/items/${itemId}/featured`, { featured }),
 };
 
 export const paymentApi = {

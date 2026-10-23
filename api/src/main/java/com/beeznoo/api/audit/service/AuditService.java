@@ -26,6 +26,7 @@ public class AuditService {
     public static final String KYC = "KYC";
     public static final String ACCOUNT = "ACCOUNT";
     public static final String INCIDENT = "INCIDENT";
+    public static final String ITEM = "ITEM";
 
     private final AuditLogRepository auditLogRepository;
     private final ProfileRepository profileRepository;

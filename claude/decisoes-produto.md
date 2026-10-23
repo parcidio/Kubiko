@@ -257,3 +257,26 @@ passar das contas pessoais para as contas do projeto fica em `docs/SERVICOS_EXTE
 11. **Identificador por pedido** (`X-Request-Id`) nos logs e na resposta, para investigar incidentes.
 12. **Frontend**: cabeçalhos de segurança no Next (CSP, HSTS, nosniff, frame deny). **CI**: lint/typecheck/build do
     frontend, procura de segredos (gitleaks) e de dependências vulneráveis (OSV-Scanner).
+
+---
+
+## 2026-10-23 — Avaliações e destaques no Explorar (gap #21)
+
+**Contexto.** O Explorar parece vazio e a confiança entre desconhecidos é o maior travão ao primeiro aluguer.
+Avaliações de alugueres reais e faixas com equipamento escolhido/mais alugado dão prova social sem inventar dados.
+Anúncios pagos e recomendações continuam fora do MVP (SPEC §9).
+
+**Hipótese.** Mostrar avaliações e "Mais alugados" aumenta a passagem Explorar → Detalhe → Pedir reserva.
+**Utilizador-alvo:** arrendatário que ainda não conhece o dono. **Critério de sucesso:** ≥ 50% das reservas concluídas
+recebem avaliação; mais pedidos de reserva por visita ao Detalhe (comparar 4 semanas antes/depois).
+
+**Decisões (equipa, nesta data — ⚑ validar com o André):**
+
+1. **Uma avaliação por reserva `COMPLETED`, só do arrendatário** (`reviews`, V18): nota 1–5 e comentário opcional
+   (≤ 1000). Não se edita nem apaga (sem moderação no MVP; abuso → admin trata manualmente na BD com registo).
+   ⚑ Avaliar o arrendatário (dono → arrendatário) fica para depois.
+2. **Público:** média e número de avaliações em cada equipamento e lista em `GET /items/{id}/reviews`, com o nome
+   do autor encurtado ("Ana M."). Calculado na leitura (sem contadores desnormalizados).
+3. **Destaques sem anúncios:** `items.featured_at` posto pelo admin (`PATCH /admin/items/{id}/featured`, com auditoria).
+   `GET /items?featured=true` e `GET /items?order=POPULAR` (nº de reservas concluídas) e `order=RATING`.
+4. **Frontend:** faixas "Em destaque", "Mais alugados" e "Novidades" no Explorar; cada faixa só aparece se tiver itens.
