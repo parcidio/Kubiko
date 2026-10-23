@@ -1,17 +1,19 @@
-# Kubiko
+# Beeznoo
 
-> Marketplace peer-to-peer de aluguer de equipamentos em Angola.
-> **Para quem precisa usar, não precisa possuir.**
+> Marketplace de aluguer de equipamento em Luanda, Angola.
+> **Por que comprar quando podes alugar?**
 
-A Kubiko liga quem tem equipamento parado (câmaras, drones, som, luzes, projetores, ferramentas, equipamento para eventos) a quem precisa de o usar por algumas horas, dias ou semanas — de forma simples, com contrato, caução e proteção. Foco inicial: **Luanda**, vertical de **fotografia, vídeo, áudio e eventos**.
+A Beeznoo (ex-Kubiko) liga quem tem equipamento parado — câmaras, drones, som, luzes, projetores, equipamento para eventos — a quem precisa de o usar por alguns dias, com **verificação de identidade, contrato e caução**. Primeiro vertical: **fotografia/vídeo e eventos**.
 
-O objetivo dos primeiros meses não é ter software bonito — é **conseguir transações reais**. North Star Metric: **nº de alugueres pagos e concluídos por mês**.
+O objetivo do MVP é **o primeiro aluguer real, pago e concluído**. North Star: alugueres pagos e concluídos por mês.
+
+Antes de escrever código, lê o [`CLAUDE.md`](CLAUDE.md) (como trabalhamos) e o [`SPEC.md`](SPEC.md) (o que construímos). As decisões fechadas estão em [`claude/decisoes-produto.md`](claude/decisoes-produto.md).
 
 ---
 
 ## Índice
 
-- [Sobre a aplicação](#sobre-a-aplicação)
+- [Como funciona](#como-funciona)
 - [Stack](#stack)
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Estado atual](#estado-atual)
@@ -19,148 +21,136 @@ O objetivo dos primeiros meses não é ter software bonito — é **conseguir tr
 - [Variáveis de ambiente](#variáveis-de-ambiente)
 - [Scripts](#scripts)
 - [Como trabalhamos — GitHub Flow](#como-trabalhamos--github-flow)
-- [Convenção de branches](#convenção-de-branches)
-- [Convenção de commits](#convenção-de-commits)
-- [Pull Requests](#pull-requests)
-- [Definition of Done](#definition-of-done)
-- [Deploy](#deploy)
+- [Dados de demonstração (seed)](#dados-de-demonstração-seed)
 - [Equipa](#equipa)
 
 ---
 
-## Sobre a aplicação
+## Como funciona
 
-A aplicação web tem duas jornadas principais:
+```
+Explorar → Detalhe → Pedido → [dono aceita: contrato gerado] → arrendatário aceita o contrato e paga
+→ [equipa valida o pagamento] → Entrega (checklist) → Uso → Devolução (checklist) → [equipa decide a caução]
+```
 
-**Arrendador** (dono do equipamento) — cria conta, verifica identidade (KYC), publica equipamento, define preço (diário/semanal/mensal) e disponibilidade, recebe pedidos, acompanha alugueres e ganhos.
+| Papel | Pode |
+|---|---|
+| Visitante | Explorar e ver detalhe |
+| Arrendatário | Pedir reserva, aceitar contrato, pagar, registar/confirmar entrega e devolução, reportar problema |
+| Dono | Publicar equipamento com fotos, aceitar/recusar pedidos, registar/confirmar entrega e devolução |
+| Admin (equipa Beeznoo) | Aprovar verificações (KYC), validar pagamentos, libertar/reter caução, resolver problemas |
 
-**Arrendatário** — procura e filtra equipamento, consulta disponibilidade e detalhes, reserva, paga, recebe o contrato, utiliza, devolve e avalia.
+Verificação de identidade (KYC) é obrigatória para **pedir reserva** e **publicar**. Pagamento, verificação e problemas são **manuais** no MVP (modelo concierge).
 
-**Moderador** - verifica a identidade dos utilizadores e aprova transações.
+Estados da reserva no backend: `PENDING_OWNER → ACCEPTED → ACTIVE (pago) → IN_PROGRESS (entregue) → RETURNED (devolvido) → COMPLETED`, mais `CANCELLED_RENTER`, `CANCELLED_OWNER` e `DISPUTED`.
 
-Rotas principais:
-
-| Rota                   | Descrição                                                                                       |
-| ---------------------- | ----------------------------------------------------------------------------------------------- |
-| `/`                    | Landing page (hero, categorias, destaques, como funciona)                                       |
-| `/itens`               | Marketplace com pesquisa e filtros (categoria, província, preço, datas)                         |
-| `/itens/$id`           | Detalhe do equipamento (fotos, cobertura, disponibilidade, dono, reviews, calculadora de preço) |
-| `/checkout/$id`        | Reserva e pagamento (Multicaixa Express — **atualmente simulado**)                              |
-| `/publicar`            | Publicação de equipamento pelo arrendador                                                       |
-| `/verificacao`         | KYC (indivíduo e empresa)                                                                       |
-| `/sinistros`           | Registo e acompanhamento de sinistros                                                           |
-| `/painel-arrendador`   | Dashboard do arrendador (ganhos, performance, reservas)                                         |
-| `/painel-arrendatario` | Dashboard do arrendatário (alugueres ativos/passados)                                           |
-| `/admin`               | Operações (verificações, aprovações, sinistros, contratos)                                      |
+Mapa de ecrãs e rotas do frontend: [`docs/ECRAS.md`](docs/ECRAS.md).
 
 ---
 
 ## Stack
 
-- **[TanStack Start](https://tanstack.com/start)** — framework full-stack React
-- **React 19** + **TypeScript**
-- **Tailwind CSS v4** + **shadcn/ui** — UI e design system
-- **Supabase/Neon/ Escolha do Dev** — auth, PostgreSQL, storage (ainda em scaffolding)
-- **Recharts** — gráficos dos dashboards
+| Camada | Tecnologia | Hosting |
+|---|---|---|
+| Frontend | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · componentes próprios em `src/components/bz/` (sem shadcn) · `lucide-react` | Vercel |
+| Backend | Java 21 · Spring Boot 4 · Spring Data JPA · Flyway · RabbitMQ · Testcontainers | Render |
+| Base de dados | PostgreSQL (Neon em staging/produção, Docker em local) | Neon |
+| Storage privado | Backblaze B2 pela API S3 (KYC, fotos, checklists, problemas) — só URLs assinadas | Backblaze |
+| Email | Resend (API REST), enviado depois do commit | Resend |
+| SMS (OTP) | Ombala | — |
+
+O browser fala só com o Next; `next.config.ts` faz proxy de `/api/v1` para o Spring.
 
 ---
 
 ## Estrutura do projeto
 
 ```
-frontend/
-├── assets/            # Ficheiros como imagense e fontes
-├── routes/            # Rotas (file-based routing do TanStack Start)
-├── components/        # Componentes de UI reutilizáveis (shadcn/ui + próprios)
-├── lib/
-│   └── marketplace.ts # ⚠️ Dados mock atuais (a substituir por Supabase)
-├── hooks/             # Hooks React partilhados
-├── .env               # Variaveis de ambiente (os valores devem ser excluida do commit e partilhados por outra via)
-└── styles/            # Estilos globais / Tailwind
-
-Backendend/
-├── reusables/
-│   └── enums          # Classes enumeraveis (ex: tipos de pagamentos)
-│   └── types          # Tipos custimizados (ex: pagament)
-│   └── utils          # Funções pequenas ajudantes (ex: calcular aluguel)
-├── routes/            # Rotas que expoem os serviços
-├── models/            # Modelos de dados
-├── middleware/        # Funções que correm antes de um pedido
-├── validation/        # Funções que validam dados submetidos
-├── config/            # Configurações
-├── .env               # Variaveis de ambiente (os valores devem ser excluida do commit e partilhados por outra via)
-├── controllers/       # Funções que controlam o acesso base  de dados
-└── services/          # Funções que manipulam os dados antes de serem expostos
-
-README.md                 # Documento introdutorio a app
-PULL_REQUEST_TEMPLATE.md  # Template para efectuar pull request
-
+api/                              # Backend Spring Boot (pacote com.beeznoo.api)
+├── src/main/java/com/beeznoo/api/
+│   ├── auth/  profile/  kyc/      # contas, perfil (/profiles/me), verificação de identidade
+│   ├── item/                      # equipamento, categorias, fotos
+│   ├── booking/  contract/        # reservas e contrato
+│   ├── transaction/               # pagamentos por referência, ledger, contas
+│   ├── handover/  deposit/        # checklists de entrega/devolução, cauções
+│   ├── claim/                     # reportar problema
+│   ├── notification/  audit/      # notificações (app + email), auditoria
+│   ├── common/                    # storage (B2), formatos, erros
+│   └── seed/                      # dados de demonstração (perfil "seed")
+├── src/main/resources/db/migration/   # migrações Flyway V1–V15 (única fonte do schema)
+└── src/test/                      # testes de integração com Testcontainers
+frontend/                         # Next.js
+├── src/app/                       # rotas (App Router) — ver docs/ECRAS.md
+├── src/components/bz/             # design system "Identidade Verde v3"
+└── src/lib/                       # cliente da API, tipos, formatos
+docs/                             # design system, ecrãs, lacunas do backend, modelo de dados
+claude/decisoes-produto.md        # registo de decisões (fonte de verdade)
+docker-compose.yml                # Postgres + RabbitMQ + API em local
 ```
 
 ---
 
 ## Estado atual
 
-> Ler antes de começar a contribuir.
-
-- **Sem persistência real ainda.** Os dados vêm de `src/lib/marketplace.ts` (mock). O Supabase está preparado/scaffolded, mas ainda não é a fonte de dados.
-- **Pagamento simulado.** O checkout (Multicaixa Express) valida um ID de transação de forma simulada — não há integração de pagamento real.
-- **Lógica de negócio existente:** cotação de proteção (`cotacaoSeguro`), cálculo de aluguer (`calcularAluguer`) e caução. Ver `src/lib/`.
-- **Prioridade do produto:** validar → transacionar → aprender. Não construir features que não aproximem de uma transação real.
+- **Backend do fluxo completo do MVP feito:** autenticação (telefone + OTP, Google), perfil, KYC com documentos no B2, equipamento com fotos, reservas, contrato, pagamento por referência **simulado** (validação manual pela equipa), ledger, entrega/devolução, caução (libertar/reter parcial), reportar problema, notificações na app e por email, auditoria. Swagger em `http://localhost:8081/swagger-ui.html`.
+- **Frontend:** vários ecrãs ainda mostram "Falta backend" (`BackendPending`) e estão a ser ligados à API. Estado por ecrã em [`docs/ECRAS.md`](docs/ECRAS.md); o que ainda falta na API em [`docs/BACKEND_GAPS.md`](docs/BACKEND_GAPS.md).
+- **Pagamento real (EMIS/Multicaixa) ainda não existe** — a referência é simulada e o pagamento é validado à mão.
+- **Vocabulário:** caução, proteção, reportar problema. Nunca "seguro", "apólice" ou "sinistro" (não existe seguradora parceira).
 
 ---
 
 ## Começar (setup local)
 
-**Pré-requisitos:** Node.js 20+ e npm (ou pnpm), conta Supabase (para as fases com persistência).
+**Pré-requisitos:** Docker, Java 21, Node.js 20+.
 
 ```bash
-# 1. Clonar
-git clone <URL_DO_REPO>
-cd kubiko
+# 1. Variáveis de ambiente (pede os valores à equipa — nunca no Git)
+cp .env.example .env
+cp frontend/.env.example frontend/.env.local
 
-# 2. Instalar dependências
-npm install
+# 2. Backend: Postgres + RabbitMQ + API em http://localhost:8081
+docker compose up -d --build
 
-# 3. Configurar variáveis de ambiente
-cp .env.example .env.local
-# preencher os valores (ver secção abaixo)
-
-# 4. Arrancar em desenvolvimento
-npm run dev
+# 3. Frontend em http://localhost:3000
+cd frontend && npm install && npm run dev
 ```
 
-A app fica disponível em `http://localhost:3000` (ou a porta indicada no terminal).
+A API não arranca sem as variáveis `B2_*` (storage privado). O email fica desligado até `NOTIFICATIONS_EMAIL_ENABLED=true`.
 
 ---
 
 ## Variáveis de ambiente
 
-Criar `.env.local` a partir de `.env.example`. Valores esperados (a confirmar conforme a integração avança):
+Lista completa e comentada em [`.env.example`](.env.example) (backend) e [`frontend/.env.example`](frontend/.env.example). As principais:
 
-```bash
-# Supabase
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-# Server-side (nunca expor no cliente)
-SUPABASE_SERVICE_ROLE_KEY=
-```
+| Variável | Para quê |
+|---|---|
+| `DB_*`, `RABBITMQ_*` | Postgres e RabbitMQ |
+| `JWT_SECRET` | assinatura dos tokens (`openssl rand -base64 64`) |
+| `GOOGLE_CLIENT_ID/SECRET` | login com Google |
+| `OMBALA_TOKEN`, `OMBALA_SENDER` | SMS de OTP |
+| `B2_ENDPOINT`, `B2_REGION`, `B2_BUCKET`, `B2_ACCESS_KEY`, `B2_SECRET_KEY` | storage privado (obrigatório). Bucket **privado**, chave restrita a esse bucket |
+| `NOTIFICATIONS_EMAIL_ENABLED`, `RESEND_API_KEY`, `RESEND_FROM` | email (só com o domínio verificado no Resend) |
+| `PAYMENTS_*` | pagamento simulado; `PAYMENTS_AUTO_CONFIRM=false` em produção |
+| `API_URL`, `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_WHATSAPP_NUMBER` | frontend |
 
-> **Nunca** commitar `.env.local` nem chaves. O `.gitignore` já deve cobri-los — confirmar antes do primeiro push.
+Valores com espaços ou `<>` vão entre aspas (ex.: `RESEND_FROM="Beeznoo <noreply@beeznoo.ao>"`). **Nunca** commitar `.env` nem chaves.
 
 ---
 
 ## Scripts
 
 ```bash
-npm run dev        # servidor de desenvolvimento
-npm run build      # build de produção
-npm run start      # servir o build
-npm run lint       # linting
-npm run typecheck  # verificação de tipos TypeScript
-```
+# Backend (pasta api/)
+./mvnw test              # testes de integração (precisa de Docker)
+./mvnw spring-boot:run   # correr fora do Docker (exporta o .env antes)
 
-> Ajustar conforme o `package.json` real do projeto.
+# Frontend (pasta frontend/)
+npm run dev        # desenvolvimento
+npm run build      # build de produção
+npm run lint       # linting
+npm run typecheck  # verificação de tipos
+```
 
 ---
 
@@ -261,7 +251,7 @@ Mensagens curtas, específicas e no imperativo ("adiciona", não "adicionado").
 
 ## Pull Requests
 
-- Todo o trabalho entra na `main` **por PR**, usando o template `.github/PULL_REQUEST_TEMPLATE.md`.
+- Todo o trabalho entra na `main` **por PR**, usando o template `docs/PULL_REQUEST_TEMPLATE.md`.
 - O título do PR segue a convenção de commits (ex.: `feat(publicar): formulário de publicação`).
 - Descreve **o quê** e **porquê**, como testar, e liga a issue/tarefa (`Closes #12`).
 - Pelo menos **1 aprovação** e **CI verde** antes de merge.
@@ -291,3 +281,39 @@ Uma tarefa só está _Done_ quando:
 - Se um deploy partir produção, reverter primeiro (`git revert` do merge ou rollback do host), investigar depois.
 
 ---
+
+## Dados de demonstração (seed)
+
+Enche a BD **local** com 7 contas (todas com KYC aprovado), 14 equipamentos e 12 reservas em todos os estados — à espera do dono, aceite, com referência, paga, entregue, devolvida (caução a decidir), concluída, recusada, cancelada e com problema reportado (`api/src/main/java/com/beeznoo/api/seed/DevSeeder.java`).
+Usa os serviços reais, por isso contratos, pagamentos, ledger, checklists e cauções ficam coerentes. As fotos das checklists vão para o bucket B2 configurado. Corre uma vez e sai; se já existir, não faz nada.
+
+```bash
+docker compose up -d postgres rabbitmq
+cd api && set -a && . ../.env && set +a
+DB_HOST=localhost SPRING_PROFILES_ACTIVE=seed ./mvnw spring-boot:run
+```
+
+Password de todas as contas: `beeznoo123` (ou a variável `SEED_PASSWORD`). **Nunca correr com o perfil `seed` em staging ou produção.**
+
+| Telefone | Conta | Papel |
+|---|---|---|
+| +244 900 000 000 | Equipa Beeznoo | Admin |
+| +244 900 000 001 | Edson Manuel | Dono |
+| +244 900 000 002 | Luzia Kiala Produções | Dono |
+| +244 900 000 003 | Paulo Neto | Aluga e é dono |
+| +244 900 000 004 | Ana Domingos | Arrendatária |
+| +244 900 000 005 | Mauro Fernandes | Arrendatário |
+| +244 900 000 006 | Telma Sebastião | Arrendatária |
+
+---
+
+## Equipa
+
+| Pessoa | Papel |
+|---|---|
+| Parcídio André | Founder / Product Manager |
+| Victor | Backend |
+| Melzira | Frontend |
+| Designer freelancer | Identidade, assets, criativos |
+
+Sprints semanais: segunda planning · terça–quinta execução · sexta demo, métricas e retro.

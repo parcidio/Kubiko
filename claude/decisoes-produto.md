@@ -38,6 +38,30 @@ A integração real com a EMIS (Multicaixa) ainda não está fechada; por agora 
 
 ---
 
+## 2026-10-17 — Frontend sem shadcn/ui, design "Identidade Verde v3"
+
+**Contexto.** As duas rondas no Claude Design (v1 e v2) saíram com cara de template shadcn: planas, cantos retos, sem
+personalidade. O pedido da equipa é um visual mais criativo e **nenhum código shadcn** no frontend.
+
+**Decisões (pedidas pela equipa nesta data — confirmar com o André na sexta):**
+
+1. **Sai o shadcn/ui** e as dependências que só existiam por ele (`radix-ui`, `class-variance-authority`, `input-otp`,
+   `sonner`, `tw-animate-css`, `components.json`). Os componentes da app vivem em `frontend/src/components/bz/`,
+   escritos à mão com Tailwind v4 + HTML nativo (`<dialog>` para sheets/modais, `<input type="date">`, etc.).
+   Consequência: a acessibilidade (foco, teclado, ARIA) é responsabilidade nossa em cada componente.
+2. **Design "Identidade Verde v3"** (`docs/DESIGN_SYSTEM.md`): mantém a paleta (areia/verde/âmbar) e o vocabulário;
+   muda forma (raios 12–24px), tipografia de display (Bricolage Grotesque, a mesma da landing), profundidade
+   (sombras suaves só em elementos flutuantes) e motivos de marca (colmeia, bilhete de reserva).
+3. A **landing não muda** — continua com os seus componentes em `frontend/components/landing/`.
+4. Ecrãs sem endpoint no backend ficam **desenhados e navegáveis**, com aviso "Falta backend" e a lista do que
+   falta em `docs/BACKEND_GAPS.md`. Nada de dados falsos a fingir que estão guardados.
+5. Enquanto não houver telefone do dono exposto pela API, o botão WhatsApp fala com a **equipa Beeznoo**
+   (`NEXT_PUBLIC_WHATSAPP_NUMBER`) com a mensagem pré-preenchida — coerente com o modelo concierge.
+
+**Em aberto.** Contraste e legibilidade ao sol devem ser validados num Android de gama média antes do 1.º aluguer.
+
+---
+
 ## 2026-10-23 — Pagamentos: expiração automática, `payment_id` no ledger, dono vê o pagamento
 
 **Contexto.** Revisão do módulo de pagamentos (2026-10-16) contra as instruções do "Módulo 5". O módulo já existia;
