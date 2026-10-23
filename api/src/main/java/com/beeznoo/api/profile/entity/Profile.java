@@ -50,6 +50,13 @@ public class Profile {
     @Builder.Default
     private UserRole role = UserRole.RENTER;
 
+    // definido na submissão do KYC
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_type", nullable = false, length = 20)
+    @Builder.Default
+    private AccountType accountType = AccountType.INDIVIDUAL;
+
+    // telefone confirmado por OTP — NÃO é a verificação de identidade (essa é o KYC)
     @Column(name = "is_verified", nullable = false)
     @Builder.Default
     private boolean isVerified = false;

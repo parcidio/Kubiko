@@ -7,6 +7,10 @@ import com.beeznoo.api.item.entity.ItemStatus;
 import com.beeznoo.api.item.repository.CategoryRepository;
 import com.beeznoo.api.item.repository.ItemRepository;
 import com.beeznoo.api.item.service.ItemService;
+import com.beeznoo.api.kyc.entity.KycStatus;
+import com.beeznoo.api.kyc.entity.KycVerification;
+import com.beeznoo.api.kyc.repository.KycVerificationRepository;
+import com.beeznoo.api.profile.entity.AccountType;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -24,6 +28,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
@@ -41,6 +46,7 @@ class ItemServiceIntegrationTest {
     @Autowired ItemRepository itemRepository;
     @Autowired CategoryRepository categoryRepository;
     @Autowired ProfileRepository profileRepository;
+    @Autowired KycVerificationRepository kycVerificationRepository;
 
     private Profile owner;
     private Profile renter;
@@ -56,6 +62,13 @@ class ItemServiceIntegrationTest {
                 .isVerified(true)
                 .build();
         profileRepository.save(owner);
+        // publicar exige identidade verificada
+        kycVerificationRepository.save(KycVerification.builder()
+                .profile(owner)
+                .accountType(AccountType.INDIVIDUAL)
+                .status(KycStatus.APPROVED)
+                .submittedAt(OffsetDateTime.now())
+                .build());
 
         renter = Profile.builder()
                 .fullName("Arrendatário")
@@ -74,6 +87,27 @@ class ItemServiceIntegrationTest {
                                 .slug("fotografia")
                                 .build()
                 ).getId());
+    }
+
+    @Test
+    void ownerSemKycAprovado_naoPodePublicar() {
+        Profile unverified = profileRepository.save(Profile.builder()
+                .fullName("Dono Sem KYC")
+                .phone("+244923000003")
+                .passwordHash("$2a$10$hash")
+                .role(UserRole.OWNER)
+                .isVerified(true)
+                .build());
+        PublishItemRequest req = new PublishItemRequest(
+                "Canon EOS R5", "Câmara mirrorless em excelente estado",
+                categoryId, ItemCondition.LIKE_NEW,
+                new BigDecimal("5000.00"), new BigDecimal("20000.00"),
+                "Luanda", "Miramar"
+        );
+
+        assertThatThrownBy(() -> itemService.publish(unverified.getId(), req))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("Verifica a tua identidade");
     }
 
     @Test

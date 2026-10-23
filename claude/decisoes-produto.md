@@ -55,3 +55,39 @@ ficam só as lacunas. Rotas, DTOs e migrações V4–V6 mantêm-se (o frontend j
    referência e carrega em "Já paguei".
 
 **Em aberto.** Se a reserva deve ser cancelada automaticamente depois de N referências expiradas (SPEC §12.3).
+
+---
+
+## 2026-10-23 — KYC: verificação de identidade com documentos no Backblaze B2
+
+**Contexto.** SPEC §7: verificação obrigatória antes de pedir reserva ou publicar equipamento, manual pelo admin.
+Instruções do "Módulo 6" revistas contra o repo; as faturas ficam de fora (ver abaixo).
+
+**Decisões (aprovadas nesta data):**
+
+1. **Estados** `PENDING → IN_REVIEW → APPROVED | REJECTED | INFO_REQUESTED`. O admin passa a `IN_REVIEW` com a ação
+   `START_REVIEW`; pode aprovar, recusar ou pedir informação a partir de `PENDING` ou `IN_REVIEW`.
+2. **Re-submissão.** `INFO_REQUESTED`: a pessoa reenvia os documentos *na mesma* verificação, que volta a `PENDING`
+   (ação `RESUBMIT` no histórico). `REJECTED`: cria uma verificação nova. No máximo uma verificação não recusada por
+   perfil (índice único parcial).
+3. **Documentos obrigatórios.** `INDIVIDUAL`: BI frente, BI verso, selfie. `BUSINESS`: NIF e documento da empresa.
+   JPEG, PNG ou PDF (validado pelos bytes, não pela extensão), máx. 5 MB cada. `profiles.account_type` guarda o tipo.
+4. **"Verificado" é derivado**: a verificação mais recente está `APPROVED`. Não há coluna nova —
+   `profiles.is_verified` continua a querer dizer *telefone confirmado* (o login depende dela).
+5. **Gate**: `ItemService.publish` e `BookingService.create` exigem identidade verificada (403).
+6. **Storage privado no Backblaze B2** (API S3, AWS SDK v2) em todos os ambientes; os testes usam um mock.
+   Só se guarda a `storage_key` (`kyc/{profileId}/{kycId}/{tipo}_{uuid}.{ext}`), nunca exposta na API nem nos logs.
+   O admin vê os documentos por URL pré-assinada de 5 minutos. Se a transação falhar, os ficheiros enviados são apagados.
+7. **Histórico** em `kyc_decisions` (append-only, trigger): ação, autor, nota e data. Recusar e pedir informação
+   exigem nota.
+8. **Só ADMIN** revê KYC (não existe papel MODERATOR no schema).
+
+**Fora deste módulo.** Faturas: uma "fatura" com numeração sequencial em Angola tem de sair de software certificado
+pela AGT (fora do âmbito, SPEC §9) e o iText 7 é AGPL. Se for preciso, um *comprovativo de pagamento* não fiscal
+com Apache PDFBox, com hipótese e critério de sucesso próprios.
+
+**Em aberto.**
+- Proteção de dados: documentos de identidade num servidor nos EUA (B2 `us-east-005`) podem exigir autorização da APD
+  (Lei 22/11) antes de entrarem documentos reais em produção. Confirmar com o André.
+- `audit_logs` ainda não existe; quando existir, aprovar KYC deve lá ficar também.
+- Prazo de retenção dos documentos depois de aprovados ou recusados.

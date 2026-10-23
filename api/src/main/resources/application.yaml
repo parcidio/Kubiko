@@ -9,6 +9,11 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+  servlet:
+    multipart:
+      # KYC: até 5 documentos de 5 MB (o limite por ficheiro também é validado no KycService)
+      max-file-size: 5MB
+      max-request-size: 26MB
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -57,3 +62,11 @@ app:
       entity: ${PAYMENTS_SIMULATED_ENTITY:00000}
       # true só em dev/demo: "Já paguei" confirma logo. Em produção fica false (admin valida).
       auto-confirm: ${PAYMENTS_AUTO_CONFIRM:false}
+  storage:
+    # Backblaze B2 (API S3), bucket PRIVADO. Obrigatório: a API não arranca sem isto. Ver claude/decisoes-produto.md
+    endpoint: ${B2_ENDPOINT:}
+    region: ${B2_REGION:}
+    access-key: ${B2_ACCESS_KEY:}
+    secret-key: ${B2_SECRET_KEY:}
+    bucket: ${B2_BUCKET:}
+    signed-url-ttl: ${APP_STORAGE_SIGNED_URL_TTL:5m}

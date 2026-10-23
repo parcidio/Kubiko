@@ -6,6 +6,7 @@ import com.beeznoo.api.item.entity.Item;
 import com.beeznoo.api.item.entity.ItemStatus;
 import com.beeznoo.api.item.repository.CategoryRepository;
 import com.beeznoo.api.item.repository.ItemRepository;
+import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -26,11 +27,14 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final CategoryRepository categoryRepository;
     private final ProfileRepository profileRepository;
+    private final KycService kycService;
 
-    public ItemService(ItemRepository itemRepository, CategoryRepository categoryRepository, ProfileRepository profileRepository) {
+    public ItemService(ItemRepository itemRepository, CategoryRepository categoryRepository,
+                       ProfileRepository profileRepository, KycService kycService) {
         this.itemRepository = itemRepository;
         this.categoryRepository = categoryRepository;
         this.profileRepository = profileRepository;
+        this.kycService = kycService;
     }
 
     public ItemResponse publish(UUID ownerId, PublishItemRequest request) throws AccessDeniedException {
@@ -39,6 +43,9 @@ public class ItemService {
 
         if (!canPublish(owner.getRole())) {
             throw new AccessDeniedException("Apenas OWNER ou BOTH podem publicar itens");
+        }
+        if (!kycService.isVerified(ownerId)) {
+            throw new AccessDeniedException("Verifica a tua identidade antes de continuar");
         }
 
         Category category = categoryRepository.findById(request.categoryId())

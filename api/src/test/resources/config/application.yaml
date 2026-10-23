@@ -1,0 +1,9 @@
+# Só para testes: valores fictícios para a API arrancar. Nenhum teste fala com o B2 (usam MockStorageService).
+app:
+  storage:
+    endpoint: http://localhost:9
+    region: us-east-005
+    access-key: test
+    secret-key: test
+    bucket: test-bucket
+    signed-url-ttl: 5m

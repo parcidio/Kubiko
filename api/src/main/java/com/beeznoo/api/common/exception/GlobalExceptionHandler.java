@@ -1,6 +1,7 @@
 package com.beeznoo.api.common.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -8,6 +9,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -46,6 +49,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
                 .body(new ErrorBody(HttpStatus.CONFLICT.value(), ex.getMessage(), null));
+    }
+
+    // Parâmetro com valor inválido (ex.: accountType desconhecido)
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorBody> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity
+                .badRequest()
+                .body(new ErrorBody(HttpStatus.BAD_REQUEST.value(), "Valor inválido para " + ex.getName(), null));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorBody> handleMaxUpload(MaxUploadSizeExceededException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONTENT_TOO_LARGE)
+                .body(new ErrorBody(HttpStatus.CONTENT_TOO_LARGE.value(), "Ficheiro demasiado grande (máx. 5 MB).", null));
+    }
+
+    // Corrida contra um índice único (ex.: duas submissões de KYC ao mesmo tempo). Sem detalhes da BD na resposta.
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorBody> handleDataIntegrity(DataIntegrityViolationException ex) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(new ErrorBody(HttpStatus.CONFLICT.value(), "O pedido entrou em conflito com outro. Tenta outra vez.", null));
     }
 
     // Rota desconhecida — sem isto, cai no fallback genérico abaixo e devolve 500 em vez de 404

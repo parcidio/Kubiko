@@ -7,6 +7,7 @@ import com.beeznoo.api.booking.repository.BookingRepository;
 import com.beeznoo.api.item.entity.Item;
 import com.beeznoo.api.item.entity.ItemStatus;
 import com.beeznoo.api.item.repository.ItemRepository;
+import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -36,15 +37,17 @@ public class BookingService {
     private final ProfileRepository profileRepository;
     private final LedgerService ledgerService;
     private final PaymentService paymentService;
+    private final KycService kycService;
 
     public BookingService(BookingRepository bookingRepository, ItemRepository itemRepository,
                           ProfileRepository profileRepository, LedgerService ledgerService,
-                          PaymentService paymentService) {
+                          PaymentService paymentService, KycService kycService) {
         this.bookingRepository = bookingRepository;
         this.itemRepository = itemRepository;
         this.profileRepository = profileRepository;
         this.ledgerService = ledgerService;
         this.paymentService = paymentService;
+        this.kycService = kycService;
     }
 
     public BookingResponse create(UUID renterId, CreateBookingRequest request) {
@@ -52,6 +55,9 @@ public class BookingService {
 
         if (renter.getRole() != UserRole.RENTER && renter.getRole() != UserRole.BOTH) {
             throw new AccessDeniedException("Apenas RENTER ou BOTH podem criar reservas");
+        }
+        if (!kycService.isVerified(renterId)) {
+            throw new AccessDeniedException("Verifica a tua identidade antes de continuar");
         }
 
         if (!request.endDate().isAfter(request.startDate())) {
