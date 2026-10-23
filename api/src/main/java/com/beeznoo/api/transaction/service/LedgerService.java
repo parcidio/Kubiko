@@ -6,6 +6,7 @@ import com.beeznoo.api.transaction.dto.LedgerDtos.*;
 import com.beeznoo.api.transaction.entity.Account;
 import com.beeznoo.api.transaction.entity.EntryType;
 import com.beeznoo.api.transaction.entity.LedgerEntry;
+import com.beeznoo.api.transaction.entity.Payment;
 import com.beeznoo.api.transaction.repository.AccountRepository;
 import com.beeznoo.api.transaction.repository.LedgerEntryRepository;
 import org.springframework.data.domain.Page;
@@ -33,7 +34,11 @@ public class LedgerService {
 
     // ACCEPTED — retém total + caução no saldo do arrendatário
     public void holdForBooking(UUID bookingId) {
-        Booking booking = findBooking(bookingId);
+        hold(findBooking(bookingId), null);
+    }
+
+    private void hold(Booking booking, Payment payment) {
+        UUID bookingId = booking.getId();
         assertNotRegistered(bookingId, EntryType.HOLD, "A reserva já tem valor retido");
 
         Account renter = lockByProfile(booking.getRenter().getId());
@@ -45,11 +50,11 @@ public class LedgerService {
         }
 
         renter.holdAmount(booking.getTotalPrice());
-        record(renter, booking, EntryType.HOLD, booking.getTotalPrice(), "Valor retido para a reserva");
+        record(renter, booking, payment, EntryType.HOLD, booking.getTotalPrice(), "Valor retido para a reserva");
 
         if (hasDeposit(deposit)) {
             renter.holdAmount(deposit);
-            record(renter, booking, EntryType.DEPOSIT_HOLD, deposit, "Caução retida para a reserva");
+            record(renter, booking, payment, EntryType.DEPOSIT_HOLD, deposit, "Caução retida para a reserva");
         }
     }
 
@@ -74,7 +79,11 @@ public class LedgerService {
 
     // ACTIVE — débito definitivo do arrendatário e crédito no dono; a caução continua retida
     public void confirmPayment(UUID bookingId) {
-        Booking booking = findBooking(bookingId);
+        confirm(findBooking(bookingId), null);
+    }
+
+    private void confirm(Booking booking, Payment payment) {
+        UUID bookingId = booking.getId();
         assertRegistered(bookingId, EntryType.HOLD, "A reserva não tem valor retido");
         assertNotRegistered(bookingId, EntryType.PAYMENT_DEBIT, "O pagamento já foi confirmado");
 
@@ -83,16 +92,20 @@ public class LedgerService {
         Account owner = accounts[1];
 
         renter.withholdHeld(booking.getTotalPrice());
-        record(renter, booking, EntryType.PAYMENT_DEBIT, booking.getTotalPrice(), "Pagamento da reserva");
+        record(renter, booking, payment, EntryType.PAYMENT_DEBIT, booking.getTotalPrice(), "Pagamento da reserva");
 
         owner.credit(booking.getTotalPrice());
-        record(owner, booking, EntryType.PAYMENT_CREDIT, booking.getTotalPrice(), "Recebimento da reserva");
+        record(owner, booking, payment, EntryType.PAYMENT_CREDIT, booking.getTotalPrice(), "Recebimento da reserva");
     }
 
     // Pagamento por referência confirmado — liquida tudo numa transação:
     // TOPUP (valor recebido) → SERVICE_FEE → HOLD/DEPOSIT_HOLD → PAYMENT_DEBIT/CREDIT
-    public void settleReferencePayment(UUID bookingId, BigDecimal amountPaid, BigDecimal serviceFee) {
-        Booking booking = findBooking(bookingId);
+    // Cada movimento fica ligado ao pagamento (ledger_entries.payment_id)
+    public void settleReferencePayment(Payment payment) {
+        Booking booking = payment.getBooking();
+        UUID bookingId = booking.getId();
+        BigDecimal amountPaid = payment.getAmount();
+        BigDecimal serviceFee = payment.getServiceFee();
         assertNotRegistered(bookingId, EntryType.TOPUP, "O pagamento desta reserva já foi registado");
 
         BigDecimal expected = booking.getTotalPrice().add(depositOf(booking)).add(serviceFee);
@@ -102,15 +115,15 @@ public class LedgerService {
 
         Account renter = lockByProfile(booking.getRenter().getId());
         renter.credit(amountPaid);
-        record(renter, booking, EntryType.TOPUP, amountPaid, "Pagamento por referência recebido");
+        record(renter, booking, payment, EntryType.TOPUP, amountPaid, "Pagamento por referência recebido");
 
         if (serviceFee.signum() > 0) {
             renter.debit(serviceFee);
-            record(renter, booking, EntryType.SERVICE_FEE, serviceFee, "Taxa de serviço Beeznoo");
+            record(renter, booking, payment, EntryType.SERVICE_FEE, serviceFee, "Taxa de serviço Beeznoo");
         }
 
-        holdForBooking(bookingId);
-        confirmPayment(bookingId);
+        hold(booking, payment);
+        confirm(booking, payment);
     }
 
     // COMPLETED — devolve a caução ao arrendatário
@@ -195,9 +208,15 @@ public class LedgerService {
     }
 
     private void record(Account account, Booking booking, EntryType type, BigDecimal amount, String description) {
+        record(account, booking, null, type, amount, description);
+    }
+
+    private void record(Account account, Booking booking, Payment payment, EntryType type, BigDecimal amount,
+                        String description) {
         ledgerEntryRepository.save(LedgerEntry.builder()
                 .account(account)
                 .booking(booking)
+                .payment(payment)
                 .type(type)
                 .amount(amount)
                 .balanceAfter(account.getAvailableBalance())

@@ -23,6 +23,7 @@ import com.beeznoo.api.transaction.gateway.PaymentGateway.IssuedReference;
 import com.beeznoo.api.transaction.repository.AccountRepository;
 import com.beeznoo.api.transaction.repository.LedgerEntryRepository;
 import com.beeznoo.api.transaction.repository.PaymentRepository;
+import com.beeznoo.api.transaction.scheduler.PaymentExpiryScheduler;
 import com.beeznoo.api.transaction.service.PaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,7 @@ class PaymentServiceIntegrationTest {
     @MockitoBean PaymentGateway gateway;
 
     @Autowired PaymentService paymentService;
+    @Autowired PaymentExpiryScheduler paymentExpiryScheduler;
     @Autowired BookingService bookingService;
     @Autowired PaymentRepository paymentRepository;
     @Autowired AccountRepository accountRepository;
@@ -203,6 +205,63 @@ class PaymentServiceIntegrationTest {
 
         assertThat(checked.status()).isEqualTo("EXPIRED");
         assertThat(ledgerEntryRepository.existsByBookingIdAndType(booking.getId(), EntryType.TOPUP)).isFalse();
+    }
+
+    @Test
+    void check_gatewayConfirma_movimentosFicamLigadosAoPagamento() {
+        PaymentResponse p = paymentService.createReference(renter.getId(), booking.getId());
+        given(gateway.checkStatus(any())).willReturn(GatewayStatus.paid("TX-3"));
+
+        paymentService.check(renter.getId(), p.id());
+
+        var entries = ledgerEntryRepository.findAll().stream()
+                .filter(e -> e.getBooking() != null && e.getBooking().getId().equals(booking.getId()))
+                .toList();
+        assertThat(entries).hasSize(6);
+        assertThat(entries).allSatisfy(e -> assertThat(e.getPayment().getId()).isEqualTo(p.id()));
+    }
+
+    @Test
+    void scheduler_referenciaVencida_marcaExpiradaEReservaContinuaAccepted() {
+        PaymentResponse p = paymentService.createReference(renter.getId(), booking.getId());
+        paymentRepository.findById(p.id()).orElseThrow().setExpiresAt(OffsetDateTime.now().minusMinutes(1));
+
+        paymentExpiryScheduler.expireOverdue();
+
+        assertThat(paymentRepository.findById(p.id()).orElseThrow().getStatus()).isEqualTo(PaymentStatus.EXPIRED);
+        assertThat(bookingRepository.findById(booking.getId()).orElseThrow().getStatus()).isEqualTo(BookingStatus.ACCEPTED);
+        assertThat(ledgerEntryRepository.existsByBookingIdAndType(booking.getId(), EntryType.HOLD_RELEASE)).isFalse();
+
+        // a reserva pode gerar uma nova referência
+        PaymentResponse renewed = paymentService.createReference(renter.getId(), booking.getId());
+        assertThat(renewed.id()).isNotEqualTo(p.id());
+        assertThat(renewed.status()).isEqualTo("AWAITING_PAYMENT");
+    }
+
+    @Test
+    void scheduler_referenciaDentroDoPrazo_naoExpira() {
+        PaymentResponse p = paymentService.createReference(renter.getId(), booking.getId());
+
+        paymentExpiryScheduler.expireOverdue();
+
+        assertThat(paymentRepository.findById(p.id()).orElseThrow().getStatus()).isEqualTo(PaymentStatus.AWAITING_PAYMENT);
+    }
+
+    @Test
+    void findCurrent_donoDaReserva_vePagamento() {
+        PaymentResponse p = paymentService.createReference(renter.getId(), booking.getId());
+
+        assertThat(paymentService.findCurrent(owner.getId(), booking.getId()))
+                .hasValueSatisfying(current -> assertThat(current.id()).isEqualTo(p.id()));
+    }
+
+    @Test
+    void findCurrent_terceiro_lancaAccessDenied() {
+        paymentService.createReference(renter.getId(), booking.getId());
+        Profile stranger = profile("Outra Pessoa", UserRole.RENTER);
+
+        assertThatThrownBy(() -> paymentService.findCurrent(stranger.getId(), booking.getId()))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test

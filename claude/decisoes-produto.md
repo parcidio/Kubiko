@@ -35,3 +35,23 @@ A integração real com a EMIS (Multicaixa) ainda não está fechada; por agora 
 - Valores em `NUMERIC(12,2)` para seguir o schema existente; o CLAUDE.md pede inteiros (Kz). Arredondamos a taxa a kwanzas inteiros.
 - Prazo para pagar depois de aceite e política de reembolso (SPEC §12.3).
 - `audit_logs` ainda não existe; a confirmação manual pelo admin deve passar a ser auditada quando existir.
+
+---
+
+## 2026-10-23 — Pagamentos: expiração automática, `payment_id` no ledger, dono vê o pagamento
+
+**Contexto.** Revisão do módulo de pagamentos (2026-10-16) contra as instruções do "Módulo 5". O módulo já existia;
+ficam só as lacunas. Rotas, DTOs e migrações V4–V6 mantêm-se (o frontend já os usa e o Flyway já os aplicou).
+
+**Decisões (aprovadas nesta data):**
+
+1. **Expiração automática.** `PaymentExpiryScheduler` corre a cada minuto e marca `EXPIRED` as referências
+   `AWAITING_PAYMENT` com `expires_at` no passado. A reserva fica `ACCEPTED` (pode gerar nova referência).
+   Não há valores a libertar: a retenção só acontece na confirmação. Leitura do pagamento com lock pessimista
+   para o agendador e o "Já paguei" não se cruzarem.
+2. **`ledger_entries.payment_id`** (migração V7, nullable): os movimentos da liquidação apontam para o pagamento
+   que os originou. Movimentos anteriores ficam a `NULL` (o ledger é append-only, sem backfill).
+3. **O dono da reserva também vê o pagamento** (`GET /bookings/{id}/payments/current`). Só o arrendatário gera
+   referência e carrega em "Já paguei".
+
+**Em aberto.** Se a reserva deve ser cancelada automaticamente depois de N referências expiradas (SPEC §12.3).

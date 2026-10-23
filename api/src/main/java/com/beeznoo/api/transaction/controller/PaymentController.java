@@ -59,6 +59,8 @@ public class PaymentController {
             description = """
                     Devolve o pagamento mais recente da reserva (qualquer estado).
                     Responde `204` se ainda não foi gerada nenhuma referência.
+
+                    Acessível ao arrendatário e ao dono da reserva.
                     """
     )
     @ApiResponses({
@@ -68,7 +70,7 @@ public class PaymentController {
             @ApiResponse(responseCode = "400", description = "Reserva não encontrada",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "Não autenticado"),
-            @ApiResponse(responseCode = "403", description = "Não é o arrendatário da reserva",
+            @ApiResponse(responseCode = "403", description = "Não é o arrendatário nem o dono da reserva",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/bookings/{bookingId}/payments/current")

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -67,16 +68,18 @@ public class PaymentService {
         return PaymentResponse.from(paymentRepository.save(payment));
     }
 
+    // Arrendatário e dono podem ver o estado do pagamento
     @Transactional(readOnly = true)
     public Optional<PaymentResponse> findCurrent(UUID requesterId, UUID bookingId) {
         Booking booking = findBooking(bookingId);
-        assertRenter(requesterId, booking);
+        if (!booking.getOwner().getId().equals(requesterId)) assertRenter(requesterId, booking);
         return paymentRepository.findFirstByBookingIdOrderByCreatedAtDesc(bookingId).map(PaymentResponse::from);
     }
 
     // "Já paguei" — pergunta ao gateway e, se pago, liquida a reserva
     public PaymentResponse check(UUID renterId, UUID paymentId) {
-        Payment payment = paymentRepository.findById(paymentId)
+        // lock: o PaymentExpiryScheduler não pode expirar a referência a meio da liquidação
+        Payment payment = paymentRepository.findByIdForUpdate(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("Pagamento não encontrado"));
         assertRenter(renterId, payment.getBooking());
         if (!payment.isOpen()) return PaymentResponse.from(payment);
@@ -105,6 +108,22 @@ public class PaymentService {
         settle(payment, null);
     }
 
+    @Transactional(readOnly = true)
+    public List<UUID> findOverdueIds() {
+        return paymentRepository.findIdsByStatusAndExpiresAtBefore(PaymentStatus.AWAITING_PAYMENT, OffsetDateTime.now());
+    }
+
+    // Chamado pelo PaymentExpiryScheduler. A reserva continua ACCEPTED e pode gerar nova referência;
+    // não há valores a libertar porque a retenção só acontece na confirmação.
+    public void expire(UUID paymentId) {
+        paymentRepository.findByIdForUpdate(paymentId)
+                .filter(p -> p.isExpiredAt(OffsetDateTime.now()))
+                .ifPresent(p -> {
+                    p.setStatus(PaymentStatus.EXPIRED);
+                    log.info("Pagamento {} expirado — reserva {} continua ACCEPTED", p.getId(), p.getBooking().getId());
+                });
+    }
+
     // Reserva cancelada — a referência em aberto deixa de poder ser paga
     public void cancelOpen(UUID bookingId) {
         paymentRepository.findByBookingIdAndStatus(bookingId, PaymentStatus.AWAITING_PAYMENT)
@@ -114,7 +133,7 @@ public class PaymentService {
     private void settle(Payment payment, String transactionId) {
         Booking booking = payment.getBooking();
         assertAccepted(booking);
-        ledgerService.settleReferencePayment(booking.getId(), payment.getAmount(), payment.getServiceFee());
+        ledgerService.settleReferencePayment(payment);
 
         payment.setStatus(PaymentStatus.CONFIRMED);
         payment.setConfirmedAt(OffsetDateTime.now());
