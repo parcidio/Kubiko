@@ -103,6 +103,10 @@ export default function BeeznoHero() {
   const [provincia, setProvincia] = useState("Luanda");
   const [perfil,    setPerfil]    = useState<Perfil>("particular");
 
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error,   setError]   = useState(false);
+
   const perfilTexto = perfil === "particular" ? "Particular" : "Empresa";
 
   const trackObjetivo = (tipo: Objetivo) => {
@@ -123,26 +127,52 @@ export default function BeeznoHero() {
           : "disponibilizar equipamento",
     });
 
-  const handleAlugar = () => {
+  // Substitui o URL pelo teu deployment ID
+const SHEETS_URL = "https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec";
+  const handleAlugar = async (e: React.FormEvent) => {
+    e.preventDefault();
     trackObjetivo("alugar");
 
     const params = criarParametros("alugar");
-    window.open(
-      `https://tally.so/r/dW7yGK?${params.toString()}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+     setLoading(true);
+
+  try {
+    await fetch(SHEETS_URL, {
+      method: "POST",
+      mode: "no-cors", // Google Scripts exigem isto
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, email, telefone, provincia, perfil, objetivo }),
+    });
+    // no-cors não devolve resposta, mas a submissão chega
+    setSuccess(true);
+  } catch {
+    setError(true);
+  } finally {
+    setLoading(false);
+  }
   };
 
-  const handleDisponibilizar = () => {
+  const handleDisponibilizar = async (e: React.FormEvent) => {
+    e.preventDefault();
     trackObjetivo("disponibilizar");
 
     const params = criarParametros("disponibilizar");
-    window.open(
-      `https://tally.so/r/5BN0JZ?${params.toString()}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+    setLoading(true);
+
+  try {
+    await fetch(SHEETS_URL, {
+      method: "POST",
+      mode: "no-cors", // Google Scripts exigem isto
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome, email, telefone, provincia, perfil, objetivo }),
+    });
+    // no-cors não devolve resposta, mas a submissão chega
+    setSuccess(true);
+  } catch {
+    setError(true);
+  } finally {
+    setLoading(false);
+  }
   };
 
   const handleAmbos = () => {
@@ -169,10 +199,10 @@ export default function BeeznoHero() {
 
     switch (objetivo) {
       case "alugar":
-        handleAlugar();
+        handleAlugar(e);
         break;
       case "disponibilizar":
-        handleDisponibilizar();
+        handleDisponibilizar(e);
         break;
       case "ambos":
         handleAmbos();
