@@ -1,0 +1,10 @@
+# Só o pom.xml e o src/ entram na imagem
+target/
+.idea/
+*.iml
+.mvn/
+mvnw
+mvnw.cmd
+HELP.md
+.env
+.env.*

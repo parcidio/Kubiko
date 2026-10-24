@@ -1,0 +1,102 @@
+# Render Blueprint — API Beeznoo (Spring Boot em Docker).
+# A BD é o Neon (fora do Render) e os ficheiros vão para o Backblaze B2. Ver docs/SERVICOS_EXTERNOS.md.
+# Segredos com "sync: false": o Render pede o valor no painel ao criar o Blueprint e nunca ficam no Git.
+
+services:
+  - type: web
+    # URL público: https://beeznoo.onrender.com (o frontend usa-o em API_URL na Vercel)
+    name: beeznoo
+    runtime: docker
+    # Frankfurt: a região do Render mais perto de Luanda e do Neon (eu-central-1)
+    region: frankfurt
+    # Grátis: adormece após 15 min sem pedidos; o primeiro pedido a seguir demora ~1 min (ver docs/SERVICOS_EXTERNOS.md)
+    plan: free
+    branch: main
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    healthCheckPath: /actuator/health
+    autoDeploy: true
+    # Só faz deploy quando muda a API (alterações do frontend não reiniciam o serviço)
+    buildFilter:
+      paths:
+        - api/**
+        - render.yaml
+    envVars:
+      # ---- Base de dados (Neon) ----
+      - key: DB_HOST
+        sync: false            # host *pooled* do Neon (…-pooler.…neon.tech)
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSLMODE
+        value: require
+      - key: DB_POOL_SIZE
+        value: "5"
+      # Migrações Flyway pela ligação direta (sem pooler), como recomenda o Neon
+      - key: SPRING_FLYWAY_URL
+        sync: false            # jdbc:postgresql://<host direto>/<db>?sslmode=require
+      - key: SPRING_FLYWAY_USER
+        sync: false
+      - key: SPRING_FLYWAY_PASSWORD
+        sync: false
+
+      # ---- Autenticação ----
+      - key: JWT_SECRET
+        generateValue: true    # o Render gera um valor aleatório forte
+      - key: JWT_EXPIRATION_MINUTES
+        value: "15"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://beeznoo.ao/login/oauth2/code/google   # o Next faz proxy para a API; igual ao da Google Cloud
+      - key: FRONTEND_URL
+        value: https://beeznoo.ao
+      - key: OMBALA_TOKEN
+        sync: false
+      - key: OMBALA_SENDER
+        value: Beeznoo
+
+      # ---- Storage privado (Backblaze B2) ----
+      - key: B2_ENDPOINT
+        sync: false
+      - key: B2_REGION
+        sync: false
+      - key: B2_BUCKET
+        sync: false
+      - key: B2_ACCESS_KEY
+        sync: false
+      - key: B2_SECRET_KEY
+        sync: false
+
+      # ---- Email (Resend) ----
+      - key: NOTIFICATIONS_EMAIL_ENABLED
+        value: "false"         # true só com o domínio beeznoo.ao verificado no Resend
+      - key: RESEND_API_KEY
+        sync: false
+
+      # ---- Pagamentos ----
+      - key: PAYMENTS_PROVIDER
+        value: simulated
+      - key: PAYMENTS_AUTO_CONFIRM
+        value: "false"         # nunca true fora de demo: o admin valida o pagamento
+
+      # ---- Segurança (docs/SEGURANCA.md) ----
+      - key: API_DOCS_ENABLED
+        value: "false"
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: ADMIN_MFA_ENABLED
+        value: "true"
+      - key: RATE_LIMITS_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_STORE
+        value: memory          # uma instância; "database" se escalar para várias
+      - key: RATE_LIMIT_TRUSTED_PROXIES
+        value: "2"             # browser → Vercel → Render → API (confirmar a cadeia)
