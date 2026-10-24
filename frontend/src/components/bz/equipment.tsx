@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { BadgeCheck, MapPin, Package, type LucideIcon } from "lucide-react";
-import { hexPath } from "./brand";
+import { BadgeCheck, MapPin, Package, Repeat2, Sparkles, Star, type LucideIcon } from "lucide-react";
+import { categoryIcon, hexPath } from "./brand";
 import { Kz } from "./ui";
 import { initials } from "@/lib/booking";
 import { CONDITION_LABEL } from "@/lib/format";
@@ -9,16 +9,16 @@ import type { ItemCondition, ItemSummary } from "@/lib/types";
 
 /** Foto 4:3; sem foto → bloco areia-2 com o ícone da categoria. */
 export function ItemPhoto({
-  src, alt, icon, className, rounded = true,
-}: { src?: string | null; alt: string; icon?: LucideIcon; className?: string; rounded?: boolean }) {
+  src, alt, icon, className, imgClassName, rounded = true,
+}: { src?: string | null; alt: string; icon?: LucideIcon; className?: string; imgClassName?: string; rounded?: boolean }) {
   const Icon = icon ?? Package;
   return (
     <div className={cn("relative aspect-[4/3] overflow-hidden bg-areia-2", rounded && "rounded-cartao", className)}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} loading="lazy" decoding="async" className="size-full object-cover" />
+        <img src={src} alt={alt} loading="lazy" decoding="async" className={cn("size-full object-cover", imgClassName)} />
       ) : (
-        <div className="flex size-full items-center justify-center text-mel" role="img" aria-label={`${alt} — sem foto`}>
+        <div className={cn("flex size-full items-center justify-center text-mel", imgClassName)} role="img" aria-label={`${alt} — sem foto`}>
           <Icon className="size-1/4 max-h-12 max-w-12" strokeWidth={1.4} aria-hidden />
         </div>
       )}
@@ -73,23 +73,95 @@ export function placeOf(item: { city?: string | null; province?: string | null }
   return [item.city, item.province].filter(Boolean).join(", ") || "Luanda";
 }
 
-/** Cartão de equipamento: foto domina, preço flutua por cima. */
-export function EquipmentCard({ item, href, icon, index = 0 }: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number }) {
+/** 4,8 — vírgula decimal (pt-PT). */
+export function formatRating(value: number) {
+  return value.toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+}
+
+/** Cinco estrelas preenchidas até à média arredondada a meia estrela. */
+export function Stars({ value, size = "md", className }: { value: number; size?: "sm" | "md"; className?: string }) {
+  const half = Math.round(value * 2) / 2;
+  return (
+    <span className={cn("inline-flex items-center gap-0.5", className)} role="img" aria-label={`${formatRating(value)} de 5`}>
+      {Array.from({ length: 5 }, (_, i) => {
+        const fill = half >= i + 1 ? 1 : half >= i + 0.5 ? 0.5 : 0;
+        return (
+          <span key={i} className={cn("relative", size === "sm" ? "size-3.5" : "size-5")} aria-hidden>
+            <Star className="absolute inset-0 size-full text-borda-forte" strokeWidth={1.8} />
+            {fill > 0 && (
+              <span className="absolute inset-0 overflow-hidden" style={{ width: `${fill * 100}%` }}>
+                <Star className={cn("fill-ambar text-ambar", size === "sm" ? "size-3.5" : "size-5")} strokeWidth={1.8} />
+              </span>
+            )}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+/** "4,8 (12)" com estrela, ou "Novo na Beeznoo" quando ainda não há avaliações. */
+export function RatingInline({ average, count, className }: { average: number | null; count: number; className?: string }) {
+  if (!average || count === 0) {
+    return <span className={cn("text-[13px] font-medium text-mel-texto", className)}>Novo na Beeznoo</span>;
+  }
+  return (
+    <span className={cn("inline-flex items-center gap-1 text-[13px] text-cinza", className)}>
+      <Star className="size-3.5 fill-ambar text-ambar" strokeWidth={1.8} aria-hidden />
+      <span className="num font-bold text-verde">{formatRating(average)}</span>
+      <span className="num">({count})</span>
+      <span className="sr-only">{count === 1 ? "avaliação" : "avaliações"}</span>
+    </span>
+  );
+}
+
+/** Cartão de equipamento: foto domina, preço flutua por cima, prova social por baixo. */
+export function EquipmentCard({
+  item, href, icon, index = 0, className, showFeatured = true,
+}: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean }) {
+  const tag = item.featured && showFeatured
+    ? { label: "Em destaque", icon: Sparkles, cls: "bg-verde text-ambar" }
+    : null;
   return (
     <Link
       href={href}
-      className="group block animate-sobe rounded-cartao outline-none focus-visible:ring-4 focus-visible:ring-verde-medio/30"
+      className={cn(
+        "group block animate-sobe rounded-cartao outline-none transition active:scale-[.98] focus-visible:ring-4 focus-visible:ring-verde-medio/30",
+        className,
+      )}
       style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
     >
-      <div className="relative">
-        <ItemPhoto src={item.coverPhoto} alt={item.title} icon={icon} className="transition duration-300 group-hover:brightness-95" />
+      <div className="relative overflow-hidden rounded-cartao">
+        <ItemPhoto
+          src={item.coverPhoto}
+          alt={item.title}
+          icon={icon ?? categoryIcon(item.categorySlug)}
+          imgClassName="transition duration-500 ease-out group-hover:scale-105"
+        />
+        {tag && (
+          <span className={cn("absolute top-2 left-2 inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-bold", tag.cls)}>
+            {tag.icon && <tag.icon className="size-3.5" strokeWidth={2} aria-hidden />}
+            {tag.label}
+          </span>
+        )}
         <span className="absolute bottom-2 left-2 rounded-full bg-branco/95 px-3 py-1 text-verde shadow-flutua backdrop-blur">
           <Kz value={item.pricePerDay} className="text-[15px]" />
           <span className="text-xs text-cinza"> /dia</span>
         </span>
       </div>
-      <div className="grid gap-1 px-1 pt-2.5">
+      <div className="grid gap-1 px-1 pt-2">
         <h3 className="line-clamp-2 font-titulo text-base leading-snug font-bold text-verde group-hover:underline md:text-[17px]">{item.title}</h3>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <RatingInline average={item.ratingAverage} count={item.ratingCount} />
+          {item.completedRentals > 0 && (
+            <span className="inline-flex items-center gap-1 text-[13px] text-cinza">
+              <Repeat2 className="size-3.5" strokeWidth={1.8} aria-hidden />
+              <span className="num">
+                {item.completedRentals} {item.completedRentals === 1 ? "aluguer" : "alugueres"}
+              </span>
+            </span>
+          )}
+        </div>
         <p className="flex items-center gap-1 text-[13px] text-cinza">
           <MapPin className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
           <span className="truncate">{placeOf(item)}</span>

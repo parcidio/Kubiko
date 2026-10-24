@@ -76,6 +76,10 @@ Curto e útil — nunca decorativo em loop.
 | `animate-sobe` | Entrada de conteúdo e cartões | 280ms `cubic-bezier(.2,.8,.2,1)` |
 | `animate-sheet` | Abrir sheet de baixo | 320ms mesma curva |
 | `animate-pulso` | Ponto "ao vivo" no DeadlineChip urgente | 1.6s, só em urgente |
+| `animate-aparece` | Elementos que surgem no lugar (escala .96 → 1) | 320ms mesma curva |
+| `animate-estrela` | Estrela escolhida ao avaliar | 360ms com ressalto |
+| `skeleton-brilho` | Skeleton: brilho a passar em vez de piscar | 1.4s, só enquanto carrega |
+| Foto do cartão | `group-hover:scale-105` dentro da moldura | 500ms ease-out |
 | Toque | `active:scale-[.98]` em botões e cartões | 120ms |
 
 Tudo desliga com `prefers-reduced-motion`.
@@ -91,9 +95,10 @@ Tudo desliga com `prefers-reduced-motion`.
 | `brand.tsx` | `Logo`, `HexPattern`, `HexIllustration`, `CategoryIcon` |
 | `shell.tsx` | `AppShell`, `TopBar`, `BottomNav`, `ModeSwitch`, `OfflineBanner`, `StickyCTA`, `PageHeader` |
 | `states.tsx` | `EmptyState`, `ErrorState`, `ListSkeleton`, `GridSkeleton`, `BackendPending` |
-| `equipment.tsx` | `ItemPhoto`, `EquipmentCard`, `ConditionMeter`, `VerifiedBadge`, `Avatar`, `CategoryTile` |
+| `equipment.tsx` | `ItemPhoto`, `EquipmentCard` (destaque, avaliação, nº de alugueres), `Stars`, `RatingInline`, `ConditionMeter`, `VerifiedBadge`, `Avatar`, `CategoryTile` |
 | `booking.tsx` | `BookingTicket`, `NextStepCard`, `DeadlineChip`, `Timeline`, `PriceSummary`, `BookingRow`, `RequestCard`, `bookingCode()` |
 | `photo.tsx` | `PhotoPicker`, `CameraGuide` |
+| `discover.tsx` | `Rail` (faixa horizontal, só aparece com itens), `TrustStrip`, `QuickSearches`, `PublishPromo`, `ReviewsSection` |
 
 ### Estados obrigatórios
 Explorar, Reservas, Pedidos, Equipamentos e filas do Admin têm sempre: **vazio** (`EmptyState` + uma ação), **a carregar** (skeleton com a forma do conteúdo, `role="status"`) e **erro** (`ErrorState` com "Tentar outra vez").
@@ -107,3 +112,12 @@ Explorar, Reservas, Pedidos, Equipamentos e filas do Admin têm sempre: **vazio*
 ## 8. Ícones e imagem
 
 Lucide (`lucide-react`), traço 1.8, 20–24px. Sem emoji. Fotos 4:3 com `rounded-cartao`; sem foto → `areia-2` + ícone da categoria.
+
+## Changelog
+
+| Data | O quê | Porquê | Impacto no código |
+|---|---|---|---|
+| 2026-10-24 | Explorar com faixas (Em destaque, Mais alugados, Mais bem avaliados), faixa de confiança, pesquisas rápidas e convite a publicar; herói mais baixo e grelha mais compacta | O ecrã parecia vazio; prova social real ajuda a confiar num desconhecido | `discover.tsx`, `explorar/page.tsx` |
+| 2026-10-24 | Cartão de equipamento com etiqueta "Em destaque", estrelas e nº de alugueres ("Novo na Beeznoo" sem avaliações) | Mostrar dados reais da API (#21), nunca números inventados | `EquipmentCard`, `ItemSummary.categorySlug` para o ícone sem foto |
+| 2026-10-24 | Detalhe: galeria fixa no desktop, pontos e miniaturas, avaliações, "Mais em {categoria}", botão de destaque para admin | Menos espaço morto ao lado do resumo; avaliações onde se decide | `equipamento/[id]/page.tsx` |
+| 2026-10-24 | Skeleton com brilho; tokens `animate-aparece` e `animate-estrela`; utilitário `faixa` | Carregamento menos agressivo e movimento curto e útil | `globals.css`, `Skeleton` |

@@ -248,6 +248,7 @@ public class ItemService {
                 item.getCity(),
                 item.getStatus().name(),
                 cover,
+                item.getCategory().getSlug(),
                 item.getCreatedAt(),
                 rating.average(),
                 rating.count(),

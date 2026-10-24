@@ -126,7 +126,7 @@ export function Card({ className, ...rest }: React.ComponentProps<"div">) {
 }
 
 export function Skeleton({ className, ...rest }: React.ComponentProps<"div">) {
-  return <div className={cn("animate-pulse rounded-campo bg-skeleton", className)} {...rest} />;
+  return <div className={cn("skeleton-brilho rounded-campo", className)} {...rest} />;
 }
 
 export function SectionTitle({ children, action, className }: { children: React.ReactNode; action?: React.ReactNode; className?: string }) {
