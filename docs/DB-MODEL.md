@@ -1,11 +1,12 @@
 # Modelo de dados — schema atual
 
-Gerado a partir das migrações Flyway **V1–V16** (`api/src/main/resources/db/migration/`), a 2026-10-23.
+Gerado a partir das migrações Flyway **V1–V18** (`api/src/main/resources/db/migration/`), a 2026-10-24.
 As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
 A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
 
 Valores monetários em `NUMERIC(12,2)` (Kz; taxa e retenções em kwanzas inteiros). Datas de aluguer em `DATE`; instantes em `TIMESTAMPTZ`.
-Tabelas **append-only** (trigger bloqueia `UPDATE`/`DELETE`): `ledger_entries`, `kyc_decisions`, `audit_logs`.
+Tabelas **append-only** (trigger bloqueia `UPDATE`/`DELETE`): `ledger_entries`, `kyc_decisions`, `audit_logs`, `security_events`.
+`reviews` não se alteram (trigger bloqueia `UPDATE`).
 Ficheiros (KYC, fotos, checklists, problemas) ficam no Backblaze B2; a base de dados guarda só a `storage_key`.
 
 ```mermaid
@@ -35,6 +36,11 @@ erDiagram
     PROFILES ||--o{ NOTIFICATIONS : "recebe"
     BOOKINGS ||--o{ NOTIFICATIONS : "sobre"
     PROFILES ||--o{ AUDIT_LOGS : "executa"
+    BOOKINGS ||--o| REVIEWS : "avaliação (1:1)"
+    ITEMS ||--o{ REVIEWS : "avaliado em"
+    PROFILES ||--o{ REVIEWS : "escreve / recebe"
+    PROFILES ||--o{ EMAIL_VERIFICATIONS : "confirma email"
+    PROFILES |o..o{ SECURITY_EVENTS : "sem FK"
 
     PROFILES {
         uuid id PK
@@ -46,6 +52,7 @@ erDiagram
         varchar role "OWNER | RENTER | BOTH | ADMIN"
         varchar account_type "INDIVIDUAL | BUSINESS (V8)"
         boolean is_verified "telefone confirmado — NÃO é KYC"
+        timestamptz email_verified_at "V17; null ao mudar o email"
         numeric rating_avg
     }
     ACCOUNTS {
@@ -89,6 +96,7 @@ erDiagram
         numeric price_per_day
         numeric deposit_amount
         varchar status "ACTIVE | INACTIVE | SUSPENDED | DELETED"
+        timestamptz featured_at "V18; destaque do admin, null = sem destaque"
     }
     ITEM_PHOTOS {
         uuid id PK
@@ -202,9 +210,38 @@ erDiagram
         text reason
         jsonb metadata "sem dados pessoais"
     }
+    REVIEWS {
+        uuid id PK
+        uuid booking_id FK "UK — só reservas COMPLETED"
+        uuid item_id FK
+        uuid reviewer_id FK "arrendatário"
+        uuid owner_id FK
+        smallint rating "1–5"
+        varchar comment "≤ 1000, opcional"
+    }
+    EMAIL_VERIFICATIONS {
+        uuid id PK
+        uuid profile_id FK
+        varchar email
+        text code_hash
+        int attempts "máx. 5"
+        timestamptz expires_at "15 min"
+        timestamptz used_at
+    }
+    SECURITY_EVENTS {
+        uuid id PK
+        varchar type
+        varchar severity "LOW | MEDIUM | HIGH"
+        uuid profile_id "sem FK — sobrevive ao perfil"
+        varchar identifier_hash "SHA-256"
+        varchar ip
+        varchar request_id
+        jsonb details
+    }
 ```
 
-Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códigos OTP com hash), `google_pending_signups` (registo Google à espera do telefone), `oauth_login_codes` (código de 60 s do login Google, só o hash), `item_availability` (ainda sem endpoints — ver `BACKEND_GAPS.md` #8).
+Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códigos OTP com hash), `google_pending_signups` (registo Google à espera do telefone), `oauth_login_codes` (código de 60 s do login Google, só o hash), `item_availability` (ainda sem endpoints — ver `BACKEND_GAPS.md` #8),
+`rate_limit_counters` (limites de pedidos com `RATE_LIMIT_STORE=database`, chave em SHA-256).
 
 ## Migrações
 
@@ -226,3 +263,5 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V14 | `deposits` (com backfill a partir do ledger) |
 | V15 | `incident_reports`, `incident_photos` |
 | V16 | `oauth_login_codes` (código de uso único do login Google) |
+| V17 | Segurança, 2.ª ronda: `security_events` (append-only), `email_verifications`, `profiles.email_verified_at`, `rate_limit_counters`; notificação `SECURITY_ALERT`; OTP `ADMIN_LOGIN` |
+| V18 | `reviews` (1 por reserva concluída, imutável), `items.featured_at`; índice `bookings(item_id, status)` |

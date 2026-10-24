@@ -77,7 +77,7 @@ api/                              # Backend Spring Boot (pacote com.beeznoo.api)
 │   ├── notification/  audit/      # notificações (app + email), auditoria
 │   ├── common/                    # storage (B2), formatos, erros
 │   └── seed/                      # dados de demonstração (perfil "seed")
-├── src/main/resources/db/migration/   # migrações Flyway V1–V16 (única fonte do schema)
+├── src/main/resources/db/migration/   # migrações Flyway V1–V18 (única fonte do schema)
 └── src/test/                      # testes de integração com Testcontainers
 frontend/                         # Next.js
 ├── src/app/                       # rotas (App Router) — ver docs/ECRAS.md
