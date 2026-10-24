@@ -7,8 +7,8 @@ services:
     # URL público: https://beeznoo.onrender.com (o frontend usa-o em API_URL na Vercel)
     name: beeznoo
     runtime: docker
-    # Frankfurt: a região do Render mais perto de Luanda e do Neon (eu-central-1)
-    region: frankfurt
+    # Mesma região do Neon (us-east-2, Ohio): cada query fica a ~1 ms em vez de ~100 ms através do Atlântico
+    region: ohio
     # Grátis: adormece após 15 min sem pedidos; o primeiro pedido a seguir demora ~1 min (ver docs/SERVICOS_EXTERNOS.md)
     plan: free
     branch: main
@@ -61,7 +61,7 @@ services:
       - key: OMBALA_TOKEN
         sync: false
       - key: OMBALA_SENDER
-        value: Beeznoo
+        sync: false            # remetente aprovado na Ombala
 
       # ---- Storage privado (Backblaze B2) ----
       - key: B2_ENDPOINT

@@ -28,9 +28,9 @@ estar configurado em staging e produção. Variáveis em `.env.example`; control
 
 A configuração está em `render.yaml` (Blueprint) e a imagem em `api/Dockerfile`.
 
-1. **Neon:** criar o projeto (região `eu-central-1`, Frankfurt) e anotar duas ligações: a *pooled*
+1. **Neon:** o projeto está em `us-east-2` (Ohio) — o serviço do Render tem de estar na região **Ohio**. Anotar duas ligações: a *pooled*
    (`…-pooler.…neon.tech`, para a app) e a direta (para as migrações Flyway).
-2. **Render → New → Blueprint** e escolher o repo. O Render lê o `render.yaml` e pede os valores com `sync: false`:
+2. **Render → New → Blueprint** e escolher o repo (ou, num serviço já criado, Environment → **Add from .env** com o `.env.render` local, que o Git ignora). O Render pede os valores com `sync: false`:
    - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`: os da ligação *pooled*;
    - `SPRING_FLYWAY_URL` (`jdbc:postgresql://<host direto>/<db>?sslmode=require`), `SPRING_FLYWAY_USER`, `SPRING_FLYWAY_PASSWORD`;
    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `OMBALA_TOKEN`, `B2_*`, `RESEND_API_KEY`.

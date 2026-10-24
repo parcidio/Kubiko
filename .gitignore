@@ -1,6 +1,7 @@
-# Ambiente / segredos
+# Ambiente / segredos (só os .env.example vão para o Git)
 .env
-.env.local
+.env.*
+!.env.example
 
 # Maven
 target/
