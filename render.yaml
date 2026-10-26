@@ -11,7 +11,8 @@ services:
     region: ohio
     # Grátis: adormece após 15 min sem pedidos; o primeiro pedido a seguir demora ~1 min (ver docs/SERVICOS_EXTERNOS.md)
     plan: free
-    branch: main
+    # Staging: cada push para "staging" faz deploy sem esperar pela aprovação do PR para main
+    branch: staging
     dockerfilePath: ./api/Dockerfile
     dockerContext: ./api
     healthCheckPath: /actuator/health
