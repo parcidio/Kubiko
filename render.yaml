@@ -56,9 +56,9 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
-        value: https://beeznoo.ao/login/oauth2/code/google   # o Next faz proxy para a API; igual ao da Google Cloud
+        value: https://staging.beeznoo.ao/login/oauth2/code/google   # o Next faz proxy para a API; igual ao da Google Cloud
       - key: FRONTEND_URL
-        value: https://beeznoo.ao
+        value: https://staging.beeznoo.ao
       - key: OMBALA_TOKEN
         sync: false
       - key: OMBALA_SENDER

@@ -34,10 +34,13 @@ A configuração está em `render.yaml` (Blueprint) e a imagem em `api/Dockerfil
    - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`: os da ligação *pooled*;
    - `SPRING_FLYWAY_URL` (`jdbc:postgresql://<host direto>/<db>?sslmode=require`), `SPRING_FLYWAY_USER`, `SPRING_FLYWAY_PASSWORD`;
    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `OMBALA_TOKEN`, `B2_*`, `RESEND_API_KEY`.
-   O `JWT_SECRET` é gerado pelo Render; `FRONTEND_URL` e `GOOGLE_REDIRECT_URI` já vêm com `https://beeznoo.ao`.
-3. **Vercel:** `API_URL=https://beeznoo.onrender.com` e `NEXT_PUBLIC_API_URL` **vazio**.
+   O `JWT_SECRET` é gerado pelo Render; `FRONTEND_URL` e `GOOGLE_REDIRECT_URI` já vêm com `https://staging.beeznoo.ao`
+   (este serviço é o de **staging**; a produção terá o seu, com `https://beeznoo.ao`).
+3. **Vercel:** `API_URL=https://beeznoo.onrender.com` (ambiente **Preview**, branch `staging`, e Production) e `NEXT_PUBLIC_API_URL` **vazio**.
+   Domínios: `staging.beeznoo.ao` → branch `staging`; `beeznoo.ao` → `main`.
    O Next faz proxy de `/api/v1`, `/oauth2/authorization` e `/login/oauth2` para a API: o browser só vê `beeznoo.ao`.
-4. **Google Cloud → Credenciais → cliente OAuth:** *redirect URI* autorizado `https://beeznoo.ao/login/oauth2/code/google`
+4. **Google Cloud → Credenciais → cliente OAuth:** *redirect URIs* autorizados `https://staging.beeznoo.ao/login/oauth2/code/google`,
+   `https://beeznoo.ao/login/oauth2/code/google`
    (e `http://localhost:3000/login/oauth2/code/google` para desenvolvimento).
 5. Primeiro deploy: o Flyway aplica V1–V18. Confirmar `https://beeznoo.onrender.com/actuator/health` → `{"status":"UP"}`.
 
