@@ -12,6 +12,12 @@ export class ApiError extends Error {
 
 const NETWORK_ERROR = "Sem ligação. Verifica a internet e tenta outra vez.";
 
+// Origem da API no browser. Vazio = mesma origem (o Next faz proxy de /api/v1 — desenvolvimento local).
+// Staging: https://beeznoo.onrender.com (a API tem CORS para o front). Ver claude/decisoes-produto.md (2026-10-26).
+const API_ORIGIN = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+// Noutro domínio o cookie bz_refresh só vai com "include"
+const CREDENTIALS: RequestCredentials = API_ORIGIN ? "include" : "same-origin";
+
 async function parseError(res: Response): Promise<ApiError> {
   try {
     const body = await res.json();
@@ -29,11 +35,11 @@ const CLIENT_HEADER = { "X-Beeznoo-Client": "web" };
 async function refreshTokens(): Promise<boolean> {
   const session = readSession();
   if (!session) return false;
-  // o cookie bz_refresh vai sozinho (mesma origem, via proxy do Next)
-  refreshing ??= fetch("/api/v1/auth/refresh", {
+  // o cookie bz_refresh vai sozinho (httpOnly); o cabeçalho do cliente web é obrigatório quando o cookie é entre domínios
+  refreshing ??= fetch(`${API_ORIGIN}/api/v1/auth/refresh`, {
     method: "POST",
     headers: CLIENT_HEADER,
-    credentials: "same-origin",
+    credentials: CREDENTIALS,
   })
     .then(async (res) => {
       if (!res.ok) {
@@ -57,7 +63,7 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
 
   let res: Response;
   try {
-    res = await fetch(`/api/v1${path}`, { ...init, headers, credentials: "same-origin" });
+    res = await fetch(`${API_ORIGIN}/api/v1${path}`, { ...init, headers, credentials: CREDENTIALS });
   } catch {
     throw new ApiError(0, NETWORK_ERROR);
   }

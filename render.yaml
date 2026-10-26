@@ -56,7 +56,7 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_REDIRECT_URI
-        value: https://staging.beeznoo.ao/login/oauth2/code/google   # o Next faz proxy para a API; igual ao da Google Cloud
+        value: https://beeznoo.onrender.com/login/oauth2/code/google   # callback na API (sem proxy); igual ao da Google Cloud
       - key: FRONTEND_URL
         value: https://staging.beeznoo.ao
       - key: OMBALA_TOKEN
@@ -93,6 +93,11 @@ services:
         value: "false"
       - key: SESSION_COOKIE_SECURE
         value: "true"
+      # Front (staging.beeznoo.ao) e API (onrender.com) em domínios diferentes: CORS + cookie do refresh SameSite=None
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://staging.beeznoo.ao
+      - key: REFRESH_COOKIE_SAME_SITE
+        value: None
       - key: ADMIN_MFA_ENABLED
         value: "true"
       - key: RATE_LIMITS_ENABLED
@@ -100,4 +105,4 @@ services:
       - key: RATE_LIMIT_STORE
         value: memory          # uma instância; "database" se escalar para várias
       - key: RATE_LIMIT_TRUSTED_PROXIES
-        value: "2"             # browser → Vercel → Render → API (confirmar a cadeia)
+        value: "1"             # browser → Render → API (o front chama a API diretamente)

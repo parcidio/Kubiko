@@ -34,13 +34,12 @@ A configuração está em `render.yaml` (Blueprint) e a imagem em `api/Dockerfil
    - `DB_HOST`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`: os da ligação *pooled*;
    - `SPRING_FLYWAY_URL` (`jdbc:postgresql://<host direto>/<db>?sslmode=require`), `SPRING_FLYWAY_USER`, `SPRING_FLYWAY_PASSWORD`;
    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `OMBALA_TOKEN`, `B2_*`, `RESEND_API_KEY`.
-   O `JWT_SECRET` é gerado pelo Render; `FRONTEND_URL` e `GOOGLE_REDIRECT_URI` já vêm com `https://staging.beeznoo.ao`
-   (este serviço é o de **staging**; a produção terá o seu, com `https://beeznoo.ao`).
-3. **Vercel:** `API_URL=https://beeznoo.onrender.com` (ambiente **Preview**, branch `staging`, e Production) e `NEXT_PUBLIC_API_URL` **vazio**.
-   Domínios: `staging.beeznoo.ao` → branch `staging`; `beeznoo.ao` → `main`.
-   O Next faz proxy de `/api/v1`, `/oauth2/authorization` e `/login/oauth2` para a API: o browser só vê `beeznoo.ao`.
-4. **Google Cloud → Credenciais → cliente OAuth:** *redirect URIs* autorizados `https://staging.beeznoo.ao/login/oauth2/code/google`,
-   `https://beeznoo.ao/login/oauth2/code/google`
+   O `JWT_SECRET` é gerado pelo Render; `FRONTEND_URL` (`https://staging.beeznoo.ao`) e `GOOGLE_REDIRECT_URI` já vêm preenchidos
+   (este serviço é o de **staging**; a produção terá o seu).
+3. **Vercel (staging):** `NEXT_PUBLIC_API_URL=https://beeznoo.onrender.com` (ambiente Preview, branch `staging`) e redeploy —
+   o browser chama a API diretamente (decisão de 2026-10-26). Domínio `staging.beeznoo.ao` → branch `staging`.
+   No Render: `CORS_ALLOWED_ORIGINS=https://staging.beeznoo.ao` e `REFRESH_COOKIE_SAME_SITE=None` (já no `render.yaml`).
+4. **Google Cloud → Credenciais → cliente OAuth:** *redirect URI* autorizado `https://beeznoo.onrender.com/login/oauth2/code/google`
    (e `http://localhost:3000/login/oauth2/code/google` para desenvolvimento).
 5. Primeiro deploy: o Flyway aplica V1–V18. Confirmar `https://beeznoo.onrender.com/actuator/health` → `{"status":"UP"}`.
 
@@ -59,3 +58,9 @@ O B2 não suporta tudo o que o SDK envia por omissão (ver `B2StorageService`). 
 3. Apagar a foto e confirmar no painel do B2 que o ficheiro desapareceu.
 
 Se algum passo falhar, não fazer merge.
+
+## Limitação de staging: cookie de terceiros
+
+Com o front em `staging.beeznoo.ao` e a API em `onrender.com`, o cookie do refresh é de terceiros para o browser.
+Safari (e Chrome com cookies de terceiros bloqueados) não o envia: a sessão dura só os 15 min do access token.
+Antes da produção: domínio da API em `api.beeznoo.ao` (Render → Custom Domains + CNAME) ou voltar ao proxy do Next.

@@ -280,3 +280,24 @@ recebem avaliação; mais pedidos de reserva por visita ao Detalhe (comparar 4 s
 3. **Destaques sem anúncios:** `items.featured_at` posto pelo admin (`PATCH /admin/items/{id}/featured`, com auditoria).
    `GET /items?featured=true` e `GET /items?order=POPULAR` (nº de reservas concluídas) e `order=RATING`.
 4. **Frontend:** faixas "Em destaque", "Mais alugados" e "Novidades" no Explorar; cada faixa só aparece se tiver itens.
+
+---
+
+## 2026-10-26 — Staging: frontend chama a API diretamente (sem proxy da Vercel)
+
+**Contexto.** Staging tem o front na Vercel (`staging.beeznoo.ao`) e a API no Render (`beeznoo.onrender.com`).
+O desenho anterior fazia o Next servir de proxy de `/api/v1` e do login Google. A equipa prefere, por agora, que o browser
+chame a API diretamente (decisão do Victor nesta data — ⚑ validar com o André).
+
+**Decisões:**
+1. `NEXT_PUBLIC_API_URL` define a origem da API no browser; vazio = mesma origem com o proxy do Next (desenvolvimento local).
+2. **CORS** na API só para as origens em `CORS_ALLOWED_ORIGINS` (com credenciais). Vazio = sem CORS.
+3. Cookie do refresh com `SameSite` configurável (`REFRESH_COOKIE_SAME_SITE`): `None` em staging (domínios diferentes),
+   `Strict` por omissão. Com `None`, o `/auth/refresh` só aceita o cookie se vier o cabeçalho `X-Beeznoo-Client: web`
+   (obriga a preflight CORS → um site de terceiros não consegue usar o cookie).
+4. Login Google com callback na API: `https://beeznoo.onrender.com/login/oauth2/code/google`.
+
+**Consequências.** Para o browser, o cookie em `onrender.com` é de terceiros: Safari (e Chrome com bloqueio de cookies de
+terceiros) não o envia → nesses browsers a sessão acaba ao fim de 15 min (access token) e é preciso entrar outra vez.
+**Saída recomendada antes da produção:** domínio próprio da API (`api.beeznoo.ao`) — fica no mesmo site que `beeznoo.ao`
+e o cookie deixa de ser de terceiros — ou voltar ao proxy.

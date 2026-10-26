@@ -3,6 +3,7 @@ package com.beeznoo.api.config;
 import com.beeznoo.api.auth.security.JwtAuthFiltter;
 import com.beeznoo.api.auth.security.OAuth2SuccessHandler;
 import com.beeznoo.api.common.security.RateLimitFilter;
+import com.beeznoo.api.common.security.SecurityProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -24,6 +25,12 @@ import org.springframework.security.web.header.writers.ContentSecurityPolicyHead
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.time.Duration;
+import java.util.List;
 
 /**
  * Ver claude/decisoes-produto.md (2026-10-23, segurança) e docs/SEGURANCA.md.
@@ -43,6 +50,7 @@ public class SecurityConfig {
     private final JwtAuthFiltter jwtAuthFiltter;
     private final RateLimitFilter rateLimitFilter;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final SecurityProperties securityProperties;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -52,6 +60,8 @@ public class SecurityConfig {
         RequestMatcher api = PathPatternRequestMatcher.withDefaults().matcher("/api/**");
 
         return http
+                // Só as origens de CORS_ALLOWED_ORIGINS (vazio = nenhuma): o front em staging chama a API noutro domínio
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
@@ -103,6 +113,22 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthFiltter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(rateLimitFilter, JwtAuthFiltter.class)
                 .build();
+    }
+
+    CorsConfigurationSource corsConfigurationSource() {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        List<String> origins = securityProperties.corsOrigins();
+        if (origins.isEmpty()) return source;
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOrigins(origins);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Beeznoo-Client", "X-Request-Id"));
+        config.setExposedHeaders(List.of("Retry-After", "X-Request-Id"));
+        // cookie do refresh (bz_refresh) entre domínios
+        config.setAllowCredentials(true);
+        config.setMaxAge(Duration.ofHours(1));
+        source.registerCorsConfiguration("/api/**", config);
+        return source;
     }
 
     // Os dois filtros são @Component: sem isto o Spring Boot registava-os também fora da cadeia de segurança

@@ -65,6 +65,8 @@ chaves em SHA-256 — para várias instâncias). Resposta `429` com `Retry-After
   Outros estados: `pending_phone`, `email_in_use`, `error`.
 - Tratar `429` (mostrar a mensagem e respeitar `Retry-After`) e renovar o token com `/auth/refresh` ao receber `401`.
 - Refresh token em cookie `httpOnly` (o browser envia-o sozinho para `/api/v1/auth/*`); só o access token (15 min) fica no browser.
+- Front noutro domínio (staging): CORS só para `CORS_ALLOWED_ORIGINS`, cookie com `SameSite=None` e o `/auth/refresh` só aceita o
+  cookie com `X-Beeznoo-Client: web` (força preflight → proteção CSRF). Ver `docs/SERVICOS_EXTERNOS.md`.
 - Login de ADMIN: a resposta traz `mfaRequired` + `mfaToken` → `POST /auth/login/mfa { mfaToken, code }` (`AdminMfaStep`).
 
 ## Em aberto

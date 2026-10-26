@@ -4,19 +4,27 @@ import type { NextConfig } from "next";
 // Evita CORS no backend e não expõe o URL interno da API.
 const apiUrl = process.env.API_URL ?? "http://localhost:8080";
 const isDev = process.env.NODE_ENV !== "production";
+// Origem da API quando o browser a chama diretamente (staging); vazio = só o proxy abaixo
+const publicApiOrigin = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_API_URL ? new URL(process.env.NEXT_PUBLIC_API_URL).origin : "";
+  } catch {
+    return "";
+  }
+})();
 
 // Cabeçalhos de segurança (OWASP A02/A05). Ver docs/SEGURANCA.md.
 // - imagens: as fotos e documentos vêm de URLs assinadas do Backblaze B2 (*.backblazeb2.com)
 // - scripts: o Next precisa de 'unsafe-inline' para os scripts de hidratação (sem nonce no MVP);
 //   em desenvolvimento também 'unsafe-eval' (React Refresh)
-// - o login Google é uma navegação para /oauth2/... (proxy para a API), não um pedido — não precisa de connect-src externo
+// - o login Google é uma navegação (para a API ou pelo proxy), não um pedido — não precisa de connect-src
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://*.backblazeb2.com",
   "font-src 'self' data:",
-  `connect-src 'self'${isDev ? " ws: http://localhost:*" : ""}`,
+  `connect-src 'self'${publicApiOrigin ? ` ${publicApiOrigin}` : ""}${isDev ? " ws: http://localhost:*" : ""}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

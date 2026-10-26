@@ -136,6 +136,10 @@ app:
     admin-mfa-enabled: ${ADMIN_MFA_ENABLED:true}
     # Secure nos cookies (refresh e sessão OAuth2); false só em http://localhost
     cookie-secure: ${SESSION_COOKIE_SECURE:true}
+    # Strict com o proxy do Next (mesma origem); None quando o front chama a API noutro domínio (staging)
+    cookie-same-site: ${REFRESH_COOKIE_SAME_SITE:Strict}
+    # Origens do frontend que podem chamar a API pelo browser (ex.: https://staging.beeznoo.ao). Vazio = sem CORS
+    cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:}
     # nº de proxies à frente da API que acrescentam ao X-Forwarded-For (0 em local; Vercel + Render = 2)
     trusted-proxies: ${RATE_LIMIT_TRUSTED_PROXIES:0}
     max-json-bytes: 1048576

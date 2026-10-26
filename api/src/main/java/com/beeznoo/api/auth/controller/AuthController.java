@@ -150,8 +150,11 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody(required = false) RefreshRequest request,
                                                 HttpServletRequest http, HttpServletResponse response) {
-        String raw = request != null && request.refreshToken() != null && !request.refreshToken().isBlank()
-                ? request.refreshToken() : readRefreshCookie(http);
+        boolean inBody = request != null && request.refreshToken() != null && !request.refreshToken().isBlank();
+        // Com SameSite=None o browser manda o cookie de qualquer site: só o aceitamos com o cabeçalho do cliente web,
+        // que obriga a preflight CORS (um site de terceiros não passa) — proteção CSRF do /refresh
+        boolean cookieAllowed = !securityProperties.crossSiteCookie() || "web".equalsIgnoreCase(http.getHeader(CLIENT_HEADER));
+        String raw = inBody ? request.refreshToken() : cookieAllowed ? readRefreshCookie(http) : null;
         if (raw == null) throw new IllegalArgumentException("Sessão expirada. Entra outra vez.");
         return tokens(authService.refresh(raw), http, response);
     }
@@ -295,8 +298,8 @@ public class AuthController {
         return ResponseCookie.from(REFRESH_COOKIE, value)
                 .httpOnly(true)
                 .secure(securityProperties.cookieSecure())
-                // Strict: o browser nunca o envia num pedido vindo de outro site (sem CSRF no /refresh)
-                .sameSite("Strict")
+                // Strict por omissão (mesma origem pelo proxy do Next); None em staging, com o /refresh protegido acima
+                .sameSite(securityProperties.refreshCookieSameSite())
                 .path(COOKIE_PATH)
                 .maxAge(maxAge)
                 .build();

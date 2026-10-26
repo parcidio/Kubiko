@@ -86,8 +86,8 @@ export function ResendCode({ onResend }: { onResend: () => Promise<void> }) {
 }
 
 export function GoogleButton({ label = "Continuar com Google" }: { label?: string }) {
-  // Por omissão a mesma origem (o Next faz proxy para a API). NEXT_PUBLIC_API_URL só para apontar diretamente à API em local.
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "";
+  // NEXT_PUBLIC_API_URL = origem da API (staging: https://beeznoo.onrender.com). Vazio = mesma origem, pelo proxy do Next.
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
   return (
     <a href={`${base}/oauth2/authorization/google`} className={buttonClass("outline", "md", true)}>
       <svg viewBox="0 0 24 24" className="size-5" aria-hidden>
