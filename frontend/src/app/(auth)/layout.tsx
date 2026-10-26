@@ -1,3 +1,5 @@
+"use client";
+
 import { BadgeCheck, ShieldCheck, Ticket } from "lucide-react";
 import { HexGlow, Logo } from "@/components/bz/brand";
 
