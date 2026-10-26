@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -201,12 +200,19 @@
 @utility num {
   font-variant-numeric: tabular-nums;
 }
-/* ── Identidade Verde (CLAUDE.md §7) — usar nos ecrãs da app (auth, arrendatário, dono) ── */
+/* ── Identidade Verde v3 — ecrãs da app (docs/DESIGN_SYSTEM.md). A landing usa as variáveis acima. ── */
+/* Fontes da app: --bz-display / --bz-sans são definidas no <html> a partir do next/font (layout.tsx) */
+@theme inline {
+  --font-titulo: var(--bz-display), ui-sans-serif, system-ui, sans-serif;
+  --font-corpo:  var(--bz-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
 @theme {
   --color-ambar:        #F0A22E;
   --color-ambar-hover:  #E08F17;
   --color-ambar-tint:   #FDF0DC;
   --color-aviso-texto:  #7A4A0B;
+  --color-verde-noite:  #081A13;
   --color-verde:        #0E2A1F;
   --color-verde-medio:  #1F5C42;
   --color-areia:        #FAF6EF;
@@ -224,10 +230,51 @@
   --color-erro-tint:    #FBEAE8;
   --color-skeleton:     #ECE6DA;
 
-  --font-heading: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --radius-campo:  12px;
+  --radius-cartao: 16px;
+  --radius-sheet:  24px;
 
-  --radius-bz-sm: 3px;
-  --radius-bz-md: 4px;
+  --shadow-flutua: 0 16px 40px -16px rgba(8, 26, 19, .35);
+  --shadow-cta:    0 -8px 24px rgba(14, 42, 31, .12);
 
-  --shadow-cta: 0 -8px 24px rgba(14, 42, 31, .12);
+  --animate-sobe:  sobe 280ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-sheet: sheet 320ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-pulso: pulso 1.6s ease-in-out infinite;
+
+  @keyframes sobe {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes sheet {
+    from { transform: translateY(100%); }
+    to   { transform: none; }
+  }
+  @keyframes pulso {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: .35; }
+  }
+}
+
+@utility app {
+  background-color: var(--color-areia);
+  color: var(--color-texto-corpo);
+  font-family: var(--font-corpo);
+  font-size: 15px;
+  line-height: 1.5;
+  @media (width >= 48rem) { font-size: 16px; }
+}
+
+/* Fundo de colmeia para heróis escuros (ver HexPattern em components/bz/brand.tsx) */
+@utility hex-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='98' viewBox='0 0 56 98'%3E%3Cpath d='M28 66 0 50V18L28 2l28 16v32zM28 98 0 82V50' fill='none' stroke='%23F0A22E' stroke-opacity='.10' stroke-width='1.4'/%3E%3C/svg%3E");
+  background-size: 56px 98px;
+}
+
+@layer base {
+  dialog::backdrop { background: rgba(8, 26, 19, .55); }
+  :where(.app) :focus-visible { outline: 3px solid var(--color-verde-medio); outline-offset: 2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }

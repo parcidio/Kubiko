@@ -1,0 +1,155 @@
+[[IgnoredVulns]]
+id = "GHSA-7hhh-6rmp-j9qf"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-p6pp-m3f8-5c89"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-cxp5-3px4-pw24"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-gx83-3vf8-gh7j"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-q4xh-88c3-wmh7"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-wjgm-6hv5-3cvf"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-wv8q-qhhj-9h54"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-5m9f-rphj-c435"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-5xwg-cfvj-gff5"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-68mj-5wr7-6fgg"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-6g32-pxv4-2wfj"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-7822-rcf6-97fx"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-93j5-89vc-pph4"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-cqgh-8p3p-mx4m"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-h6w7-qmcm-q6xr"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-jh4v-gfqj-7rhx"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-qx7j-jv8m-fppr"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-78wr-2p64-hpwj"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-crwc-vw2r-qr6m"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-9xv2-5v5q-p794"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-gcx9-497g-6cp6"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-h3x4-894j-xpx5"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-6j4f-fj2g-mc7p"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-q2hr-2g5m-vwhr"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-qhr7-859c-m2p7"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-2464-fhr4-w9xw"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-39w2-rjm5-chcv"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-3w37-wq28-93x7"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-4jqv-mc3x-m676"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-673q-mjm6-r5xr"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-cjq9-62q9-8jv4"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-f87g-xv8r-7p7x"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-h694-7cp9-m8p3"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-mcj8-r9mp-w47p"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-p3m5-59mp-jv5r"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-vcvr-r3jv-pc5j"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-wq5f-xc86-pv6w"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-68fv-2mgg-jv7q"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."
+
+[[IgnoredVulns]]
+id = "GHSA-mrhx-c7xc-m3w5"
+reason = "Baseline de vulnerabilidades existentes no repositório; acompanhar correção por atualização de dependências."

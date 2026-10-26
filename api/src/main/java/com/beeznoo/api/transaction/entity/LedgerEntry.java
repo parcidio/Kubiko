@@ -36,6 +36,11 @@ public class LedgerEntry {
     @JoinColumn(name = "booking_id", updatable = false)
     private Booking booking;
 
+    // nullable: só os movimentos da liquidação de um pagamento por referência o têm
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "payment_id", updatable = false)
+    private Payment payment;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30, updatable = false)
     private EntryType type;

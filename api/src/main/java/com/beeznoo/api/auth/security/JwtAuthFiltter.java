@@ -47,6 +47,7 @@ public class JwtAuthFiltter  extends OncePerRequestFilter {
             // UUID (não String): os controllers recebem @AuthenticationPrincipal UUID profileId
             UUID profileId = UUID.fromString(claims.getSubject());
             String role = claims.get("role", String.class);
+            if (role == null || role.isBlank()) throw new JwtException("Token sem papel");
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
@@ -56,7 +57,9 @@ public class JwtAuthFiltter  extends OncePerRequestFilter {
                     );
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (JwtException | IllegalArgumentException e) {
-            log.debug("JWT inválido {}", e.getMessage());
+            // sem o token nem o motivo detalhado no log; o pedido segue sem autenticação (→ 401 nas rotas protegidas)
+            SecurityContextHolder.clearContext();
+            log.debug("JWT recusado ({})", e.getClass().getSimpleName());
         }
 
         filterChain.doFilter(request, response);

@@ -1,6 +1,88 @@
-# Kubiko — Fluxogramas (Mermaid)
+# Beeznoo — Fluxogramas (Mermaid)
 
-## 1. Fluxo Macro (Fase 0 → Fase 1 → Fase 2)
+> **Atualizado a 2026-10-23.** A secção "Fluxos atuais" descreve o que está implementado no backend
+> (ver `claude/decisoes-produto.md` e `docs/DB-MODEL.md`). As secções "Inicial" abaixo são o desenho da fase de
+> planeamento e ficam como histórico — onde divergirem, valem os fluxos atuais.
+
+## Fluxos atuais
+
+### Reserva
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING_OWNER: arrendatário pede (KYC aprovado)
+    PENDING_OWNER --> ACCEPTED: dono aceita → contrato gerado
+    PENDING_OWNER --> CANCELLED_OWNER: dono recusa
+    PENDING_OWNER --> CANCELLED_RENTER: arrendatário cancela
+    ACCEPTED --> CANCELLED_OWNER: dono cancela (referência aberta cancelada)
+    ACCEPTED --> ACTIVE: arrendatário aceita contrato + pagamento confirmado (gateway ou admin)
+    ACTIVE --> IN_PROGRESS: checklist de entrega confirmada pela outra parte
+    IN_PROGRESS --> RETURNED: checklist de devolução confirmada pela outra parte
+    ACTIVE --> DISPUTED: problema reportado
+    IN_PROGRESS --> DISPUTED: problema reportado
+    RETURNED --> DISPUTED: problema reportado
+    RETURNED --> COMPLETED: admin liberta ou retém a caução
+    DISPUTED --> COMPLETED: admin liberta ou retém a caução
+    COMPLETED --> [*]
+```
+
+### Pagamento por referência (simulado no MVP)
+
+```mermaid
+stateDiagram-v2
+    [*] --> AWAITING_PAYMENT: arrendatário gera referência (validade 24 h)
+    AWAITING_PAYMENT --> CONFIRMED: "Já paguei" + gateway confirma, ou admin valida
+    AWAITING_PAYMENT --> EXPIRED: agendador (a cada minuto)
+    AWAITING_PAYMENT --> CANCELLED: reserva cancelada
+    AWAITING_PAYMENT --> FAILED: gateway recusa
+    CONFIRMED --> [*]: ledger TOPUP → SERVICE_FEE → HOLD/DEPOSIT_HOLD → PAYMENT_DEBIT/CREDIT
+```
+
+### Caução
+
+```mermaid
+stateDiagram-v2
+    [*] --> HELD: pagamento confirmado
+    HELD --> RELEASED: admin liberta (tudo volta ao arrendatário)
+    HELD --> WITHHELD: admin retém parte ou tudo (motivo obrigatório; vai para o dono)
+```
+
+### KYC
+
+```mermaid
+stateDiagram-v2
+    [*] --> PENDING: submete documentos
+    PENDING --> IN_REVIEW: admin START_REVIEW
+    PENDING --> APPROVED
+    IN_REVIEW --> APPROVED: admin aprova
+    PENDING --> REJECTED
+    IN_REVIEW --> REJECTED: admin recusa (motivo)
+    PENDING --> INFO_REQUESTED
+    IN_REVIEW --> INFO_REQUESTED: admin pede informação (nota)
+    INFO_REQUESTED --> PENDING: reenvia documentos (mesma verificação)
+    REJECTED --> [*]: pode submeter uma nova
+```
+
+### Notificações
+
+```mermaid
+sequenceDiagram
+    participant S as Serviço de domínio
+    participant N as NotificationService
+    participant DB as Postgres
+    participant L as Listener (@Async, depois do commit)
+    participant R as Resend
+    S->>N: evento (ex.: bookingAccepted)
+    N->>DB: INSERT notifications (mesma transação)
+    N-->>L: EmailRequested (só se email ligado e perfil com email)
+    Note over S,DB: commit da operação
+    L->>R: POST /emails (Idempotency-Key = id)
+    L->>DB: email_status = SENT | FAILED
+    Note over DB: o frontend lê o histórico por polling (GET /notifications/me)
+```
+
+
+## Inicial 1. Fluxo Macro (Fase 0 → Fase 1 → Fase 2)
 
 ```mermaid
 flowchart TD
@@ -28,15 +110,15 @@ flowchart TD
     T --> U[Devolucao do equipamento]
     U --> V{Houve incidente?}
     V -->|Nao| W[Caucao RETURNED]
-    V -->|Sim| X[Sinistro aberto em /sinistros]
+    V -->|Sim| X[Problema reportado aberto em /problemas reportados]
     W --> Y[Reserva COMPLETED - conta para a North Star Metric]
-    X --> Z[Resolucao do sinistro pelo operador em /admin]
+    X --> Z[Resolucao do problema reportado pelo operador em /admin]
     Z --> Y
 ```
 
 ---
 
-## 2. Fluxo Detalhado — Reserva e Checkout (Fase 2, MVP Transacional)
+## Inicial 2. Fluxo Detalhado — Reserva e Checkout (Fase 2, MVP Transacional)
 
 ```mermaid
 flowchart TD
@@ -92,7 +174,7 @@ flowchart TD
 
 ---
 
-## 3. Fluxo Detalhado — Sinistro e Devolução de Caução
+## Inicial 3. Fluxo Detalhado — Problema reportado e Devolução de Caução
 
 ```mermaid
 flowchart TD
@@ -103,16 +185,16 @@ flowchart TD
     E --> F[Auditoria: libertacao de caucao registada]
     F --> G[Evento transaction.deposit_released publicado - notifica arrendatario]
 
-    C -->|Sim| H[Utilizador abre sinistro em /sinistros - descricao + fotos]
-    H --> I[Sinistro criado com status OPEN]
-    I --> J[Auditoria: sinistro aberto]
-    J --> K[Operador acede a fila de sinistros em /admin]
-    K --> L[Sinistro passa a UNDER_REVIEW]
+    C -->|Sim| H[Utilizador abre problema reportado em /problemas reportados - descricao + fotos]
+    H --> I[Problema reportado criado com status OPEN]
+    I --> J[Auditoria: problema reportado aberto]
+    J --> K[Operador acede a fila de problemas reportados em /admin]
+    K --> L[Problema reportado passa a UNDER_REVIEW]
     L --> M{Operador decide}
     M -->|Sem responsabilidade do arrendatario| N[Cria transacao DEPOSIT_RELEASE]
     M -->|Dano parcial| O[Cria transacao DEPOSIT_WITHHOLD - valor parcial]
     M -->|Dano total| P[Cria transacao DEPOSIT_WITHHOLD - valor total]
-    N --> Q[Sinistro passa a RESOLVED]
+    N --> Q[Problema reportado passa a RESOLVED]
     O --> Q
     P --> Q
     Q --> R[Auditoria: resolucao registada - ator, valor retido]
@@ -122,7 +204,7 @@ flowchart TD
 
 ---
 
-## 4. State Diagram — Reserva (Booking)
+## Inicial 4. State Diagram — Reserva (Booking)
 
 ```mermaid
 stateDiagram-v2
@@ -136,7 +218,7 @@ stateDiagram-v2
     CANCELLED --> [*]
 ```
 
-## 5. State Diagram — KYC
+## Inicial 5. State Diagram — KYC
 
 ```mermaid
 stateDiagram-v2
@@ -147,7 +229,7 @@ stateDiagram-v2
     APPROVED --> [*]
 ```
 
-## 6. State Diagram — Transação (Ledger, tabela `transactions`)
+## Inicial 6. State Diagram — Transação (Ledger, tabela `transactions`)
 
 ```mermaid
 stateDiagram-v2
@@ -155,18 +237,18 @@ stateDiagram-v2
     PENDING_VERIFICATION --> CONFIRMED: operador confirma o numero contra o extrato EMIS
     PENDING_VERIFICATION --> FAILED: operador rejeita ou numero invalido
     FAILED --> PENDING_VERIFICATION: arrendatario submete novo numero de operacao
-    CONFIRMED --> REVERSED: estorno por cancelamento ou decisao de sinistro
+    CONFIRMED --> REVERSED: estorno por cancelamento ou decisao de problema reportado
     CONFIRMED --> [*]
     REVERSED --> [*]
 ```
 
 Este único diagrama de estados serve para qualquer `type` de transação (`RENTAL_PAYMENT`, `DEPOSIT_HOLD`, `DEPOSIT_RELEASE`, `DEPOSIT_WITHHOLD`, `REFUND`, `PAYOUT`) — o `type` diz _o que_ o movimento representa, o `status` diz _em que ponto_ do ciclo de verificação está.
 
-## 7. State Diagram — Sinistro (Claim)
+## Inicial 7. State Diagram — Problema reportado (Claim)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> OPEN: utilizador abre sinistro
+    [*] --> OPEN: utilizador abre problema reportado
     OPEN --> UNDER_REVIEW: operador inicia analise
     UNDER_REVIEW --> RESOLVED: operador decide desfecho
     RESOLVED --> [*]
@@ -174,7 +256,7 @@ stateDiagram-v2
 
 ---
 
-## 8. Sequence Diagram — Autenticação (JWT + Spring Security)
+## Inicial 8. Sequence Diagram — Autenticação (JWT + Spring Security)
 
 ```mermaid
 sequenceDiagram
@@ -211,7 +293,7 @@ sequenceDiagram
 
 ---
 
-## 9. Sequence Diagram — Pagamento via Multicaixa Express (verificação manual do número de operação)
+## Inicial 9. Sequence Diagram — Pagamento via Multicaixa Express (verificação manual do número de operação)
 
 ```mermaid
 sequenceDiagram
@@ -251,7 +333,7 @@ Este fluxo é **temporário**: assume que a Kubiko ainda não tem integração d
 
 ---
 
-## 10. Sequence Diagram — Mensageria Assíncrona (RabbitMQ) para Notificações
+## Inicial 10. Sequence Diagram — Mensageria Assíncrona (RabbitMQ) para Notificações
 
 ```mermaid
 sequenceDiagram

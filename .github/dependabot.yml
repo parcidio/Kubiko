@@ -1,0 +1,25 @@
+# Atualizações de dependências (OWASP A03 — cadeia de fornecimento). Ver docs/SEGURANCA.md.
+# Os PRs do Dependabot passam pelo mesmo CI e review cruzado que os outros.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /api
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      spring:
+        patterns: ["org.springframework*"]
+    # AWS SDK (B2): atualiza normalmente; B2StorageService fixa as checksums em WHEN_REQUIRED.
+    # Antes de fazer merge de um PR do SDK, correr o teste manual do bucket (docs/SERVICOS_EXTERNOS.md).
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

@@ -52,10 +52,14 @@ function useCountdown(target: Date) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
-    // Só corre no cliente — define o valor real imediatamente
-    setTimeLeft(getTimeLeft(target));
-    const id = setInterval(() => setTimeLeft(getTimeLeft(target)), 1000);
-    return () => clearInterval(id);
+    // Só corre no cliente — o primeiro valor real chega logo a seguir (callback, não setState síncrono no efeito)
+    const tick = () => setTimeLeft(getTimeLeft(target));
+    const first = setTimeout(tick, 0);
+    const id = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
   }, [target]);
 
   return timeLeft;
@@ -128,23 +132,26 @@ export default function BeeznoHero() {
     });
 
   // Substitui o URL pelo teu deployment ID
-const SHEETS_URL = "https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec";
+const ALUGAR_URL = "https://script.google.com/macros/s/AKfycbwYGqstk6NtZnME7H-rhsTZUjboKK6WrjTX5PFJn6kEseXmp1eWZROZRtfLyH49vBn-gg/exec";
   const handleAlugar = async (e: React.FormEvent) => {
+    console.log("Enviando dados para o Google Script:", { nome, email, equipamento, dataRenda, valorAluguer, telefone, provincia, perfil, objetivo });
     e.preventDefault();
-    trackObjetivo("alugar");
+    //trackObjetivo("alugar");
 
     const params = criarParametros("alugar");
      setLoading(true);
-
   try {
-    await fetch(SHEETS_URL, {
+    await fetch(ALUGAR_URL, {
       method: "POST",
       mode: "no-cors", // Google Scripts exigem isto
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, email, telefone, provincia, perfil, objetivo }),
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ nome, email, equipamento, dataRenda, valorAluguer, telefone, provincia, perfil }),
     });
     // no-cors não devolve resposta, mas a submissão chega
     setSuccess(true);
+    setTimeout(() => {
+      setSuccess(false);
+    }, 2000);
   } catch {
     setError(true);
   } finally {
@@ -152,19 +159,22 @@ const SHEETS_URL = "https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec";
   }
   };
 
+  const DISPONIBILIZAR_URL = "https://script.google.com/macros/s/AKfycbwsUyEPmMN2zXCRRqZY9a56VB1kc_xvM3kMf9dMAsS7VrNesmJMBeNTQuAZ5-OJjrM4/exec";
   const handleDisponibilizar = async (e: React.FormEvent) => {
+     console.log("Enviando dados para o Google Script:", { nome, email, equipamento, dataRenda, valorAluguer, telefone, provincia, perfil });
+
     e.preventDefault();
-    trackObjetivo("disponibilizar");
+    //trackObjetivo("disponibilizar");
 
     const params = criarParametros("disponibilizar");
     setLoading(true);
 
   try {
-    await fetch(SHEETS_URL, {
+    await fetch(DISPONIBILIZAR_URL, {
       method: "POST",
       mode: "no-cors", // Google Scripts exigem isto
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nome, email, telefone, provincia, perfil, objetivo }),
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ nome, email, equipamento, valorRenda, dataInicio, dataFinal, telefone, provincia, perfil }),
     });
     // no-cors não devolve resposta, mas a submissão chega
     setSuccess(true);
@@ -195,6 +205,7 @@ const SHEETS_URL = "https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec";
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    console.log("Formulário submetido com objetivo:", objetivo);
     e.preventDefault();
 
     switch (objetivo) {
@@ -380,8 +391,8 @@ const SHEETS_URL = "https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec";
                   <div>
                     <label className="mb-1 block text-xs font-bold text-foreground">Quanto pagarias? (por semana)</label>
                     <input
-                      type="number" required value={valorRenda}
-                      onChange={e => setValorRenda(e.target.value)}
+                      type="number" required value={valorAluguer}
+                      onChange={e => setValorAluguer(e.target.value)}
                       placeholder="Ex.: 5.000"
                       className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
                     />
@@ -421,8 +432,8 @@ const SHEETS_URL = "https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec";
                    <div>
                     <label className="mb-1 block text-xs font-bold text-foreground">Por quanto?</label>
                     <input
-                      type="number" value={valorAluguer}
-                      onChange={e => setValorAluguer(e.target.value)}
+                      type="number" value={valorRenda}
+                      onChange={e => setValorRenda(e.target.value)}
                       placeholder="Ex.: 5.000"
                       className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
                     />
@@ -466,11 +477,10 @@ const SHEETS_URL = "https://script.google.com/macros/s/SEU_DEPLOYMENT_ID/exec";
             {/* Submit */}
             <button
               type="submit"
-              className="group relative w-full overflow-hidden cursor-pointer rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-shadow hover:shadow-lift"
-            >
+              className="group relative w-full overflow-hidden cursor-pointer rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-shadow hover:shadow-lift">
               <span className="absolute inset-0 -translate-x-full bg-shield transition-transform duration-300 ease-out group-hover:translate-x-0" />
               <span className="relative flex items-center justify-center gap-2">
-                Entrar na lista de espera
+                {success ? "✓ Inscrito!" : loading ? "A enviar..." : "Entrar na lista de espera"}
                 <ArrowRight className="h-4 w-4" />
               </span>
             </button>

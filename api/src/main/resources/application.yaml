@@ -9,6 +9,16 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+  servlet:
+    multipart:
+      # KYC: até 5 documentos de 5 MB (o limite por ficheiro também é validado no KycService)
+      max-file-size: 5MB
+      max-request-size: 26MB
+  data:
+    web:
+      pageable:
+        # páginas de 2.000 elementos eram aceites
+        max-page-size: 100
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -28,6 +38,32 @@ spring:
 
 server:
   port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-exception: false
+    whitelabel:
+      enabled: false
+  servlet:
+    session:
+      # Só o fluxo OAuth2 usa sessão
+      timeout: 10m
+      cookie:
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: lax
+
+logging:
+  pattern:
+    # X-Request-Id em cada linha (RequestIdFilter)
+    level: "%5p [%X{requestId:-}]"
+
+# Swagger desligado por omissão (OWASP A02); ligar em desenvolvimento com API_DOCS_ENABLED=true
+springdoc:
+  api-docs:
+    enabled: ${API_DOCS_ENABLED:false}
+  swagger-ui:
+    enabled: ${API_DOCS_ENABLED:false}
 
 management:
   endpoints:
@@ -36,8 +72,10 @@ management:
         include: health,info
 
 jwt:
-  secret: ${JWT_SECRET:beeznoo-super-secret-jwt-token-key-256bits-minimum-length-key}
-  expiration-minutes: ${JWT_EXPIRATION_MINUTES:60}
+  # Sem valor por omissão: a API não arranca sem JWT_SECRET (≥ 32 bytes). Gera com: openssl rand -base64 64
+  secret: ${JWT_SECRET:}
+  # Curto de propósito: limita tokens roubados e mudanças de papel (o refresh renova)
+  expiration-minutes: ${JWT_EXPIRATION_MINUTES:15}
   refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:30}
 
 ombala:
@@ -57,3 +95,29 @@ app:
       entity: ${PAYMENTS_SIMULATED_ENTITY:00000}
       # true só em dev/demo: "Já paguei" confirma logo. Em produção fica false (admin valida).
       auto-confirm: ${PAYMENTS_AUTO_CONFIRM:false}
+  storage:
+    # Backblaze B2 (API S3), bucket PRIVADO. Obrigatório: a API não arranca sem isto. Ver claude/decisoes-produto.md
+    endpoint: ${B2_ENDPOINT:}
+    region: ${B2_REGION:}
+    access-key: ${B2_ACCESS_KEY:}
+    secret-key: ${B2_SECRET_KEY:}
+    bucket: ${B2_BUCKET:}
+    signed-url-ttl: ${APP_STORAGE_SIGNED_URL_TTL:5m}
+  notifications:
+    email:
+      # false: notificações só na app (email_status SKIPPED). true exige RESEND_API_KEY e domínio verificado no Resend.
+      enabled: ${NOTIFICATIONS_EMAIL_ENABLED:false}
+      api-url: ${RESEND_API_URL:https://api.resend.com}
+      api-key: ${RESEND_API_KEY:}
+      from: ${RESEND_FROM:Beeznoo <noreply@beeznoo.ao>}
+  security:
+    rate-limits-enabled: ${RATE_LIMITS_ENABLED:true}
+    # memory (uma instância) | database (várias instâncias — contadores no Postgres)
+    rate-limit-store: ${RATE_LIMIT_STORE:memory}
+    # 2FA por SMS no login de contas ADMIN
+    admin-mfa-enabled: ${ADMIN_MFA_ENABLED:true}
+    # Secure nos cookies (refresh e sessão OAuth2); false só em http://localhost
+    cookie-secure: ${SESSION_COOKIE_SECURE:true}
+    # nº de proxies à frente da API que acrescentam ao X-Forwarded-For (0 em local; Vercel + Render = 2)
+    trusted-proxies: ${RATE_LIMIT_TRUSTED_PROXIES:0}
+    max-json-bytes: 1048576

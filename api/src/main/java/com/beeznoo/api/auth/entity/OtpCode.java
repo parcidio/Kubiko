@@ -19,7 +19,8 @@ public class OtpCode {
     public enum Purpose {
         REGISTRATION,
         PASSWORD_RESET,
-        GOOGLE_REGISTRATION
+        GOOGLE_REGISTRATION,
+        ADMIN_LOGIN // 2FA de contas ADMIN
     }
 
     @Id

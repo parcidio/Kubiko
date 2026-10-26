@@ -83,8 +83,7 @@ export default function BeeznoNavbar() {
         <div className="flex items-center gap-3">
           {/* CTA — desktop */}
           <a
-            href="https://tally.so/r/5BN0JZ"
-            target="_blank"
+            href="#explore"
             className="hidden cursor-pointer rounded-full bg-warning px-5 py-2 text-sm font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-warning/90 hover:shadow-md active:translate-y-0 lg:block"
           >
             Entrar na lista
@@ -92,8 +91,7 @@ export default function BeeznoNavbar() {
 
           {/* CTA — mobile (substitui hamburger como CTA primário) */}
           <a
-            href="https://tally.so/r/5BN0JZ"
-            target="_blank"
+            href="#explore"
             className="rounded-full bg-warning px-4 py-2 text-sm font-bold text-primary transition-opacity hover:opacity-90 lg:hidden"
           >
             Inscrever

@@ -1,0 +1,39 @@
+CONTRATO DE ALUGUER DE EQUIPAMENTO — BEEZNOO
+Versão {{version}} · RASCUNHO TÉCNICO, A REVER POR JURISTA ANTES DO PRIMEIRO ALUGUER REAL
+
+Reserva: {{bookingId}}
+
+1. Partes
+Dono: {{ownerName}}
+Arrendatário: {{renterName}}
+A Beeznoo intermedeia a reserva, o pagamento e a caução. Não é parte no aluguer.
+
+2. Equipamento
+{{itemTitle}} — estado declarado pelo dono: {{itemCondition}}.
+
+3. Período
+De {{startDate}} a {{endDate}} ({{days}} dias).
+
+4. Valores
+Aluguer: {{rentalAmount}}
+Taxa de serviço Beeznoo (8%): {{serviceFee}}
+Caução reembolsável: {{depositAmount}}
+Total a pagar pelo arrendatário: {{totalAmount}}
+O pagamento é feito à Beeznoo. A caução fica retida até à devolução e inspeção do equipamento.
+
+5. Entrega e devolução
+Na entrega e na devolução, uma das partes regista o estado do equipamento na app (notas e fotos) e a outra
+parte confirma. O equipamento deve ser devolvido no estado em que foi entregue, salvo desgaste normal de uso.
+
+6. Problemas
+Dano, perda ou roubo devem ser reportados na app logo que sejam conhecidos. A equipa Beeznoo analisa o caso e
+decide, com base nos registos de entrega e devolução, se a caução é libertada ou retida, total ou parcialmente.
+O valor retido é entregue ao dono.
+
+7. Cancelamento
+[EM ABERTO — política de cancelamento e reembolso a definir pela Beeznoo.]
+
+8. Lei aplicável
+Este contrato rege-se pela lei da República de Angola.
+
+Aceitação: o dono aceita ao aceitar o pedido de reserva; o arrendatário aceita na app antes de pagar.

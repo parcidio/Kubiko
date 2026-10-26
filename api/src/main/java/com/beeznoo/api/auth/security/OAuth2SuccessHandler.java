@@ -3,156 +3,107 @@ package com.beeznoo.api.auth.security;
 import com.beeznoo.api.auth.entity.GooglePendingSignup;
 import com.beeznoo.api.auth.repository.GooglePendingSignupRepository;
 import com.beeznoo.api.auth.service.AuthService;
-import com.beeznoo.api.auth.dto.AuthDtos.*;
+import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.repository.ProfileRepository;
-import com.beeznoo.api.profile.service.ProfileService;
+import com.beeznoo.api.security.entity.SecurityEventType;
+import com.beeznoo.api.security.service.SecurityEventService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
-import com.beeznoo.api.profile.entity.Profile;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
- * Chamado pelo Spring Security após o Google OAuth2 ser concluído com sucesso.
+ * Chamado pelo Spring Security depois do login Google. Ver claude/decisoes-produto.md (2026-10-23, segurança).
  *
- * Fluxo:
- * 1. Utilizador já autenticado por OTP (tem JWT no frontend) toca em "Ligar conta Google"
- * 2. O frontend guarda o profileId no estado e inicia o OAuth2 flow
- * 3. Após callback do Google, este handler:
- *    a. Extrai o googleId e email do OidcUser
- *    b. Verifica se já existe perfil com este googleId
- *    c. Se não existe → associa ao perfil do utilizador autenticado (via state param)
- *    d. Redireciona para o frontend com resultado
- *
- * NOTA: o parâmetro "state" é usado para passar o profileId do utilizador
- * autenticado ao longo do OAuth2 flow. O frontend deve incluir o profileId
- * no parâmetro state ao iniciar o flow.
+ * 1. Já existe perfil com este googleId → redirect com um código de uso único (60 s), trocado por tokens em
+ *    POST /auth/google/exchange. Os tokens nunca vão na URL (ficariam no histórico, nos logs e no Referer).
+ * 2. O email do Google já pertence a um perfil:
+ *    - email verificado na Beeznoo E no Google, e o perfil sem Google → associa e entra (mesma pessoa provada dos dois lados);
+ *    - caso contrário NÃO associa (pré-sequestro: alguém podia ter registado o email de outra pessoa). Pede telefone.
+ * 3. Caso contrário → registo pendente; o frontend pede o telefone e confirma por OTP.
  */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
-    private final ProfileService profileService;
+    private static final long PENDING_SIGNUP_TTL_MINUTES = 15;
+
     private final ProfileRepository profileRepository;
     private final AuthService authService;
     private final GooglePendingSignupRepository googlePendingSignupRepository;
+    private final SecurityEventService securityEvents;
 
-    private static final long PENDING_SIGNUP_TTL_MINUTES = 15;
-
-    @org.springframework.beans.factory.annotation.Value("${app.frontend-url:http://localhost:3000}")
+    @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
-                                         HttpServletResponse response,
-                                         Authentication authentication) throws IOException {
+                                        HttpServletResponse response,
+                                        Authentication authentication) throws IOException {
 
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
+        String googleId = oidcUser.getSubject();
+        // Só usamos o email do Google se o próprio Google o deu como verificado
+        String email = Boolean.TRUE.equals(oidcUser.getEmailVerified()) ? oidcUser.getEmail() : null;
 
-        String googleId  = oidcUser.getSubject();
-        String email     = oidcUser.getEmail();
-        String avatarUrl = oidcUser.getPicture();
-
-        // Caso 1: já existe perfil com este googleId → só emite tokens
-        Optional<Profile> existingGoogle = profileRepository.findByGoogleId(googleId);
-        if (existingGoogle.isPresent()) {
-            Profile profile = existingGoogle.get();
-            log.info("Google OAuth: perfil já associado — profileId={}", profile.getId());
-            redirectWithSuccess(response, profile.getId(), authService.issueTokensForProfile(profile.getId()));
+        Optional<Profile> existing = profileRepository.findByGoogleId(googleId);
+        if (existing.isPresent()) {
+            log.info("Google OAuth: login — profileId={}", existing.get().getId());
+            redirect(response, "status=success&code=" + encode(authService.issueLoginCode(existing.get().getId())));
             return;
         }
 
-        // Caso 2: associar por email existente
-        if (email != null && !email.isBlank()) {
-            Optional<Profile> existingEmail = profileRepository.findByEmail(email);
-            if (existingEmail.isPresent()) {
-                Profile profile = existingEmail.get();
+        Optional<Profile> byEmail = email == null ? Optional.empty() : profileRepository.findByEmail(email);
+        if (byEmail.isPresent()) {
+            Profile profile = byEmail.get();
+            if (profile.getEmailVerifiedAt() != null && profile.getGoogleId() == null) {
                 profile.setGoogleId(googleId);
-                if (avatarUrl != null && (profile.getAvatarUrl() == null || profile.getAvatarUrl().isBlank())) {
-                    profile.setAvatarUrl(avatarUrl);
-                }
                 profileRepository.save(profile);
-                log.info("Google OAuth: conta associada por email — profileId={}", profile.getId());
-                redirectWithSuccess(response, profile.getId(), authService.issueTokensForProfile(profile.getId()));
+                securityEvents.record(SecurityEventType.GOOGLE_LINKED, profile.getId(), null, Map.of());
+                log.info("Google OAuth: associado por email verificado — profileId={}", profile.getId());
+                redirect(response, "status=success&code=" + encode(authService.issueLoginCode(profile.getId())));
                 return;
             }
+            securityEvents.record(SecurityEventType.GOOGLE_EMAIL_IN_USE, profile.getId(), null, Map.of());
+            log.info("Google OAuth: email já usado por outra conta — sem associação automática");
+            redirect(response, "status=email_in_use");
+            return;
         }
 
-        // Caso 3: associar ao perfil indicado no state param se for um UUID válido
-        String stateParam = request.getParameter("state");
-        if (stateParam != null && !stateParam.isBlank()) {
-            try {
-                UUID profileId = UUID.fromString(stateParam);
-                profileService.linkGoogle(profileId, googleId, email, avatarUrl);
-                log.info("Google OAuth: conta associada via state — profileId={}", profileId);
-                redirectWithSuccess(response, profileId, authService.issueTokensForProfile(profileId));
-                return;
-            } catch (IllegalArgumentException e) {
-                log.info("Google OAuth: state parâmetro não é UUID de perfil (CSRF state)");
-            } catch (IllegalStateException e) {
-                log.warn("Google OAuth: falha ao associar via state — {}", e.getMessage());
-                redirectWithError(response, "link_failed");
-                return;
-            }
-        }
-
-        // Caso 4: nenhum perfil encontrado — não há como criar um perfil sem telefone
-        // (profiles.phone é obrigatório), por isso guardamos os dados do Google
-        // temporariamente e pedimos ao frontend para completar o registo com o telefone.
         GooglePendingSignup pending = googlePendingSignupRepository.save(GooglePendingSignup.builder()
                 .googleId(googleId)
                 .email(email)
                 .fullName(oidcUser.getFullName())
-                .avatarUrl(avatarUrl)
+                .avatarUrl(oidcUser.getPicture())
                 .expiresAt(OffsetDateTime.now().plusMinutes(PENDING_SIGNUP_TTL_MINUTES))
                 .build());
 
-        log.info("Google OAuth: nenhum perfil encontrado, registo pendente criado — pendingToken={}", pending.getToken());
-        redirectWithPendingPhone(response, pending.getToken());
+        // sem o pendingToken no log: é uma credencial temporária
+        log.info("Google OAuth: registo pendente criado — id interno {}", pending.getToken().toString().substring(0, 8));
+        redirect(response, "status=pending_phone&pendingToken=" + pending.getToken());
     }
 
-    private String getBaseRedirectUrl() {
-        return (frontendUrl != null && !frontendUrl.isBlank()) ? frontendUrl : "";
+    private void redirect(HttpServletResponse response, String query) throws IOException {
+        String base = frontendUrl != null && !frontendUrl.isBlank() ? frontendUrl : "";
+        // no-referrer: o código no URL de destino não passa para terceiros
+        response.setHeader("Referrer-Policy", "no-referrer");
+        response.sendRedirect(base + "/oauth2/callback?" + query);
     }
 
-    private void redirectWithSuccess(HttpServletResponse response, UUID profileId, AuthResponse tokens) {
-        try {
-            String url = getBaseRedirectUrl() + "/oauth2/callback?status=success"
-                    + "&profileId=" + profileId
-                    + "&accessToken=" + URLEncoder.encode(tokens.accessToken(), StandardCharsets.UTF_8)
-                    + "&refreshToken=" + URLEncoder.encode(tokens.refreshToken(), StandardCharsets.UTF_8)
-                    + "&expiresIn=" + tokens.expiresIn();
-            response.sendRedirect(url);
-        } catch (IOException e) {
-            log.error("Redirect falhou: {}", e.getMessage());
-        }
-    }
-
-    private void redirectWithPendingPhone(HttpServletResponse response, UUID pendingToken) {
-        try {
-            response.sendRedirect(getBaseRedirectUrl() + "/oauth2/callback?status=pending_phone&pendingToken=" + pendingToken);
-        } catch (IOException e) {
-            log.error("Redirect falhou: {}", e.getMessage());
-        }
-    }
-
-    private void redirectWithError(HttpServletResponse response, String reason) {
-        try {
-            response.sendRedirect(getBaseRedirectUrl() + "/oauth2/callback?status=error&reason=" + reason);
-        } catch (IOException e) {
-            log.error("Redirect de erro falhou: {}", e.getMessage());
-        }
+    private static String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 }

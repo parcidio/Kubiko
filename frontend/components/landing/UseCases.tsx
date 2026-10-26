@@ -175,7 +175,8 @@ export default function BeeznoUseCases() {
 
   const slide = slides[active];
 
-  const PrevBtn = ({ sm }: { sm?: boolean }) => (
+  // funções de render (não componentes criados a cada render — perdiam o estado e o foco)
+  const renderPrev = (sm?: boolean) => (
     <button
       onClick={() => go(-1)}
       className={`flex items-center justify-center rounded-full border border-border bg-card text-foreground transition-all hover:-translate-y-0.5 hover:border-primary ${sm ? "h-9 w-9" : "h-10 w-10"}`}
@@ -184,7 +185,7 @@ export default function BeeznoUseCases() {
     </button>
   );
 
-  const NextBtn = ({ sm }: { sm?: boolean }) => (
+  const renderNext = (sm?: boolean) => (
     <button
       onClick={() => go(1)}
       className={`flex items-center justify-center rounded-full bg-primary text-primary-foreground transition-all hover:-translate-y-0.5 hover:bg-primary/85 ${sm ? "h-9 w-9" : "h-10 w-10"}`}
@@ -193,7 +194,7 @@ export default function BeeznoUseCases() {
     </button>
   );
 
-  const Dots = () => (
+  const renderDots = () => (
     <div className="flex items-center gap-2">
       {slides.map((_, i) => (
         <button
@@ -223,8 +224,8 @@ export default function BeeznoUseCases() {
           </div>
           {/* Setas desktop */}
           <div className="hidden shrink-0 gap-2 lg:flex">
-            <PrevBtn />
-            <NextBtn />
+            {renderPrev()}
+            {renderNext()}
           </div>
         </div>
 
@@ -300,11 +301,11 @@ export default function BeeznoUseCases() {
 
         {/* Nav inferior */}
         <div className="mt-5 flex items-center justify-between">
-          <Dots />
+          {renderDots()}
           {/* Setas mobile */}
           <div className="flex gap-2 lg:hidden">
-            <PrevBtn sm />
-            <NextBtn sm />
+            {renderPrev(true)}
+            {renderNext(true)}
           </div>
         </div>
       </div>

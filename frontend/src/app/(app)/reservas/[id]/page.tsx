@@ -1,124 +1,159 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Clock } from "lucide-react";
-import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ItemPhoto, PriceSummary, Timeline } from "@/components/beeznoo/booking-ui";
-import { PaymentPanel } from "@/components/beeznoo/payment-panel";
-import { ErrorState } from "@/components/beeznoo/states";
-import { bookingApi } from "@/lib/api";
+import { ChevronRight, ClipboardCheck, FileText, Flag, MessageCircle, type LucideIcon } from "lucide-react";
+import { BookingTicket, NextStepCard, PriceSummary, SuccessBurst, Timeline } from "@/components/bz/booking";
+import { Sheet, toast } from "@/components/bz/overlay";
+import { RequestActions } from "@/components/bz/requests";
+import { ErrorState } from "@/components/bz/states";
+import { BackLink, Button, Card, Eyebrow, SectionTitle, Skeleton } from "@/components/bz/ui";
+import { ApiError, bookingApi, paymentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
-import { BOOKING_STATUS, daysBetween, formatRange } from "@/lib/format";
-import type { Booking } from "@/lib/types";
+import { bookingCode, deadlineOf, firstName, nextStep, whatsappLink } from "@/lib/booking";
+import { daysBetween, formatRange, SERVICE_FEE_RATE } from "@/lib/format";
+import type { Booking, Payment } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
-function ReservaDetail() {
+function ReservaHub() {
   const session = useRequireSession();
   const { id } = useParams<{ id: string }>();
   const isNew = useSearchParams().get("novo") === "1";
-  const { data: booking, error, reload, setData: setBooking } = useResource<Booking>(
-    session ? `booking:${id}` : null,
-    () => bookingApi.get(id),
+  const { data: booking, error, reload, setData: setBooking } = useResource<Booking>(session ? `booking:${id}` : null, () => bookingApi.get(id));
+  const as = booking && session && booking.ownerId === session.profileId ? "owner" : "renter";
+  const needsPayment = booking?.status === "ACCEPTED" && as === "renter";
+  const payment = useResource<Payment | null>(needsPayment ? `payment:${id}` : null, () =>
+    paymentApi.current(id).then(
+      (p) => p ?? null,
+      (e) => (e instanceof ApiError && e.status === 404 ? null : Promise.reject(e)),
+    ),
   );
+  const [cancelSheet, setCancelSheet] = useState(false);
   const [cancelling, setCancelling] = useState(false);
-  const [confirmCancel, setConfirmCancel] = useState(false);
 
   if (!session) return null;
   if (error) return <ErrorState message={error} onRetry={reload} />;
-  if (!booking) return <Skeleton role="status" aria-label="A carregar" className="h-96" />;
+  if (!booking) {
+    return (
+      <div role="status" aria-label="A carregar" className="mx-auto grid max-w-5xl gap-4">
+        <Skeleton className="h-56 rounded-sheet" />
+        <Skeleton className="h-40 rounded-sheet" />
+      </div>
+    );
+  }
 
-  const st = BOOKING_STATUS[booking.status];
   const days = daysBetween(booking.startDate, booking.endDate);
-  // O backend só deixa o arrendatário cancelar antes de o dono responder
-  const canCancel = booking.status === "PENDING_OWNER";
+  const pricePerDay = days ? Number(booking.totalPrice) / days : 0;
+  const step = nextStep(booking, as);
+  const total = Math.round(Number(booking.totalPrice) * (1 + SERVICE_FEE_RATE) + Number(booking.depositAmount));
+  const code = bookingCode(booking.id);
+  const waText = `Olá Beeznoo! É sobre a reserva ${code}: ${booking.itemTitle}, ${formatRange(booking.startDate, booking.endDate)}.`;
 
   async function cancel() {
     setCancelling(true);
     try {
       setBooking(await bookingApi.cancel(booking!.id));
-      toast.success("Reserva cancelada.");
+      toast.success("Pedido cancelado.");
+      setCancelSheet(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível cancelar.");
     } finally {
       setCancelling(false);
-      setConfirmCancel(false);
     }
   }
 
+  const actions: { icon: LucideIcon; label: string; href?: string; external?: boolean; show: boolean; onClick?: () => void; danger?: boolean }[] = [
+    { icon: MessageCircle, label: "Falar com a equipa no WhatsApp", href: whatsappLink(waText), external: true, show: true },
+    { icon: ClipboardCheck, label: "Checklist de entrega e devolução", href: `/reservas/${id}/checklist`, show: booking.status === "ACTIVE" },
+    { icon: FileText, label: "Contrato de aluguer", href: `/reservas/${id}/contrato`, show: ["ACCEPTED", "ACTIVE", "COMPLETED", "DISPUTED"].includes(booking.status) },
+    { icon: Flag, label: "Reportar problema", href: `/reservas/${id}/problema`, show: booking.status === "ACTIVE", danger: true },
+    { icon: Flag, label: "Cancelar pedido", show: booking.status === "PENDING_OWNER" && as === "renter", onClick: () => setCancelSheet(true), danger: true },
+  ];
+
   return (
-    <div className="mx-auto grid max-w-3xl gap-6">
-      <Link href="/reservas" className="flex items-center gap-1 text-sm text-mel-texto hover:underline">
-        <ArrowLeft className="size-4" strokeWidth={1.8} aria-hidden /> As minhas reservas
-      </Link>
+    <div className="mx-auto grid max-w-5xl gap-5">
+      <BackLink href={as === "owner" ? "/pedidos" : "/reservas"}>{as === "owner" ? "Pedidos recebidos" : "As minhas reservas"}</BackLink>
 
       {isNew && booking.status === "PENDING_OWNER" && (
-        <Alert variant="ok">
-          <CheckCircle2 strokeWidth={1.8} />
-          <AlertDescription className="text-current">Pedido enviado a {booking.ownerName}. Avisamos-te por SMS quando responder.</AlertDescription>
-        </Alert>
+        <SuccessBurst title="Pedido enviado!" text={`${firstName(booking.ownerName)} tem 24 h para responder. Avisamos-te assim que houver novidades.`} />
       )}
 
-      <div className="flex gap-3">
-        <ItemPhoto src={booking.itemCoverPhoto} alt={booking.itemTitle} className="w-28 shrink-0 rounded-bz-md border border-borda" />
-        <div className="grid content-start gap-1">
-          <h1 className="font-heading text-[22px] leading-tight text-verde md:text-[26px]">{booking.itemTitle}</h1>
-          <p className="text-cinza">{formatRange(booking.startDate, booking.endDate)} · {booking.ownerName}</p>
-          <Badge variant={st.badge}>{st.label}</Badge>
-        </div>
-      </div>
+      <div className="grid gap-5 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:items-start">
+        <div className="grid gap-5">
+          <BookingTicket booking={booking} as={as} />
+          <NextStepCard step={step} deadline={deadlineOf(booking, payment.data)} amount={needsPayment ? (payment.data?.amount ?? total) : undefined} />
+          {as === "owner" && booking.status === "PENDING_OWNER" && <RequestActions booking={booking} onDone={setBooking} />}
 
-      {booking.status === "PENDING_OWNER" && (
-        <div className="flex gap-3 rounded-bz-md bg-ambar-tint p-3 text-sm text-aviso-texto">
-          <Clock className="size-5 shrink-0" strokeWidth={1.8} aria-hidden />
-          <p>O dono tem 24 h para responder. Ainda não precisas de pagar nada.</p>
-        </div>
-      )}
-
-      {booking.status === "ACCEPTED" && <PaymentPanel booking={booking} onPaid={reload} />}
-
-      {booking.ownerNote && (
-        <div className="rounded-bz-md bg-areia-2 p-3 text-sm text-verde">
-          <p className="text-xs tracking-[0.1em] text-cinza uppercase">Nota do dono</p>
-          <p className="mt-1">{booking.ownerNote}</p>
-        </div>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <section className="rounded-bz-md border border-borda bg-branco p-4" aria-labelledby="t-progress">
-          <h2 id="t-progress" className="mb-4 font-heading text-lg text-verde">Progresso</h2>
-          <Timeline status={booking.status} />
-        </section>
-        <section className="rounded-bz-md border border-borda bg-branco p-4" aria-labelledby="t-values">
-          <h2 id="t-values" className="mb-4 font-heading text-lg text-verde">Valores</h2>
-          <PriceSummary pricePerDay={days ? Number(booking.totalPrice) / days : 0} days={days} deposit={Number(booking.depositAmount)} />
-        </section>
-      </div>
-
-      {canCancel && (
-        <div className="grid gap-3">
-          {confirmCancel ? (
-            <div className="grid gap-3 rounded-bz-md border border-erro bg-erro-tint p-4">
-              <p className="text-erro">Cancelar este pedido? O dono é avisado e as datas ficam livres.</p>
-              <div className="flex gap-2">
-                <Button variant="destructive" onClick={cancel} disabled={cancelling}>
-                  {cancelling ? "A cancelar…" : "Sim, cancelar"}
-                </Button>
-                <Button variant="ghost" onClick={() => setConfirmCancel(false)}>Manter</Button>
-              </div>
-            </div>
-          ) : (
-            <Button variant="destructive" className="justify-self-start" onClick={() => setConfirmCancel(true)}>
-              Cancelar reserva
-            </Button>
+          {(booking.renterMessage || booking.ownerNote) && (
+            <Card className="grid gap-4 p-4">
+              {booking.renterMessage && (
+                <div>
+                  <Eyebrow>Mensagem de {firstName(booking.renterName)}</Eyebrow>
+                  <p className="mt-1 whitespace-pre-line">{booking.renterMessage}</p>
+                </div>
+              )}
+              {booking.ownerNote && (
+                <div>
+                  <Eyebrow>Nota de {firstName(booking.ownerName)}</Eyebrow>
+                  <p className="mt-1 whitespace-pre-line">{booking.ownerNote}</p>
+                </div>
+              )}
+            </Card>
           )}
         </div>
-      )}
+
+        <div className="grid gap-5">
+          <Card className="p-5">
+            <SectionTitle className="mb-4">Progresso</SectionTitle>
+            <Timeline booking={booking} />
+          </Card>
+          <Card className="p-5">
+            <SectionTitle className="mb-4">Valores</SectionTitle>
+            <PriceSummary pricePerDay={pricePerDay} days={days} deposit={Number(booking.depositAmount)} as={as} />
+          </Card>
+          <Card className="overflow-hidden">
+            {actions
+              .filter((a) => a.show)
+              .map(({ icon: Icon, label, href, external, onClick, danger }) => {
+                const cls = `flex min-h-14 w-full items-center gap-3 border-b border-borda px-4 text-left font-medium last:border-0 hover:bg-areia ${danger ? "text-erro" : "text-verde"}`;
+                const inner = (
+                  <>
+                    <Icon className={`size-5 ${danger ? "" : "text-mel"}`} strokeWidth={1.8} aria-hidden />
+                    <span className="flex-1">{label}</span>
+                    <ChevronRight className="size-5 text-cinza" strokeWidth={1.8} aria-hidden />
+                  </>
+                );
+                return href ? (
+                  <a key={label} href={href} target={external ? "_blank" : undefined} rel={external ? "noreferrer" : undefined} className={cls}>
+                    {inner}
+                  </a>
+                ) : (
+                  <button key={label} type="button" onClick={onClick} className={cls}>
+                    {inner}
+                  </button>
+                );
+              })}
+          </Card>
+        </div>
+      </div>
+
+      <Sheet
+        open={cancelSheet}
+        onClose={() => setCancelSheet(false)}
+        title="Cancelar pedido?"
+        footer={
+          <div className="flex gap-3">
+            <Button variant="ghost" onClick={() => setCancelSheet(false)}>
+              Manter
+            </Button>
+            <Button variant="danger" block loading={cancelling} onClick={cancel}>
+              Sim, cancelar
+            </Button>
+          </div>
+        }
+      >
+        <p className="pt-2">O dono é avisado e as datas ficam livres. Ainda não pagaste nada, por isso não há reembolso a tratar.</p>
+      </Sheet>
     </div>
   );
 }
@@ -126,7 +161,7 @@ function ReservaDetail() {
 export default function ReservaPage() {
   return (
     <Suspense>
-      <ReservaDetail />
+      <ReservaHub />
     </Suspense>
   );
 }

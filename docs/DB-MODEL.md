@@ -1,265 +1,228 @@
+# Modelo de dados — schema atual
+
+Gerado a partir das migrações Flyway **V1–V16** (`api/src/main/resources/db/migration/`), a 2026-10-23.
+As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
+A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
+
+Valores monetários em `NUMERIC(12,2)` (Kz; taxa e retenções em kwanzas inteiros). Datas de aluguer em `DATE`; instantes em `TIMESTAMPTZ`.
+Tabelas **append-only** (trigger bloqueia `UPDATE`/`DELETE`): `ledger_entries`, `kyc_decisions`, `audit_logs`.
+Ficheiros (KYC, fotos, checklists, problemas) ficam no Backblaze B2; a base de dados guarda só a `storage_key`.
+
 ```mermaid
 erDiagram
-
-    %% ===================== IDENTIDADE & CONFIANÇA =====================
-    PROFILES ||--|| ACCOUNTS : "tem (1:1)"
-    PROFILES ||--o{ KYC_VERIFICATIONS : "submete (user_id)"
-    PROFILES ||--o{ KYC_VERIFICATIONS : "reve (reviewed_by)"
-    PROFILES ||--o{ REVIEWS : "escreve (reviewer_id)"
-    PROFILES ||--o{ REVIEWS : "recebe (reviewee_id)"
-    PROFILES ||--o{ ITEMS : "possui (owner_id)"
-    PROFILES ||--o{ BOOKINGS : "aluga (renter_id)"
-    PROFILES ||--o{ BOOKINGS : "disponibiliza (owner_id)"
-    PROFILES ||--o{ CLAIMS : "abre (opened_by)"
-    PROFILES ||--o{ CLAIMS : "resolve (resolved_by)"
-    PROFILES ||--o{ NOTIFICATIONS : "recebe (user_id)"
-    PROFILES ||--o{ REFRESH_TOKENS : "possui"
-    PROFILES ||--o{ AUDIT_LOGS : "executa (actor_id)"
-    PROFILES ||--o{ TRANSACTIONS : "verifica manualmente (verified_by)"
-
-    %% ===================== CATÁLOGO & DISPONIBILIDADE =====================
+    PROFILES ||--|| ACCOUNTS : "tem"
+    PROFILES ||--o{ REFRESH_TOKENS : "sessões"
+    PROFILES ||--o{ KYC_VERIFICATIONS : "submete"
+    KYC_VERIFICATIONS ||--o{ KYC_DOCUMENTS : "ficheiros"
+    KYC_VERIFICATIONS ||--o{ KYC_DECISIONS : "histórico"
+    PROFILES ||--o{ ITEMS : "é dono"
     CATEGORIES ||--o{ ITEMS : "classifica"
-    CATEGORIES ||--o{ CATEGORIES : "subcategoria de (parent_id)"
-    CATEGORIES ||--o{ WAITLIST_LEADS : "interesse em"
-
-    ITEMS ||--o{ ITEM_PHOTOS : "tem fotos"
-    ITEMS ||--o{ ITEM_AVAILABILITY : "tem disponibilidade"
-    ITEMS ||--o{ BOOKINGS : "e reservado em"
-    ITEMS ||--o{ REVIEWS : "e avaliado em"
-
-    %% ===================== TRANSAÇÃO / FINANCEIRO =====================
-    ACCOUNTS ||--o{ TRANSACTIONS : "regista movimentos"
-    BOOKINGS ||--o{ ITEM_AVAILABILITY : "bloqueia datas"
-    BOOKINGS ||--o{ TRANSACTIONS : "gera movimentos financeiros"
-    BOOKINGS ||--o| CONTRACTS : "tem contrato (1:1)"
-    BOOKINGS ||--o{ REVIEWS : "gera"
-    BOOKINGS ||--o{ CLAIMS : "pode gerar"
-    BOOKINGS ||--o{ NOTIFICATIONS : "dispara (booking_id)"
-    BOOKINGS ||--o{ BOOKING_STATUS_HISTORY : "regista historico"
-
-    CLAIMS ||--o{ TRANSACTIONS : "origina retencao/liberacao da caucao"
-
-    %% ===================== AUDITORIA / MENSAGERIA =====================
-    OUTBOX_EVENTS }o--|| BOOKINGS : "referencia (aggregate_id quando aggregate_type = booking)"
-
-    %% ===================== ENTIDADES =====================
+    CATEGORIES ||--o{ CATEGORIES : "subcategoria"
+    ITEMS ||--o{ ITEM_PHOTOS : "fotos"
+    ITEMS ||--o{ ITEM_AVAILABILITY : "datas indisponíveis"
+    ITEMS ||--o{ BOOKINGS : "reservado em"
+    PROFILES ||--o{ BOOKINGS : "aluga / disponibiliza"
+    BOOKINGS ||--o| CONTRACTS : "contrato (1:1)"
+    BOOKINGS ||--o{ PAYMENTS : "tentativas (1:N)"
+    BOOKINGS ||--o| DEPOSITS : "caução (1:1)"
+    BOOKINGS ||--o{ CHECKLISTS : "entrega e devolução"
+    CHECKLISTS ||--o{ CHECKLIST_PHOTOS : "fotos"
+    BOOKINGS ||--o{ INCIDENT_REPORTS : "problemas"
+    INCIDENT_REPORTS ||--o{ INCIDENT_PHOTOS : "fotos"
+    ACCOUNTS ||--o{ LEDGER_ENTRIES : "movimentos"
+    BOOKINGS ||--o{ LEDGER_ENTRIES : "origina"
+    PAYMENTS ||--o{ LEDGER_ENTRIES : "liquida"
+    PROFILES ||--o{ NOTIFICATIONS : "recebe"
+    BOOKINGS ||--o{ NOTIFICATIONS : "sobre"
+    PROFILES ||--o{ AUDIT_LOGS : "executa"
 
     PROFILES {
-        uuid id PK "-> auth.users"
+        uuid id PK
         text full_name
-        text whatsapp
-        text email
-        text avatar_url "nullable"
-        text password_hash "hash bcrypt, usado pelo Spring Security"
-        text province
-        text city "nullable"
-        user_role role
-        boolean is_verified
-        numeric rating_avg "nullable"
-        timestamptz created_at
-        timestamptz updated_at
+        text phone UK "login + OTP"
+        text email UK "opcional"
+        text password_hash
+        text google_id UK
+        varchar role "OWNER | RENTER | BOTH | ADMIN"
+        varchar account_type "INDIVIDUAL | BUSINESS (V8)"
+        boolean is_verified "telefone confirmado — NÃO é KYC"
+        numeric rating_avg
     }
-
     ACCOUNTS {
         uuid id PK
-        uuid profile_id FK "unique, -> profiles (1:1)"
-        numeric available_balance "saldo levantavel/utilizavel"
-        numeric held_balance "caucoes retidas, nao disponiveis"
-        text currency
-        timestamptz created_at
-        timestamptz updated_at
+        uuid profile_id FK
+        numeric available_balance
+        numeric held_balance
+        varchar currency "AOA"
     }
-
-    TRANSACTIONS {
-        uuid id PK
-        uuid account_id FK "-> accounts"
-        uuid booking_id FK "nullable, -> bookings"
-        uuid claim_id FK "nullable, -> claims"
-        transaction_type type "RENTAL_PAYMENT, DEPOSIT_HOLD, DEPOSIT_RELEASE, DEPOSIT_WITHHOLD, REFUND, PAYOUT"
-        numeric amount
-        payment_method method "nullable, aplica-se a RENTAL_PAYMENT"
-        text operation_number "nullable, referencia Multicaixa Express - fluxo temporario manual"
-        transaction_status status "PENDING_VERIFICATION, CONFIRMED, FAILED, REVERSED"
-        uuid verified_by FK "nullable, -> profiles (operador que confirmou o numero de operacao)"
-        timestamptz verified_at "nullable"
-        timestamptz created_at
-    }
-
-    REFRESH_TOKENS {
-        uuid id PK
-        uuid user_id FK "-> profiles"
-        text token_hash "nunca guardar o token em claro"
-        timestamptz expires_at
-        timestamptz revoked_at "nullable"
-        text created_by_ip "nullable"
-        timestamptz created_at
-    }
-
     KYC_VERIFICATIONS {
         uuid id PK
-        uuid user_id FK "-> profiles"
-        kyc_entity entity_type
-        text document_type
-        text document_url
-        kyc_status status
-        uuid reviewed_by FK "nullable, -> profiles"
-        timestamptz reviewed_at "nullable"
-        text rejection_reason "nullable"
-        timestamptz created_at
+        uuid profile_id FK "1 não recusada por perfil"
+        varchar account_type
+        varchar status "PENDING | IN_REVIEW | APPROVED | REJECTED | INFO_REQUESTED"
+        timestamptz submitted_at
+        uuid reviewed_by FK
+        text rejection_reason
+        text info_request_note
     }
-
-    REVIEWS {
+    KYC_DOCUMENTS {
         uuid id PK
-        uuid booking_id FK "-> bookings"
-        uuid reviewer_id FK "-> profiles"
-        uuid reviewee_id FK "-> profiles"
-        uuid item_id FK "nullable, -> items"
-        int rating "CHECK entre 1 e 5"
-        text comment "nullable"
-        timestamptz created_at
+        uuid kyc_id FK
+        varchar document_type "BI_FRONT | BI_BACK | SELFIE | NIF_DOCUMENT | BUSINESS_DOCUMENT"
+        text storage_key UK
+        varchar content_type
+        bigint size_bytes
     }
-
-    WAITLIST_LEADS {
+    KYC_DECISIONS {
         uuid id PK
-        lead_side side
-        text name
-        text whatsapp
-        uuid category_id FK "nullable, -> categories"
-        text details "nullable"
-        boolean chat_opened
-        timestamptz created_at
+        uuid kyc_id FK
+        uuid actor_id FK "admin ou o próprio (RESUBMIT)"
+        varchar action "START_REVIEW | APPROVE | REJECT | REQUEST_INFO | RESUBMIT"
+        text note
     }
-
     ITEMS {
         uuid id PK
-        uuid owner_id FK "-> profiles"
-        uuid category_id FK "-> categories"
-        text title
-        text description
-        text condition
+        uuid owner_id FK
+        uuid category_id FK
+        varchar title
+        varchar condition "NEW | LIKE_NEW | GOOD | FAIR"
         numeric price_per_day
-        numeric price_per_week "nullable"
-        numeric price_per_month "nullable"
         numeric deposit_amount
-        text province
-        text city
-        item_status status
-        timestamptz created_at
-        timestamptz updated_at
+        varchar status "ACTIVE | INACTIVE | SUSPENDED | DELETED"
     }
-
-    CATEGORIES {
-        uuid id PK
-        text name
-        text slug UK
-        uuid parent_id FK "nullable, auto-referencia"
-        timestamptz created_at
-    }
-
     ITEM_PHOTOS {
         uuid id PK
-        uuid item_id FK "-> items"
-        text storage_path
-        int position
-        timestamptz created_at
+        uuid item_id FK
+        text photo_url "URL externa antiga"
+        text storage_key UK "fotos novas (V11)"
+        int position "0 = capa"
     }
-
-    ITEM_AVAILABILITY {
-        uuid id PK
-        uuid item_id FK "-> items"
-        date start_date
-        date end_date
-        boolean is_blocked
-        uuid booking_id FK "nullable, -> bookings"
-        timestamptz created_at
-    }
-
     BOOKINGS {
         uuid id PK
-        uuid item_id FK "-> items"
-        uuid renter_id FK "-> profiles"
-        uuid owner_id FK "-> profiles"
+        uuid item_id FK
+        uuid renter_id FK
+        uuid owner_id FK
         date start_date
         date end_date
-        int days_count
-        numeric daily_rate
-        numeric subtotal
+        numeric total_price "aluguer"
         numeric deposit_amount
-        numeric total_amount
-        booking_status status
-        timestamptz created_at
-        timestamptz updated_at
+        varchar status "PENDING_OWNER | ACCEPTED | ACTIVE | IN_PROGRESS | RETURNED | COMPLETED | CANCELLED_* | DISPUTED"
+        text renter_message
+        text owner_note
     }
-
-    BOOKING_STATUS_HISTORY {
-        uuid id PK
-        uuid booking_id FK "-> bookings"
-        booking_status from_status "nullable"
-        booking_status to_status
-        uuid changed_by FK "-> profiles"
-        text reason "nullable"
-        timestamptz changed_at
-    }
-
     CONTRACTS {
         uuid id PK
-        uuid booking_id FK "unique, -> bookings (1:1)"
-        text document_url
-        timestamptz owner_signed_at "nullable"
-        timestamptz renter_signed_at "nullable"
-        timestamptz created_at
+        uuid booking_id FK "UK"
+        varchar version "v1-rascunho"
+        text body "imutável (trigger)"
+        varchar body_sha256
+        timestamptz owner_accepted_at "= aceitar o pedido"
+        timestamptz renter_accepted_at "antes de pagar"
     }
-
-    CLAIMS {
+    PAYMENTS {
         uuid id PK
-        uuid booking_id FK "-> bookings"
-        uuid opened_by FK "-> profiles"
-        text description
-        text photos "nullable, array de urls"
-        claim_status status
-        uuid resolved_by FK "nullable, -> profiles"
-        text resolution "nullable"
-        timestamptz opened_at
-        timestamptz resolved_at "nullable"
+        uuid booking_id FK
+        uuid renter_id FK
+        varchar method "REFERENCE | MANUAL"
+        varchar provider "SIMULATED | MANUAL | EMIS (futuro)"
+        varchar entity
+        varchar reference
+        numeric rental_amount
+        numeric service_fee "8%"
+        numeric deposit_amount
+        numeric amount "= soma dos três"
+        varchar status "AWAITING_PAYMENT | CONFIRMED | EXPIRED | CANCELLED | FAILED"
+        timestamptz expires_at
     }
-
+    DEPOSITS {
+        uuid id PK
+        uuid booking_id FK "UK"
+        numeric amount
+        varchar status "HELD | RELEASED | WITHHELD"
+        numeric withheld_amount "vai para o dono"
+        text reason "obrigatório se WITHHELD"
+        uuid decided_by FK
+    }
+    CHECKLISTS {
+        uuid id PK
+        uuid booking_id FK
+        varchar type "DELIVERY | RETURN (1 de cada por reserva)"
+        uuid created_by FK
+        text notes
+        uuid confirmed_by FK "sempre a outra parte"
+        timestamptz confirmed_at
+    }
+    CHECKLIST_PHOTOS {
+        uuid id PK
+        uuid checklist_id FK
+        text storage_key UK
+        int position
+    }
+    INCIDENT_REPORTS {
+        uuid id PK
+        uuid booking_id FK
+        uuid reporter_id FK
+        varchar type "DAMAGE | LOSS | THEFT | OTHER"
+        text description
+        varchar status "OPEN | RESOLVED"
+        text resolution_note
+        uuid resolved_by FK
+    }
+    INCIDENT_PHOTOS {
+        uuid id PK
+        uuid incident_id FK
+        text storage_key UK
+    }
+    LEDGER_ENTRIES {
+        uuid id PK
+        uuid account_id FK
+        uuid booking_id FK
+        uuid payment_id FK "V7"
+        varchar type "TOPUP | SERVICE_FEE | HOLD | DEPOSIT_HOLD | HOLD_RELEASE | DEPOSIT_RETURN | DEPOSIT_FORFEIT | PAYMENT_DEBIT | PAYMENT_CREDIT | ADJUSTMENT"
+        numeric amount "> 0"
+        numeric balance_after
+    }
     NOTIFICATIONS {
         uuid id PK
-        uuid user_id FK "-> profiles"
-        uuid booking_id FK "nullable, -> bookings"
-        notification_type type
-        notif_channel channel
-        text title
+        uuid profile_id FK
+        varchar type
+        varchar title
         text body
-        notification_status status
-        boolean is_read
-        timestamptz sent_at "nullable"
-        timestamptz read_at "nullable"
-        text error_message "nullable"
-        timestamptz created_at
+        varchar link_path "caminho no frontend"
+        uuid booking_id FK
+        timestamptz read_at
+        varchar email_status "PENDING | SENT | FAILED | SKIPPED"
     }
-
     AUDIT_LOGS {
         uuid id PK
-        uuid actor_id FK "nullable, -> profiles (nulo quando acao do sistema)"
-        text action "ex: kyc.approved, booking.confirmed, transaction.verified"
-        text entity_type "ex: booking, kyc_verification, claim, transaction"
+        uuid actor_id FK "null = sistema"
+        varchar action
+        varchar entity_type "BOOKING | KYC | ACCOUNT | INCIDENT"
         uuid entity_id
-        jsonb before_data "nullable"
-        jsonb after_data "nullable"
-        text ip_address "nullable"
-        timestamptz created_at
-    }
-
-    OUTBOX_EVENTS {
-        uuid id PK
-        text aggregate_type "ex: booking, transaction, kyc_verification, claim"
-        uuid aggregate_id
-        text event_type "ex: booking.confirmed, transaction.confirmed, kyc.approved"
-        jsonb payload
-        outbox_status status
-        int retry_count
-        timestamptz created_at
-        timestamptz published_at "nullable"
+        text reason
+        jsonb metadata "sem dados pessoais"
     }
 ```
+
+Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códigos OTP com hash), `google_pending_signups` (registo Google à espera do telefone), `oauth_login_codes` (código de 60 s do login Google, só o hash), `item_availability` (ainda sem endpoints — ver `BACKEND_GAPS.md` #8).
+
+## Migrações
+
+| Versão | O que cria |
+|---|---|
+| V1 | `profiles`, `accounts`, `otp_codes`, `refresh_tokens`, função `set_updated_at()` |
+| V2 | `categories`, `items`, `item_photos`, `item_availability` |
+| V3 | `google_pending_signups` |
+| V4 | `bookings` |
+| V5 | `ledger_entries` (append-only) |
+| V6 | `payments` + tipos `TOPUP`/`SERVICE_FEE` no ledger |
+| V7 | `ledger_entries.payment_id` |
+| V8 | KYC: `kyc_verifications`, `kyc_documents`, `kyc_decisions`; `profiles.account_type` |
+| V9 | `notifications` |
+| V10 | `audit_logs` (append-only) |
+| V11 | `item_photos.storage_key` (fotos no B2) |
+| V12 | `contracts` |
+| V13 | estados `IN_PROGRESS`/`RETURNED`; `checklists`, `checklist_photos`; tipos novos de notificação |
+| V14 | `deposits` (com backfill a partir do ledger) |
+| V15 | `incident_reports`, `incident_photos` |
+| V16 | `oauth_login_codes` (código de uso único do login Google) |
