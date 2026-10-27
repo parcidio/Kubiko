@@ -122,8 +122,7 @@ export default function BeeznoFooter() {
           </button>
 
           <a
-            href="https://tally.so/r/5BN0JZ"
-            target="_blank"
+            href="#explore"
             className="flex cursor-pointer items-center gap-2 rounded-full bg-warning px-6 py-3 text-sm font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-warning/90 hover:shadow-lg"
           >
             Entrar na lista de espera
@@ -150,8 +149,8 @@ export default function BeeznoFooter() {
             <a href="https://www.instagram.com/beeznoo.ao?stkn=b2t1dzE0MnZla2R4" target="_blank" className="transition-colors hover:text-primary-foreground">
               Instagram
             </a>
-            <a href="mailto:hello@beeznoo.ao" className="transition-colors hover:text-primary-foreground">
-              hello@beeznoo.ao
+            <a href="mailto:equipa@beeznoo.ao" className="transition-colors hover:text-primary-foreground">
+              equipa@beeznoo.ao
             </a>
             <span className="text-shield-foreground/50">© 2026 Beeznoo</span>
           </div>

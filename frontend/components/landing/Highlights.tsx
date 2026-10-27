@@ -62,8 +62,7 @@ export default function BeeznoHighlights() {
 
             <div className="mt-8">
               <a
-                href="https://tally.so/r/dW7yGK"
-                target="_blank"
+                href="#explore"
                 className="inline-block rounded-full bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/85 hover:shadow-lg"
               >
                 Quero alugar
@@ -99,8 +98,7 @@ export default function BeeznoHighlights() {
 
             <div className="mt-8">
               <a
-                href="https://tally.so/r/5BN0JZ"
-                target="_blank"
+                href="#explore"
                 className="inline-block rounded-full bg-warning px-6 py-3 text-sm font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-warning/90 hover:shadow-lg"
               >
                 Quero disponibilizar

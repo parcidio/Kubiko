@@ -7,7 +7,7 @@ import { ArrowRight, Check, Calendar, Clock, Timer, Zap } from "lucide-react";
 const ease = [0.25, 0.1, 0.25, 1] as const;
 
 // ── Altera esta linha para mudar a data de lançamento ──
-const LAUNCH_DATE = new Date("2026-12-18T00:00:00");
+const LAUNCH_DATE = new Date("2026-11-17T00:00:00");
 // ───────────────────────────────────────────────────────
 
 const NUMERO = "244932300335";
@@ -98,8 +98,18 @@ export default function BeeznoHero() {
   const [nome,      setNome]      = useState("");
   const [email,     setEmail]     = useState("");
   const [telefone,  setTelefone]  = useState("");
+  const [equipamento,  setEquipamento]  = useState("");
+  const [dataInicio,  setDataInicio]  = useState("");
+  const [valorAluguer,  setValorAluguer]  = useState("");
+  const [dataRenda,  setDataRenda]  = useState("");
+  const [dataFinal,  setDataFinal]  = useState("");
+  const [valorRenda,  setValorRenda]  = useState("");
   const [provincia, setProvincia] = useState("Luanda");
   const [perfil,    setPerfil]    = useState<Perfil>("particular");
+
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error,   setError]   = useState(false);
 
   const perfilTexto = perfil === "particular" ? "Particular" : "Empresa";
 
@@ -121,26 +131,58 @@ export default function BeeznoHero() {
           : "disponibilizar equipamento",
     });
 
-  const handleAlugar = () => {
-    trackObjetivo("alugar");
+  // Substitui o URL pelo teu deployment ID
+const ALUGAR_URL = "https://script.google.com/macros/s/AKfycbwYGqstk6NtZnME7H-rhsTZUjboKK6WrjTX5PFJn6kEseXmp1eWZROZRtfLyH49vBn-gg/exec";
+  const handleAlugar = async (e: React.FormEvent) => {
+    console.log("Enviando dados para o Google Script:", { nome, email, equipamento, dataRenda, valorAluguer, telefone, provincia, perfil, objetivo });
+    e.preventDefault();
+    //trackObjetivo("alugar");
 
     const params = criarParametros("alugar");
-    window.open(
-      `https://tally.so/r/dW7yGK?${params.toString()}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+     setLoading(true);
+  try {
+    await fetch(ALUGAR_URL, {
+      method: "POST",
+      mode: "no-cors", // Google Scripts exigem isto
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ nome, email, equipamento, dataRenda, valorAluguer, telefone, provincia, perfil }),
+    });
+    // no-cors não devolve resposta, mas a submissão chega
+    setSuccess(true);
+    setTimeout(() => {
+      setSuccess(false);
+    }, 2000);
+  } catch {
+    setError(true);
+  } finally {
+    setLoading(false);
+  }
   };
 
-  const handleDisponibilizar = () => {
-    trackObjetivo("disponibilizar");
+  const DISPONIBILIZAR_URL = "https://script.google.com/macros/s/AKfycbwsUyEPmMN2zXCRRqZY9a56VB1kc_xvM3kMf9dMAsS7VrNesmJMBeNTQuAZ5-OJjrM4/exec";
+  const handleDisponibilizar = async (e: React.FormEvent) => {
+     console.log("Enviando dados para o Google Script:", { nome, email, equipamento, dataRenda, valorAluguer, telefone, provincia, perfil });
+
+    e.preventDefault();
+    //trackObjetivo("disponibilizar");
 
     const params = criarParametros("disponibilizar");
-    window.open(
-      `https://tally.so/r/5BN0JZ?${params.toString()}`,
-      "_blank",
-      "noopener,noreferrer"
-    );
+    setLoading(true);
+
+  try {
+    await fetch(DISPONIBILIZAR_URL, {
+      method: "POST",
+      mode: "no-cors", // Google Scripts exigem isto
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ nome, email, equipamento, valorRenda, dataInicio, dataFinal, telefone, provincia, perfil }),
+    });
+    // no-cors não devolve resposta, mas a submissão chega
+    setSuccess(true);
+  } catch {
+    setError(true);
+  } finally {
+    setLoading(false);
+  }
   };
 
   const handleAmbos = () => {
@@ -163,14 +205,15 @@ export default function BeeznoHero() {
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    console.log("Formulário submetido com objetivo:", objetivo);
     e.preventDefault();
 
     switch (objetivo) {
       case "alugar":
-        handleAlugar();
+        handleAlugar(e);
         break;
       case "disponibilizar":
-        handleDisponibilizar();
+        handleDisponibilizar(e);
         break;
       case "ambos":
         handleAmbos();
@@ -323,6 +366,82 @@ export default function BeeznoHero() {
               </div>
             </div>
 
+            {/* Campos específicos arrendatários*/}
+            
+            {objetivo === "alugar" && (
+              <div>
+                 <div>
+                  <label className="mb-1 block text-xs font-bold text-foreground">O que é que precisas?</label>
+                  <input
+                    type="text" required value={equipamento}
+                    onChange={e => setEquipamento(e.target.value)}
+                    placeholder="Nome do item"
+                    className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 mt-6">
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">Para quando?</label>
+                    <input
+                      type="date" value={dataRenda}
+                      onChange={e => setDataRenda(e.target.value)}
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">Quanto pagarias? (por semana)</label>
+                    <input
+                      type="number" required value={valorAluguer}
+                      onChange={e => setValorAluguer(e.target.value)}
+                      placeholder="Ex.: 5.000"
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          {/* Campos específicos arrendadores*/}
+          {objetivo === "disponibilizar" && (
+            <div>
+              <div>
+                  <label className="mb-1 block text-xs font-bold text-foreground">O que é queres disponibilizar?</label>
+                  <input
+                    type="text" required value={equipamento}
+                    onChange={e => setEquipamento(e.target.value)}
+                    placeholder="Nome do teu item"
+                    className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 mt-6">
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">De quando?</label>
+                    <input
+                      type="date" value={dataInicio}
+                      onChange={e => setDataInicio(e.target.value)}
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">Até quando?</label>
+                    <input
+                      type="date" value={dataFinal}
+                      onChange={e => setDataFinal(e.target.value)}
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                   <div>
+                    <label className="mb-1 block text-xs font-bold text-foreground">Por quanto?</label>
+                    <input
+                      type="number" value={valorRenda}
+                      onChange={e => setValorRenda(e.target.value)}
+                      placeholder="Ex.: 5.000"
+                      className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+                    />
+                  </div>
+                </div>
+            </div>
+          )}
+
             {/* Província + Perfil */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -358,11 +477,10 @@ export default function BeeznoHero() {
             {/* Submit */}
             <button
               type="submit"
-              className="group relative w-full overflow-hidden cursor-pointer rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-shadow hover:shadow-lift"
-            >
+              className="group relative w-full overflow-hidden cursor-pointer rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground transition-shadow hover:shadow-lift">
               <span className="absolute inset-0 -translate-x-full bg-shield transition-transform duration-300 ease-out group-hover:translate-x-0" />
               <span className="relative flex items-center justify-center gap-2">
-                Entrar na lista de espera
+                {success ? "✓ Inscrito!" : loading ? "A enviar..." : "Entrar na lista de espera"}
                 <ArrowRight className="h-4 w-4" />
               </span>
             </button>
