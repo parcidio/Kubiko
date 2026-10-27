@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { BadgeCheck, ShieldCheck, Ticket } from "lucide-react";
 import { HexGlow, Logo } from "@/components/bz/brand";
+import { Firefly } from "@/components/bz/firefly";
 
 const PROMISES = [
   { icon: BadgeCheck, text: "Donos e arrendatários verificados" },
@@ -48,6 +49,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         }`}
       >
         <HexGlow />
+        <Firefly />
         <div className="relative">
           <Logo dark href="/" />
         </div>
