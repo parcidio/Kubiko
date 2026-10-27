@@ -60,7 +60,7 @@ export default function AvaliarPage() {
             <label key={n} className="cursor-pointer">
               <input type="radio" name="stars" value={n} checked={stars === n} onChange={() => setStars(n)} className="peer sr-only" />
               <Star
-                className={cn("size-11 transition peer-focus-visible:scale-110 active:scale-90", n <= stars ? "fill-ambar text-ambar" : "text-borda-forte")}
+                className={cn("size-11 transition peer-focus-visible:scale-110 active:scale-90", n <= stars ? "animate-estrela fill-ambar text-ambar" : "text-borda-forte")}
                 strokeWidth={1.5}
                 aria-label={`${n} ${n === 1 ? "estrela" : "estrelas"}`}
               />

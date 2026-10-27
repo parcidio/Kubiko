@@ -240,6 +240,9 @@
   --animate-sobe:  sobe 280ms cubic-bezier(.2, .8, .2, 1) both;
   --animate-sheet: sheet 320ms cubic-bezier(.2, .8, .2, 1) both;
   --animate-pulso: pulso 1.6s ease-in-out infinite;
+  --animate-aparece: aparece 320ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-brilho:  brilho 1.4s ease-in-out infinite;
+  --animate-estrela: estrela 360ms cubic-bezier(.3, 1.6, .5, 1) both;
 
   @keyframes sobe {
     from { opacity: 0; transform: translateY(8px); }
@@ -248,6 +251,19 @@
   @keyframes sheet {
     from { transform: translateY(100%); }
     to   { transform: none; }
+  }
+  @keyframes aparece {
+    from { opacity: 0; transform: scale(.96); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes brilho {
+    from { background-position: 150% 0; }
+    to   { background-position: -50% 0; }
+  }
+  @keyframes estrela {
+    0%   { transform: scale(.6); }
+    60%  { transform: scale(1.18); }
+    100% { transform: none; }
   }
   @keyframes pulso {
     0%, 100% { opacity: 1; }
@@ -262,6 +278,26 @@
   font-size: 15px;
   line-height: 1.5;
   @media (width >= 48rem) { font-size: 16px; }
+}
+
+/* Skeleton com brilho a passar (mais leve para o olho do que piscar) */
+@utility skeleton-brilho {
+  background-color: var(--color-skeleton);
+  background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, .55) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: var(--animate-brilho);
+}
+
+/* Faixa horizontal com scroll por toque (sem barra) */
+@utility faixa {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+  & > * { scroll-snap-align: start; }
 }
 
 /* Fundo de colmeia para heróis escuros (ver HexPattern em components/bz/brand.tsx) */

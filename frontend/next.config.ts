@@ -9,7 +9,7 @@ const isDev = process.env.NODE_ENV !== "production";
 // - imagens: as fotos e documentos vêm de URLs assinadas do Backblaze B2 (*.backblazeb2.com)
 // - scripts: o Next precisa de 'unsafe-inline' para os scripts de hidratação (sem nonce no MVP);
 //   em desenvolvimento também 'unsafe-eval' (React Refresh)
-// - o login Google é uma navegação para /oauth2/... na API, não um pedido — não precisa de connect-src externo
+// - o login Google é uma navegação para /oauth2/... (proxy para a API), não um pedido — não precisa de connect-src externo
 const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
@@ -41,7 +41,13 @@ const nextConfig: NextConfig = {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
   async rewrites() {
-    return [{ source: "/api/v1/:path*", destination: `${apiUrl}/api/v1/:path*` }];
+    return [
+      { source: "/api/v1/:path*", destination: `${apiUrl}/api/v1/:path*` },
+      // Login Google pela mesma origem: o callback fica em https://beeznoo.ao/login/oauth2/code/google
+      // e o cookie da sessão OAuth2 é do nosso domínio. /oauth2/callback é uma página do Next e não é reescrita.
+      { source: "/oauth2/authorization/:path*", destination: `${apiUrl}/oauth2/authorization/:path*` },
+      { source: "/login/oauth2/:path*", destination: `${apiUrl}/login/oauth2/:path*` },
+    ];
   },
 };
 

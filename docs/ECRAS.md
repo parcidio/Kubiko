@@ -23,14 +23,14 @@ O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próxi
 | `/recuperar` | Recuperar password | Todos | Ligado | A | ✅ |
 | `/oauth2/callback` | Retorno do Google + telefone | Todos | Ligado | A | ✅ |
 | `/bem-vindo` | Onboarding (3 ecrãs) | Todos | UI (estático) | A | — |
-| `/explorar` | Explorar: herói, categorias, filtros (sheet), grelha | Todos | Parcial (filtros no cliente) | A | 🟡 sem pesquisa no servidor (#17) |
-| `/equipamento/[id]` | Detalhe: galeria, estado, dono, datas + preço, caução | Todos | Parcial (sem disponibilidade) | A | 🟡 sem disponibilidade (#8), selo (#15) |
+| `/explorar` | Explorar: herói com pesquisas rápidas, faixa de confiança, categorias, faixas Em destaque / Mais alugados / Mais bem avaliados, grelha, convite a publicar | Todos | Parcial (filtros no cliente) | A | 🟡 sem pesquisa no servidor (#17) |
+| `/equipamento/[id]` | Detalhe: galeria, avaliações, estado, dono, datas + preço, caução, mais da categoria | Todos | Parcial (sem disponibilidade) | A | 🟡 sem disponibilidade (#8), selo (#15) |
 | `/equipamento/[id]/reservar` | Pedido de reserva (datas → entrega → mensagem → rever) | Arrendatário | Ligado | A | ✅ |
 | `/reservas` | As minhas reservas | Arrendatário | Ligado | A | ✅ |
 | `/reservas/[id]` | **Detalhe da reserva (hub)** | Ambos | Ligado | A | ✅ estados novos (#10) |
 | `/reservas/[id]/pagar` | Pagamento por referência | Arrendatário | Parcial (sem comprovativo) | A | 🟡 contrato antes de pagar ✅, comprovativo ⬜ (#5) |
 | `/reservas/[id]/contrato` | Contrato | Ambos | UI | A | ✅ `/bookings/{id}/contract` |
-| `/reservas/[id]/avaliar` | Avaliar | Arrendatário | UI | A | ⬜ (#21) |
+| `/reservas/[id]/avaliar` | Avaliar | Arrendatário | Ligado | A | ✅ |
 | `/atividade` | Atividade | Arrendatário | Parcial (reservas recentes) | A | ✅ `/notifications/me` |
 | `/conta` | Conta, modo, sair | Ambos | Parcial (sem perfil) | A | ✅ `/profiles/me` |
 | `/verificacao` | Verificação (BI + selfie / NIF) | Ambos | UI | A | ✅ `/kyc/submit`, `/kyc/me` |

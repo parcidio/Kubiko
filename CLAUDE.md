@@ -51,9 +51,9 @@ Sprints semanais: segunda planning · terça–quinta execução · sexta demo, 
 ### Notas de backend
 - `spring.jpa.hibernate.ddl-auto: validate` — o schema vem **só** das migrações Flyway, nunca do Hibernate.
 - Neon: usar a connection string **pooled** e ligações Hikari de vida curta (o Neon fecha ligações inativas).
-- Pacotes Java organizados por domínio: `auth`, `profile`, `item`, `booking`, `contract`, `transaction`, `handover`, `deposit`, `kyc`, `claim`, `notification`, `audit`, `common`.
+- Pacotes Java organizados por domínio: `auth`, `profile`, `item`, `booking`, `contract`, `transaction`, `handover`, `deposit`, `kyc`, `claim`, `notification`, `audit`, `review`, `security`, `common`.
 - Usa branches do Neon para testar migrações antes de staging/produção.
-- **Migrações aplicadas: V1–V16.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V17).
+- **Migrações aplicadas: V1–V18.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V19).
 - **Estados da reserva:** `PENDING_OWNER → ACCEPTED → ACTIVE (pago) → IN_PROGRESS (entregue) → RETURNED (devolvido) → COMPLETED`, mais `CANCELLED_RENTER`, `CANCELLED_OWNER`, `DISPUTED`. Recusar = o dono faz `cancel` a um pedido `PENDING_OWNER`.
 - **"Verificado"** = KYC aprovado (`KycService.isVerified`). `profiles.is_verified` é o **telefone** confirmado — não confundir.
 - **Ficheiros:** validar com `UploadedFiles.validate(...)` (tipo pelos bytes, 5 MB) e ligar à transação com `StorageTransactions.deleteOnRollback(...)` / `deleteAfterCommit(...)`. A `storage_key` nunca sai em DTOs nem logs — só URLs assinadas.
@@ -91,7 +91,7 @@ Implementado · revisto · testado · integrado · responsivo · sem erros crít
   autorização por recurso no serviço, DTO com `@Valid` e limites de tamanho, erros 4xx (nunca 500 por input do cliente),
   nada de segredos, tokens ou códigos em URLs ou logs, e ver se precisa de limite em `RateLimitFilter`.
 - Segredos sem valor por omissão: a API não arranca sem `JWT_SECRET` (≥ 32 bytes) nem `B2_*`.
-- Migrações aplicadas: V1–V16 (próxima: V17).
+- Migrações aplicadas: V1–V18 (próxima: V19).
 
 ## 7. Design — "Identidade Verde v3"
 

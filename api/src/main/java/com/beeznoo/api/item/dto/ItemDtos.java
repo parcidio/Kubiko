@@ -78,6 +78,7 @@ public class ItemDtos {
             String city,
             String status,
             String coverPhoto,
+            String categorySlug,
             OffsetDateTime createdAt,
             Double ratingAverage,
             long ratingCount,

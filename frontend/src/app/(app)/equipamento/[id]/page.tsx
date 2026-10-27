@@ -1,17 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { CalendarDays, ChevronRight, Clock, MapPin, MessageCircle, ShieldCheck } from "lucide-react";
+import { CalendarDays, ChevronRight, Clock, LayoutGrid, MapPin, MessageCircle, Repeat2, ShieldCheck, Sparkles } from "lucide-react";
 import { categoryIcon } from "@/components/bz/brand";
 import { PriceSummary } from "@/components/bz/booking";
-import { Avatar, ConditionMeter, ItemPhoto, placeOf } from "@/components/bz/equipment";
+import { Rail, ReviewsSection } from "@/components/bz/discover";
+import { Avatar, ConditionMeter, ItemPhoto, Stars, formatRating, placeOf } from "@/components/bz/equipment";
 import { TextField } from "@/components/bz/form";
-import { Sheet } from "@/components/bz/overlay";
+import { Sheet, toast } from "@/components/bz/overlay";
 import { StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
-import { BackLink, Badge, ButtonLink, Card, Eyebrow, Kz, Skeleton, buttonClass } from "@/components/bz/ui";
-import { catalogApi } from "@/lib/api";
+import { BackLink, Badge, Button, ButtonLink, Card, Eyebrow, Kz, Skeleton, buttonClass } from "@/components/bz/ui";
+import { adminApi, catalogApi } from "@/lib/api";
+import { useSession } from "@/lib/auth";
 import { whatsappLink } from "@/lib/booking";
 import { addDaysIso, daysBetween, formatRange, todayIso } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -20,7 +22,10 @@ import type { Item } from "@/lib/types";
 
 export default function EquipamentoPage() {
   const { id } = useParams<{ id: string }>();
-  const { data: item, error, reload } = useResource<Item>(`item:${id}`, () => catalogApi.item(id));
+  const session = useSession();
+  const { data: item, error, reload, setData } = useResource<Item>(`item:${id}`, () => catalogApi.item(id));
+  const [featuring, setFeaturing] = useState(false);
+  const gallery = useRef<HTMLDivElement>(null);
   const [photo, setPhoto] = useState(0);
   const [start, setStart] = useState(todayIso(1));
   const [end, setEnd] = useState(todayIso(3));
@@ -48,17 +53,31 @@ export default function EquipamentoPage() {
   const reserveHref = `/equipamento/${id}/reservar?de=${start}&ate=${end}`;
   const waText = `Olá Beeznoo! Tenho uma pergunta sobre "${item.title}" (${formatRange(start, end)}).`;
 
+  async function toggleFeatured() {
+    setFeaturing(true);
+    try {
+      const updated = await adminApi.setFeatured(id, !item!.featured);
+      setData(updated);
+      toast.success(updated.featured ? "Está em destaque no Explorar." : "Destaque retirado.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível mudar o destaque.");
+    } finally {
+      setFeaturing(false);
+    }
+  }
+
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5 md:gap-8">
       <div className="hidden md:block">
         <BackLink href="/explorar">Explorar</BackLink>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-10">
+      <div className="grid gap-5 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-10">
         {/* Galeria: deslizar no telemóvel */}
-        <div className="-mx-4 -mt-5 grid gap-3 md:mx-0 md:mt-0">
+        <div className="-mx-4 -mt-5 grid content-start gap-3 md:sticky md:top-24 md:mx-0 md:mt-0 md:self-start">
           <div className="relative">
             <div
+              ref={gallery}
               className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] md:rounded-sheet"
               onScroll={(e) => setPhoto(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
             >
@@ -67,11 +86,39 @@ export default function EquipamentoPage() {
               ))}
             </div>
             {photos.length > 1 && (
-              <span className="num absolute right-4 bottom-4 rounded-full bg-verde/80 px-3 py-1 text-[13px] font-bold text-areia backdrop-blur">
-                {photo + 1} / {photos.length}
+              <>
+                <span className="num absolute top-4 right-4 rounded-full bg-verde/80 px-3 py-1 text-[13px] font-bold text-areia backdrop-blur">
+                  {photo + 1} / {photos.length}
+                </span>
+                <span aria-hidden className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
+                  {photos.map((p, i) => (
+                    <span key={p.id} className={cn("h-1.5 rounded-full bg-branco transition-all", i === photo ? "w-5" : "w-1.5 opacity-60")} />
+                  ))}
+                </span>
+              </>
+            )}
+            {item.featured && (
+              <span className="absolute top-4 left-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-verde px-3 text-[13px] font-bold text-ambar md:top-4 md:left-4">
+                <Sparkles className="size-4" strokeWidth={2} aria-hidden /> Em destaque
               </span>
             )}
           </div>
+          {photos.length > 1 && (
+            <div className="hidden gap-2 md:flex">
+              {photos.map((p, i) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  aria-label={`Ver foto ${i + 1}`}
+                  aria-current={i === photo}
+                  onClick={() => gallery.current?.scrollTo({ left: i * gallery.current.clientWidth, behavior: "smooth" })}
+                  className={cn("w-20 overflow-hidden rounded-campo border-2 transition", i === photo ? "border-verde" : "border-transparent opacity-70 hover:opacity-100")}
+                >
+                  <ItemPhoto src={p.photUrl} alt="" icon={Icon} rounded={false} />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="grid content-start gap-5">
@@ -81,9 +128,26 @@ export default function EquipamentoPage() {
               {!available && <Badge tone="neutro">Indisponível</Badge>}
             </div>
             <h1 className="font-titulo text-[30px] leading-[1.05] font-extrabold tracking-tight text-verde md:text-[40px]">{item.title}</h1>
-            <p className="flex items-center gap-1.5 text-cinza">
-              <MapPin className="size-4 text-mel" strokeWidth={1.8} aria-hidden /> {placeOf(item)}
-            </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-cinza">
+              {item.ratingAverage && item.ratingCount > 0 ? (
+                <a href="#avaliacoes" className="inline-flex min-h-11 items-center gap-1.5 hover:underline md:min-h-0">
+                  <Stars value={item.ratingAverage} size="sm" />
+                  <span className="num font-bold text-verde">{formatRating(item.ratingAverage)}</span>
+                  <span className="num">· {item.ratingCount} {item.ratingCount === 1 ? "avaliação" : "avaliações"}</span>
+                </a>
+              ) : (
+                <span className="font-medium text-mel-texto">Novo na Beeznoo</span>
+              )}
+              {item.completedRentals > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  <Repeat2 className="size-4 text-mel" strokeWidth={1.8} aria-hidden />
+                  <span className="num">Alugado {item.completedRentals} {item.completedRentals === 1 ? "vez" : "vezes"}</span>
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="size-4 text-mel" strokeWidth={1.8} aria-hidden /> {placeOf(item)}
+              </span>
+            </div>
             <div className="flex items-baseline gap-1 text-verde">
               <Kz value={item.pricePerDay} className="text-4xl" />
               <span className="text-cinza">/dia</span>
@@ -140,6 +204,18 @@ export default function EquipamentoPage() {
             </section>
           )}
 
+          {session?.role === "ADMIN" && (
+            <Card className="flex items-center justify-between gap-3 border-dashed p-4">
+              <span className="text-sm text-verde">
+                <span className="block font-bold">Admin · Destaque</span>
+                {item.featured ? "Aparece em \"Em destaque\" no Explorar." : "Não está em destaque."}
+              </span>
+              <Button variant="outline" size="sm" loading={featuring} onClick={toggleFeatured}>
+                <Sparkles strokeWidth={1.8} /> {item.featured ? "Tirar destaque" : "Destacar"}
+              </Button>
+            </Card>
+          )}
+
           <StickyCTA
             aside={
               <p className="leading-tight text-verde">
@@ -159,6 +235,20 @@ export default function EquipamentoPage() {
             </div>
           </StickyCTA>
         </div>
+      </div>
+
+      <div className="grid gap-8 border-t border-borda pt-6 md:pt-8">
+        <ReviewsSection itemId={id} average={item.ratingAverage} count={item.ratingCount} rentals={item.completedRentals} />
+        {item.category && (
+          <Rail
+            title={`Mais em ${item.category.name}`}
+            subtitle="Outros equipamentos da mesma categoria"
+            icon={LayoutGrid}
+            order="POPULAR"
+            categoryId={item.category.id}
+            keep={(i) => i.id !== id}
+          />
+        )}
       </div>
 
       <Sheet open={depositInfo} onClose={() => setDepositInfo(false)} title="Como funciona a caução">

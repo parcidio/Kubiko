@@ -40,6 +40,8 @@ export interface ItemSummary {
   city: string | null;
   status: string;
   coverPhoto: string | null;
+  /** Slug da categoria — escolhe o ícone quando não há foto */
+  categorySlug: string | null;
   createdAt: string;
   /** Média 1–5 com 1 casa; null sem avaliações */
   ratingAverage: number | null;

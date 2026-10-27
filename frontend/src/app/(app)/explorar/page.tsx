@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { LayoutGrid, MapPin, PackageSearch, Search, SlidersHorizontal, X } from "lucide-react";
+import { Flame, LayoutGrid, MapPin, PackageSearch, Search, Sparkles, SlidersHorizontal, Star, X } from "lucide-react";
 import { HexGlow, categoryIcon } from "@/components/bz/brand";
+import { PublishPromo, QuickSearches, Rail, TrustStrip } from "@/components/bz/discover";
 import { CategoryTile, EquipmentCard } from "@/components/bz/equipment";
 import { ChipGroup, MoneyField } from "@/components/bz/form";
 import { Sheet } from "@/components/bz/overlay";
@@ -60,14 +61,15 @@ export default function ExplorarPage() {
 
   const activeFilters = [filters.area, filters.maxPrice !== "" ? 1 : null, filters.condition && filters.condition !== "ANY" ? 1 : null].filter(Boolean).length;
   const roots = categories.filter((c) => !c.parentId);
-  const iconFor = (id?: string) => categoryIcon(categories.find((c) => c.id === id)?.slug);
+  // Faixas só ao navegar; com pesquisa ou filtros vai-se direto aos resultados
+  const browsing = !query.trim() && activeFilters === 0;
 
   return (
-    <div className="grid gap-6">
+    <div className="grid gap-5 md:gap-7">
       {/* Herói */}
-      <section className="relative -mx-4 -mt-5 overflow-hidden bg-verde-noite px-4 pt-7 pb-8 text-areia md:mx-0 md:mt-0 md:rounded-sheet md:px-10 md:py-12">
+      <section className="relative -mx-4 -mt-5 overflow-hidden bg-verde-noite px-4 pt-6 pb-5 text-areia md:mx-0 md:mt-0 md:rounded-sheet md:px-10 md:py-10">
         <HexGlow />
-        <div className="relative grid gap-5 md:max-w-2xl">
+        <div className="relative grid gap-4 md:max-w-2xl">
           <p className="text-sm font-medium text-salvia">{session ? "Bem-vindo de volta" : "Luanda · fotografia, vídeo e eventos"}</p>
           <h1 className="font-titulo text-[34px] leading-[1] font-extrabold tracking-tight md:text-[52px]">
             Do que precisas <span className="text-ambar">hoje?</span>
@@ -99,8 +101,11 @@ export default function ExplorarPage() {
               )}
             </button>
           </div>
+          <QuickSearches active={query} onPick={setQuery} />
         </div>
       </section>
+
+      <TrustStrip />
 
       {/* Categorias em mosaico */}
       <section aria-label="Categorias" className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-6 md:px-0">
@@ -122,9 +127,35 @@ export default function ExplorarPage() {
         </div>
       )}
 
+      {browsing && (
+        <>
+          <Rail title="Em destaque" subtitle="Escolhido pela equipa Beeznoo" icon={Sparkles} featured order="RECENT" categoryId={categoryId} />
+          <Rail
+            title="Mais alugados"
+            subtitle="O que mais sai em Luanda"
+            icon={Flame}
+            order="POPULAR"
+            categoryId={categoryId}
+            keep={(i) => i.completedRentals > 0}
+           
+          />
+          <Rail
+            title="Mais bem avaliados"
+            subtitle="Notas de quem já alugou"
+            icon={Star}
+            order="RATING"
+            categoryId={categoryId}
+            keep={(i) => i.ratingCount > 0}
+           
+          />
+        </>
+      )}
+
       <section aria-label="Equipamento" className="grid gap-4">
         <div className="flex items-end justify-between">
-          <h2 className="font-titulo text-xl font-bold text-verde">{categoryId ? categories.find((c) => c.id === categoryId)?.name : "Disponível perto de ti"}</h2>
+          <h2 className="font-titulo text-xl font-bold text-verde">
+            {query.trim() ? `Resultados para "${query.trim()}"` : categoryId ? categories.find((c) => c.id === categoryId)?.name : "Todo o equipamento"}
+          </h2>
           {state === "ready" && <span className="num text-[13px] text-cinza">{visible.length} resultados</span>}
         </div>
 
@@ -151,10 +182,10 @@ export default function ExplorarPage() {
         )}
         {state === "ready" && visible.length > 0 && (
           <>
-            <ul className="grid grid-cols-2 gap-x-3 gap-y-6 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
               {visible.map((item, i) => (
                 <li key={item.id}>
-                  <EquipmentCard item={item} href={`/equipamento/${item.id}`} icon={iconFor(categoryId)} index={i} />
+                  <EquipmentCard item={item} href={`/equipamento/${item.id}`} index={i} />
                 </li>
               ))}
             </ul>
@@ -166,6 +197,8 @@ export default function ExplorarPage() {
           </>
         )}
       </section>
+
+      {browsing && state === "ready" && <PublishPromo />}
 
       <Sheet
         open={sheet}

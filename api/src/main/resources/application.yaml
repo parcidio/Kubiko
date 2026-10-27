@@ -2,9 +2,18 @@ spring:
   application:
     name: beeznoo-api
   datasource:
-    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    # Neon: host *pooled* e DB_SSLMODE=require. Em local fica "prefer" (Postgres do docker-compose sem SSL)
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT:5432}/${DB_NAME}?sslmode=${DB_SSLMODE:prefer}
     username: ${DB_USER}
     password: ${DB_PASSWORD}
+    hikari:
+      # O Neon fecha ligações inativas: ligações de vida curta e poucas (o pooler do Neon faz o resto)
+      maximum-pool-size: ${DB_POOL_SIZE:5}
+      minimum-idle: 1
+      idle-timeout: 60000
+      max-lifetime: 240000
+      keepalive-time: 120000
+      connection-timeout: 10000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -35,9 +44,14 @@ spring:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
             scope: openid,profile,email
+            # Atrás do proxy do Render o pedido chega em HTTP: em produção fixar o URL https registado na Google Cloud
+            redirect-uri: ${GOOGLE_REDIRECT_URI:{baseUrl}/login/oauth2/code/{registrationId}}
 
 server:
-  port: 8080
+  # O Render define PORT; em local 8080
+  port: ${PORT:8080}
+  # Termina os pedidos em curso antes de parar (deploys sem cortar pedidos)
+  shutdown: graceful
   error:
     include-message: never
     include-stacktrace: never
@@ -70,6 +84,10 @@ management:
     web:
       exposure:
         include: health,info
+  health:
+    # Não há RabbitMQ no Render e nenhum código o usa ainda: não deixar o health check falhar por isso
+    rabbit:
+      enabled: ${RABBITMQ_HEALTH_ENABLED:false}
 
 jwt:
   # Sem valor por omissão: a API não arranca sem JWT_SECRET (≥ 32 bytes). Gera com: openssl rand -base64 64
