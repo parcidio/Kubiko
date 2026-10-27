@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export const inputClass = cn(
-  "h-12 w-full rounded-campo border border-borda-forte bg-branco px-4 text-[15px] text-verde outline-none transition",
+  "h-12 w-full rounded-sm border border-borda-forte bg-branco px-4 text-[15px] text-verde outline-none transition",
   "placeholder:text-cinza focus:border-verde focus:ring-4 focus:ring-verde-medio/15",
   "aria-invalid:border-2 aria-invalid:border-erro disabled:bg-areia-2 disabled:text-cinza",
 );
@@ -24,7 +24,7 @@ export function toFormErrors(err: unknown): FormErrors {
 export function FormError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <div role="alert" className="flex gap-3 rounded-cartao bg-erro-tint p-4 text-sm text-erro">
+    <div role="alert" className="flex gap-3 rounded-sm bg-erro-tint p-4 text-sm text-erro">
       <AlertCircle className="size-5 shrink-0" strokeWidth={1.8} aria-hidden />
       <p>{message}</p>
     </div>
@@ -131,7 +131,7 @@ function AffixInput({
   return (
     <div
       className={cn(
-        "flex h-12 overflow-hidden rounded-campo border border-borda-forte bg-branco transition focus-within:border-verde focus-within:ring-4 focus-within:ring-verde-medio/15",
+        "flex h-12 overflow-hidden rounded-sm border border-borda-forte bg-branco transition focus-within:border-verde focus-within:ring-4 focus-within:ring-verde-medio/15",
         error && "border-2 border-erro",
       )}
     >
