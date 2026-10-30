@@ -1,157 +1,159 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Banknote, Search, Bookmark, Calendar, ChevronDown, ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Banknote, Bookmark, Calendar, ChevronDown, ChevronLeft, MapPin, Star } from "lucide-react";
+import { ChipGroup } from "@/components/bz/form";
+import { LUANDA_AREAS } from "@/lib/format";
+import type { ItemCondition } from "@/lib/types";
 
-const CATEGORIAS = [
-  "Fotografia", "Vídeo", "Áudio", "Eventos",
-  "Ferramentas", "Eletrónica", "Mobiliário", "Veículos",
-];
+// Mesmo contrato do backend; a página importa daqui
+export type Filters = { area?: string; maxPrice: number | ""; condition?: ItemCondition | "ANY" };
+export const EMPTY_FILTERS: Filters = { maxPrice: "" };
 
-// ── Exportado para usar em Arrendatario e BeeznoItems ─────────
-export type Filters = {
-  pesquisa:   string;
-  categorias: string[];
-  precoMin:   string;
-  precoMax:   string;
-  dataInicio: string;
-  dataFim:    string;
-};
+type CategoryOption = { id: string; name: string };
 
-export const EMPTY_FILTERS: Filters = {
-  pesquisa: "", categorias: [],
-  precoMin: "", precoMax: "",
-  dataInicio: "", dataFim: "",
-};
+const CONDITION_LABEL: Partial<Record<ItemCondition, string>> = { NEW: "Novo", LIKE_NEW: "Como novo" };
 
-function formatDate(d: string) {
-  if (!d) return "";
-  const [y, m, day] = d.split("-");
-  return `${day}/${m}/${y}`;
-}
+const inputCls =
+  "w-full rounded-lg border border-border-bg bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield disabled:cursor-not-allowed disabled:opacity-60";
 
-function buildChips(f: Filters): string[] {
+function buildChips(f: Filters, categoryName?: string): string[] {
   const chips: string[] = [];
-  if (f.pesquisa) chips.push(`"${f.pesquisa}"`);
-  f.categorias.forEach(c => chips.push(c));
-  if (f.precoMin || f.precoMax)
-    chips.push(`${f.precoMin || "0"} – ${f.precoMax || "∞"} Kz`);
-  if (f.dataInicio && f.dataFim)
-    chips.push(`${formatDate(f.dataInicio)} → ${formatDate(f.dataFim)}`);
-  else if (f.dataInicio) chips.push(`A partir de ${formatDate(f.dataInicio)}`);
-  else if (f.dataFim)    chips.push(`Até ${formatDate(f.dataFim)}`);
+  if (categoryName) chips.push(categoryName);
+  if (f.area) chips.push(f.area);
+  if (f.maxPrice !== "") chips.push(`até ${f.maxPrice.toLocaleString("de-DE")} Kz/dia`);
+  if (f.condition && f.condition !== "ANY") chips.push(CONDITION_LABEL[f.condition] ?? f.condition);
   return chips;
 }
 
-function hasDraft(f: Filters) {
-  return !!f.pesquisa || f.categorias.length > 0 ||
-    !!f.precoMin || !!f.precoMax || !!f.dataInicio || !!f.dataFim;
-}
+const isEmpty = (f: Filters, categoryId?: string) =>
+  !f.area && f.maxPrice === "" && (!f.condition || f.condition === "ANY") && !categoryId;
 
 interface BeeznoFiltersProps {
-  mobile?:        boolean;
-  onSave?: (filters: Filters) => void;
-  initialFilters?: Filters;  // ← para pré-seleccionar categoria vinda da URL
+  value: Filters;                                   // filtros aplicados (estado da página)
+  onChange: (filters: Filters) => void;
+  categories?: CategoryOption[];                    // categorias raiz vindas da API
+  categoryId?: string;
+  onCategoryChange?: (id: string | undefined) => void;
+  mobile?: boolean;
 }
 
-export default function BeeznoFilters({ mobile = false, onSave, initialFilters }: BeeznoFiltersProps) {
-  // hooks sempre no topo e pela mesma ordem (rules-of-hooks)
+export default function BeeznoFilters({
+  value,
+  onChange,
+  categories = [],
+  categoryId,
+  onCategoryChange,
+  mobile = false,
+}: BeeznoFiltersProps) {
   const router = useRouter();
-  const [draft, setDraft] = useState<Filters>(initialFilters ?? EMPTY_FILTERS);
-  const [saved, setSaved] = useState<Filters>(initialFilters ?? EMPTY_FILTERS);
-  const [open,  setOpen]  = useState<string | null>(null);
+  const [open, setOpen] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Filters>(value);
+  const [draftCat, setDraftCat] = useState<string | undefined>(categoryId);
 
-  const toggle = (key: string) => setOpen(prev => prev === key ? null : key);
+  // Se a página mudar os filtros (tag removida, tile de categoria, reset), o rascunho acompanha
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (syncedValue !== value) {
+    setSyncedValue(value);
+    setDraft(value);
+  }
+  const [syncedCat, setSyncedCat] = useState(categoryId);
+  if (syncedCat !== categoryId) {
+    setSyncedCat(categoryId);
+    setDraftCat(categoryId);
+  }
 
-  const toggleCategoria = (cat: string) =>
-    setDraft(prev => ({
-      ...prev,
-      categorias: prev.categorias.includes(cat)
-        ? prev.categorias.filter(c => c !== cat)
-        : [...prev.categorias, cat],
-    }));
+  const toggle = (key: string) => setOpen((prev) => (prev === key ? null : key));
 
   const handleSave = () => {
-    setSaved({ ...draft });
-    onSave?.({ ...draft });   // ← notifica o pai
+    onChange({ ...draft });
+    onCategoryChange?.(draftCat);
     setOpen(null);
   };
 
   const handleClear = () => {
     setDraft(EMPTY_FILTERS);
-    setSaved(EMPTY_FILTERS);
-    onSave?.(EMPTY_FILTERS);  // ← limpa no pai também
+    setDraftCat(undefined);
+    onChange(EMPTY_FILTERS);
+    onCategoryChange?.(undefined);
     setOpen(null);
   };
 
-  const savedChips = buildChips(saved);
+  const savedChips = buildChips(value, categories.find((c) => c.id === categoryId)?.name);
 
   const sections = [
     {
-      key: "pesquisa", icon: Search, label: "Pesquisar",
+      key: "bairro", icon: MapPin, label: "Bairro",
       content: (
-        <input
-          type="text"
-          placeholder="Pesquisar equipamentos..."
-          value={draft.pesquisa}
-          onChange={e => setDraft(p => ({ ...p, pesquisa: e.target.value }))}
-          className="w-full rounded-lg border border-border-bg bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
+        <ChipGroup
+          label="Bairro"
+          value={draft.area}
+          onChange={(v) => setDraft({ ...draft, area: draft.area === v ? undefined : v })}
+          options={LUANDA_AREAS.map((a) => ({ value: a, label: a }))}
         />
       ),
     },
     {
-      key: "categoria", icon: Bookmark, label: "Categoria",
+      key: "estado", icon: Star, label: "Estado",
       content: (
-        <div className="flex flex-wrap gap-2">
-          {CATEGORIAS.map(cat => (
-            <button key={cat} onClick={() => toggleCategoria(cat)}
-              className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 ${
-                draft.categorias.includes(cat)
-                  ? "border-shield bg-shield-soft text-shield"
-                  : "border-border-bg bg-background text-muted-foreground hover:border-shield hover:text-shield"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-        </div>
+        <ChipGroup<ItemCondition | "ANY">
+          label="Estado"
+          value={draft.condition ?? "ANY"}
+          onChange={(v) => setDraft({ ...draft, condition: v })}
+          options={[
+            { value: "ANY", label: "Qualquer" },
+            { value: "NEW", label: "Novo" },
+            { value: "LIKE_NEW", label: "Como novo" },
+          ]}
+        />
       ),
     },
+    ...(categories.length > 0
+      ? [{
+          key: "categoria", icon: Bookmark, label: "Categoria",
+          content: (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  aria-pressed={draftCat === cat.id}
+                  onClick={() => setDraftCat(draftCat === cat.id ? undefined : cat.id)}
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 ${
+                    draftCat === cat.id
+                      ? "border-shield bg-shield-soft text-shield"
+                      : "border-border-bg bg-background text-muted-foreground hover:border-shield hover:text-shield"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+          ),
+        }]
+      : []),
     {
       key: "preco", icon: Banknote, label: "Preço",
       content: (
-        <div className="flex items-center gap-2">
-          <input type="number" placeholder="Mín (Kz)" value={draft.precoMin}
-            onChange={e => setDraft(p => ({ ...p, precoMin: e.target.value }))}
-            className="w-full rounded-lg border border-border-bg bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
-          />
-          <span className="shrink-0 text-xs text-muted-foreground">–</span>
-          <input type="number" placeholder="Máx (Kz)" value={draft.precoMax}
-            onChange={e => setDraft(p => ({ ...p, precoMax: e.target.value }))}
-            className="w-full rounded-lg border border-border-bg bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield"
-          />
-        </div>
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          placeholder="Máx (Kz/dia)"
+          value={draft.maxPrice}
+          onChange={(e) => setDraft((p) => ({ ...p, maxPrice: e.target.value === "" ? "" : Math.max(0, Number(e.target.value)) }))}
+          className={inputCls}
+        />
       ),
     },
     {
       key: "datas", icon: Calendar, label: "Datas de disponibilidade",
       content: (
         <div className="flex flex-col gap-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Início do arrendamento</label>
-            <input type="date" value={draft.dataInicio}
-              onChange={e => setDraft(p => ({ ...p, dataInicio: e.target.value }))}
-              className="w-full rounded-lg border border-border-bg bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-shield"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">Fim do arrendamento</label>
-            <input type="date" value={draft.dataFim} min={draft.dataInicio}
-              onChange={e => setDraft(p => ({ ...p, dataFim: e.target.value }))}
-              className="w-full rounded-lg border border-border-bg bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-shield"
-            />
-          </div>
+          <input type="date" disabled value="" className={inputCls} aria-label="Início do arrendamento" />
+          <input type="date" disabled value="" className={inputCls} aria-label="Fim do arrendamento" />
+          <p className="text-xs text-muted-foreground">Chega quando a API tiver disponibilidade.</p>
         </div>
       ),
     },
@@ -166,7 +168,7 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
       )}
 
       <div className="flex flex-col gap-4 p-5">
-        {/* Preferências guardadas */}
+        {/* Preferências aplicadas */}
         <div className="rounded-xl bg-accent px-5 py-4">
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-accent-foreground">As tuas preferências</h3>
@@ -178,7 +180,7 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
           </div>
           {savedChips.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">
-              {savedChips.map(chip => (
+              {savedChips.map((chip) => (
                 <span key={chip} className="rounded-full bg-background/60 px-2.5 py-1 text-xs font-semibold text-accent-foreground">
                   {chip}
                 </span>
@@ -195,7 +197,10 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
 
           {sections.map(({ key, icon: Icon, label, content: body }) => (
             <div key={key} className="border-b border-border-bg last:border-0">
-              <button onClick={() => toggle(key)}
+              <button
+                type="button"
+                onClick={() => toggle(key)}
+                aria-expanded={open === key}
                 className={`flex w-full cursor-pointer items-center justify-between py-4 ${mobile ? "py-3" : ""}`}
               >
                 <div className="flex items-center gap-2">
@@ -204,22 +209,26 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
                 </div>
                 <ChevronDown className={`shrink-0 text-muted-foreground transition-transform duration-200 ${open === key ? "rotate-180" : ""} ${mobile ? "h-5 w-5" : "h-4 w-4"}`} />
               </button>
-              <div className={`overflow-hidden transition-all duration-300 ease-out ${open === key ? "max-h-96 pb-4 opacity-100" : "max-h-0 opacity-0"}`}>
+              <div className={`transition-all duration-300 ease-out ${open === key ? "max-h-96 overflow-y-auto px-1 pb-4 opacity-100" : "max-h-0 overflow-hidden opacity-0"}`}>
                 {body}
               </div>
             </div>
           ))}
 
           <div className="mt-5 flex flex-col gap-2">
-            <button onClick={handleSave}
-              className="group relative w-full cursor-pointer overflow-hidden rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-foreground transition-shadow duration-300 hover:shadow-lift"
+            <button
+              type="button"
+              onClick={handleSave}
+              className="group relative w-full cursor-pointer overflow-hidden rounded-lg bg-primary px-5 py-2.5 font-semibold text-card transition-shadow duration-300 hover:shadow-lift"
             >
               <span className="absolute inset-0 -translate-x-full skew-x-[-20deg] bg-linear-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
               <span className={`relative ${mobile ? "text-base" : "text-sm"}`}>Guardar</span>
             </button>
 
-            {hasDraft(draft) && (
-              <button onClick={handleClear}
+            {!(isEmpty(draft, draftCat) && isEmpty(value, categoryId)) && (
+              <button
+                type="button"
+                onClick={handleClear}
                 className="w-full cursor-pointer rounded-lg border border-border py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
               >
                 Limpar todos os filtros
@@ -231,16 +240,13 @@ export default function BeeznoFilters({ mobile = false, onSave, initialFilters }
     </div>
   );
 
-
-  if (!mobile) 
-  {
-      return <aside className="w-72 shrink-0 fixed top-24 overflow-y-auto max-h-[calc(100vh-6rem)]">
-                <button onClick={() => router.back()} className="mb-5 flex items-center gap-1.5 text-sm font-semibold cursor-pointer text-muted-foreground transition-colors hover:text-foreground">
-                  <ChevronLeft className="h-4 w-4" />
-                  Voltar
-                </button>
-                {content}
-              </aside>;
+  if (!mobile) {
+    // Fixo à esquerda; no telemóvel a página continua a usar o Sheet
+    return (
+      <aside className="fixed top-34 left-6 hidden max-h-[calc(100vh-6rem)] w-84 shrink-0 overflow-y-auto lg:block xl:right-8 min-h-screen">
+        {content}
+      </aside>
+    );
   }
   return <div>{content}</div>;
 }

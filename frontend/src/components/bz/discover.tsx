@@ -142,7 +142,7 @@ export function QuickSearches({ onPick, active }: { onPick: (q: string) => void;
             aria-pressed={on}
             onClick={() => onPick(on ? "" : q)}
             className={cn(
-              "h-11 shrink-0 rounded-full border px-4 text-sm font-medium transition active:scale-95",
+              "h-11 shrink-0 rounded-full cursor-pointer border px-4 text-sm font-medium transition active:scale-95",
               on ? "border-ambar bg-ambar/15 text-ambar" : "border-white/15 bg-white/5 text-areia hover:bg-white/10",
             )}
           >

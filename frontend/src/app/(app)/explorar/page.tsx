@@ -5,15 +5,14 @@ import { Flame, LayoutGrid, MapPin, PackageSearch, Search, Sparkles, SlidersHori
 import { HexGlow, categoryIcon } from "@/components/bz/brand";
 import { PublishPromo, QuickSearches, Rail, TrustStrip } from "@/components/bz/discover";
 import { CategoryTile, EquipmentCard } from "@/components/bz/equipment";
-import { ChipGroup, MoneyField } from "@/components/bz/form";
 import { Sheet } from "@/components/bz/overlay";
 import { EmptyState, ErrorState, GridSkeleton } from "@/components/bz/states";
 import { Button } from "@/components/bz/ui";
 import { catalogApi, totalPages } from "@/lib/api";
 import { useSession } from "@/lib/auth";
-import { LUANDA_AREAS } from "@/lib/format";
 import type { ItemCondition, ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import BeeznoFilters from "../../../../components/items/Filters";
 
 type Filters = { area?: string; maxPrice: number | ""; condition?: ItemCondition | "ANY" };
 
@@ -67,6 +66,11 @@ export default function ExplorarPage() {
   return (
     <div className="grid gap-5 md:gap-7">
       {/* Herói */}
+      <BeeznoFilters value={filters}
+        onChange={setFilters}
+        categories={roots}
+        categoryId={categoryId}
+        onCategoryChange={setCategoryId}/>
       <section className="relative -mx-4 -mt-5 overflow-hidden bg-verde-noite px-4 pt-6 pb-5 text-areia md:mx-0 md:mt-0 md:rounded-sheet md:px-10 md:py-10">
         <HexGlow />
         <div className="relative grid gap-4 md:max-w-2xl">
@@ -93,7 +97,7 @@ export default function ExplorarPage() {
                 setSheet(true);
               }}
               aria-label={`Filtros${activeFilters ? ` (${activeFilters} ativos)` : ""}`}
-              className="relative flex size-14 shrink-0 items-center justify-center rounded-full bg-ambar text-verde transition active:scale-95"
+              className="relative flex size-14 shrink-0 items-center cursor-pointer justify-center rounded-full bg-ambar text-verde transition active:scale-95"
             >
               <SlidersHorizontal className="size-5" strokeWidth={2} aria-hidden />
               {activeFilters > 0 && (
@@ -200,6 +204,8 @@ export default function ExplorarPage() {
 
       {browsing && state === "ready" && <PublishPromo />}
 
+  {/*
+  
       <Sheet
         open={sheet}
         onClose={() => setSheet(false)}
@@ -251,6 +257,16 @@ export default function ExplorarPage() {
           <p className="text-[13px] text-cinza">Filtro por datas disponíveis chega quando a API tiver disponibilidade.</p>
         </div>
       </Sheet>
+      */}
+      <Sheet open={sheet} onClose={() => setSheet(false)} title="Filtros">
+      <BeeznoFilters 
+        mobile
+        value={filters}
+        onChange={setFilters}
+        categories={roots}
+        categoryId={categoryId}
+        onCategoryChange={setCategoryId}/>
+</Sheet>
     </div>
   );
 }

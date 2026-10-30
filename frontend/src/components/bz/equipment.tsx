@@ -179,17 +179,19 @@ export function CategoryTile({
 }: { label: string; icon: LucideIcon; active: boolean; onClick: () => void; tone: number }) {
   const tones = ["bg-ambar-tint", "bg-salvia-tint", "bg-areia-2", "bg-[#F6E3D3]", "bg-[#E6EEF0]", "bg-[#EFE8F3]"];
   return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onClick}
-      className={cn(
-        "flex h-24 w-24 shrink-0 flex-col items-start justify-between rounded-cartao p-3 text-left transition active:scale-[.97] md:h-28 md:w-auto",
-        active ? "bg-verde text-areia" : cn(tones[tone % tones.length], "text-verde hover:brightness-[.97]"),
-      )}
-    >
-      <Icon className={cn("size-6", active ? "text-ambar" : "text-mel")} strokeWidth={1.8} aria-hidden />
+    <div className="flex flex-col items-center gap-1 text-center">
+      <button
+        type="button"
+        aria-pressed={active}
+        onClick={onClick}
+        className={cn(
+          "flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center rounded-sm p-3 text-left transition active:scale-[.97] md:h-16 md:w-16",
+          active ? "bg-verde text-areia" : cn(tones[tone % tones.length], "text-verde hover:brightness-[.97]"),
+        )}
+      >
+        <Icon className={cn("size-6", active ? "text-ambar" : "text-mel")} strokeWidth={1.8} aria-hidden />
+      </button>
       <span className="text-sm font-bold">{label}</span>
-    </button>
+    </div>
   );
 }

@@ -358,7 +358,7 @@ export function ChipGroup<T extends string>({
             aria-pressed={on}
             onClick={() => onChange(v)}
             className={cn(
-              "inline-flex h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium whitespace-nowrap transition active:scale-[.97]",
+              "inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-6 text-sm font-medium whitespace-nowrap transition active:scale-[.97]",
               on ? "border-verde bg-verde text-areia" : "border-borda-forte bg-branco text-verde hover:border-verde",
             )}
           >

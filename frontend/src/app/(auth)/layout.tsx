@@ -49,7 +49,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         }`}
       >
         <HexGlow />
-        <Firefly />
         <div className="relative">
           <Logo dark href="/" />
         </div>
