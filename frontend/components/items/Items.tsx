@@ -16,7 +16,7 @@ export default function BeeznoItems({ filters = EMPTY_FILTERS }: BeeznoItemsProp
       !item.nome.toLowerCase().includes(filters.pesquisa.toLowerCase()))
       return false;
 
-    if (filters.categorias.length > 0 &&
+    if (filters.categorias?.length &&
       !filters.categorias.includes(item.categoria))
       return false;
 

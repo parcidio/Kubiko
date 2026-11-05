@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { BadgeCheck, ChevronRight, CircleHelp, LogOut, Moon, Package, ShieldCheck, Sun, Ticket, Wallet, type LucideIcon } from "lucide-react";
 import { HexGlow } from "@/components/bz/brand";
@@ -19,20 +19,29 @@ const ROLE_LABEL: Record<UserRole, string> = {
   ADMIN: "Equipa Beeznoo",
 };
 
+function subscribeTheme(onChange: () => void) {
+  window.addEventListener("beeznoo:theme", onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener("beeznoo:theme", onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
+
+function getThemeSnapshot() {
+  return window.localStorage.getItem("beeznoo.theme") === "dark";
+}
+
 export default function ContaPage() {
   const session = useRequireSession();
   const router = useRouter();
   const [avatarUrl, setAvatarUrl] = useState<string>();
-  const [darkMode, setDarkMode] = useState(false);
+  const darkMode = useSyncExternalStore(subscribeTheme, getThemeSnapshot, () => false);
   useEffect(() => () => {
     if (avatarUrl) URL.revokeObjectURL(avatarUrl);
   }, [avatarUrl]);
   useEffect(() => {
-    setDarkMode(window.localStorage.getItem("beeznoo.theme") === "dark");
-  }, []);
-  useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
-    window.localStorage.setItem("beeznoo.theme", darkMode ? "dark" : "light");
   }, [darkMode]);
   if (!session) return null;
 
@@ -125,7 +134,10 @@ export default function ContaPage() {
                 role="switch"
                 aria-checked={darkMode}
                 aria-label="Ativar tema escuro"
-                onClick={() => setDarkMode((active) => !active)}
+                onClick={() => {
+                  window.localStorage.setItem("beeznoo.theme", darkMode ? "light" : "dark");
+                  window.dispatchEvent(new Event("beeznoo:theme"));
+                }}
                 className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full p-1 transition-colors ${darkMode ? "bg-primary" : "bg-borda"}`}
               >
                 <span className={`block size-5 rounded-full bg-branco shadow transition-transform ${darkMode ? "translate-x-5" : "translate-x-0"}`} />

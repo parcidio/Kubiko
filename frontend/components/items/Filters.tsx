@@ -1,15 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Banknote, Bookmark, Calendar, ChevronDown, ChevronLeft, MapPin, Star } from "lucide-react";
+import { Banknote, Bookmark, Calendar, ChevronDown, MapPin, Star } from "lucide-react";
 import { ChipGroup } from "@/components/bz/form";
 import { LUANDA_AREAS } from "@/lib/format";
 import type { ItemCondition } from "@/lib/types";
 
 // Mesmo contrato do backend; a página importa daqui
-export type Filters = { area?: string; maxPrice: number | ""; condition?: ItemCondition | "ANY" };
-export const EMPTY_FILTERS: Filters = { maxPrice: "" };
+export type Filters = {
+  area?: string;
+  maxPrice: number | "";
+  condition?: ItemCondition | "ANY";
+  pesquisa?: string;
+  categorias?: string[];
+  precoMin?: number | "";
+  precoMax?: number | "";
+  dataInicio?: string;
+  dataFim?: string;
+};
+export const EMPTY_FILTERS: Filters = { maxPrice: "", categorias: [], precoMin: "", precoMax: "" };
 
 type CategoryOption = { id: string; name: string };
 
@@ -31,8 +40,10 @@ const isEmpty = (f: Filters, categoryId?: string) =>
   !f.area && f.maxPrice === "" && (!f.condition || f.condition === "ANY") && !categoryId;
 
 interface BeeznoFiltersProps {
-  value: Filters;                                   // filtros aplicados (estado da página)
-  onChange: (filters: Filters) => void;
+  value?: Filters;                                  // filtros aplicados (estado da página)
+  onChange?: (filters: Filters) => void;
+  initialFilters?: Filters;                         // compatibilidade com a rota antiga /items
+  onSave?: (filters: Filters) => void;
   categories?: CategoryOption[];                    // categorias raiz vindas da API
   categoryId?: string;
   onCategoryChange?: (id: string | undefined) => void;
@@ -42,21 +53,23 @@ interface BeeznoFiltersProps {
 export default function BeeznoFilters({
   value,
   onChange,
+  initialFilters,
+  onSave,
   categories = [],
   categoryId,
   onCategoryChange,
   mobile = false,
 }: BeeznoFiltersProps) {
-  const router = useRouter();
+  const applied = value ?? initialFilters ?? EMPTY_FILTERS;
   const [open, setOpen] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Filters>(value);
+  const [draft, setDraft] = useState<Filters>(applied);
   const [draftCat, setDraftCat] = useState<string | undefined>(categoryId);
 
   // Se a página mudar os filtros (tag removida, tile de categoria, reset), o rascunho acompanha
-  const [syncedValue, setSyncedValue] = useState(value);
-  if (syncedValue !== value) {
-    setSyncedValue(value);
-    setDraft(value);
+  const [syncedValue, setSyncedValue] = useState(applied);
+  if (syncedValue !== applied) {
+    setSyncedValue(applied);
+    setDraft(applied);
   }
   const [syncedCat, setSyncedCat] = useState(categoryId);
   if (syncedCat !== categoryId) {
@@ -67,7 +80,8 @@ export default function BeeznoFilters({
   const toggle = (key: string) => setOpen((prev) => (prev === key ? null : key));
 
   const handleSave = () => {
-    onChange({ ...draft });
+    onChange?.({ ...draft });
+    onSave?.({ ...draft });
     onCategoryChange?.(draftCat);
     setOpen(null);
   };
@@ -75,12 +89,13 @@ export default function BeeznoFilters({
   const handleClear = () => {
     setDraft(EMPTY_FILTERS);
     setDraftCat(undefined);
-    onChange(EMPTY_FILTERS);
+    onChange?.(EMPTY_FILTERS);
+    onSave?.(EMPTY_FILTERS);
     onCategoryChange?.(undefined);
     setOpen(null);
   };
 
-  const savedChips = buildChips(value, categories.find((c) => c.id === categoryId)?.name);
+  const savedChips = buildChips(applied, categories.find((c) => c.id === categoryId)?.name);
 
   const sections = [
     {
@@ -225,7 +240,7 @@ export default function BeeznoFilters({
               <span className={`relative ${mobile ? "text-base" : "text-sm"}`}>Guardar</span>
             </button>
 
-            {!(isEmpty(draft, draftCat) && isEmpty(value, categoryId)) && (
+            {!(isEmpty(draft, draftCat) && isEmpty(applied, categoryId)) && (
               <button
                 type="button"
                 onClick={handleClear}
