@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight, Inbox, Package, Plus, Ticket } from "lucide-react";
+import { ArrowUpRight, CreditCard, Inbox, Package, Plus, Radio, Ticket } from "lucide-react";
 import { HexGlow } from "@/components/bz/brand";
 import { BookingRow } from "@/components/bz/booking";
 import { RequestCard } from "@/components/bz/requests";
@@ -35,22 +35,45 @@ export default function PainelPage() {
   const activeItems = (items.data?.content ?? []).filter((i) => i.status === "ACTIVE").length;
 
   return (
-    <div className="grid gap-8">
-      <section className="relative -mx-4 -mt-5 overflow-hidden bg-verde-noite px-4 pt-6 pb-7 text-areia md:mx-0 md:mt-0 md:rounded-sheet md:p-10">
+    <div className="grid gap-8 px-4 md:gap-7 md:px-12">
+      <section className="hero-explore relative -mx-4 -mt-5 flex min-h-[calc(78svh-4rem)] items-center overflow-hidden bg-verde-noite px-4 pt-20 pb-10 text-areia md:-mx-12 md:-mt-8 md:min-h-[calc(78svh-5rem)] md:rounded-none md:px-12 md:py-16">
         <HexGlow />
         <div className="relative grid gap-6">
           <div className="flex items-center justify-between gap-3">
             <Eyebrow className="text-salvia">O teu negócio na Beeznoo</Eyebrow>
             <ModeSwitch dark className="md:hidden" />
           </div>
-          <div className="grid gap-1">
-            <p className="text-areia/75">Disponível na carteira</p>
-            {account.loading ? (
-              <Skeleton className="h-14 w-56 bg-white/10" />
-            ) : (
-              <Kz value={account.data?.availableBalance ?? 0} className="text-[48px] leading-none text-ambar md:text-[64px]" />
-            )}
-            <Link href="/carteira" className="mt-1 inline-flex min-h-11 items-center gap-1 text-sm font-bold text-areia hover:underline">
+          <div className="grid gap-3 md:max-w-xl">
+            <div className="relative grid min-h-64 gap-8 overflow-hidden rounded-sheet border border-white/15 bg-linear-to-br from-verde-medio via-verde to-verde-noite p-6 text-areia shadow-flutua md:min-h-72 md:p-8">
+              <div className="absolute -top-20 -right-16 size-56 rounded-full bg-ambar/15 blur-3xl" aria-hidden />
+              <div className="relative flex items-start justify-between">
+                <div className="grid gap-1">
+                  <p className="text-xs font-bold tracking-[0.16em] text-areia/65 uppercase">Beeznoo Pay</p>
+                  <p className="font-titulo text-lg font-bold">Cartão de débito</p>
+                </div>
+                <CreditCard className="size-7 text-ambar" strokeWidth={1.6} aria-hidden />
+              </div>
+              <div className="relative flex items-center gap-3">
+                <span className="flex h-9 w-12 items-center justify-center rounded-md border border-ambar/60 bg-ambar/20">
+                  <span className="h-5 w-7 rounded-sm border border-ambar/70" aria-hidden />
+                </span>
+                <Radio className="size-5 rotate-90 text-areia/70" strokeWidth={1.5} aria-hidden />
+              </div>
+              <div className="relative grid gap-1">
+                <p className="num text-lg tracking-[0.18em] text-areia/85">••••  ••••  ••••  {account.data?.availableBalance ? "2048" : "0000"}</p>
+                <div className="flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] tracking-[0.14em] text-areia/55 uppercase">Saldo disponível</p>
+                    {account.loading ? <Skeleton className="mt-1 h-8 w-40 bg-white/10" /> : <Kz value={account.data?.availableBalance ?? 0} className="text-3xl leading-none text-ambar" />}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-areia/55 uppercase">Titular</p>
+                    <p className="text-sm font-bold">Beeznoo member</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Link href="/carteira" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-areia hover:underline">
               Ver movimentos <ArrowUpRight className="size-4" strokeWidth={2} aria-hidden />
             </Link>
           </div>

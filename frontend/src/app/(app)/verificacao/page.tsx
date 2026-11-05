@@ -9,7 +9,7 @@ import { CameraSlot } from "@/components/bz/photo";
 import { PageHeader } from "@/components/bz/shell";
 import { BackendPending } from "@/components/bz/states";
 import { Segmented } from "@/components/bz/tabs";
-import { Button, Callout, Card } from "@/components/bz/ui";
+import { BackLink, Button, Callout, Card } from "@/components/bz/ui";
 import { useRequireSession } from "@/lib/auth";
 
 type Kind = "individual" | "business";
@@ -39,6 +39,7 @@ export default function VerificacaoPage() {
 
   return (
     <div className="mx-auto grid max-w-2xl gap-5">
+      <BackLink href="/conta">Voltar à conta</BackLink>
       <PageHeader title="Verifica a tua identidade" subtitle="Obrigatório antes de pedir uma reserva ou publicar. Leva 2 minutos." />
       <Callout tone="ok" icon={BadgeCheck} title="Porque pedimos isto">
         Quem aluga sabe com quem está a lidar. Os documentos ficam guardados de forma privada e só a equipa Beeznoo os vê.

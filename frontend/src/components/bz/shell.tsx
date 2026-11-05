@@ -64,7 +64,7 @@ export function ModeSwitch({ dark, className }: { dark?: boolean; className?: st
           aria-pressed={mode === m}
           onClick={() => go(m)}
           className={cn(
-            "min-h-9 rounded-full px-3 text-[13px] font-bold transition",
+            "min-h-9 rounded-full cursor-pointer px-3 text-[13px] font-bold transition",
             mode === m ? (dark ? "bg-ambar text-verde" : "bg-verde text-areia") : dark ? "text-areia/80" : "text-verde",
           )}
         >
@@ -78,19 +78,37 @@ export function ModeSwitch({ dark, className }: { dark?: boolean; className?: st
 export function TopBar() {
   const pathname = usePathname();
   const { nav, mode, session } = useNav();
+  const hasHeroNav = pathname.startsWith("/explorar") || pathname.startsWith("/painel");
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!hasHeroNav) return;
+    const update = () => setScrolled(window.scrollY > 24);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, [hasHeroNav]);
+
+  const overlay = hasHeroNav && !scrolled;
   return (
-    <header className="sticky top-0 z-40 border-b border-borda/70 bg-areia/90 backdrop-blur-md">
+    <header className={cn(
+      "z-40 border-b transition-colors duration-300",
+      hasHeroNav ? "fixed inset-x-0 top-0" : "sticky top-0",
+      overlay ? "border-transparent bg-transparent" : "border-borda/70 bg-areia/90 backdrop-blur-md",
+    )}>
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 md:px-12">
-        <Logo href={session && mode === "owner" ? "/painel" : "/explorar"} />
+        <Logo dark={overlay} href={session && mode === "owner" ? "/painel" : "/explorar"} />
         <nav className="ml-6 hidden items-center gap-1 md:flex" aria-label="Principal">
           {nav.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               aria-current={isActive(pathname, href) ? "page" : undefined}
-              className={cn(
+                className={cn(
                 "rounded-full px-4 py-2 text-[15px] font-medium transition",
-                isActive(pathname, href) ? "bg-verde text-areia" : "text-texto-corpo hover:bg-areia-2",
+                isActive(pathname, href)
+                  ? overlay ? "bg-ambar text-verde" : "bg-verde text-areia"
+                  : overlay ? "text-areia/85 hover:bg-white/10" : "text-texto-corpo hover:bg-areia-2",
               )}
             >
               {label}
@@ -98,7 +116,7 @@ export function TopBar() {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <ModeSwitch className="hidden md:grid" />
+          <ModeSwitch dark={overlay} className="hidden md:grid" />
           {session && isAdmin(session.role) && (
             <ButtonLink href="/admin" variant="soft" size="sm" className="hidden md:inline-flex">
               <ShieldCheck strokeWidth={1.8} /> Admin
@@ -184,11 +202,22 @@ export function OfflineBanner() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isFullBleed = pathname.startsWith("/explorar") || pathname.startsWith("/painel");
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("beeznoo.theme");
+    document.documentElement.classList.toggle("dark", savedTheme === "dark");
+  }, []);
+
   return (
     <div className="app min-h-dvh">
       <TopBar />
       <OfflineBanner />
-      <main className="mx-auto max-w-6xl px-4 pt-5 pb-40 md:px-12 md:pt-8 md:pb-20">{children}</main>
+      <main className={cn(
+        "pt-5 pb-40 md:pt-8 md:pb-20",
+        isFullBleed ? "w-full px-0" : "mx-auto max-w-6xl px-4 md:px-12",
+      )}>{children}</main>
       <BottomNav />
     </div>
   );

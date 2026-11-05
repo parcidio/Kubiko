@@ -160,7 +160,7 @@ export default function BeeznoFilters({
   ];
 
   const content = (
-    <div className="rounded-sm border border-border-bg bg-card">
+    <div className="max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain rounded-sm border border-border-bg bg-card">
       {!mobile && (
         <div className="flex justify-center border-b border-border-bg px-6 py-1.5">
           <h2 className="font-light text-card-foreground">Filtros</h2>
@@ -173,7 +173,7 @@ export default function BeeznoFilters({
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-accent-foreground">As tuas preferências</h3>
             {savedChips.length > 0 && (
-              <button onClick={handleClear} className="text-xs text-accent-foreground/60 transition-colors hover:text-accent-foreground">
+              <button onClick={handleClear} className="text-xs cursor-pointer text-accent-foreground/60 transition-colors hover:text-accent-foreground">
                 Limpar todos
               </button>
             )}
@@ -181,7 +181,7 @@ export default function BeeznoFilters({
           {savedChips.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {savedChips.map((chip) => (
-                <span key={chip} className="rounded-full bg-background/60 px-2.5 py-1 text-xs font-semibold text-accent-foreground">
+                <span key={chip} className="rounded-full bg-chart-5 px-2.5 py-1 text-xs font-semibold text-foreground">
                   {chip}
                 </span>
               ))}
@@ -243,7 +243,7 @@ export default function BeeznoFilters({
   if (!mobile) {
     // Fixo à esquerda; no telemóvel a página continua a usar o Sheet
     return (
-      <aside className="fixed top-34 left-6 hidden max-h-[calc(100vh-6rem)] w-84 shrink-0 overflow-y-auto lg:block xl:right-8 min-h-screen">
+      <aside className="sticky top-20 hidden w-84 shrink-0 self-start lg:block">
         {content}
       </aside>
     );

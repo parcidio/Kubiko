@@ -64,16 +64,11 @@ export default function ExplorarPage() {
   const browsing = !query.trim() && activeFilters === 0;
 
   return (
-    <div className="grid gap-5 md:gap-7">
+    <div className="grid gap-5 px-4 md:gap-7 md:px-12">
       {/* Herói */}
-      <BeeznoFilters value={filters}
-        onChange={setFilters}
-        categories={roots}
-        categoryId={categoryId}
-        onCategoryChange={setCategoryId}/>
-      <section className="relative -mx-4 -mt-5 overflow-hidden bg-verde-noite px-4 pt-6 pb-5 text-areia md:mx-0 md:mt-0 md:rounded-sheet md:px-10 md:py-10">
+      <section className="hero-explore relative -mx-4 -mt-5 flex min-h-[calc(78svh-4rem)] items-center overflow-hidden bg-verde-noite px-4 pt-20 pb-10 text-areia md:-mx-12 md:-mt-8 md:min-h-[calc(78svh-5rem)] md:rounded-none md:px-12 md:py-16">
         <HexGlow />
-        <div className="relative grid gap-4 md:max-w-2xl">
+        <div className="relative grid gap-4 md:max-w-2xl ">
           <p className="text-sm font-medium text-salvia">{session ? "Bem-vindo de volta" : "Luanda · fotografia, vídeo e eventos"}</p>
           <h1 className="font-titulo text-[34px] leading-[1] font-extrabold tracking-tight md:text-[52px]">
             Do que precisas <span className="text-ambar">hoje?</span>
@@ -97,7 +92,7 @@ export default function ExplorarPage() {
                 setSheet(true);
               }}
               aria-label={`Filtros${activeFilters ? ` (${activeFilters} ativos)` : ""}`}
-              className="relative flex size-14 shrink-0 items-center cursor-pointer justify-center rounded-full bg-ambar text-verde transition active:scale-95"
+              className="relative flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-full bg-ambar text-verde transition active:scale-95 md:hidden"
             >
               <SlidersHorizontal className="size-5" strokeWidth={2} aria-hidden />
               {activeFilters > 0 && (
@@ -109,18 +104,26 @@ export default function ExplorarPage() {
         </div>
       </section>
 
-      <TrustStrip />
+      <div className="grid gap-5 lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+        <BeeznoFilters value={filters}
+          onChange={setFilters}
+          categories={roots}
+          categoryId={categoryId}
+          onCategoryChange={setCategoryId}/>
 
-      {/* Categorias em mosaico */}
-      <section aria-label="Categorias" className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-6 md:px-0">
+        <div className="grid gap-5 md:gap-7">
+          <TrustStrip />
+
+          {/* Categorias em mosaico */}
+          <section aria-label="Categorias" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:gap-8 md:px-0">
         <CategoryTile label="Tudo" icon={LayoutGrid} active={!categoryId} onClick={() => setCategoryId(undefined)} tone={2} />
         {roots.map((c, i) => (
           <CategoryTile key={c.id} label={c.name} icon={categoryIcon(c.slug)} active={c.id === categoryId} onClick={() => setCategoryId(c.id)} tone={i} />
         ))}
-      </section>
+          </section>
 
-      {activeFilters > 0 && (
-        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {activeFilters > 0 && (
+            <div className="flex flex-wrap items-center gap-2 text-sm">
           {filters.area && <FilterTag onClear={() => setFilters({ ...filters, area: undefined })}>{filters.area}</FilterTag>}
           {filters.maxPrice !== "" && (
             <FilterTag onClear={() => setFilters({ ...filters, maxPrice: "" })}>até {filters.maxPrice.toLocaleString("de-DE")} Kz/dia</FilterTag>
@@ -128,11 +131,11 @@ export default function ExplorarPage() {
           {filters.condition && filters.condition !== "ANY" && (
             <FilterTag onClear={() => setFilters({ ...filters, condition: undefined })}>{filters.condition === "NEW" ? "Novo" : "Como novo"}</FilterTag>
           )}
-        </div>
-      )}
+            </div>
+          )}
 
-      {browsing && (
-        <>
+          {browsing && (
+            <>
           <Rail title="Em destaque" subtitle="Escolhido pela equipa Beeznoo" icon={Sparkles} featured order="RECENT" categoryId={categoryId} />
           <Rail
             title="Mais alugados"
@@ -152,10 +155,10 @@ export default function ExplorarPage() {
             keep={(i) => i.ratingCount > 0}
            
           />
-        </>
-      )}
+            </>
+          )}
 
-      <section aria-label="Equipamento" className="grid gap-4">
+          <section aria-label="Equipamento" className="grid gap-4">
         <div className="flex items-end justify-between">
           <h2 className="font-titulo text-xl font-bold text-verde">
             {query.trim() ? `Resultados para "${query.trim()}"` : categoryId ? categories.find((c) => c.id === categoryId)?.name : "Todo o equipamento"}
@@ -200,9 +203,11 @@ export default function ExplorarPage() {
             )}
           </>
         )}
-      </section>
+          </section>
 
-      {browsing && state === "ready" && <PublishPromo />}
+          {browsing && state === "ready" && <PublishPromo />}
+        </div>
+      </div>
 
   {/*
   

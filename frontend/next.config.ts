@@ -2,7 +2,7 @@ import type { NextConfig } from "next";
 
 // O browser fala só com o Next (mesma origem); o Next encaminha /api/v1 para o Spring.
 // Evita CORS no backend e não expõe o URL interno da API.
-const apiUrl = process.env.API_URL ?? "http://localhost:8080";
+const apiUrl = process.env.API_URL ?? "https://beeznoo.onrender.com";
 const isDev = process.env.NODE_ENV !== "production";
 
 // Cabeçalhos de segurança (OWASP A02/A05). Ver docs/SEGURANCA.md.

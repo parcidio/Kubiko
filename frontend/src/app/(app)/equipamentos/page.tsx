@@ -6,10 +6,11 @@ import { ItemPhoto } from "@/components/bz/equipment";
 import { toast } from "@/components/bz/overlay";
 import { PageHeader } from "@/components/bz/shell";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/bz/states";
-import { Badge, Button, ButtonLink, Card, Kz, type Tone } from "@/components/bz/ui";
+import { BackLink, Badge, Button, ButtonLink, Card, Kz, type Tone } from "@/components/bz/ui";
 import { ownerItemApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { CONDITION_LABEL } from "@/lib/format";
+import { useMode } from "@/lib/mode";
 import { useResource } from "@/lib/use-resource";
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
@@ -20,6 +21,7 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
 
 export default function EquipamentosPage() {
   const session = useRequireSession();
+  const mode = useMode(session?.role);
   const { data, error, loading, reload } = useResource(session ? "items:mine" : null, () => ownerItemApi.mine());
 
   if (!session) return null;
@@ -37,6 +39,8 @@ export default function EquipamentosPage() {
 
   return (
     <div className="mx-auto grid max-w-4xl gap-5">
+      {mode === "renter" && <BackLink href="/conta">Voltar à conta</BackLink>}
+      
       <PageHeader
         title="O meu equipamento"
         subtitle={items.length ? `${items.length} ${items.length === 1 ? "equipamento" : "equipamentos"}` : undefined}
