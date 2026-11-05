@@ -32,6 +32,10 @@ function getThemeSnapshot() {
   return window.localStorage.getItem("beeznoo.theme") === "dark";
 }
 
+function isSafeAvatarUrl(url: string) {
+  return url.startsWith("blob:");
+}
+
 export default function ContaPage() {
   const session = useRequireSession();
   const router = useRouter();
@@ -60,9 +64,9 @@ export default function ContaPage() {
         <HexGlow />
         <div className="relative grid justify-items-center gap-5 text-center lg:justify-items-start lg:text-left">
           <label className="group relative flex size-32 cursor-pointer items-center justify-center justify-self-center overflow-hidden rounded-full border-4 border-ambar/70 bg-verde text-ambar shadow-flutua md:size-36" aria-label="Adicionar foto de perfil">
-            {avatarUrl ? (
+            {avatarUrl && isSafeAvatarUrl(avatarUrl) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt="Foto de perfil" className="size-full object-cover" />
+              <img src={encodeURI(avatarUrl)} alt="Foto de perfil" className="size-full object-cover" />
             ) : (
               <span className="font-titulo text-4xl font-extrabold">{ROLE_LABEL[session.role].charAt(0)}</span>
             )}
@@ -74,6 +78,7 @@ export default function ContaPage() {
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 if (!file) return;
+                if (!file.type.startsWith("image/")) return;
                 setAvatarUrl((current) => {
                   if (current) URL.revokeObjectURL(current);
                   return URL.createObjectURL(file);
