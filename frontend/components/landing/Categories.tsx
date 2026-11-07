@@ -55,7 +55,7 @@ export default function BeeznoCategories() {
 
   const handleCategoryClick = (label: string) => {
     if (label === "Todas") {
-      router.push("/items");
+      router.push("/explorar");
     } else {
       router.push(`/items?categoria=${encodeURIComponent(label)}`);
     }

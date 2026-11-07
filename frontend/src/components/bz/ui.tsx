@@ -8,9 +8,9 @@ type Variant = "primary" | "dark" | "outline" | "ghost" | "danger" | "soft" | "l
 type Size = "md" | "sm" | "lg";
 
 const VARIANT: Record<Variant, string> = {
-  primary: "bg-ambar text-verde hover:bg-ambar-hover",
+  primary: "bg-chart-2 text-verde hover:bg-ambar-hover",
   dark: "bg-verde text-areia hover:bg-verde-medio",
-  outline: "border border-verde bg-branco text-verde hover:bg-areia-2",
+  outline: "border border-border-bg bg-branco text-verde hover:bg-areia-2",
   ghost: "text-verde hover:bg-areia-2",
   danger: "border border-erro bg-branco text-erro hover:bg-erro-tint",
   soft: "bg-areia-2 text-verde hover:bg-skeleton",
@@ -25,7 +25,7 @@ const SIZE: Record<Size, string> = {
 
 export function buttonClass(variant: Variant = "primary", size: Size = "md", block = false) {
   return cn(
-    "inline-flex select-none items-center justify-center gap-2 rounded-campo font-bold whitespace-nowrap transition",
+    "inline-flex select-none items-center justify-center gap-2 rounded-sm font-bold whitespace-nowrap cursor-pointer transition",
     "active:scale-[.98] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0",
     VARIANT[variant],
     SIZE[size],

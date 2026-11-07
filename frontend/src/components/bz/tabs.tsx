@@ -46,7 +46,7 @@ export function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
             onKeyDown={(e) => onKey(e, i)}
             className={cn(
-              "flex min-h-10 items-center justify-center gap-2 rounded-full px-3 text-sm font-medium transition",
+              "flex min-h-10 items-center justify-center cursor-pointer gap-2 rounded-full px-3 text-sm font-medium transition",
               on
                 ? dark
                   ? "bg-areia font-bold text-verde"

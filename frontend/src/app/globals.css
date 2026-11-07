@@ -271,6 +271,44 @@
   }
 }
 
+/* Tokens da app no tema escuro. */
+.dark {
+  --color-ambar:        #F4B544;
+  --color-ambar-hover:  #FFC968;
+  --color-ambar-tint:   #3A2D13;
+  --color-aviso-texto:  #F4D28A;
+  --color-verde-noite:  #081A13;
+  --color-verde:        #DDEDE3;
+  --color-verde-medio:  #8FC0A8;
+  --color-areia:        #081A13;
+  --color-areia-2:      #102D20;
+  --color-branco:       #0E2A1F;
+  --color-mel:          #F0A22E;
+  --color-mel-texto:    #F4B544;
+  --color-salvia:       #9BCBB1;
+  --color-salvia-tint:  #173B2A;
+  --color-texto-corpo:  #E6F1EA;
+  --color-cinza:        #A9C0B2;
+  --color-borda:        rgba(143, 192, 168, 0.18);
+  --color-borda-forte:  rgba(143, 192, 168, 0.36);
+  --color-erro:         #F08A83;
+  --color-erro-tint:    #3A211F;
+  --color-skeleton:     #153526;
+}
+
+.dark .app {
+  background-color: var(--color-verde-noite);
+}
+
+.hero-explore {
+  background-color: var(--color-verde-noite);
+}
+
+.dark .hero-explore {
+  background-color: #123A28;
+  background-image: linear-gradient(135deg, rgba(20, 72, 48, 0.9), rgba(8, 26, 19, 0.92));
+}
+
 @utility app {
   background-color: var(--color-areia);
   color: var(--color-texto-corpo);
