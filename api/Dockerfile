@@ -1,5 +1,5 @@
 # API Beeznoo — imagem para o Render (e para o docker-compose local).
-# Contexto de build: a pasta api/ (ver render.yaml e docker-compose.yml).
+# Contexto de build: a pasta api/ (ver docs/DEPLOY.md e docker-compose.yml).
 
 # ---- Build ----
 FROM maven:3.9.9-eclipse-temurin-21 AS build
@@ -28,7 +28,7 @@ ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Djava.securi
 
 EXPOSE 8080
 
-# O Render usa o seu próprio health check (healthCheckPath no render.yaml); isto serve o docker-compose
+# O Render usa o seu próprio health check (Health Check Path no painel); isto serve o docker-compose
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s \
     CMD wget -q --spider "http://localhost:${PORT}/actuator/health" || exit 1
 

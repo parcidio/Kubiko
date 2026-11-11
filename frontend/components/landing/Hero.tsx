@@ -134,7 +134,6 @@ export default function BeeznoHero() {
   // Substitui o URL pelo teu deployment ID
 const ALUGAR_URL = "https://script.google.com/macros/s/AKfycbwYGqstk6NtZnME7H-rhsTZUjboKK6WrjTX5PFJn6kEseXmp1eWZROZRtfLyH49vBn-gg/exec";
   const handleAlugar = async (e: React.FormEvent) => {
-    console.log("Enviando dados para o Google Script:", { nome, email, equipamento, dataRenda, valorAluguer, telefone, provincia, perfil, objetivo });
     e.preventDefault();
     //trackObjetivo("alugar");
 
@@ -161,7 +160,6 @@ const ALUGAR_URL = "https://script.google.com/macros/s/AKfycbwYGqstk6NtZnME7H-rh
 
   const DISPONIBILIZAR_URL = "https://script.google.com/macros/s/AKfycbwsUyEPmMN2zXCRRqZY9a56VB1kc_xvM3kMf9dMAsS7VrNesmJMBeNTQuAZ5-OJjrM4/exec";
   const handleDisponibilizar = async (e: React.FormEvent) => {
-     console.log("Enviando dados para o Google Script:", { nome, email, equipamento, dataRenda, valorAluguer, telefone, provincia, perfil });
 
     e.preventDefault();
     //trackObjetivo("disponibilizar");
@@ -205,7 +203,6 @@ const ALUGAR_URL = "https://script.google.com/macros/s/AKfycbwYGqstk6NtZnME7H-rh
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    console.log("Formulário submetido com objetivo:", objetivo);
     e.preventDefault();
 
     switch (objetivo) {

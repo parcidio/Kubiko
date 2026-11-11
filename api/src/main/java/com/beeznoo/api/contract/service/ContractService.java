@@ -1,5 +1,7 @@
 package com.beeznoo.api.contract.service;
 
+import com.beeznoo.api.audit.entity.AuditAction;
+import com.beeznoo.api.audit.service.AuditService;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.entity.BookingStatus;
 import com.beeznoo.api.booking.repository.BookingRepository;
@@ -43,14 +45,16 @@ public class ContractService {
     private final BookingRepository bookingRepository;
     private final ProfileRepository profileRepository;
     private final ServiceFees serviceFees;
+    private final AuditService auditService;
     private final String template;
 
     public ContractService(ContractRepository contractRepository, BookingRepository bookingRepository,
-                           ProfileRepository profileRepository, ServiceFees serviceFees) {
+                           ProfileRepository profileRepository, ServiceFees serviceFees, AuditService auditService) {
         this.contractRepository = contractRepository;
         this.bookingRepository = bookingRepository;
         this.profileRepository = profileRepository;
         this.serviceFees = serviceFees;
+        this.auditService = auditService;
         try {
             this.template = new ClassPathResource(TEMPLATE).getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException e) {
@@ -73,13 +77,14 @@ public class ContractService {
                 .build());
     }
 
-    @Transactional(readOnly = true)
+    // Escreve na auditoria quando é um admin a ler (por isso não é readOnly)
     public ContractResponse get(UUID requesterId, UUID bookingId) {
         Contract contract = findByBooking(bookingId);
         Booking booking = contract.getBooking();
         boolean party = booking.getRenter().getId().equals(requesterId) || booking.getOwner().getId().equals(requesterId);
-        if (!party && !isAdmin(requesterId)) {
-            throw new AccessDeniedException("Sem acesso ao contrato desta reserva");
+        if (!party) {
+            if (!isAdmin(requesterId)) throw new AccessDeniedException("Sem acesso ao contrato desta reserva");
+            auditService.record(requesterId, AuditAction.CONTRACT_VIEWED, AuditService.BOOKING, bookingId, null, Map.of());
         }
         return ContractResponse.from(contract);
     }
@@ -93,7 +98,12 @@ public class ContractService {
         if (booking.getStatus() != BookingStatus.ACCEPTED) {
             throw new IllegalStateException("O contrato só pode ser aceite enquanto a reserva espera pagamento");
         }
-        if (contract.getRenterAcceptedAt() == null) contract.setRenterAcceptedAt(OffsetDateTime.now());
+        if (contract.getRenterAcceptedAt() == null) {
+            contract.setRenterAcceptedAt(OffsetDateTime.now());
+            // prova da aceitação: quem, quando e que texto (hash)
+            auditService.record(renterId, AuditAction.CONTRACT_ACCEPTED, AuditService.BOOKING, bookingId, null,
+                    Map.of("contractVersion", contract.getVersion(), "bodySha256", contract.getBodySha256()));
+        }
         return ContractResponse.from(contract);
     }
 
@@ -115,7 +125,7 @@ public class ContractService {
                 Map.entry("ownerName", b.getOwner().getFullName()),
                 Map.entry("renterName", b.getRenter().getFullName()),
                 Map.entry("itemTitle", b.getItem().getTitle()),
-                Map.entry("itemCondition", b.getItem().getCondition().name()),
+                Map.entry("itemCondition", Formats.condition(b.getItem().getCondition())),
                 Map.entry("startDate", Formats.date(b.getStartDate())),
                 Map.entry("endDate", Formats.date(b.getEndDate())),
                 Map.entry("days", Long.toString(ChronoUnit.DAYS.between(b.getStartDate(), b.getEndDate()))),

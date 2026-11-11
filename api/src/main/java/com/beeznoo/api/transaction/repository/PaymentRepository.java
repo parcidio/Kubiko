@@ -32,6 +32,10 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     @Query("SELECT p FROM Payment p WHERE p.id = :id")
     Optional<Payment> findByIdForUpdate(UUID id);
 
+    // Número do comprovativo (V19). Uma sequência nunca devolve o mesmo valor, mesmo com rollback
+    @Query(value = "SELECT nextval('payment_receipt_seq')", nativeQuery = true)
+    long nextReceiptSequence();
+
     @Query("SELECT p.id FROM Payment p WHERE p.status = :status AND p.expiresAt < :now")
     List<UUID> findIdsByStatusAndExpiresAtBefore(PaymentStatus status, OffsetDateTime now);
 }

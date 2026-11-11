@@ -9,12 +9,12 @@ import { Sheet } from "@/components/bz/overlay";
 import { EmptyState, ErrorState, GridSkeleton } from "@/components/bz/states";
 import { Button } from "@/components/bz/ui";
 import { catalogApi, totalPages } from "@/lib/api";
+import { formatRange } from "@/lib/format";
 import { useSession } from "@/lib/auth";
-import type { ItemCondition, ItemSummary } from "@/lib/types";
+import type { ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
-import BeeznoFilters from "../../../../components/items/Filters";
+import BeeznoFilters, { type Filters } from "../../../../components/items/Filters";
 
-type Filters = { area?: string; maxPrice: number | ""; condition?: ItemCondition | "ANY" };
 
 export default function ExplorarPage() {
   const session = useSession();
@@ -25,8 +25,10 @@ export default function ExplorarPage() {
   const [sheet, setSheet] = useState(false);
 
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
-  const listKey = `items:${categoryId ?? "all"}`;
-  const first = useResource(listKey, () => catalogApi.items({ categoryId, page: 0 }));
+  // Datas filtram no servidor (só equipamento livre); o resto ainda filtra no cliente
+  const dates = filters.dataInicio && filters.dataFim ? { startDate: filters.dataInicio, endDate: filters.dataFim } : {};
+  const listKey = `items:${categoryId ?? "all"}:${filters.dataInicio ?? ""}:${filters.dataFim ?? ""}`;
+  const first = useResource(listKey, () => catalogApi.items({ categoryId, page: 0, ...dates }));
   const [more, setMore] = useState<{ key: string; page: number; items: ItemSummary[] } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -39,14 +41,14 @@ export default function ExplorarPage() {
   async function loadMore() {
     setLoadingMore(true);
     try {
-      const res = await catalogApi.items({ categoryId, page: page + 1 });
+      const res = await catalogApi.items({ categoryId, page: page + 1, ...dates });
       setMore({ key: listKey, page: page + 1, items: [...(extra?.items ?? []), ...res.content] });
     } finally {
       setLoadingMore(false);
     }
   }
 
-  // A API só filtra por categoria (ver BACKEND_GAPS): texto, bairro, preço e estado filtram o que já veio.
+  // A API filtra por categoria e datas (ver BACKEND_GAPS #17): texto, bairro, preço e estado filtram o que já veio.
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter(
@@ -58,7 +60,7 @@ export default function ExplorarPage() {
     );
   }, [items, query, filters]);
 
-  const activeFilters = [filters.area, filters.maxPrice !== "" ? 1 : null, filters.condition && filters.condition !== "ANY" ? 1 : null].filter(Boolean).length;
+  const activeFilters = [filters.area, filters.maxPrice !== "" ? 1 : null, filters.condition && filters.condition !== "ANY" ? 1 : null, filters.dataInicio ? 1 : null].filter(Boolean).length;
   const roots = categories.filter((c) => !c.parentId);
   // Faixas só ao navegar; com pesquisa ou filtros vai-se direto aos resultados
   const browsing = !query.trim() && activeFilters === 0;
@@ -130,6 +132,9 @@ export default function ExplorarPage() {
           )}
           {filters.condition && filters.condition !== "ANY" && (
             <FilterTag onClear={() => setFilters({ ...filters, condition: undefined })}>{filters.condition === "NEW" ? "Novo" : "Como novo"}</FilterTag>
+          )}
+          {filters.dataInicio && filters.dataFim && (
+            <FilterTag onClear={() => setFilters({ ...filters, dataInicio: undefined, dataFim: undefined })}>livre {formatRange(filters.dataInicio, filters.dataFim)}</FilterTag>
           )}
             </div>
           )}

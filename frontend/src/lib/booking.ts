@@ -6,14 +6,20 @@ export type Perspective = "renter" | "owner";
 export const BOOKING_LABEL: Record<BookingStatus, { label: string; tone: Tone }> = {
   PENDING_OWNER: { label: "À espera do dono", tone: "pendente" },
   ACCEPTED: { label: "Aceite · por pagar", tone: "pendente" },
-  ACTIVE: { label: "Pago · em curso", tone: "ok" },
+  ACTIVE: { label: "Pago · por entregar", tone: "ok" },
+  IN_PROGRESS: { label: "Entregue · em uso", tone: "ok" },
+  RETURNED: { label: "Devolvido · em inspeção", tone: "pendente" },
   COMPLETED: { label: "Concluída", tone: "neutro" },
   CANCELLED_RENTER: { label: "Cancelada", tone: "neutro" },
   CANCELLED_OWNER: { label: "Recusada", tone: "erro" },
+  EXPIRED: { label: "Sem resposta", tone: "neutro" },
   DISPUTED: { label: "Problema em análise", tone: "erro" },
 };
 
-export const OPEN_STATUSES: BookingStatus[] = ["PENDING_OWNER", "ACCEPTED", "ACTIVE", "DISPUTED"];
+export const OPEN_STATUSES: BookingStatus[] = ["PENDING_OWNER", "ACCEPTED", "ACTIVE", "IN_PROGRESS", "RETURNED", "DISPUTED"];
+
+/** Já pago: há contrato aceite, comprovativo e checklists. */
+export const PAID_STATUSES: BookingStatus[] = ["ACTIVE", "IN_PROGRESS", "RETURNED", "COMPLETED", "DISPUTED"];
 
 export const TIMELINE_STEPS = [
   "Pedido enviado",
@@ -30,12 +36,17 @@ export function stepsDone(status: BookingStatus) {
     case "PENDING_OWNER":
     case "CANCELLED_RENTER":
     case "CANCELLED_OWNER":
+    case "EXPIRED":
       return 1;
     case "ACCEPTED":
       return 2;
     case "ACTIVE":
     case "DISPUTED":
       return 3;
+    case "IN_PROGRESS":
+      return 4;
+    case "RETURNED":
+      return 5;
     case "COMPLETED":
       return 6;
   }
@@ -48,14 +59,23 @@ export function bookingCode(id: string) {
 
 const DAY = 86_400_000;
 
-/** Prazo do passo atual. O backend ainda não expira pedidos (ver BACKEND_GAPS): calculamos as 24 h no frontend. */
+/**
+ * Prazo do passo atual. Pedido: o mesmo que a API aplica (gap #11) — 24 h desde o pedido ou o fim do dia de
+ * levantamento, o que vier primeiro. Depois disso o pedido passa a EXPIRED.
+ */
 export function deadlineOf(b: Booking, payment?: Payment | null): Date | null {
-  if (b.status === "PENDING_OWNER") return new Date(new Date(b.createdAt).getTime() + DAY);
+  if (b.status === "PENDING_OWNER") {
+    const in24h = new Date(new Date(b.createdAt).getTime() + DAY);
+    const [y, m, d] = b.startDate.slice(0, 10).split("-").map(Number);
+    const endOfPickupDay = new Date(y, m - 1, d, 23, 59);
+    return in24h < endOfPickupDay ? in24h : endOfPickupDay;
+  }
   if (b.status === "ACCEPTED") {
     if (payment?.status === "AWAITING_PAYMENT") return new Date(payment.expiresAt);
     return new Date(new Date(b.updatedAt).getTime() + DAY);
   }
-  if (b.status === "ACTIVE") return endOfDay(b.endDate);
+  if (b.status === "ACTIVE") return endOfDay(b.startDate);
+  if (b.status === "IN_PROGRESS") return endOfDay(b.endDate);
   return null;
 }
 
@@ -87,8 +107,23 @@ export function nextStep(b: Booking, as: Perspective): NextStep {
       return {
         who: "you",
         title: as === "renter" ? "Recebe e fotografa o equipamento" : "Entrega e fotografa o equipamento",
-        text: "Na entrega, façam juntos a checklist com fotos. Protege as duas partes.",
-        cta: { label: "Abrir checklist", href: `/reservas/${id}/checklist` },
+        text: "Na entrega, um de vocês regista o estado com fotos e o outro confirma. Protege as duas partes.",
+        cta: { label: "Abrir checklist de entrega", href: `/reservas/${id}/checklist` },
+      };
+    case "IN_PROGRESS":
+      return {
+        who: "you",
+        title: as === "renter" ? "Devolve na data combinada" : "Recebe o equipamento de volta",
+        text: "Na devolução, registem outra vez o estado com fotos. A caução só é decidida depois disto.",
+        cta: { label: "Abrir checklist de devolução", href: `/reservas/${id}/checklist` },
+      };
+    case "RETURNED":
+      return {
+        who: "team",
+        title: "A equipa está a verificar",
+        text: as === "renter"
+          ? "Comparamos a entrega e a devolução. Se estiver tudo bem, a caução volta para ti."
+          : "Comparamos a entrega e a devolução e decidimos a caução. Se houver dano, reporta já.",
       };
     case "DISPUTED":
       return { who: "team", title: "Problema em análise", text: "A equipa Beeznoo está a analisar. Falamos contigo por WhatsApp." };
@@ -102,6 +137,10 @@ export function nextStep(b: Booking, as: Perspective): NextStep {
         : { who: "done", title: "Recusaste este pedido", text: "As datas ficaram livres." };
     case "CANCELLED_RENTER":
       return { who: "done", title: "Pedido cancelado", text: "Não houve qualquer pagamento." };
+    case "EXPIRED":
+      return as === "renter"
+        ? { who: "done", title: "O dono não respondeu a tempo", text: "O pedido expirou e não pagaste nada. Há outro equipamento parecido à tua espera.", cta: { label: "Explorar", href: "/explorar" } }
+        : { who: "done", title: "Pedido expirado", text: "Passou o prazo sem resposta e as datas ficaram livres. Responder depressa ajuda-te a alugar mais." };
   }
 }
 

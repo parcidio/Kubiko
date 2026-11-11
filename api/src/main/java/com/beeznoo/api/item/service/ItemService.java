@@ -23,10 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -62,9 +66,7 @@ public class ItemService {
         if (!canPublish(owner.getRole())) {
             throw new AccessDeniedException("Apenas OWNER ou BOTH podem publicar itens");
         }
-        if (!kycService.isVerified(ownerId)) {
-            throw new AccessDeniedException("Verifica a tua identidade antes de continuar");
-        }
+        kycService.assertCanTransact(ownerId);
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Categoria não encontrada"));
@@ -100,14 +102,30 @@ public class ItemService {
         return listActive(categoryId, false, ItemOrder.RECENT, pageable);
     }
 
-    // A ordem vem do enum, não do Pageable (o cliente não escolhe colunas para ordenar)
     @Transactional(readOnly = true)
     public Page<ItemSummaryResponse> listActive(UUID categoryId, boolean featured, ItemOrder order, Pageable pageable) {
+        return listActive(categoryId, featured, order, null, null, pageable);
+    }
+
+    // A ordem vem do enum, não do Pageable (o cliente não escolhe colunas para ordenar).
+    // startDate/endDate (as duas ou nenhuma): só equipamento livre nesse período [início, fim)
+    @Transactional(readOnly = true)
+    public Page<ItemSummaryResponse> listActive(UUID categoryId, boolean featured, ItemOrder order,
+                                                LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        if ((startDate == null) != (endDate == null)) {
+            throw new IllegalArgumentException("Indica as duas datas (início e fim) ou nenhuma");
+        }
+        if (startDate != null && !endDate.isAfter(startDate)) {
+            throw new IllegalArgumentException("A data de fim tem de ser posterior à de início");
+        }
+        if (startDate != null && ChronoUnit.DAYS.between(startDate, endDate) > 366) {
+            throw new IllegalArgumentException("Período máximo de pesquisa: 366 dias");
+        }
         Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
         Page<Item> page = switch (order) {
-            case POPULAR -> itemRepository.findPublicPopular(categoryId, featured, unsorted);
-            case RATING -> itemRepository.findPublicByRating(categoryId, featured, unsorted);
-            case RECENT -> itemRepository.findPublicRecent(categoryId, featured, unsorted);
+            case POPULAR -> itemRepository.findPublicPopular(categoryId, featured, startDate, endDate, unsorted);
+            case RATING -> itemRepository.findPublicByRating(categoryId, featured, startDate, endDate, unsorted);
+            case RECENT -> itemRepository.findPublicRecent(categoryId, featured, startDate, endDate, unsorted);
         };
         return summaries(page);
     }
@@ -161,6 +179,20 @@ public class ItemService {
         item.deactivate();
     }
 
+    // Pausado → ativo outra vez. SUSPENDED é decisão do admin e não sai por aqui.
+    public ItemResponse activate(UUID requesterId, UUID itemId) throws AccessDeniedException {
+        Item item = itemRepository.findActiveById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
+        assertOwner(requesterId, item);
+        if (item.getStatus() == ItemStatus.ACTIVE) return toResponse(item);
+        if (item.getStatus() != ItemStatus.INACTIVE) {
+            throw new IllegalStateException("Este equipamento está em revisão pela equipa e não pode ser reativado");
+        }
+        kycService.assertCanTransact(requesterId);
+        item.activate();
+        return toResponse(item);
+    }
+
     public void delete(UUID requesterId, UUID itemId) throws AccessDeniedException {
         Item item = itemRepository.findActiveById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
@@ -195,6 +227,7 @@ public class ItemService {
                 item.getId(),
                 item.getOwner().getId(),
                 item.getOwner().getFullName(),
+                kycService.isVerified(item.getOwner().getId()),
                 toCategoryResponse(item.getCategory()),
                 item.getTitle(),
                 item.getDescription(),
@@ -233,11 +266,13 @@ public class ItemService {
         List<UUID> ids = page.getContent().stream().map(Item::getId).toList();
         Map<UUID, RatingSummary> ratings = reviewService.ratings(ids);
         Map<UUID, Long> rentals = completedRentals(ids);
+        Set<UUID> verified = kycService.verifiedAmong(
+                page.getContent().stream().map(i -> i.getOwner().getId()).collect(Collectors.toSet()));
         return page.map(i -> toSummary(i, ratings.getOrDefault(i.getId(), RatingSummary.NONE),
-                rentals.getOrDefault(i.getId(), 0L)));
+                rentals.getOrDefault(i.getId(), 0L), verified.contains(i.getOwner().getId())));
     }
 
-    private ItemSummaryResponse toSummary(Item item, RatingSummary rating, long rentals) {
+    private ItemSummaryResponse toSummary(Item item, RatingSummary rating, long rentals, boolean ownerVerified) {
         String cover = item.getPhotos().isEmpty() ? null : photoUrls.of(item.getPhotos().get(0));
         return new ItemSummaryResponse(
                 item.getId(),
@@ -253,7 +288,8 @@ public class ItemService {
                 rating.average(),
                 rating.count(),
                 rentals,
-                item.getFeaturedAt() != null
+                item.getFeaturedAt() != null,
+                ownerVerified
         );
     }
 }

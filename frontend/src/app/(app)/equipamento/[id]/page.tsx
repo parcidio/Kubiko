@@ -5,8 +5,9 @@ import { useParams } from "next/navigation";
 import { CalendarDays, ChevronRight, Clock, LayoutGrid, MapPin, MessageCircle, Repeat2, ShieldCheck, Sparkles } from "lucide-react";
 import { categoryIcon } from "@/components/bz/brand";
 import { PriceSummary } from "@/components/bz/booking";
+import { MonthCalendar } from "@/components/bz/calendar";
 import { Rail, ReviewsSection } from "@/components/bz/discover";
-import { Avatar, ConditionMeter, ItemPhoto, Stars, formatRating, placeOf } from "@/components/bz/equipment";
+import { Avatar, ConditionMeter, ItemPhoto, Stars, VerifiedBadge, formatRating, placeOf } from "@/components/bz/equipment";
 import { TextField } from "@/components/bz/form";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { StickyCTA } from "@/components/bz/shell";
@@ -15,10 +16,11 @@ import { BackLink, Badge, Button, ButtonLink, Card, Eyebrow, Kz, Skeleton, butto
 import { adminApi, catalogApi } from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import { whatsappLink } from "@/lib/booking";
-import { addDaysIso, daysBetween, formatRange, todayIso } from "@/lib/format";
+import { firstConflict, unavailableDays } from "@/lib/availability";
+import { addDaysIso, daysBetween, formatDay, formatRange, todayIso } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useResource } from "@/lib/use-resource";
-import type { Item } from "@/lib/types";
+import type { Availability, Item } from "@/lib/types";
 
 export default function EquipamentoPage() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +32,8 @@ export default function EquipamentoPage() {
   const [start, setStart] = useState(todayIso(1));
   const [end, setEnd] = useState(todayIso(3));
   const [depositInfo, setDepositInfo] = useState(false);
+  // Dias ocupados (público). Se falhar, o pedido continua possível: a API valida na mesma
+  const availability = useResource<Availability>(`availability:${id}`, () => catalogApi.availability(id));
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!item) {
@@ -50,6 +54,8 @@ export default function EquipamentoPage() {
   const days = daysBetween(start, end);
   const deposit = Number(item.depositAmount ?? 0);
   const Icon = categoryIcon(item.category?.slug);
+  const busyDays = unavailableDays(availability.data);
+  const conflict = firstConflict(busyDays, start, end);
   const reserveHref = `/equipamento/${id}/reservar?de=${start}&ate=${end}`;
   const waText = `Olá Beeznoo! Tenho uma pergunta sobre "${item.title}" (${formatRange(start, end)}).`;
 
@@ -160,7 +166,10 @@ export default function EquipamentoPage() {
             <Avatar name={item.ownerName} size="lg" />
             <div className="min-w-0 flex-1">
               <Eyebrow>Dono</Eyebrow>
-              <p className="truncate font-titulo text-lg font-bold text-verde">{item.ownerName}</p>
+              <p className="flex min-w-0 items-center gap-2">
+                <span className="truncate font-titulo text-lg font-bold text-verde">{item.ownerName}</span>
+                {item.ownerVerified && <VerifiedBadge compact />}
+              </p>
               <p className="flex items-center gap-1 text-[13px] text-cinza">
                 <Clock className="size-3.5" strokeWidth={1.8} aria-hidden /> Responde em até 24 h
               </p>
@@ -176,12 +185,29 @@ export default function EquipamentoPage() {
               <TextField label="Levantas" type="date" min={todayIso()} value={start} onChange={(v) => { setStart(v); if (v >= end) setEnd(addDaysIso(v, 1)); }} />
               <TextField label="Devolves" type="date" min={start} value={end} onChange={setEnd} />
             </div>
-            {days > 0 ? (
+            {availability.data && (
+              <MonthCalendar
+                days={busyDays}
+                mode="public"
+                selection={days > 0 ? { start, end } : undefined}
+                initialMonth={start}
+                onDayClick={(d) => {
+                  // 1.º toque: levantas; 2.º toque depois disso: devolves
+                  if (d > start && days === 1 && end === addDaysIso(start, 1) && !firstConflict(busyDays, start, d)) setEnd(d);
+                  else { setStart(d); setEnd(addDaysIso(d, 1)); }
+                }}
+              />
+            )}
+            {conflict ? (
+              <p role="alert" className="text-sm text-erro">
+                Já está ocupado a {formatDay(conflict)}. Escolhe outras datas.
+              </p>
+            ) : days > 0 ? (
               <PriceSummary pricePerDay={Number(item.pricePerDay)} days={days} deposit={deposit} />
             ) : (
               <p className="text-sm text-erro">A devolução tem de ser pelo menos um dia depois.</p>
             )}
-            <p className="text-[13px] text-cinza">O dono confirma a disponibilidade quando aceitar o pedido.</p>
+            <p className="text-[13px] text-cinza">O dia de devolução fica livre para o aluguer seguinte. O dono confirma quando aceitar o pedido.</p>
           </Card>
 
           <button
@@ -229,7 +255,7 @@ export default function EquipamentoPage() {
                 <MessageCircle strokeWidth={1.8} />
                 <span className="hidden md:inline">WhatsApp</span>
               </a>
-              <ButtonLink href={reserveHref} className={cn("md:flex-1", !available || days < 1 ? "pointer-events-none opacity-50" : "")} aria-disabled={!available || days < 1}>
+              <ButtonLink href={reserveHref} className={cn("md:flex-1", !available || days < 1 || conflict ? "pointer-events-none opacity-50" : "")} aria-disabled={!available || days < 1 || !!conflict}>
                 Pedir reserva
               </ButtonLink>
             </div>

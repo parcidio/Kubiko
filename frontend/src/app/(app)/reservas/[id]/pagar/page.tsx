@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { CheckCircle2, Copy, FileUp, Landmark, Smartphone } from "lucide-react";
+import { CheckCircle2, Copy, FileText, FileUp, Landmark, Smartphone } from "lucide-react";
 import { DeadlineChip, PriceSummary } from "@/components/bz/booking";
 import { HexIllustration } from "@/components/bz/brand";
 import { TextField } from "@/components/bz/form";
@@ -12,11 +12,11 @@ import { StickyCTA } from "@/components/bz/shell";
 import { BackendPending, ErrorState } from "@/components/bz/states";
 import { Segmented } from "@/components/bz/tabs";
 import { BackLink, Button, ButtonLink, Callout, Card, Eyebrow, Kz, Skeleton } from "@/components/bz/ui";
-import { ApiError, bookingApi, paymentApi } from "@/lib/api";
+import { ApiError, bookingApi, contractApi, paymentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
-import { bookingCode } from "@/lib/booking";
+import { PAID_STATUSES, bookingCode } from "@/lib/booking";
 import { daysBetween, formatDateTime } from "@/lib/format";
-import type { Booking, Payment } from "@/lib/types";
+import type { Booking, Contract, Payment } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
 const STEPS = {
@@ -35,15 +35,20 @@ export default function PagarPage() {
       (e) => (e instanceof ApiError && e.status === 404 ? null : Promise.reject(e)),
     ),
   );
+  // A API só gera a referência com o contrato aceite pelo arrendatário
+  const contract = useResource<Contract | null>(
+    session && booking.data?.status === "ACCEPTED" ? `contract:${id}` : null,
+    () => contractApi.get(id).catch((e) => (e instanceof ApiError && e.status === 409 ? null : Promise.reject(e))),
+  );
   const [channel, setChannel] = useState<"express" | "atm">("express");
   const [busy, setBusy] = useState(false);
   const [txId, setTxId] = useState("");
   const proof = useLocalPhotos(1);
 
   if (!session) return null;
-  const err = booking.error ?? current.error;
-  if (err) return <ErrorState message={err} onRetry={() => { booking.reload(); current.reload(); }} />;
-  if (!booking.data || current.loading) return <Skeleton role="status" aria-label="A carregar" className="mx-auto h-96 max-w-2xl rounded-sheet" />;
+  const err = booking.error ?? current.error ?? contract.error;
+  if (err) return <ErrorState message={err} onRetry={() => { booking.reload(); current.reload(); contract.reload(); }} />;
+  if (!booking.data || current.loading || (booking.data.status === "ACCEPTED" && contract.loading)) return <Skeleton role="status" aria-label="A carregar" className="mx-auto h-96 max-w-2xl rounded-sheet" />;
 
   const b = booking.data;
   const payment = current.data;
@@ -81,7 +86,7 @@ export default function PagarPage() {
   }
 
   if (b.status !== "ACCEPTED" || payment?.status === "CONFIRMED") {
-    const paid = b.status === "ACTIVE" || b.status === "COMPLETED" || payment?.status === "CONFIRMED";
+    const paid = PAID_STATUSES.includes(b.status) || payment?.status === "CONFIRMED";
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
         <HexIllustration icon={CheckCircle2} tone={paid ? "ok" : "areia"} size={150} />
@@ -90,6 +95,20 @@ export default function PagarPage() {
         <ButtonLink href={`/reservas/${id}`} variant="dark">
           Ver reserva
         </ButtonLink>
+      </div>
+    );
+  }
+
+  if (!contract.data?.renterAcceptedAt) {
+    return (
+      <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
+        <HexIllustration icon={FileText} tone="ambar" size={150} />
+        <h1 className="font-titulo text-3xl font-extrabold text-verde">Primeiro, o contrato</h1>
+        <p className="text-cinza">Antes de pagares, lê e aceita o contrato de aluguer. Diz o que acontece à caução e na entrega e devolução.</p>
+        <ButtonLink href={`/reservas/${id}/contrato`} block size="lg">
+          Ler e aceitar o contrato
+        </ButtonLink>
+        <BackLink href={`/reservas/${id}`}>Voltar à reserva</BackLink>
       </div>
     );
   }

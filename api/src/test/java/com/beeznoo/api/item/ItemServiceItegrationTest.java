@@ -179,6 +179,46 @@ class ItemServiceIntegrationTest {
     }
 
     @Test
+    void ownerReactivatesPausedItem() throws java.nio.file.AccessDeniedException {
+        ItemResponse created = itemService.publish(owner.getId(), new PublishItemRequest(
+                "Tripé Manfrotto", null, categoryId, ItemCondition.GOOD,
+                new BigDecimal("1000.00"), null, "Luanda", null));
+        itemService.deactivate(owner.getId(), created.id());
+
+        ItemResponse reactivated = itemService.activate(owner.getId(), created.id());
+
+        assertThat(reactivated.status()).isEqualTo("ACTIVE");
+        assertThat(itemRepository.findById(created.id()).orElseThrow().getStatus()).isEqualTo(ItemStatus.ACTIVE);
+    }
+
+    @Test
+    void otherUserCannotReactivate_andSuspendedStaysSuspended() throws java.nio.file.AccessDeniedException {
+        ItemResponse created = itemService.publish(owner.getId(), new PublishItemRequest(
+                "Gimbal DJI", null, categoryId, ItemCondition.GOOD,
+                new BigDecimal("2500.00"), null, "Luanda", null));
+        itemService.deactivate(owner.getId(), created.id());
+        assertThatThrownBy(() -> itemService.activate(renter.getId(), created.id()))
+                .isInstanceOf(AccessDeniedException.class);
+
+        var item = itemRepository.findById(created.id()).orElseThrow();
+        item.setStatus(ItemStatus.SUSPENDED);
+        itemRepository.saveAndFlush(item);
+        assertThatThrownBy(() -> itemService.activate(owner.getId(), created.id()))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    void itemShowsOwnerVerifiedBadge() throws java.nio.file.AccessDeniedException {
+        ItemResponse created = itemService.publish(owner.getId(), new PublishItemRequest(
+                "Lente 85mm", null, categoryId, ItemCondition.GOOD,
+                new BigDecimal("2000.00"), null, "Luanda", null));
+
+        assertThat(created.ownerVerified()).isTrue();
+        assertThat(itemService.listMyItems(owner.getId(), Pageable.ofSize(20)).getContent())
+                .allMatch(ItemSummaryResponse::ownerVerified);
+    }
+
+    @Test
     void ownerDeletesItem_softDelete() throws java.nio.file.AccessDeniedException {
         PublishItemRequest req = new PublishItemRequest(
                 "Lente 50mm", null, categoryId, ItemCondition.FAIR,

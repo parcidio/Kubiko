@@ -15,7 +15,7 @@ O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próxi
 
 ## Mapa
 
-| Rota | Ecrã | Papel | Estado | Frente | API (2026-10-23) |
+| Rota | Ecrã | Papel | Estado | Frente | API (2026-11-11) |
 |---|---|---|---|---|---|
 | `/` | Landing (não mexer) | Todos | — | — | — |
 | `/entrar` | Entrar (telefone ou email + password, Google) | Todos | Ligado | A | ✅ |
@@ -23,30 +23,32 @@ O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próxi
 | `/recuperar` | Recuperar password | Todos | Ligado | A | ✅ |
 | `/oauth2/callback` | Retorno do Google + telefone | Todos | Ligado | A | ✅ |
 | `/bem-vindo` | Onboarding (3 ecrãs) | Todos | UI (estático) | A | — |
-| `/explorar` | Explorar: herói com pesquisas rápidas, faixa de confiança, categorias, faixas Em destaque / Mais alugados / Mais bem avaliados, grelha, convite a publicar | Todos | Parcial (filtros no cliente) | A | 🟡 sem pesquisa no servidor (#17) |
-| `/equipamento/[id]` | Detalhe: galeria, avaliações, estado, dono, datas + preço, caução, mais da categoria | Todos | Parcial (sem disponibilidade) | A | 🟡 sem disponibilidade (#8), selo (#15) |
+| `/explorar` | Explorar: herói com pesquisas rápidas, faixa de confiança, categorias, faixas Em destaque / Mais alugados / Mais bem avaliados, grelha, convite a publicar, filtro por datas livres | Todos | Parcial (texto/bairro/preço no cliente) | A | 🟡 datas ✅, texto/bairro/preço no servidor ⬜ (#17) |
+| `/equipamento/[id]` | Detalhe: galeria, avaliações, estado, dono (selo), calendário de disponibilidade, datas + preço, caução, mais da categoria | Todos | Ligado | A | ✅ |
 | `/equipamento/[id]/reservar` | Pedido de reserva (datas → entrega → mensagem → rever) | Arrendatário | Ligado | A | ✅ |
 | `/reservas` | As minhas reservas | Arrendatário | Ligado | A | ✅ |
 | `/reservas/[id]` | **Detalhe da reserva (hub)** | Ambos | Ligado | A | ✅ estados novos (#10) |
 | `/reservas/[id]/pagar` | Pagamento por referência | Arrendatário | Parcial (sem comprovativo) | A | 🟡 contrato antes de pagar ✅, comprovativo ⬜ (#5) |
-| `/reservas/[id]/contrato` | Contrato | Ambos | UI | A | ✅ `/bookings/{id}/contract` |
+| `/reservas/[id]/contrato` | Contrato: texto congelado, quem aceitou, aceitar (arrendatário), PDF | Ambos | Ligado | A | ✅ `/bookings/{id}/contract`, `/accept`, `/pdf` |
 | `/reservas/[id]/avaliar` | Avaliar | Arrendatário | Ligado | A | ✅ |
 | `/atividade` | Atividade | Arrendatário | Parcial (reservas recentes) | A | ✅ `/notifications/me` |
-| `/conta` | Conta, modo, sair | Ambos | Parcial (sem perfil) | A | ✅ `/profiles/me` |
+| `/conta` | Conta: dados pessoais, verificar email, associar Google, modo, tema, sair | Ambos | Ligado | A | ✅ `/profiles/me`, `/auth/google/link` |
 | `/verificacao` | Verificação (BI + selfie / NIF) | Ambos | UI | A | ✅ `/kyc/submit`, `/kyc/me` |
 | `/painel` | Painel do dono | Dono | Ligado | B | ✅ |
 | `/pedidos` | Pedidos recebidos (aceitar/recusar) | Dono | Ligado | B | ✅ |
-| `/publicar` | Publicar (fotos → detalhes → preço → pré-visualização) | Dono | Parcial (sem fotos) | B | ✅ fotos `/items/{id}/photos` |
+| `/publicar` | Publicar (fotos → detalhes → preço → pré-visualização) | Dono | Ligado (fotos comprimidas, rascunho por conta) | B | ✅ |
 | `/equipamentos` | O meu equipamento | Dono | Ligado | B | ✅ |
-| `/equipamentos/[id]` | Gerir equipamento (editar, pausar, eliminar, datas) | Dono | Parcial (sem datas) | B | 🟡 sem datas (#8) |
+| `/equipamentos/[id]` | Gerir equipamento (fotos, editar, pausar/reativar, eliminar, bloquear datas) | Dono | Ligado | B | ✅ |
 | `/carteira` | Carteira e movimentos | Dono | Ligado (sem levantamentos) | B | 🟡 sem levantamentos (#23) |
-| `/reservas/[id]/checklist` | Checklist com fotos (câmara) | Ambos | UI | B | ✅ `/bookings/{id}/checklists` |
-| `/reservas/[id]/problema` | Reportar problema | Ambos | Parcial (estado + WhatsApp) | B | ✅ `/bookings/{id}/incidents` |
-| `/admin` | Visão geral das filas | Admin | UI | B | ✅ filas de admin |
-| `/admin/pagamentos` | Validar pagamento | Admin | Parcial (ação por ID) | B | ✅ `/admin/payments` (comprovativo ⬜) |
-| `/admin/caucoes` | Libertar caução | Admin | Parcial (ação por ID) | B | ✅ `/admin/deposits` |
+| `/reservas/[id]/checklist` | Checklist com fotos (câmara): uma parte regista, a outra confirma ou reporta problema | Ambos | Ligado | B | ✅ `/bookings/{id}/checklists` |
+| `/reservas/[id]/problema` | Reportar problema (tipo, descrição, até 6 fotos) | Ambos | Ligado | B | ✅ `/bookings/{id}/incidents` |
+| `/admin` | Visão geral: contadores das 4 filas + auditoria | Admin | Ligado | B | ✅ |
+| `/admin/pagamentos` | Referências em aberto → validar com motivo | Admin | Ligado (sem comprovativo) | B | ✅ `/admin/payments` (comprovativo ⬜ #5) |
+| `/admin/caucoes` | Fila + entrega/devolução lado a lado + libertar/reter (parcial ou total) com motivo | Admin | Ligado | B | ✅ `/admin/deposits` |
 | `/admin/verificacoes` | Verificações | Admin | UI | B | ✅ `/admin/kyc` |
-| `/admin/problemas` | Problemas | Admin | UI | B | ✅ `/admin/incidents` |
+| `/admin/problemas` | Fila + descrição, fotos e provas + resolver com nota (vai às partes) | Admin | Ligado | B | ✅ `/admin/incidents` |
+| `/admin/reservas/[id]` | Reserva vista pela equipa: partes, valores, provas, contrato, rasto de auditoria | Admin | Ligado | B | ✅ `GET /bookings/{id}` (admin) |
+| `/admin/auditoria` | Auditoria (filtros por ação, entidade, autor) e eventos de segurança | Admin | Ligado | B | ✅ `/admin/audit-logs`, `/admin/security-events` |
 | 404 / erro | `not-found.tsx`, `error.tsx` | Todos | — | A | — |
 
 `/items`, `/arrendador` e `/arrendatario` são páginas antigas da fase 0 (dados mock em `lib/marketplace.ts`). **Por decidir** se saem.

@@ -121,6 +121,19 @@ app:
     secret-key: ${B2_SECRET_KEY:}
     bucket: ${B2_BUCKET:}
     signed-url-ttl: ${APP_STORAGE_SIGNED_URL_TTL:5m}
+  bookings:
+    # Prazo para o dono responder a um pedido; também expira no fim do dia de levantamento (gap #11)
+    request-ttl: ${BOOKINGS_REQUEST_TTL:24h}
+  kyc:
+    # true: publicar e pedir reserva exigem KYC aprovado (SPEC §7). Omissão segura: desligar tem de ser explícito
+    # (KYC_REQUIRED=false no .env local e no staging) — ver claude/decisoes-produto.md (2026-11-11)
+    required: ${KYC_REQUIRED:true}
+  company:
+    # Emitente do comprovativo de pagamento (PDF). Vazios ficam de fora do documento.
+    legal-name: ${COMPANY_LEGAL_NAME:Beeznoo}
+    nif: ${COMPANY_NIF:}
+    address: ${COMPANY_ADDRESS:Luanda, Angola}
+    email: ${COMPANY_EMAIL:ajuda@beeznoo.ao}
   notifications:
     email:
       # false: notificações só na app (email_status SKIPPED). true exige RESEND_API_KEY e domínio verificado no Resend.

@@ -38,6 +38,7 @@ public class AuthController {
     private static final String COOKIE_PATH = "/api/v1/auth";
 
     private final AuthService authService;
+    private final com.beeznoo.api.auth.service.GoogleLinkService googleLinkService;
     private final SecurityProperties securityProperties;
     private final JwtProperties jwtProperties;
 
@@ -216,6 +217,26 @@ public class AuthController {
     public ResponseEntity<AuthResponse> adminMfa(@Valid @RequestBody AdminMfaRequest request,
                                                  HttpServletRequest http, HttpServletResponse response) {
         return tokens(authService.verifyAdminMfa(request), http, response);
+    }
+
+    @Operation(
+            summary = "Associar conta Google (com sessão iniciada)",
+            description = """
+                    Passo 1: guarda na sessão HTTP do fluxo OAuth2 (cookie httpOnly, 10 min) que o próximo login Google
+                    é para associar a este perfil. Passo 2: o browser navega para `/oauth2/authorization/google`; no
+                    regresso, a API associa e redireciona para `/conta?google=linked|already|conflict`.
+                    Se o Google confirmar o mesmo email do perfil, o email fica verificado. Sem token no URL.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Intenção guardada; seguir para /oauth2/authorization/google"),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "409", description = "O perfil já tem uma conta Google associada")
+    })
+    @PostMapping("/google/link")
+    public ResponseEntity<Void> startGoogleLink(@AuthenticationPrincipal UUID profileId, HttpServletRequest http) {
+        googleLinkService.start(profileId, http);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(

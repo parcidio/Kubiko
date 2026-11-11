@@ -149,6 +149,7 @@ public class IncidentService {
         incident.setResolvedAt(OffsetDateTime.now());
         auditService.record(adminId, AuditAction.INCIDENT_RESOLVED, AuditService.INCIDENT, incidentId, note,
                 Map.of("bookingId", incident.getBooking().getId().toString(), "type", incident.getType().name()));
+        notificationService.incidentResolved(incident.getBooking(), incident.getType().label, note.strip());
         return toResponse(incident);
     }
 

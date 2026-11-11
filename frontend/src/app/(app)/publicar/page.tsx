@@ -10,20 +10,24 @@ import { DetailsFields, EMPTY_DRAFT, PriceFields, draftToInput, validateDetails,
 import { toast } from "@/components/bz/overlay";
 import { PhotoPicker, useLocalPhotos } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
-import { BackendPending } from "@/components/bz/states";
 import { Button, ButtonLink, Callout } from "@/components/bz/ui";
 import { catalogApi, ownerItemApi } from "@/lib/api";
-import { useRequireSession } from "@/lib/auth";
+import { DRAFT_KEY_PREFIX, useRequireSession } from "@/lib/auth";
+import { compressImage } from "@/lib/images";
 import { canOwn } from "@/lib/mode";
 import type { Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
 const STEPS = ["Fotos", "Detalhes", "Preço e caução", "Pré-visualização"];
-const DRAFT_KEY = "beeznoo.publicar.rascunho";
+const MAX_PHOTOS = 8; // limite da API
 
-function loadDraft(): ItemDraft {
+// Rascunho por conta: no mesmo browser, outra pessoa nunca vê o rascunho de quem saiu
+const draftKey = (profileId: string) => `${DRAFT_KEY_PREFIX}.${profileId}`;
+
+function loadDraft(profileId: string): ItemDraft {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    localStorage.removeItem(DRAFT_KEY_PREFIX); // chave antiga, partilhada por todas as contas
+    const raw = localStorage.getItem(draftKey(profileId));
     return raw ? { ...EMPTY_DRAFT, ...JSON.parse(raw) } : EMPTY_DRAFT;
   } catch {
     return EMPTY_DRAFT;
@@ -32,12 +36,26 @@ function loadDraft(): ItemDraft {
 
 export default function PublicarPage() {
   const session = useRequireSession();
+
+  if (!session) return null;
+  if (!canOwn(session.role)) {
+    return (
+      <Callout tone="info" title="Publicar é para donos de equipamento" action={<ButtonLink href="/explorar" variant="outline">Ir para Explorar</ButtonLink>}>
+        A tua conta está como arrendatário. Fala connosco para mudar para &quot;as duas coisas&quot;.
+      </Callout>
+    );
+  }
+  // key: trocar de conta recomeça o formulário com o rascunho dessa conta
+  return <PublicarForm key={session.profileId} profileId={session.profileId} />;
+}
+
+function PublicarForm({ profileId }: { profileId: string }) {
   const router = useRouter();
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
-  const photos = useLocalPhotos();
+  const photos = useLocalPhotos(MAX_PHOTOS);
   const [step, setStep] = useState(1);
-  // O formulário só aparece com sessão (nunca no SSR), por isso ler o rascunho no 1.º render não causa erro de hidratação.
-  const [draft, setDraft] = useState<ItemDraft>(() => (typeof window === "undefined" ? EMPTY_DRAFT : loadDraft()));
+  // Só é montado com sessão no cliente, por isso ler o localStorage no 1.º render não causa erro de hidratação.
+  const [draft, setDraft] = useState<ItemDraft>(() => loadDraft(profileId));
   const [errors, setErrors] = useState<DraftErrors>({});
   const [formErr, setFormErr] = useState<FormErrors>({ fields: {} });
   const [busy, setBusy] = useState(false);
@@ -49,23 +67,14 @@ export default function PublicarPage() {
     if (draft === EMPTY_DRAFT) return;
     const t = setTimeout(() => {
       try {
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        localStorage.setItem(draftKey(profileId), JSON.stringify(draft));
         setSavedAt(new Date());
       } catch {
         /* sem storage */
       }
     }, 600);
     return () => clearTimeout(t);
-  }, [draft]);
-
-  if (!session) return null;
-  if (!canOwn(session.role)) {
-    return (
-      <Callout tone="info" title="Publicar é para donos de equipamento" action={<ButtonLink href="/explorar" variant="outline">Ir para Explorar</ButtonLink>}>
-        A tua conta está como arrendatário. Fala connosco para mudar para &quot;as duas coisas&quot;.
-      </Callout>
-    );
-  }
+  }, [draft, profileId]);
 
   const set = (patch: Partial<ItemDraft>) => setDraft((d) => ({ ...d, ...patch }));
 
@@ -81,12 +90,24 @@ export default function PublicarPage() {
     try {
       const item = await ownerItemApi.publish(draftToInput(draft));
       try {
-        localStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem(draftKey(profileId));
       } catch {
         /* sem storage */
       }
+      // O ecrã de sucesso só aparece com as fotos já enviadas ("Ver como os outros veem" mostra-as logo)
+      if (photos.photos.length > 0) {
+        try {
+          const files = await Promise.all(photos.photos.map((p) => compressImage(p.file)));
+          await ownerItemApi.uploadPhotos(item.id, files);
+          toast.success("Equipamento publicado com fotos.");
+        } catch (e) {
+          // o item já existe: as fotos acrescentam-se em Gerir equipamento › Fotos
+          toast.error(`Publicado, mas as fotos falharam (${e instanceof Error ? e.message : "rede"}). Adiciona-as em Gerir equipamento › Fotos.`);
+        }
+      } else {
+        toast.success("Equipamento publicado.");
+      }
       setPublished(item);
-      toast.success("Equipamento publicado.");
     } catch (e) {
       setFormErr(toFormErrors(e));
     } finally {
@@ -131,7 +152,7 @@ export default function PublicarPage() {
               Luz natural, fundo limpo, o equipamento inteiro. Mostra também os acessórios e qualquer marca de uso.
             </Callout>
             <PhotoPicker photos={photos.photos} onAdd={photos.add} onRemove={photos.remove} onCover={photos.makeCover} />
-            <BackendPending what="O upload de fotos ainda não tem endpoint: o equipamento é publicado sem fotos." />
+            <p className="text-sm text-cinza">Até {MAX_PHOTOS} fotos, JPEG ou PNG. Comprimimos antes de enviar para poupar dados.</p>
           </div>
         )}
         {step === 2 && <DetailsFields draft={draft} set={set} errors={errors} categories={categories} />}
@@ -150,6 +171,7 @@ export default function PublicarPage() {
                   ratingCount: 0,
                   completedRentals: 0,
                   featured: false,
+                  ownerVerified: false,
                   title: draft.title,
                   condition: draft.condition,
                   pricePerDay: Number(draft.pricePerDay),

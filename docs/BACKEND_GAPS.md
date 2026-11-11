@@ -1,6 +1,6 @@
 # O que falta no backend
 
-Levantamento feito a 2026-10-17, ao ligar os ecrãs novos (`docs/ECRAS.md`) à API Spring. **Atualizado a 2026-10-23.**
+Levantamento feito a 2026-10-17, ao ligar os ecrãs novos (`docs/ECRAS.md`) à API Spring. **Atualizado a 2026-11-11.**
 No frontend, cada ponto aparece como aviso **"Falta backend"** (`BackendPending`) no ecrã afetado.
 Prioridade pensada para o objetivo do MVP: **o primeiro aluguer pago e concluído**.
 
@@ -23,28 +23,63 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 
 | # | Estado | O que falta | Como ficou / o que falta | Ecrãs |
 |---|---|---|---|---|
-| 8 | ⬜ | **Disponibilidade**: `GET /items/{id}/availability` e `POST/DELETE /items/{id}/blocks` (`availability_blocks`) | Hoje só a sobreposição com reservas aceites/pagas é validada | Detalhe (calendário), Gerir › Datas, filtro por datas em Explorar |
+| 8 | ✅ | **Disponibilidade** | `GET /items/{id}/availability` (público, dias inclusivos `BOOKED`/`BLOCKED`), `GET/POST /items/{id}/blocks`, `DELETE …/blocks/{id}` (dono). Pedir e aceitar recusam datas bloqueadas; `GET /items?startDate&endDate` só devolve equipamento livre | Detalhe (calendário), Gerir › Datas, Explorar |
 | 9 | ✅ | Checklists de entrega e devolução | `POST /bookings/{id}/checklists/{delivery\|return}` (multipart `notes` + 2–10 `photos`), `POST …/{type}/confirm` (só a **outra** parte), `GET /bookings/{id}/checklists`. Sem código de 4 dígitos no MVP | Checklist |
 | 10 | ✅ | Estados "entregue" / "devolvido" | `ACTIVE` (pago) → `IN_PROGRESS` → `RETURNED` → `COMPLETED`. **Atualizar a timeline** (`lib/booking.ts`) | Reserva (timeline, próximo passo) |
-| 11 | 🟡 | Expiração automática | ✅ referência vencida → `EXPIRED` (a cada minuto). ⬜ pedido sem resposta em 24 h → `expired` | Pedidos, Reserva |
+| 11 | ✅ | Expiração automática | Referência vencida → pagamento `EXPIRED`. Pedido sem resposta → reserva `EXPIRED` (24 h ou fim do dia de levantamento, `BOOKINGS_REQUEST_TTL`), avisa as duas partes; aceitar fora do prazo dá 409. ⬜ prazo para pagar depois de aceite (política de pagamentos) | Pedidos, Reserva |
 | 12 | ✅ | `incident_reports` | `POST /bookings/{id}/incidents` (multipart `type` DAMAGE/LOSS/THEFT/OTHER, `description`, até 6 `photos`) → reserva `DISPUTED`. Admin: `GET /admin/incidents`, `GET …/{id}`, `PATCH …/{id}/resolve` | Reportar problema, Admin › Problemas |
 | 13 | ✅ | Contratos | Gerado quando o dono aceita; `GET /bookings/{id}/contract`, `POST …/contract/accept`. **O arrendatário tem de aceitar antes de gerar a referência.** Texto v1 é rascunho — rever com jurista | Contrato |
 | 14 | ⬜ | Entrega/recolha como campos da reserva (modo, bairro, hora) | Ainda vão dentro de `renterMessage` | Pedido, Reserva |
-| 15 | ⬜ | Selo "Verificado" e dados de confiança do dono no `ItemResponse` | `KycService.isVerified(ownerId)` já existe; falta expor no item | Detalhe, Pedidos recebidos |
+| 15 | ✅ | Selo "Verificado" | `ownerVerified` em `ItemResponse`/`ItemSummaryResponse`; `renterVerified` e `ownerVerified` em `BookingResponse` (só KYC aprovado; não depende de `KYC_REQUIRED`) | Detalhe, Pedidos recebidos |
 | 16 | ⬜ | Telefone/WhatsApp do dono só para as partes de uma reserva aceite | O WhatsApp ainda fala com a equipa (`NEXT_PUBLIC_WHATSAPP_NUMBER`) | Reserva |
 
 ## P2 — melhora a experiência
 
 | # | Estado | O que falta | Ecrãs |
 |---|---|---|---|
-| 17 | ⬜ | Pesquisa por texto, bairro e preço em `GET /items` (hoje só `categoryId`) | Explorar |
+| 17 | 🟡 | Pesquisa por texto, bairro e preço em `GET /items` (já há `categoryId` e datas livres) | Explorar |
 | 18 | ⬜ | Preço semanal/mensal no item (o SPEC pede a tarifa mais vantajosa) | Publicar, Detalhe, PriceSummary |
 | 19 | ⬜ | Valor declarado (`declared_value`) para calcular a caução no backend | Publicar |
-| 20 | ⬜ | Reativar um item pausado (só existe `deactivate`) | O meu equipamento |
+| 20 | ✅ | Reativar um item pausado: `PATCH /items/{id}/activate` (só `INACTIVE`; `SUSPENDED` é da equipa) | O meu equipamento |
 | 21 | ✅ | Avaliações e destaques | `POST/GET /bookings/{id}/review` (arrendatário, reserva `COMPLETED`, uma vez), `GET /items/{id}/reviews`; `ratingAverage`/`ratingCount`/`completedRentals` nos itens; `GET /items?featured=true`, `?order=POPULAR|RATING`; admin: `PATCH /admin/items/{id}/featured` | Avaliar, Explorar, Detalhe |
 | 22 | ✅ | Notificações | `GET /notifications/me`, `/me/unread-count` (polling ~60 s), `PATCH /{id}/read`, `POST /me/read-all`. Email via Resend depois do commit; sem WebSocket nem SMS | Atividade |
 | 23 | ⬜ | Levantamento do saldo do dono e conta da plataforma para a taxa de 8% | Carteira |
 | 24 | ⬜ | Contadores por estado (`GET /bookings/me/owner?status=…`) | Painel, Pedidos |
+
+## Documentos em PDF (2026-11-11)
+
+| Estado | Endpoint | Quem |
+|---|---|---|
+| ✅ | `GET /payments/{id}/receipt` — comprovativo de pagamento **não fiscal**, nº `CP 2026/000001` (V19), total por extenso | Quem pagou ou admin, só `CONFIRMED` (`receiptNumber` em `PaymentResponse`) |
+| ✅ | `GET /bookings/{id}/contract/pdf` — contrato congelado + aceitações + SHA-256 (marca de água "RASCUNHO" na v1) | Partes da reserva ou admin |
+
+## Auditoria (2026-11-11)
+
+`GET /admin/audit-logs` aceita agora `action` e `actorId`, além de `entityType`/`entityId` (combináveis). Ações novas:
+`CONTRACT_ACCEPTED`, `HANDOVER_REGISTERED`, `HANDOVER_CONFIRMED` (feitas pelas partes) e `CONTRACT_VIEWED`,
+`RECEIPT_VIEWED` (documentos abertos por um admin). Ecrã: `/admin/auditoria`.
+
+## Filas de admin e problemas (2026-11-11)
+
+- `GET /bookings/{id}` aceita também ADMIN (detalhe a partir das filas e da auditoria).
+- Reportar problema avisa também **a outra parte** (`INCIDENT_REPORTED`); resolver avisa **as duas partes** com a
+  nota da equipa (`INCIDENT_RESOLVED`, migração V20).
+- Frontend: `/admin/pagamentos`, `/admin/caucoes`, `/admin/problemas`, `/admin/reservas/[id]` e contadores em `/admin`.
+- Falta: o admin não vê o pagamento de uma reserva (`/bookings/{id}/payments/current` é só das partes) nem descarrega
+  o comprovativo a partir do detalhe da reserva (só pelo id do pagamento).
+
+## Login Google e emails (2026-11-11)
+
+- `POST /auth/google/link` (autenticado): associar Google a uma conta existente com a sessão iniciada (sem token no
+  URL). Regresso em `/conta?google=linked|already|conflict`. `MeResponse.googleLinked`.
+- Emails normalizados (minúsculas) e procurados sem diferença de maiúsculas (V23). Registo via Google recusa um
+  email que já existe noutra conta (antes criava uma segunda conta).
+- `redirect_uri_mismatch`: não definir `NEXT_PUBLIC_API_URL` no frontend; `GOOGLE_REDIRECT_URI` = URL do frontend.
+
+## Gate de KYC desligável (2026-11-11)
+
+Por omissão o gate está **ligado**. `KYC_REQUIRED=false` (no `.env` local e no staging) deixa publicar, reativar e
+pedir reserva sem identidade verificada, para testar. Ver `claude/decisoes-produto.md`.
 
 ## Mudanças que o frontend tem de acompanhar (2026-10-23)
 
@@ -62,5 +97,4 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 - **Estados da reserva**: o backend é a fonte de verdade; a correspondência com os nomes do SPEC está em `SPEC.md` §7.
 - **Valores monetários**: `NUMERIC(12,2)` no schema vs inteiros em Kz no CLAUDE.md (já registado em `decisoes-produto.md`). A taxa e as retenções de caução são sempre em Kz inteiros.
 - **Nomes de campos**: `PublishItemRequest.itemCondition` vs `UpdateItemRequest.condition`; `PhotoResponse.photUrl` (typo). O frontend adapta-se em `lib/api.ts`.
-- **`ItemResponse.createdAt`** devolve o `updatedAt` (bug em `ItemService.toResponse`).
 - **CORS**: não há config — está bem enquanto o browser passa pelo proxy do Next (`next.config.ts`).

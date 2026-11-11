@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Clock, Home, MapPin, Truck } from "lucide-react";
 import { PriceSummary } from "@/components/bz/booking";
+import { MonthCalendar } from "@/components/bz/calendar";
 import { ItemPhoto } from "@/components/bz/equipment";
 import { Checkbox, FormError, RadioCards, SelectField, StepProgress, TextArea, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { StickyCTA } from "@/components/bz/shell";
@@ -11,9 +12,10 @@ import { ErrorState } from "@/components/bz/states";
 import { BackLink, Button, ButtonLink, Callout, Card, Kz, Skeleton } from "@/components/bz/ui";
 import { bookingApi, catalogApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
-import { addDaysIso, daysBetween, formatRange, LUANDA_AREAS, todayIso } from "@/lib/format";
+import { firstConflict, unavailableDays } from "@/lib/availability";
+import { addDaysIso, daysBetween, formatDay, formatRange, LUANDA_AREAS, todayIso } from "@/lib/format";
 import { canRent } from "@/lib/mode";
-import type { Item } from "@/lib/types";
+import type { Availability, Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
 const STEPS = ["Datas", "Entrega", "Mensagem", "Rever"];
@@ -36,12 +38,15 @@ function Reservar() {
   const [terms, setTerms] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [sending, setSending] = useState(false);
+  const availability = useResource<Availability>(`availability:${id}`, () => catalogApi.availability(id));
 
   if (!session) return null;
   if (loadError) return <ErrorState message={loadError} onRetry={reload} />;
   if (!item) return <Skeleton role="status" aria-label="A carregar" className="h-96 rounded-cartao" />;
 
   const days = daysBetween(start, end);
+  const busyDays = unavailableDays(availability.data);
+  const conflict = firstConflict(busyDays, start, end);
   const isOwnItem = item.ownerId === session.profileId;
   const blocked = isOwnItem || !canRent(session.role);
 
@@ -50,6 +55,7 @@ function Reservar() {
     if (s === 1) {
       if (start < todayIso()) fields.startDate = "Não pode ser no passado.";
       if (days < 1) fields.endDate = "Pelo menos um dia depois.";
+      else if (conflict) fields.startDate = `Já está ocupado a ${formatDay(conflict)}. Escolhe outras datas.`;
     }
     if (s === 2 && handover === "delivery" && !area) fields.area = "Escolhe o bairro de entrega.";
     if (s === 4 && !terms) fields.terms = "Tens de aceitar as condições para continuar.";
@@ -115,7 +121,14 @@ function Reservar() {
                 <TextField label="Levantas" type="date" min={todayIso()} value={start} onChange={(v) => { setStart(v); if (v >= end) setEnd(addDaysIso(v, 1)); }} error={errors.fields.startDate} />
                 <TextField label="Devolves" type="date" min={addDaysIso(start, 1)} value={end} onChange={setEnd} error={errors.fields.endDate} />
               </div>
-              {days > 0 && (
+              {availability.data && (
+                <Card className="p-4">
+                  <MonthCalendar days={busyDays} mode="public" selection={days > 0 ? { start, end } : undefined} initialMonth={start} />
+                </Card>
+              )}
+              {conflict ? (
+                <Callout tone="warn">Já está ocupado a {formatDay(conflict)}. O dia de devolução pode coincidir com o início de outro aluguer, mas nenhum dia de uso pode.</Callout>
+              ) : days > 0 && (
                 <p className="rounded-cartao bg-areia-2 p-4 text-verde">
                   <strong>{formatRange(start, end)}</strong> · {days} {days === 1 ? "dia" : "dias"}
                 </p>

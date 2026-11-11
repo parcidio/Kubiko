@@ -39,6 +39,7 @@ class OAuth2SuccessHandlerTest {
     @Mock private GooglePendingSignupRepository googlePendingSignupRepository;
     @Mock private AuthService authService;
     @Mock private com.beeznoo.api.security.service.SecurityEventService securityEvents;
+    @Mock private com.beeznoo.api.auth.service.GoogleLinkService googleLinkService;
 
     @InjectMocks
     private OAuth2SuccessHandler oAuth2SuccessHandler;
@@ -77,7 +78,7 @@ class OAuth2SuccessHandlerTest {
     void emailInUse_doesNotAutoLink() throws Exception {
         Profile other = Profile.builder().id(UUID.randomUUID()).email(email).build();
         when(profileRepository.findByGoogleId(googleId)).thenReturn(Optional.empty());
-        when(profileRepository.findByEmail(email)).thenReturn(Optional.of(other));
+        when(profileRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(other));
 
         oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
@@ -94,7 +95,7 @@ class OAuth2SuccessHandlerTest {
         Profile profile = Profile.builder().id(profileId).email(email)
                 .emailVerifiedAt(java.time.OffsetDateTime.now()).build();
         when(profileRepository.findByGoogleId(googleId)).thenReturn(Optional.empty());
-        when(profileRepository.findByEmail(email)).thenReturn(Optional.of(profile));
+        when(profileRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(profile));
         when(authService.issueLoginCode(profileId)).thenReturn("code-x");
 
         oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
@@ -108,7 +109,7 @@ class OAuth2SuccessHandlerTest {
     void stateWithProfileId_isIgnored() throws Exception {
         when(request.getParameter("state")).thenReturn(UUID.randomUUID().toString());
         when(profileRepository.findByGoogleId(googleId)).thenReturn(Optional.empty());
-        when(profileRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(profileRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.empty());
         when(googlePendingSignupRepository.save(any())).thenAnswer(inv -> {
             GooglePendingSignup p = inv.getArgument(0);
             p.setToken(UUID.randomUUID());

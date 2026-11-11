@@ -13,5 +13,12 @@ public enum AuditAction {
     BOOKING_COMPLETED,
     INCIDENT_RESOLVED,
     ITEM_FEATURED,
-    ITEM_UNFEATURED
+    ITEM_UNFEATURED,
+    // Documentos com dados pessoais abertos por um admin (as partes não ficam registadas)
+    CONTRACT_VIEWED,
+    RECEIPT_VIEWED,
+    // Mudanças de estado com valor de prova (SPEC §8), feitas pelas partes
+    CONTRACT_ACCEPTED,          // arrendatário aceitou o contrato
+    HANDOVER_REGISTERED,        // entrega ou devolução registada com fotos
+    HANDOVER_CONFIRMED          // a outra parte confirmou → reserva avança
 }

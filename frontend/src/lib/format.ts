@@ -22,6 +22,11 @@ export function formatRange(start: string, end: string) {
     : `${a.getDate()} ${MONTHS[a.getMonth()]} a ${b.getDate()} ${MONTHS[b.getMonth()]}`;
 }
 
+/** Dias inclusivos: "16 out" (um dia) ou "16 a 18 out". */
+export function formatDays(start: string, end: string) {
+  return start === end ? formatDay(start) : formatRange(start, end);
+}
+
 export function daysBetween(start: string, end: string) {
   return Math.max(0, Math.round((parse(end).getTime() - parse(start).getTime()) / 86_400_000));
 }

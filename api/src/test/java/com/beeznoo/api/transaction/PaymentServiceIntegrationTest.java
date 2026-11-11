@@ -59,6 +59,7 @@ class PaymentServiceIntegrationTest {
     @MockitoBean PaymentGateway gateway;
 
     @Autowired PaymentService paymentService;
+    @Autowired com.beeznoo.api.transaction.service.ReceiptService receiptService;
     @Autowired ContractService contractService;
     @Autowired PaymentExpiryScheduler paymentExpiryScheduler;
     @Autowired BookingService bookingService;
@@ -296,6 +297,35 @@ class PaymentServiceIntegrationTest {
 
         assertThat(bookingRepository.findById(pending.getId()).orElseThrow().getStatus()).isEqualTo(BookingStatus.ACCEPTED);
         assertThat(ledgerEntryRepository.existsByBookingIdAndType(pending.getId(), EntryType.HOLD)).isFalse();
+    }
+
+    @Test
+    void confirmacao_atribuiNumeroDeComprovativoSequencial() {
+        PaymentResponse p = paymentService.createReference(renter.getId(), booking.getId());
+        given(gateway.checkStatus(any())).willReturn(GatewayStatus.paid("TX-9"));
+
+        PaymentResponse checked = paymentService.check(renter.getId(), p.id());
+
+        assertThat(checked.receiptNumber()).matches("CP \\d{4}/\\d{6}");
+        assertThat(p.receiptNumber()).isNull(); // referência por pagar não tem comprovativo
+    }
+
+    @Test
+    void comprovativo_soParaQuemPagouOuAdmin_eSoDepoisDeConfirmado() {
+        PaymentResponse p = paymentService.createReference(renter.getId(), booking.getId());
+        assertThatThrownBy(() -> receiptService.receipt(renter.getId(), p.id()))
+                .isInstanceOf(IllegalStateException.class);
+
+        given(gateway.checkStatus(any())).willReturn(GatewayStatus.paid("TX-10"));
+        paymentService.check(renter.getId(), p.id());
+
+        com.beeznoo.api.transaction.service.ReceiptService.ReceiptFile file = receiptService.receipt(renter.getId(), p.id());
+        assertThat(new String(file.content(), 0, 5)).isEqualTo("%PDF-");
+        assertThat(file.fileName()).matches("comprovativo-CP-\\d{4}-\\d{6}\\.pdf");
+        assertThat(receiptService.receipt(admin.getId(), p.id()).content()).isNotEmpty();
+        // o dono vê o estado do pagamento, mas o comprovativo é de quem pagou
+        assertThatThrownBy(() -> receiptService.receipt(owner.getId(), p.id()))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
     }
 
     private Profile profile(String name, UserRole role) {

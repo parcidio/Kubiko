@@ -87,6 +87,8 @@ public class ItemController {
                     `order`: `RECENT` (por omissão; destaques primeiro), `POPULAR` (mais reservas concluídas),
                     `RATING` (melhor média de avaliações). O parâmetro `sort` é ignorado.
                     Cada item traz `ratingAverage`, `ratingCount`, `completedRentals` e `featured`.
+                    `startDate` + `endDate` (ISO, as duas ou nenhuma): só equipamento livre de `startDate` até
+                    `endDate` (dia de devolução, exclusivo), sem reservas aceites nem datas bloqueadas pelo dono.
 
                     Endpoint público, não requer autenticação.
                     """
@@ -98,8 +100,12 @@ public class ItemController {
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(defaultValue = "false") boolean featured,
             @RequestParam(defaultValue = "RECENT") ItemOrder order,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
             Pageable pageable) {
-        return ResponseEntity.ok(itemService.listActive(categoryId, featured, order, pageable));
+        return ResponseEntity.ok(itemService.listActive(categoryId, featured, order, startDate, endDate, pageable));
     }
 
     @Operation(
@@ -162,6 +168,31 @@ public class ItemController {
             @PathVariable UUID id) {
         itemService.deactivate(profileId, id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(
+            summary = "Reativar item pausado",
+            description = """
+                    Muda o estado de `INACTIVE` (pausado) para `ACTIVE`: volta a aparecer em Explorar.
+                    Apenas o dono. Um item `SUSPENDED` (em revisão pela equipa) não se reativa por aqui.
+                    Passa pelo mesmo gate de identidade que publicar (`KYC_REQUIRED`).
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Item ativo",
+                    content = @Content(schema = @Schema(implementation = ItemResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Perfil não é o dono do item ou falta verificação",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Item não encontrado"),
+            @ApiResponse(responseCode = "409", description = "Item suspenso pela equipa",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<ItemResponse> activate(
+            @AuthenticationPrincipal UUID profileId,
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(itemService.activate(profileId, id));
     }
 
     @Operation(

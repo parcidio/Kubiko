@@ -1,6 +1,7 @@
 package com.beeznoo.api.transaction.service;
 
 import com.beeznoo.api.booking.entity.Booking;
+import com.beeznoo.api.common.util.Formats;
 import com.beeznoo.api.booking.entity.BookingStatus;
 import com.beeznoo.api.booking.repository.BookingRepository;
 import com.beeznoo.api.contract.service.ContractService;
@@ -159,13 +160,23 @@ public class PaymentService {
         ledgerService.settleReferencePayment(payment);
         depositService.recordHeld(booking);
 
+        OffsetDateTime confirmedAt = OffsetDateTime.now();
+        // Pedir o número ANTES de mudar o estado: o nextval faz flush, e CONFIRMED sem número viola a constraint (V19)
+        String receiptNumber = receiptNumber(confirmedAt);
         payment.setStatus(PaymentStatus.CONFIRMED);
-        payment.setConfirmedAt(OffsetDateTime.now());
+        payment.setConfirmedAt(confirmedAt);
+        payment.setReceiptNumber(receiptNumber);
         payment.setProviderTransactionId(transactionId);
         booking.setStatus(BookingStatus.ACTIVE);
         notificationService.paymentConfirmed(booking, payment.getAmount());
         // Sem referência nem montante no log (CLAUDE.md §6)
         log.info("Pagamento {} confirmado — reserva {} ACTIVE", payment.getId(), booking.getId());
+    }
+
+    // "CP 2026/000001" — comprovativo não fiscal (decisoes-produto.md 2026-11-11)
+    private String receiptNumber(OffsetDateTime confirmedAt) {
+        int year = confirmedAt.atZoneSameInstant(Formats.LUANDA).getYear();
+        return String.format("CP %d/%06d", year, paymentRepository.nextReceiptSequence());
     }
 
     private Payment newPayment(Booking booking, PaymentMethod method, String provider, OffsetDateTime expiresAt) {

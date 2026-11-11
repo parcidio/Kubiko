@@ -1,6 +1,6 @@
 # Modelo de dados — schema atual
 
-Gerado a partir das migrações Flyway **V1–V18** (`api/src/main/resources/db/migration/`), a 2026-10-24.
+Gerado a partir das migrações Flyway **V1–V23** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-11.
 As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
 A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
 
@@ -20,7 +20,7 @@ erDiagram
     CATEGORIES ||--o{ ITEMS : "classifica"
     CATEGORIES ||--o{ CATEGORIES : "subcategoria"
     ITEMS ||--o{ ITEM_PHOTOS : "fotos"
-    ITEMS ||--o{ ITEM_AVAILABILITY : "datas indisponíveis"
+    ITEMS ||--o{ AVAILABILITY_BLOCKS : "datas bloqueadas pelo dono"
     ITEMS ||--o{ BOOKINGS : "reservado em"
     PROFILES ||--o{ BOOKINGS : "aluga / disponibiliza"
     BOOKINGS ||--o| CONTRACTS : "contrato (1:1)"
@@ -105,6 +105,14 @@ erDiagram
         text storage_key UK "fotos novas (V11)"
         int position "0 = capa"
     }
+    AVAILABILITY_BLOCKS {
+        uuid id PK
+        uuid item_id FK
+        date start_date "inclusivo"
+        date end_date "inclusivo; até 366 dias"
+        varchar note "só o dono vê"
+        uuid created_by FK
+    }
     BOOKINGS {
         uuid id PK
         uuid item_id FK
@@ -114,7 +122,7 @@ erDiagram
         date end_date
         numeric total_price "aluguer"
         numeric deposit_amount
-        varchar status "PENDING_OWNER | ACCEPTED | ACTIVE | IN_PROGRESS | RETURNED | COMPLETED | CANCELLED_* | DISPUTED"
+        varchar status "PENDING_OWNER | ACCEPTED | ACTIVE | IN_PROGRESS | RETURNED | COMPLETED | CANCELLED_* | EXPIRED | DISPUTED"
         text renter_message
         text owner_note
     }
@@ -141,6 +149,7 @@ erDiagram
         numeric amount "= soma dos três"
         varchar status "AWAITING_PAYMENT | CONFIRMED | EXPIRED | CANCELLED | FAILED"
         timestamptz expires_at
+        varchar receipt_number UK "V19; CP 2026/000001, obrigatório se CONFIRMED"
     }
     DEPOSITS {
         uuid id PK
@@ -240,7 +249,7 @@ erDiagram
     }
 ```
 
-Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códigos OTP com hash), `google_pending_signups` (registo Google à espera do telefone), `oauth_login_codes` (código de 60 s do login Google, só o hash), `item_availability` (ainda sem endpoints — ver `BACKEND_GAPS.md` #8),
+Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códigos OTP com hash), `google_pending_signups` (registo Google à espera do telefone), `oauth_login_codes` (código de 60 s do login Google, só o hash),
 `rate_limit_counters` (limites de pedidos com `RATE_LIMIT_STORE=database`, chave em SHA-256).
 
 ## Migrações
@@ -265,3 +274,12 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V16 | `oauth_login_codes` (código de uso único do login Google) |
 | V17 | Segurança, 2.ª ronda: `security_events` (append-only), `email_verifications`, `profiles.email_verified_at`, `rate_limit_counters`; notificação `SECURITY_ALERT`; OTP `ADMIN_LOGIN` |
 | V18 | `reviews` (1 por reserva concluída, imutável), `items.featured_at`; índice `bookings(item_id, status)` |
+| V19 | `payments.receipt_number` + sequência `payment_receipt_seq` (comprovativo não fiscal), backfill dos confirmados |
+| V20 | notificação `INCIDENT_RESOLVED` |
+| V21 | `availability_blocks` (bloqueios do dono, dias inclusivos); `item_availability` migrada e removida |
+| V22 | reserva `EXPIRED` (pedido sem resposta) e notificação `BOOKING_EXPIRED`; índice parcial dos pedidos pendentes |
+| V23 | emails em minúsculas (sem colisões) e índice em `lower(email)` |
+
+**Disponibilidade:** os dias ocupados por reservas **não** se guardam em `availability_blocks` — calculam-se a partir de
+`bookings` nos estados `ACCEPTED`, `ACTIVE`, `IN_PROGRESS`, `RETURNED`, `DISPUTED` (`BookingStatus.OCCUPYING`), com o
+período `[start_date, end_date)` (o dia de devolução fica livre). Ver `claude/decisoes-produto.md` (2026-11-11).

@@ -50,6 +50,8 @@ public class ItemDtos {
             UUID id,
             UUID ownerId,
             String ownerName,
+            // KYC aprovado (selo "Verificado"); não depende do gate KYC_REQUIRED
+            boolean ownerVerified,
             CategoryResponse category,
             String title,
             String description,
@@ -83,7 +85,8 @@ public class ItemDtos {
             Double ratingAverage,
             long ratingCount,
             long completedRentals,
-            boolean featured
+            boolean featured,
+            boolean ownerVerified
     ) {}
 
     public record FeatureItemRequest(boolean featured) {}

@@ -31,7 +31,7 @@ export default function PainelPage() {
 
   const all = received.data?.content ?? [];
   const pending = all.filter((b) => b.status === "PENDING_OWNER");
-  const upcoming = all.filter((b) => b.status === "ACCEPTED" || b.status === "ACTIVE");
+  const upcoming = all.filter((b) => ["ACCEPTED", "ACTIVE", "IN_PROGRESS", "RETURNED"].includes(b.status));
   const activeItems = (items.data?.content ?? []).filter((i) => i.status === "ACTIVE").length;
 
   return (

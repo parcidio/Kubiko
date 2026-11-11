@@ -97,7 +97,7 @@ Tudo desliga com `prefers-reduced-motion`.
 | `states.tsx` | `EmptyState`, `ErrorState`, `ListSkeleton`, `GridSkeleton`, `BackendPending` |
 | `equipment.tsx` | `ItemPhoto`, `EquipmentCard` (destaque, avaliação, nº de alugueres), `Stars`, `RatingInline`, `ConditionMeter`, `VerifiedBadge`, `Avatar`, `CategoryTile` |
 | `booking.tsx` | `BookingTicket`, `NextStepCard`, `DeadlineChip`, `Timeline`, `PriceSummary`, `BookingRow`, `RequestCard`, `bookingCode()` |
-| `photo.tsx` | `PhotoPicker`, `CameraGuide` |
+| `photo.tsx` | `PhotoPicker`, `CameraGuide`, `CameraSlot`, `SavedPhotoGrid` (fotos já guardadas: adicionar/remover direto na API) |
 | `discover.tsx` | `Rail` (faixa horizontal, só aparece com itens), `TrustStrip`, `QuickSearches`, `PublishPromo`, `ReviewsSection` |
 
 ### Estados obrigatórios

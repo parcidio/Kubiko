@@ -73,6 +73,20 @@ public class NotificationService {
                 "Pagar reserva", "/reservas/" + b.getId() + "/pagar");
     }
 
+    public void bookingExpired(Booking b) {
+        notify(b.getRenter(), NotificationType.BOOKING_EXPIRED, b,
+                b.getItem().getTitle() + ": o dono não respondeu a tempo",
+                List.of("O pedido para " + period(b) + " expirou sem resposta. Não pagaste nada.",
+                        "Há outro equipamento parecido à tua espera."),
+                "Explorar equipamento", "/explorar");
+        notify(b.getOwner(), NotificationType.BOOKING_EXPIRED, b,
+                b.getItem().getTitle() + ": pedido expirado",
+                List.of("O pedido de " + b.getRenter().getFullName() + " para " + period(b)
+                                + " expirou porque não foi respondido a tempo.",
+                        "Responder depressa ajuda-te a alugar mais: quem pede costuma escolher o primeiro dono que aceita."),
+                "Ver pedidos", "/pedidos");
+    }
+
     public void bookingRejected(Booking b) {
         List<String> lines = new ArrayList<>();
         lines.add(b.getOwner().getFullName() + " não pode aceitar o teu pedido para " + period(b) + ". Não pagaste nada.");
@@ -181,6 +195,24 @@ public class NotificationService {
                     "Problema reportado: " + b.getItem().getTitle(),
                     List.of(reporter.getFullName() + " reportou " + typeLabel + " (reserva de " + period(b) + ")."),
                     "Abrir problemas", "/admin/problemas");
+        }
+        // a outra parte também tem de saber: a reserva ficou em análise
+        Profile other = b.getRenter().getId().equals(reporter.getId()) ? b.getOwner() : b.getRenter();
+        notify(other, NotificationType.INCIDENT_REPORTED, b,
+                b.getItem().getTitle() + ": problema reportado",
+                List.of(reporter.getFullName() + " reportou " + typeLabel + " nesta reserva.",
+                        "A equipa Beeznoo vai analisar com base nas fotos da entrega e da devolução. "
+                                + "Se tens algo a acrescentar, fala connosco."),
+                "Ver reserva", "/reservas/" + b.getId());
+    }
+
+    public void incidentResolved(Booking b, String typeLabel, String note) {
+        for (Profile party : List.of(b.getRenter(), b.getOwner())) {
+            notify(party, NotificationType.INCIDENT_RESOLVED, b,
+                    b.getItem().getTitle() + ": problema analisado",
+                    List.of("A equipa concluiu a análise do problema (" + typeLabel + ").", "Nota da equipa: " + note,
+                            "A decisão sobre a caução chega numa notificação à parte."),
+                    "Ver reserva", "/reservas/" + b.getId());
         }
     }
 

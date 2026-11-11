@@ -10,14 +10,16 @@ import { PhotoPicker, useLocalPhotos } from "@/components/bz/photo";
 import { PageHeader } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Button, ButtonLink, Callout, Skeleton, buttonClass } from "@/components/bz/ui";
-import { bookingApi } from "@/lib/api";
+import { bookingApi, incidentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
+import { compressImage } from "@/lib/images";
 import { bookingCode, whatsappLink } from "@/lib/booking";
-import type { Booking } from "@/lib/types";
+import type { Booking, IncidentType } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
 type Kind = "dano" | "perda" | "roubo" | "outro";
 const KIND_LABEL: Record<Kind, string> = { dano: "Dano", perda: "Perda", roubo: "Roubo", outro: "Outro" };
+const KIND_API: Record<Kind, IncidentType> = { dano: "DAMAGE", perda: "LOSS", roubo: "THEFT", outro: "OTHER" };
 
 export default function ProblemaPage() {
   const session = useRequireSession();
@@ -41,7 +43,8 @@ export default function ProblemaPage() {
     setBusy(true);
     setErrors({ fields: {} });
     try {
-      await bookingApi.dispute(b.id);
+      const files = await Promise.all(photos.photos.map((p) => compressImage(p.file)));
+      await incidentApi.report(b.id, KIND_API[kind], text.trim(), files);
       toast.success("Problema reportado. A equipa vai analisar.");
       setSent(true);
     } catch (err) {
@@ -52,19 +55,18 @@ export default function ProblemaPage() {
   }
 
   if (sent) {
-    // Descrição e fotos ainda não têm endpoint: seguem para a equipa por WhatsApp.
-    const wa = whatsappLink(`Reportar problema — reserva ${code} (${b.itemTitle}).\nTipo: ${KIND_LABEL[kind]}\n${text.trim()}\n(Envio ${photos.photos.length} foto(s) a seguir.)`);
+    const wa = whatsappLink(`Reportei um problema na reserva ${code} (${b.itemTitle}): ${KIND_LABEL[kind]}.`);
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
         <HexIllustration icon={ShieldAlert} tone="ambar" size={150} />
         <h1 className="font-titulo text-3xl font-extrabold text-verde">Problema reportado</h1>
-        <p className="text-cinza">A reserva ficou em análise. Falta um passo: envia a descrição e as fotos à equipa no WhatsApp.</p>
-        <a href={wa} target="_blank" rel="noreferrer" className={buttonClass("primary", "lg", true)}>
-          <MessageCircle strokeWidth={1.8} /> Enviar no WhatsApp
-        </a>
-        <ButtonLink href={`/reservas/${b.id}`} variant="ghost">
+        <p className="text-cinza">A descrição e as fotos chegaram à equipa. A reserva fica em análise e a caução só é decidida depois disto. Falamos contigo se precisarmos de mais.</p>
+        <ButtonLink href={`/reservas/${b.id}`} block size="lg">
           Voltar à reserva
         </ButtonLink>
+        <a href={wa} target="_blank" rel="noreferrer" className={buttonClass("ghost", "md")}>
+          <MessageCircle strokeWidth={1.8} /> É urgente? Fala connosco no WhatsApp
+        </a>
       </div>
     );
   }
@@ -74,7 +76,7 @@ export default function ProblemaPage() {
       <BackLink href={`/reservas/${id}`}>Reserva {code}</BackLink>
       <PageHeader title="Reportar problema" subtitle={`${b.itemTitle}. A equipa Beeznoo analisa e decide sobre a caução com base nas fotos.`} />
 
-      {b.status !== "ACTIVE" ? (
+      {!["ACTIVE", "IN_PROGRESS", "RETURNED", "DISPUTED"].includes(b.status) ? (
         <Callout tone="info" icon={HelpCircle} title="Só durante o aluguer">
           Podes reportar um problema enquanto a reserva está em curso. Para outras dúvidas, fala connosco no WhatsApp.
         </Callout>
@@ -93,9 +95,9 @@ export default function ProblemaPage() {
               { value: "outro", title: "Outro", text: "Atraso, equipamento diferente…", icon: HelpCircle },
             ]}
           />
-          <TextArea label="Conta o que se passou" value={text} onChange={setText} rows={5} maxLength={1500} error={errors.fields.text} placeholder="Quando, onde e como. Quanto mais concreto, mais depressa resolvemos." />
+          <TextArea label="Conta o que se passou" value={text} onChange={setText} rows={5} maxLength={2000} error={errors.fields.text} placeholder="Quando, onde e como. Quanto mais concreto, mais depressa resolvemos." />
           <div className="grid gap-2">
-            <p className="text-sm font-medium text-verde">Fotos</p>
+            <p className="text-sm font-medium text-verde">Fotos (até 6)</p>
             <PhotoPicker photos={photos.photos} onAdd={photos.add} onRemove={photos.remove} onCover={photos.makeCover} min={1} />
           </div>
           <Callout tone="warn" icon={AlertTriangle}>
@@ -106,7 +108,7 @@ export default function ProblemaPage() {
             Reportar problema
           </Button>
           <p className="text-center text-[13px] text-cinza">
-            A reserva fica marcada com problema. A seguir envias a descrição e as fotos à equipa por WhatsApp (até haver formulário no backend).
+            A reserva fica marcada com problema e a equipa Beeznoo é avisada. A outra parte também.
           </p>
         </>
       )}

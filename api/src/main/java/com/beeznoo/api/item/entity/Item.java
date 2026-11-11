@@ -74,10 +74,6 @@ public class Item {
     @Builder.Default
     private List<ItemPhoto> photos = new ArrayList<>();
 
-    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<ItemAvailability> availability = new ArrayList<>();
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

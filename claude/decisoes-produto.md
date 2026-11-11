@@ -280,3 +280,190 @@ recebem avaliação; mais pedidos de reserva por visita ao Detalhe (comparar 4 s
 3. **Destaques sem anúncios:** `items.featured_at` posto pelo admin (`PATCH /admin/items/{id}/featured`, com auditoria).
    `GET /items?featured=true` e `GET /items?order=POPULAR` (nº de reservas concluídas) e `order=RATING`.
 4. **Frontend:** faixas "Em destaque", "Mais alugados" e "Novidades" no Explorar; cada faixa só aparece se tiver itens.
+
+---
+
+## 2026-11-05 — Alojamento refeito à mão, com contas `@beeznoo.ao`
+
+**Contexto.** O alojamento vai ser recriado de raiz com as contas do projeto. A branch `staging` passa a seguir a `main`,
+sem configuração própria (decisão do Victor nesta data — ⚑ validar com o André).
+
+**Decisões:**
+1. **Sem `render.yaml`:** serviços criados à mão, com as variáveis só nos painéis. Passos em `docs/DEPLOY.md`.
+2. **Mesma arquitetura nos dois ambientes:** o browser fala só com o Next, que faz proxy para a API. Sem CORS e com cookie
+   `SameSite=Strict`. Não entra na `main` o desenho de 2026-10-26 (browser a chamar a API diretamente).
+3. **Separação por ambiente:** serviço Render, branch Neon, bucket B2, cliente Google e segredos próprios para staging e produção.
+4. **Role `beeznoo_app`** sem permissões de dono na BD; as migrações correm com o dono, pela ligação direta.
+
+**A decidir (recomendação em `docs/DEPLOY.md`):** região (Frankfurt, em vez de Ohio) e planos pagos da Vercel e do Render para a produção.
+
+---
+
+## 2026-11-11 — KYC desligável, reativar item, selo "Verificado", contrato e comprovativo em PDF
+
+**Contexto.** Para testar a publicação e o pedido de reserva em local e em staging é preciso aprovar um KYC à mão em cada
+conta. Faltavam ainda o #20 (reativar equipamento pausado) e o #15 (selo "Verificado") do `docs/BACKEND_GAPS.md`. O
+arrendatário e o dono não tinham nenhum documento para guardar depois de pagar ou de assinar.
+
+**Hipótese (comprovativo).** Um comprovativo de pagamento com aspeto de documento a sério (número, datas, partes, linhas,
+totais, método) aumenta a confiança de quem paga pela primeira vez a um desconhecido, e reduz as perguntas "já pagaste?"
+no WhatsApp da equipa. **Utilizador-alvo:** arrendatário (e a empresa que precisa de justificar a despesa).
+**Critério de sucesso:** zero pedidos manuais de comprovativo à equipa nos primeiros 10 alugueres.
+
+**Decisões (equipa de backend, nesta data — ⚑ validar com o André):**
+
+1. **Gate de KYC por configuração** (`app.kyc.required`, `KYC_REQUIRED`). **Por omissão `true`** (revisto nesta
+   data: esquecer a variável em produção não pode abrir a plataforma a contas não verificadas). Desliga-se de forma
+   explícita com `KYC_REQUIRED=false` no `.env` local e no staging; a API escreve um aviso no arranque quando está
+   desligado. O selo "Verificado" continua a vir
+   **só** do KYC aprovado — desligar o gate não põe ninguém como verificado.
+2. **Reativar equipamento**: `PATCH /items/{id}/activate`, só o dono, só a partir de `INACTIVE` (pausado).
+   `SUSPENDED` é decisão do admin e não se reativa por aqui. Passa pelo mesmo gate de KYC que publicar.
+3. **Selo "Verificado"** (#15): `ownerVerified` no `ItemResponse` e `ItemSummaryResponse`; `renterVerified` e
+   `ownerVerified` no `BookingResponse`. Uma consulta por página (sem N+1).
+4. **Comprovativo de pagamento em PDF** (`GET /payments/{id}/receipt`, arrendatário ou admin, só pagamentos `CONFIRMED`):
+   número sequencial próprio (`CP 2026/000001`, sequência na BD, atribuído na confirmação — migração V19 com backfill
+   dos pagamentos já confirmados), emitente, cliente, reserva, linhas (aluguer, taxa de serviço, caução reembolsável),
+   total, método e data do pagamento, e código de verificação.
+   **Chama-se "Comprovativo de pagamento" e diz "Documento não fiscal"**: faturas e recibos com valor fiscal em Angola
+   têm de sair de software certificado pela AGT (fora do âmbito, SPEC §9 — ver decisão KYC de 2026-10-23).
+   Os dados do emitente (nome legal, NIF, morada) vêm de configuração (`app.company.*`) e ficam de fora se vazios.
+5. **Contrato em PDF** (`GET /bookings/{id}/contract/pdf`, partes ou admin): o texto congelado + versão, SHA-256 e
+   datas de aceitação de cada parte. O texto continua a ser o `v1-rascunho` (rever com jurista).
+6. **Biblioteca**: Apache PDFBox 3 (licença Apache 2.0). Não o iText (AGPL). Fontes base do PDF (Helvetica), sem
+   ficheiros de fonte no repo.
+
+**Em aberto.** Nome legal e NIF da empresa para o emitente. Se o dono também deve receber um documento do que recebe
+(fica para quando houver levantamentos, #23).
+
+---
+
+## 2026-11-11 (tarde) — Auditoria das partes e dos acessos de admin; contrato e checklist ligados na app
+
+**Contexto.** A revisão do mesmo dia mostrou que o primeiro aluguer não passava do pagamento na app (o frontend nunca
+aceitava o contrato) nem do `ACTIVE` (checklist só desenhado). O `audit_logs` só tinha ações da equipa, e a equipa
+não tinha ecrã para o ler.
+
+**Decisões (equipa de backend, nesta data — ⚑ validar com o André):**
+
+1. **`audit_logs` passa a registar também as mudanças de estado com valor de prova feitas pelas partes** (SPEC §8):
+   `CONTRACT_ACCEPTED` (com versão e SHA-256 do texto aceite), `HANDOVER_REGISTERED` e `HANDOVER_CONFIRMED`. Numa
+   disputa, é o rasto de quem aceitou e confirmou o quê, e quando. Sem dados pessoais nos metadados.
+2. **Acessos de admin a documentos com dados pessoais ficam registados**: `CONTRACT_VIEWED` (JSON ou PDF) e
+   `RECEIPT_VIEWED`, como já acontecia com `KYC_DOCUMENTS_VIEWED`. As partes a lerem os seus documentos não ficam.
+3. **Filtros** em `GET /admin/audit-logs`: `action` e `actorId`, combináveis com a entidade. Ecrã `/admin/auditoria`
+   com os eventos de segurança ao lado (`/admin/security-events`). Os filtros ficam na URL para partilhar um rasto.
+4. **Checklist sem código de 4 dígitos** (confirmado da decisão de 2026-10-23): o ecrã antigo pedia-o e foi retirado.
+   Mínimo 2 fotos (API), 6 ângulos sugeridos.
+5. **Pagar sem contrato aceite** deixa de dar erro 409 no ecrã: o pagamento encaminha para o contrato.
+
+**Em aberto.** O admin ainda não consegue abrir uma reserva pelo id (`GET /bookings/{id}` é só das partes) — a
+auditoria mostra o código mas não liga ao detalhe. Retenção dos registos de auditoria (hoje: para sempre).
+
+---
+
+## 2026-11-11 (fim do dia) — Filas de admin ligadas; avisos de problemas às duas partes
+
+**Contexto.** As filas de cauções e problemas só tinham "ação por ID". O reporte de problema mandava a descrição e as
+fotos pelo WhatsApp, apesar de a API já as receber. Quem não reportou o problema não era avisado de que a reserva
+ficou em disputa, e ninguém era avisado da resolução.
+
+**Decisões (equipa, nesta data — ⚑ validar com o André):**
+
+1. **Reportar problema avisa a outra parte** (mesmo tipo `INCIDENT_REPORTED`, link para a reserva). Transparência:
+   a outra parte pode acrescentar a sua versão à equipa.
+2. **Resolver um problema avisa as duas partes com a nota da equipa** (`INCIDENT_RESOLVED`, V20). A nota passa a ser
+   escrita a pensar nas partes; o ecrã diz isso ao admin. A caução continua a ser uma decisão à parte.
+3. **O admin pode abrir qualquer reserva** (`GET /bookings/{id}`), sem auditoria por leitura: tem nomes e valores,
+   não documentos. Contrato e comprovativo continuam auditados quando abertos por admin.
+4. **Toda a decisão de admin no ecrã pede motivo** (mínimo 5 caracteres), mesmo onde a API o aceita como opcional
+   (libertar caução, validar pagamento): fica em `audit_logs`.
+5. Cauções: o ecrã avisa quando há problemas por resolver na reserva, mas não bloqueia a decisão (a API também não).
+
+---
+
+## 2026-11-11 — Disponibilidade e bloqueio de datas (gap #8)
+
+**Contexto.** SPEC §10: "datas ocupadas não são selecionáveis". Hoje só se valida a sobreposição com reservas aceites,
+o dono não consegue bloquear datas (viagem, uso próprio, aluguer fora da app) e o arrendatário só descobre o conflito
+quando o pedido falha. A tabela `item_availability` (V2, um registo por dia) nunca foi usada.
+
+**Hipótese.** Mostrar as datas ocupadas no Detalhe e deixar o dono bloquear datas reduz pedidos impossíveis e recusas.
+**Utilizador-alvo:** arrendatário a escolher datas; dono com o equipamento ocupado fora da app.
+**Critério de sucesso:** zero pedidos recusados por "já está ocupado" nas primeiras 4 semanas; recusas < 15%.
+
+**Opções.**
+- **A — bloqueios manuais numa tabela; reservas calculadas** a partir de `bookings` (fonte de verdade única).
+- **B — tabela única com `booking_id`** (SPEC §8): uma linha por reserva aceite, apagada ao cancelar/expirar.
+  Duas fontes para a mesma informação: cada transição (cancelar, recusar, expirar — #11) tem de limpar o bloqueio;
+  um esquecimento deixa datas presas para sempre.
+
+**Decisão (equipa, nesta data — ⚑ validar com o André: desvia do SPEC §8, que pedia B):** **opção A.**
+
+1. **`availability_blocks`** (V21): `item_id`, `start_date`, `end_date` **inclusivos** (o dono pensa em dias: "16 a 18"
+   bloqueia 16, 17 e 18), nota opcional (só o dono a vê), autor. Máx. 366 dias por bloqueio e 100 bloqueios futuros
+   por item. Não se bloqueia o passado nem datas já com reserva aceite/paga.
+2. **Reservas** continuam `[início, fim)`: o dia de devolução fica livre para a reserva seguinte. Ocupam datas as
+   reservas `ACCEPTED`, `ACTIVE`, `IN_PROGRESS`, `RETURNED` e **`DISPUTED`** (novo: em disputa o equipamento pode
+   ainda estar com o arrendatário). Pedidos pendentes não ocupam: o dono escolhe entre pedidos sobrepostos.
+   A lista vive em `BookingStatus.OCCUPYING` (fonte única para a disponibilidade e para aceitar).
+3. **`GET /items/{id}/availability?from&to`** (público): intervalos de dias indisponíveis, inclusivos, com o motivo
+   `BOOKED` ou `BLOCKED` e **sem** nomes, notas nem ids de reserva. Janela por omissão: hoje + 180 dias; máx. 366.
+4. **`GET/POST /items/{id}/blocks`, `DELETE /items/{id}/blocks/{blockId}`**: só o dono.
+5. **Pedir reserva** recusa datas bloqueadas; **aceitar** volta a verificar (o dono pode ter bloqueado entretanto).
+   Criar bloqueio, criar reserva e aceitar fazem lock na linha do item, para não se cruzarem.
+6. **Explorar**: `GET /items?startDate&endDate` devolve só equipamento livre nesse período.
+7. `item_availability` migra para `availability_blocks` (um dia = um bloqueio, sem perda) e é removida.
+
+---
+
+## 2026-11-11 — Pedido sem resposta expira (gap #11)
+
+**Contexto.** SPEC §7: `requested → expired` (24 h sem resposta). Hoje um pedido `PENDING_OWNER` fica pendurado para
+sempre: o arrendatário não sabe se deve procurar outro equipamento e o frontend mostra um prazo que ninguém aplica.
+
+**Hipótese.** Um prazo real faz os donos responderem mais depressa e liberta o arrendatário para outra opção.
+**Critério de sucesso:** tempo mediano até resposta < 6 h; < 20% dos pedidos expiram (a medir no 1.º mês).
+
+**Decisões (equipa, nesta data — ⚑ validar com o André):**
+
+1. **Estado novo `EXPIRED`** (V22), em vez de reutilizar `CANCELLED_OWNER`: "recusado" e "não respondeu" contam
+   coisas diferentes ao arrendatário e à métrica de resposta.
+2. **Prazo**: 24 h desde o pedido (`app.bookings.request-ttl`, configurável) **ou** o fim do dia de levantamento
+   (hora de Luanda), o que vier primeiro — um pedido não fica à espera depois de o aluguer começar.
+3. **`BookingExpiryScheduler`** a cada minuto, uma transação por pedido (como o dos pagamentos).
+4. **Corrida com o aceitar**: lock na linha da reserva no agendador, no aceitar e no cancelar. Depois do prazo, o
+   aceitar recusa ("O pedido expirou") mesmo que o agendador ainda não tenha passado — e marca-o `EXPIRED`.
+5. **Avisos** (`BOOKING_EXPIRED`): ao arrendatário ("o dono não respondeu a tempo", com atalho para Explorar) e ao dono
+   ("o pedido expirou"). Sem auditoria: é uma transição automática sem decisão humana; fica no log.
+6. **Fora deste ponto:** prazo para pagar depois de aceite (`ACCEPTED` sem pagamento) — depende da política de
+   pagamentos (SPEC §12.3), que está fora desta ronda.
+
+---
+
+## 2026-11-11 — Associar Google a uma conta existente; emails sem diferença de maiúsculas
+
+**Contexto.** Quem já tem conta (telefone + password) e carrega em "Entrar com Google" com o mesmo email recebe
+`email_in_use`: por segurança (decisão de 2026-10-23), só associamos automaticamente com o email **verificado** na
+Beeznoo. Mas a verificação de email manda o código por email, que está desligado (Resend por configurar), e o ecrã
+Conta nem a oferece — beco sem saída. Além disso os emails comparam-se com maiúsculas/minúsculas: o registo e o login
+guardam/procuram o email tal como foi escrito, e o Google devolve sempre minúsculas.
+
+**Decisões (equipa, nesta data — ⚑ validar com o André):**
+
+1. **Associar Google com sessão iniciada** (a "história própria" prevista em 2026-10-23 #5): em Conta, "Associar
+   conta Google" → `POST /auth/google/link` (autenticado) guarda a intenção **na sessão HTTP do fluxo OAuth2** (cookie
+   `httpOnly`, `SameSite=Lax`, 10 min) e o browser segue para o Google. No regresso, a conta Google fica associada
+   ao perfil da sessão. A sessão Beeznoo prova a posse da conta; o Google prova a posse da conta Google. **Sem token
+   no URL** e sem depender de envio de emails.
+   - Conta Google já associada a outro perfil → recusa (`link_conflict`). Perfil já com outra conta Google → recusa.
+   - Se o email do Google (verificado pelo Google) for o email do perfil, o email fica **verificado** na Beeznoo.
+   - Evento de segurança `GOOGLE_LINKED` (como na associação automática).
+2. **Emails normalizados** (minúsculas, sem espaços) em todas as entradas — registo, login, perfil, Google — e
+   procurados sem diferença de maiúsculas. V23 normaliza os emails existentes (só quando não colide com outra conta)
+   e cria índice em `lower(email)`.
+3. O ecrã `email_in_use` passa a explicar o caminho: entrar com telefone e associar o Google em Conta.
+
+**Fora do código.** `redirect_uri_mismatch` é configuração do cliente OAuth na Google Cloud: o URI exato de cada
+ambiente tem de estar em "URIs de redirecionamento autorizados". Hoje staging e produção usam o **mesmo** cliente
+(`107243221268…`), ao contrário da decisão de 2026-11-05 (um cliente por ambiente).

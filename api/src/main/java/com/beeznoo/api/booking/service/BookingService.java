@@ -3,6 +3,7 @@ package com.beeznoo.api.booking.service;
 import com.beeznoo.api.booking.dto.BookingDtos.*;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.entity.BookingStatus;
+import com.beeznoo.api.common.util.Formats;
 import com.beeznoo.api.booking.repository.BookingRepository;
 import com.beeznoo.api.audit.entity.AuditAction;
 import com.beeznoo.api.audit.service.AuditService;
@@ -11,6 +12,7 @@ import com.beeznoo.api.deposit.service.DepositService;
 import com.beeznoo.api.item.entity.Item;
 import com.beeznoo.api.item.entity.ItemStatus;
 import com.beeznoo.api.item.repository.ItemRepository;
+import com.beeznoo.api.item.service.AvailabilityService;
 import com.beeznoo.api.item.service.PhotoUrls;
 import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.notification.service.NotificationService;
@@ -26,18 +28,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.LocalDate;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+@lombok.extern.slf4j.Slf4j
 @Service
 @Transactional
 public class BookingService {
 
     // Reservas que bloqueiam as datas do item
-    private static final List<BookingStatus> BLOCKING_STATUSES =
-            List.of(BookingStatus.ACCEPTED, BookingStatus.ACTIVE, BookingStatus.IN_PROGRESS, BookingStatus.RETURNED);
+    private static final List<BookingStatus> BLOCKING_STATUSES = BookingStatus.OCCUPYING;
 
     private final BookingRepository bookingRepository;
     private final ItemRepository itemRepository;
@@ -50,13 +57,18 @@ public class BookingService {
     private final ContractService contractService;
     private final DepositService depositService;
     private final AuditService auditService;
+    private final AvailabilityService availabilityService;
+    private final Duration requestTtl;
 
     public BookingService(BookingRepository bookingRepository, ItemRepository itemRepository,
                           ProfileRepository profileRepository, LedgerService ledgerService,
                           PaymentService paymentService, KycService kycService,
                           NotificationService notificationService, PhotoUrls photoUrls,
                           ContractService contractService, DepositService depositService,
-                          AuditService auditService) {
+                          AuditService auditService, AvailabilityService availabilityService,
+                          @org.springframework.beans.factory.annotation.Value("${app.bookings.request-ttl:24h}") Duration requestTtl) {
+        this.requestTtl = requestTtl;
+        this.availabilityService = availabilityService;
         this.bookingRepository = bookingRepository;
         this.itemRepository = itemRepository;
         this.profileRepository = profileRepository;
@@ -76,9 +88,7 @@ public class BookingService {
         if (renter.getRole() != UserRole.RENTER && renter.getRole() != UserRole.BOTH) {
             throw new AccessDeniedException("Apenas RENTER ou BOTH podem criar reservas");
         }
-        if (!kycService.isVerified(renterId)) {
-            throw new AccessDeniedException("Verifica a tua identidade antes de continuar");
-        }
+        kycService.assertCanTransact(renterId);
 
         if (!request.endDate().isAfter(request.startDate())) {
             throw new IllegalArgumentException("A data de fim tem de ser posterior à data de início");
@@ -95,7 +105,12 @@ public class BookingService {
             throw new IllegalArgumentException("Não é possível reservar o próprio item");
         }
 
+        // Lock no item: um bloqueio de datas do dono não se cruza com este pedido
+        itemRepository.findByIdForUpdate(item.getId());
         assertNoOverlap(item, request);
+        if (availabilityService.isBlocked(item.getId(), request.startDate(), request.endDate())) {
+            throw new IllegalStateException("O dono bloqueou algumas destas datas. Escolhe outras");
+        }
 
         long days = ChronoUnit.DAYS.between(request.startDate(), request.endDate());
 
@@ -118,7 +133,9 @@ public class BookingService {
     @Transactional(readOnly = true)
     public BookingResponse getById(UUID requesterId, UUID bookingId) {
         Booking booking = findBooking(bookingId);
-        if (!isRenter(requesterId, booking) && !isOwner(requesterId, booking)) {
+        // admin: detalhe para as filas e a auditoria (dados da reserva, sem documentos — esses são auditados à parte)
+        if (!isRenter(requesterId, booking) && !isOwner(requesterId, booking)
+                && findProfile(requesterId).getRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Sem permissão para ver esta reserva");
         }
         return toResponse(booking);
@@ -126,18 +143,26 @@ public class BookingService {
 
     @Transactional(readOnly = true)
     public Page<BookingResponse> listAsRenter(UUID renterId, Pageable pageable) {
-        return bookingRepository.findByRenterId(renterId, pageable).map(this::toResponse);
+        return withVerified(bookingRepository.findByRenterId(renterId, pageable));
     }
 
     @Transactional(readOnly = true)
     public Page<BookingResponse> listAsOwner(UUID ownerId, Pageable pageable) {
-        return bookingRepository.findByOwnerId(ownerId, pageable).map(this::toResponse);
+        return withVerified(bookingRepository.findByOwnerId(ownerId, pageable));
     }
 
     public BookingResponse accept(UUID requesterId, UUID bookingId, BookingActionRequest request) {
-        Booking booking = findBooking(bookingId);
+        // lock na reserva: o agendador de expiração não a muda a meio
+        Booking booking = findBookingForUpdate(bookingId);
         assertOwner(requesterId, booking);
+        if (booking.getStatus() == BookingStatus.EXPIRED) {
+            throw new IllegalStateException("Este pedido expirou: passou o prazo de resposta");
+        }
         assertStatus(booking, BookingStatus.PENDING_OWNER);
+        // prazo vencido mas o agendador ainda não passou: recusar na mesma (expira na próxima volta)
+        if (isOverdue(booking, OffsetDateTime.now())) {
+            throw new IllegalStateException("Este pedido expirou: passou o prazo de resposta");
+        }
 
         // Lock no item: dois "aceitar" ao mesmo tempo para datas sobrepostas ficam em série
         itemRepository.findByIdForUpdate(booking.getItem().getId());
@@ -145,6 +170,10 @@ public class BookingService {
         if (bookingRepository.existsOverlapping(booking.getItem().getId(),
                 booking.getStartDate(), booking.getEndDate(), BLOCKING_STATUSES)) {
             throw new IllegalStateException("O item já tem uma reserva confirmada para estas datas");
+        }
+        // O dono pode ter bloqueado estas datas depois do pedido
+        if (availabilityService.isBlocked(booking.getItem().getId(), booking.getStartDate(), booking.getEndDate())) {
+            throw new IllegalStateException("Bloqueaste algumas destas datas. Remove o bloqueio para aceitar o pedido");
         }
 
         // Sem retenção aqui: o arrendatário paga depois por referência (decisoes-produto.md, 2026-10-16)
@@ -157,7 +186,7 @@ public class BookingService {
 
     // Dono recusa/cancela ou arrendatário cancela — decide pela parte que faz o pedido
     public BookingResponse cancel(UUID requesterId, UUID bookingId, BookingActionRequest request) {
-        Booking booking = findBooking(bookingId);
+        Booking booking = findBookingForUpdate(bookingId);
 
         if (isOwner(requesterId, booking)) {
             assertStatus(booking, BookingStatus.PENDING_OWNER, BookingStatus.ACCEPTED);
@@ -270,12 +299,60 @@ public class BookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado"));
     }
 
+    // ─── Expiração de pedidos sem resposta (gap #11) ───────────────────────
+
+    /** Prazo de resposta: pedido + TTL (24 h) ou o fim do dia de levantamento em Luanda, o que vier primeiro. */
+    boolean isOverdue(Booking b, OffsetDateTime now) {
+        if (b.getStatus() != BookingStatus.PENDING_OWNER) return false;
+        LocalDate today = now.atZoneSameInstant(Formats.LUANDA).toLocalDate();
+        return !b.getCreatedAt().plus(requestTtl).isAfter(now) || b.getStartDate().isBefore(today);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> findOverduePendingIds() {
+        OffsetDateTime now = OffsetDateTime.now();
+        return bookingRepository.findOverduePendingIds(now.minus(requestTtl),
+                now.atZoneSameInstant(Formats.LUANDA).toLocalDate());
+    }
+
+    /** Chamado pelo BookingExpiryScheduler, uma transação por pedido. Volta a verificar com a linha bloqueada. */
+    public void expire(UUID bookingId) {
+        bookingRepository.findByIdForUpdate(bookingId)
+                .filter(b -> isOverdue(b, OffsetDateTime.now()))
+                .ifPresent(b -> {
+                    b.setStatus(BookingStatus.EXPIRED);
+                    notificationService.bookingExpired(b);
+                    log.info("Pedido {} expirado sem resposta do dono", b.getId());
+                });
+    }
+
+    private Booking findBookingForUpdate(UUID bookingId) {
+        return bookingRepository.findByIdForUpdate(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Reserva não encontrada"));
+    }
+
     private Booking findBooking(UUID bookingId) {
         return bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Reserva não encontrada"));
     }
 
+    // Selo "Verificado" das duas partes para a página inteira, numa só consulta
+    private Page<BookingResponse> withVerified(Page<Booking> page) {
+        Set<UUID> parties = new HashSet<>();
+        page.forEach(b -> {
+            parties.add(b.getRenter().getId());
+            parties.add(b.getOwner().getId());
+        });
+        Set<UUID> verified = kycService.verifiedAmong(parties);
+        return page.map(b -> toResponse(b, verified));
+    }
+
     private BookingResponse toResponse(Booking booking) {
+        return toResponse(booking, kycService.verifiedAmong(
+                List.of(booking.getRenter().getId(), booking.getOwner().getId())));
+    }
+
+    private BookingResponse toResponse(Booking booking, Set<UUID> verified) {
         Item item = booking.getItem();
         String cover = item.getPhotos().isEmpty() ? null : photoUrls.of(item.getPhotos().get(0));
         return new BookingResponse(
@@ -285,8 +362,10 @@ public class BookingService {
                 cover,
                 booking.getRenter().getId(),
                 booking.getRenter().getFullName(),
+                verified.contains(booking.getRenter().getId()),
                 booking.getOwner().getId(),
                 booking.getOwner().getFullName(),
+                verified.contains(booking.getOwner().getId()),
                 booking.getStartDate(),
                 booking.getEndDate(),
                 booking.getTotalPrice(),
