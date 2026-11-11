@@ -29,6 +29,18 @@
 	<properties>
 		<java.version>21</java.version>
 	</properties>
+	<!-- Versões forçadas de dependências transitivas (vulnerabilidades corrigidas a montante) -->
+	<dependencyManagement>
+		<dependencies>
+			<!-- Vem pelo Twilio (13.1.0 traz 20240303): GHSA-ghc9-756g-vrcv, DoS no JSONTokener, corrigido em 20260719 -->
+			<dependency>
+				<groupId>org.json</groupId>
+				<artifactId>json</artifactId>
+				<version>20260719</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
