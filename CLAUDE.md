@@ -39,7 +39,7 @@ Sprints semanais: segunda planning · terça–quinta execução · sexta demo, 
 | Camada | Tecnologia | Hosting |
 |---|---|---|
 | Frontend | Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4, componentes próprios em `src/components/bz/` (sem shadcn), `lucide-react` para ícones | Vercel (preview por PR) |
-| Backend | Spring Boot (Java) + PostgreSQL + RabbitMQ · Flyway (migrações) · Testcontainers (testes) | Render |
+| Backend | Spring Boot (Java) + PostgreSQL · Flyway (migrações) · Testcontainers (testes). RabbitMQ removido até haver uso (2026-11-11) | Render (512 MB: ver `JAVA_OPTS` no `api/Dockerfile`) |
 | Base de dados | Neon (Postgres serverless, com branching) | Neon |
 | Storage privado | Backblaze B2 pela API S3 (AWS SDK v2) — KYC, fotos, checklists, problemas | Backblaze |
 | Email | Resend (API REST via `RestClient`) | Resend |

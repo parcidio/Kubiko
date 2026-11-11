@@ -242,7 +242,8 @@ RATE_LIMIT_TRUSTED_PROXIES=2
 **Não definir:**
 
 - `PORT`: o Render define-a.
-- `RABBITMQ_*`: nenhum código usa ainda, e o health check está desligado por omissão.
+- `RABBITMQ_*`: já não são precisas (a API deixou de incluir RabbitMQ a 2026-11-11).
+- **Não definir `JAVA_OPTS` no painel do Render**: substitui o do `api/Dockerfile`, que está medido para 512 MB.
 - `CORS_ALLOWED_ORIGINS`, `REFRESH_COOKIE_SAME_SITE`, `NEXT_PUBLIC_*`: não existem no backend da `main`.
 - O perfil `seed` (`SPRING_PROFILES_ACTIVE`): só para desenvolvimento.
 
@@ -260,7 +261,7 @@ Anotar o URL real do serviço (`https://….onrender.com`): é o `API_URL` da fa
 | Falha no arranque com `JWT` ou `B2` | `JWT_SECRET` curto, ou `B2_*` em falta |
 | `permission denied for table` | `ALTER DEFAULT PRIVILEGES` não correu antes das migrações, ou o dono tem outro nome |
 | Flyway bloqueado ou com erro no pooler | `SPRING_FLYWAY_URL` com `-pooler` no host |
-| Falha no arranque por falta de memória | 512 MB justos no Free: subir para Starter |
+| "exceeded its memory limit" / reinícios | O contentor passou os 512 MB (Free **e** Starter têm 512 MB; o Standard tem 2 GB — confirmar no site). A imagem já vem dimensionada para 512 MB (`JAVA_OPTS` no `api/Dockerfile`, `TOMCAT_MAX_THREADS=40`). Nos logs: `OutOfMemoryError` = um teto da JVM (heap/metaspace) foi atingido; reinício **sem** esse erro = memória fora da JVM. Com mais memória no plano, subir `-XX:MaxRAMPercentage` |
 
 ---
 
