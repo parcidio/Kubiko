@@ -1,6 +1,6 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AdminPayment, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Deposit, Incident,
+  Account, AdminPayment, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Deposit, Incident,
   IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, LedgerEntry, Page, Payment, Review, SecurityEvent,
   SecuritySeverity, UserRole,
 } from "./types";
@@ -151,6 +151,14 @@ export const authApi = {
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.assign("/oauth2/authorization/google");
   },
+};
+
+/** Avisos na app. A contagem é consultada a cada ~60 s (lib/notifications.ts). */
+export const notificationApi = {
+  mine: () => request<AppNotification[]>("/notifications/me"),
+  unreadCount: () => request<{ unread: number }>("/notifications/me/unread-count"),
+  markRead: (id: string) => patch<AppNotification>(`/notifications/${id}/read`),
+  markAllRead: () => post<{ updated: number }>("/notifications/me/read-all"),
 };
 
 /** Perfil da pessoa autenticada. */

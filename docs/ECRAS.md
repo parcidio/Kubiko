@@ -31,7 +31,7 @@ O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próxi
 | `/reservas/[id]/pagar` | Pagamento por referência | Arrendatário | Parcial (sem comprovativo) | A | 🟡 contrato antes de pagar ✅, comprovativo ⬜ (#5) |
 | `/reservas/[id]/contrato` | Contrato: texto congelado, quem aceitou, aceitar (arrendatário), PDF | Ambos | Ligado | A | ✅ `/bookings/{id}/contract`, `/accept`, `/pdf` |
 | `/reservas/[id]/avaliar` | Avaliar | Arrendatário | Ligado | A | ✅ |
-| `/atividade` | Atividade | Arrendatário | Parcial (reservas recentes) | A | ✅ `/notifications/me` |
+| `/atividade` | Atividade: avisos (por ler em destaque, abrir leva ao sítio certo, marcar todas como lidas); sino com contador no topo (todos os modos) | Ambos | Ligado | A | ✅ `/notifications/me` (polling 60 s) |
 | `/conta` | Conta: dados pessoais, verificar email, associar Google, modo, tema, sair | Ambos | Ligado | A | ✅ `/profiles/me`, `/auth/google/link` |
 | `/verificacao` | Verificação (BI + selfie / NIF) | Ambos | UI | A | ✅ `/kyc/submit`, `/kyc/me` |
 | `/painel` | Painel do dono | Dono | Ligado | B | ✅ |

@@ -121,6 +121,18 @@ export interface Booking {
   updatedAt: string;
 }
 
+/** Aviso na app (GET /notifications/me: as 50 mais recentes). linkPath = página da app a abrir. */
+export interface AppNotification {
+  id: string;
+  type: string;
+  title: string;
+  body: string;
+  linkPath: string | null;
+  bookingId: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
 /** Perfil da pessoa autenticada (GET /profiles/me). phoneVerified ≠ identityVerified (KYC). */
 export interface Me {
   id: string;

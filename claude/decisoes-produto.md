@@ -467,3 +467,24 @@ guardam/procuram o email tal como foi escrito, e o Google devolve sempre minúsc
 **Fora do código.** `redirect_uri_mismatch` é configuração do cliente OAuth na Google Cloud: o URI exato de cada
 ambiente tem de estar em "URIs de redirecionamento autorizados". Hoje staging e produção usam o **mesmo** cliente
 (`107243221268…`), ao contrário da decisão de 2026-11-05 (um cliente por ambiente).
+
+---
+
+## 2026-11-11 — API a ser morta por memória no Render (512 MB)
+
+**Contexto.** O Render avisou "exceeded its memory limit" e reiniciou o serviço. Reproduzido em local com o mesmo
+limite (`docker --memory=512m`, sem swap) e a imagem/JVM em produção: **497 MB em repouso** (às vezes nem arranca) e
+**morto pelo kernel** (OOMKilled) com 6 uploads simultâneos de fotos de 35 MP. Native Memory Tracking: ~200 MB fora do
+heap (metaspace ~100, symbols ~43, código ~30) + heap até 384 MB (`MaxRAMPercentage=75`) > 512 MB. A recodificação de
+imagens descodificava cada foto em tamanho real (35 MP ≈ 140 MB; o dobro com conversão de cor).
+
+**Decisões (equipa, nesta data — ⚑ validar com o André a remoção do RabbitMQ, que constava da stack):**
+
+1. **Imagens descodificadas já reduzidas** (subamostragem, lado maior ≤ 3000 px) e no máximo **2 em simultâneo**.
+   As fotos guardadas passam a ter no máximo 3000 px (chega para BI e equipamento; poupa B2 e dados móveis).
+2. **Sem RabbitMQ nem Twilio na API**: nenhum código os usava; carregavam classes (−20 MB) e o Twilio trazia o
+   `org.json` vulnerável (GHSA-ghc9-756g-vrcv). Voltam quando houver uma história que precise deles.
+3. **JVM dimensionada para 512 MB** (`api/Dockerfile`): heap 40%, metaspace ≤ 128 MB, código ≤ 32 MB, só C1,
+   SerialGC, pilhas de 512 KB; Tomcat com 40 threads (`TOMCAT_MAX_THREADS`).
+   **Resultado medido (3 corridas):** 372–398 MB em repouso, pico 411–420 MB com a mesma carga, sem OOM.
+4. Com o plano Standard (2 GB) — se o tráfego crescer — subir `MaxRAMPercentage` e voltar ao compilador C2.
