@@ -1,5 +1,7 @@
 package com.beeznoo.api.contract.service;
 
+import com.beeznoo.api.audit.entity.AuditAction;
+import com.beeznoo.api.audit.service.AuditService;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.repository.BookingRepository;
 import com.beeznoo.api.common.pdf.CompanyProperties;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -35,25 +38,31 @@ public class ContractPdfService {
     private final BookingRepository bookingRepository;
     private final ProfileRepository profileRepository;
     private final CompanyProperties company;
+    private final AuditService auditService;
 
     public ContractPdfService(ContractRepository contractRepository, BookingRepository bookingRepository,
-                              ProfileRepository profileRepository, CompanyProperties company) {
+                              ProfileRepository profileRepository, CompanyProperties company,
+                              AuditService auditService) {
         this.contractRepository = contractRepository;
         this.bookingRepository = bookingRepository;
         this.profileRepository = profileRepository;
         this.company = company;
+        this.auditService = auditService;
     }
 
     public record ContractFile(String fileName, byte[] content) {}
 
+    @Transactional
     public ContractFile pdf(UUID requesterId, UUID bookingId) {
         if (!bookingRepository.existsById(bookingId)) throw new IllegalArgumentException("Reserva não encontrada");
         Contract contract = contractRepository.findByBookingId(bookingId)
                 .orElseThrow(() -> new IllegalStateException("A reserva ainda não tem contrato (o dono ainda não aceitou)"));
         Booking booking = contract.getBooking();
         boolean party = booking.getRenter().getId().equals(requesterId) || booking.getOwner().getId().equals(requesterId);
-        if (!party && !isAdmin(requesterId)) {
-            throw new AccessDeniedException("Sem acesso ao contrato desta reserva");
+        if (!party) {
+            if (!isAdmin(requesterId)) throw new AccessDeniedException("Sem acesso ao contrato desta reserva");
+            auditService.record(requesterId, AuditAction.CONTRACT_VIEWED, AuditService.BOOKING, bookingId, null,
+                    Map.of("format", "pdf"));
         }
         return new ContractFile("contrato-reserva-" + shortId(bookingId) + ".pdf", render(contract));
     }

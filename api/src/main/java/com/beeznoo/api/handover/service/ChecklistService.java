@@ -1,5 +1,7 @@
 package com.beeznoo.api.handover.service;
 
+import com.beeznoo.api.audit.entity.AuditAction;
+import com.beeznoo.api.audit.service.AuditService;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.entity.BookingStatus;
 import com.beeznoo.api.booking.repository.BookingRepository;
@@ -27,6 +29,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -47,10 +50,12 @@ public class ChecklistService {
     private final ProfileRepository profileRepository;
     private final StorageService storageService;
     private final NotificationService notificationService;
+    private final AuditService auditService;
 
     public ChecklistService(ChecklistRepository checklistRepository, BookingRepository bookingRepository,
                             ProfileRepository profileRepository, StorageService storageService,
-                            NotificationService notificationService) {
+                            NotificationService notificationService, AuditService auditService) {
+        this.auditService = auditService;
         this.checklistRepository = checklistRepository;
         this.bookingRepository = bookingRepository;
         this.profileRepository = profileRepository;
@@ -105,6 +110,8 @@ public class ChecklistService {
         checklistRepository.flush();
 
         notificationService.checklistToConfirm(booking, type == ChecklistType.DELIVERY, otherParty(booking, author));
+        auditService.record(profileId, AuditAction.HANDOVER_REGISTERED, AuditService.BOOKING, bookingId, null,
+                Map.of("type", type.name(), "checklistId", checklist.getId().toString(), "photos", valid.size()));
         log.info("Checklist {} ({}) registada na reserva {}", checklist.getId(), type, bookingId);
         return toResponse(checklist);
     }
@@ -131,6 +138,9 @@ public class ChecklistService {
             booking.setStatus(BookingStatus.RETURNED);
             notificationService.bookingReturned(booking);
         }
+        auditService.record(profileId, AuditAction.HANDOVER_CONFIRMED, AuditService.BOOKING, bookingId, null,
+                Map.of("type", type.name(), "checklistId", checklist.getId().toString(),
+                        "bookingStatus", booking.getStatus().name()));
         log.info("Checklist {} confirmada — reserva {} {}", checklist.getId(), bookingId, booking.getStatus());
         return toResponse(checklist);
     }

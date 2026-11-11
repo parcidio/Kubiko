@@ -1,5 +1,6 @@
 package com.beeznoo.api.audit.controller;
 
+import com.beeznoo.api.audit.entity.AuditAction;
 import com.beeznoo.api.audit.dto.AuditDtos.AuditLogResponse;
 import com.beeznoo.api.audit.service.AuditService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,9 +32,10 @@ public class AdminAuditController {
     @Operation(
             summary = "Registo de auditoria",
             description = """
-                    Ações sensíveis (KYC, pagamentos, ajustes de saldo, cauções, problemas), da mais recente para a
-                    mais antiga. Filtrar por entidade com `entityType` (`BOOKING`, `KYC`, `ACCOUNT`, `INCIDENT`)
-                    e `entityId`. Apenas ADMIN.
+                    Ações sensíveis (KYC, pagamentos, ajustes de saldo, cauções, problemas, contratos, entrega e
+                    devolução, documentos abertos por admins), da mais recente para a mais antiga. Filtros opcionais
+                    e combináveis: `entityType` (`BOOKING`, `KYC`, `ACCOUNT`, `INCIDENT`, `ITEM`), `entityId`,
+                    `action` e `actorId`. Apenas ADMIN.
                     """
     )
     @ApiResponses({
@@ -47,8 +49,10 @@ public class AdminAuditController {
     public ResponseEntity<Page<AuditLogResponse>> list(
             @RequestParam(required = false) String entityType,
             @RequestParam(required = false) UUID entityId,
+            @RequestParam(required = false) AuditAction action,
+            @RequestParam(required = false) UUID actorId,
             Pageable pageable) {
-        return ResponseEntity.ok(auditService.list(entityType, entityId, pageable));
+        return ResponseEntity.ok(auditService.list(entityType, entityId, action, actorId, pageable));
     }
 
     record ErrorResponse(String error) {}

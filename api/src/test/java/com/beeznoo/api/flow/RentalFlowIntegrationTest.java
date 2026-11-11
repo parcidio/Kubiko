@@ -61,12 +61,15 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 /**
  * Fluxo do SPEC §7 de ponta a ponta: pedido → aceite (contrato) → pago → entregue → devolvido → caução decidida,
  * mais perfil, fotos do equipamento, reportar problema e auditoria.
  */
 @SpringBootTest
+@org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 @Testcontainers
 @Transactional
 class RentalFlowIntegrationTest {
@@ -108,6 +111,10 @@ class RentalFlowIntegrationTest {
     @Autowired DepositRepository depositRepository;
     @Autowired NotificationRepository notificationRepository;
     @Autowired AuditLogRepository auditLogRepository;
+    @Autowired com.beeznoo.api.audit.service.AuditService auditService;
+    @Autowired com.beeznoo.api.transaction.repository.PaymentRepository paymentRepository;
+    @Autowired org.springframework.test.web.servlet.MockMvc mvc;
+    @Autowired com.beeznoo.api.auth.service.JwtService jwtService;
 
     private Profile owner;
     private Profile renter;
@@ -200,6 +207,74 @@ class RentalFlowIntegrationTest {
                 .isInstanceOf(AccessDeniedException.class);
 
         assertThat(contractService.acceptAsRenter(renter.getId(), bookingId).fullyAccepted()).isTrue();
+        contractService.acceptAsRenter(renter.getId(), bookingId); // idempotente: não volta a registar
+
+        assertThat(actions(bookingId)).containsOnlyOnce(com.beeznoo.api.audit.entity.AuditAction.CONTRACT_ACCEPTED);
+        var accepted = auditLogRepository.findByEntityIdOrderByCreatedAtAsc(bookingId).stream()
+                .filter(a -> a.getAction() == com.beeznoo.api.audit.entity.AuditAction.CONTRACT_ACCEPTED).findFirst().orElseThrow();
+        assertThat(accepted.getActor().getId()).isEqualTo(renter.getId());
+        assertThat(accepted.getMetadata()).containsEntry("bodySha256", contract.bodySha256());
+
+        // as partes leem sem registo; o admin fica registado
+        contractService.get(owner.getId(), bookingId);
+        assertThat(actions(bookingId)).doesNotContain(com.beeznoo.api.audit.entity.AuditAction.CONTRACT_VIEWED);
+        contractService.get(admin.getId(), bookingId);
+        assertThat(actions(bookingId)).contains(com.beeznoo.api.audit.entity.AuditAction.CONTRACT_VIEWED);
+    }
+
+    @Test
+    void auditoria_filtraPorReservaAcaoEAutor() {
+        UUID bookingId = paidBooking();
+        deliverAndReturn(bookingId);
+
+        var handovers = auditService.list("booking", bookingId,
+                com.beeznoo.api.audit.entity.AuditAction.HANDOVER_CONFIRMED, null, Pageable.ofSize(20));
+        assertThat(handovers.getContent()).hasSize(2)
+                .allMatch(a -> a.action().equals("HANDOVER_CONFIRMED") && a.entityId().equals(bookingId));
+
+        var byRenter = auditService.list(null, bookingId, null, renter.getId(), Pageable.ofSize(20));
+        assertThat(byRenter.getContent()).isNotEmpty().allMatch(a -> renter.getId().equals(a.actorId()));
+        assertThat(byRenter.getContent()).extracting(a -> a.action())
+                .contains("CONTRACT_ACCEPTED", "HANDOVER_CONFIRMED", "HANDOVER_REGISTERED");
+
+        var all = auditService.list(null, null, null, null, Pageable.ofSize(100));
+        assertThat(all.getContent()).extracting(a -> a.entityId()).contains(bookingId);
+    }
+
+    @Test
+    void pdfs_porHttp_permissoesCabecalhosEAuditoria() throws Exception {
+        UUID bookingId = paidBooking();
+        UUID paymentId = paymentRepository.findFirstByBookingIdOrderByCreatedAtDesc(bookingId).orElseThrow().getId();
+        Profile stranger = profile("Curioso", UserRole.RENTER, null);
+
+        mvc.perform(get("/api/v1/payments/" + paymentId + "/receipt").header("Authorization", bearer(renter)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk())
+                .andExpect(header().string("Content-Type", "application/pdf"))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("attachment;")))
+                .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")));
+        mvc.perform(get("/api/v1/payments/" + paymentId + "/receipt").header("Authorization", bearer(owner)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isForbidden());
+        mvc.perform(get("/api/v1/payments/" + paymentId + "/receipt"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isUnauthorized());
+
+        mvc.perform(get("/api/v1/bookings/" + bookingId + "/contract/pdf").header("Authorization", bearer(owner)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+        mvc.perform(get("/api/v1/bookings/" + bookingId + "/contract/pdf").header("Authorization", bearer(stranger)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isForbidden());
+
+        assertThat(actions(bookingId)).doesNotContain(com.beeznoo.api.audit.entity.AuditAction.RECEIPT_VIEWED);
+        mvc.perform(get("/api/v1/payments/" + paymentId + "/receipt").header("Authorization", bearer(admin)))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.status().isOk());
+        assertThat(actions(bookingId)).contains(com.beeznoo.api.audit.entity.AuditAction.RECEIPT_VIEWED);
+    }
+
+    private String bearer(Profile p) {
+        return "Bearer " + jwtService.generateAccessToken(p.getId(), p.getRole().name());
+    }
+
+    private List<com.beeznoo.api.audit.entity.AuditAction> actions(UUID bookingId) {
+        return auditLogRepository.findByEntityIdOrderByCreatedAtAsc(bookingId).stream()
+                .map(a -> a.getAction()).toList();
     }
 
     // ── Entrega, devolução e caução ───────────────────────────────────────
@@ -235,7 +310,11 @@ class RentalFlowIntegrationTest {
         assertThat(ownerAccount.getAvailableBalance()).isEqualByComparingTo("20000");    // aluguer + 5.000
         assertThat(auditLogRepository.findByEntityIdOrderByCreatedAtAsc(bookingId))
                 .extracting(a -> a.getAction())
-                .containsExactly(AuditAction.PAYMENT_CONFIRMED_MANUALLY, AuditAction.DEPOSIT_WITHHELD);
+                // rasto completo da reserva (mesma transação de teste: o instante pode coincidir, a ordem não se testa)
+                .containsExactlyInAnyOrder(AuditAction.CONTRACT_ACCEPTED, AuditAction.PAYMENT_CONFIRMED_MANUALLY,
+                        AuditAction.HANDOVER_REGISTERED, AuditAction.HANDOVER_CONFIRMED,
+                        AuditAction.HANDOVER_REGISTERED, AuditAction.HANDOVER_CONFIRMED,
+                        AuditAction.DEPOSIT_WITHHELD);
         assertThat(notificationRepository.existsByTypeAndBookingId(NotificationType.DEPOSIT_WITHHELD, bookingId)).isTrue();
     }
 

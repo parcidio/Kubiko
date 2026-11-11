@@ -312,9 +312,10 @@ no WhatsApp da equipa. **Utilizador-alvo:** arrendatário (e a empresa que preci
 
 **Decisões (equipa de backend, nesta data — ⚑ validar com o André):**
 
-1. **Gate de KYC por configuração** (`app.kyc.required`, `KYC_REQUIRED`). **Por omissão `false` enquanto o KYC não
-   é testável**; a API escreve um aviso no arranque quando está desligado. Os testes correm com `true`.
-   ⚑ **Ligar (`KYC_REQUIRED=true`) em produção antes do primeiro aluguer real.** O selo "Verificado" continua a vir
+1. **Gate de KYC por configuração** (`app.kyc.required`, `KYC_REQUIRED`). **Por omissão `true`** (revisto nesta
+   data: esquecer a variável em produção não pode abrir a plataforma a contas não verificadas). Desliga-se de forma
+   explícita com `KYC_REQUIRED=false` no `.env` local e no staging; a API escreve um aviso no arranque quando está
+   desligado. O selo "Verificado" continua a vir
    **só** do KYC aprovado — desligar o gate não põe ninguém como verificado.
 2. **Reativar equipamento**: `PATCH /items/{id}/activate`, só o dono, só a partir de `INACTIVE` (pausado).
    `SUSPENDED` é decisão do admin e não se reativa por aqui. Passa pelo mesmo gate de KYC que publicar.
@@ -334,3 +335,27 @@ no WhatsApp da equipa. **Utilizador-alvo:** arrendatário (e a empresa que preci
 
 **Em aberto.** Nome legal e NIF da empresa para o emitente. Se o dono também deve receber um documento do que recebe
 (fica para quando houver levantamentos, #23).
+
+---
+
+## 2026-11-11 (tarde) — Auditoria das partes e dos acessos de admin; contrato e checklist ligados na app
+
+**Contexto.** A revisão do mesmo dia mostrou que o primeiro aluguer não passava do pagamento na app (o frontend nunca
+aceitava o contrato) nem do `ACTIVE` (checklist só desenhado). O `audit_logs` só tinha ações da equipa, e a equipa
+não tinha ecrã para o ler.
+
+**Decisões (equipa de backend, nesta data — ⚑ validar com o André):**
+
+1. **`audit_logs` passa a registar também as mudanças de estado com valor de prova feitas pelas partes** (SPEC §8):
+   `CONTRACT_ACCEPTED` (com versão e SHA-256 do texto aceite), `HANDOVER_REGISTERED` e `HANDOVER_CONFIRMED`. Numa
+   disputa, é o rasto de quem aceitou e confirmou o quê, e quando. Sem dados pessoais nos metadados.
+2. **Acessos de admin a documentos com dados pessoais ficam registados**: `CONTRACT_VIEWED` (JSON ou PDF) e
+   `RECEIPT_VIEWED`, como já acontecia com `KYC_DOCUMENTS_VIEWED`. As partes a lerem os seus documentos não ficam.
+3. **Filtros** em `GET /admin/audit-logs`: `action` e `actorId`, combináveis com a entidade. Ecrã `/admin/auditoria`
+   com os eventos de segurança ao lado (`/admin/security-events`). Os filtros ficam na URL para partilhar um rasto.
+4. **Checklist sem código de 4 dígitos** (confirmado da decisão de 2026-10-23): o ecrã antigo pedia-o e foi retirado.
+   Mínimo 2 fotos (API), 6 ângulos sugeridos.
+5. **Pagar sem contrato aceite** deixa de dar erro 409 no ecrã: o pagamento encaminha para o contrato.
+
+**Em aberto.** O admin ainda não consegue abrir uma reserva pelo id (`GET /bookings/{id}` é só das partes) — a
+auditoria mostra o código mas não liga ao detalhe. Retenção dos registos de auditoria (hoje: para sempre).

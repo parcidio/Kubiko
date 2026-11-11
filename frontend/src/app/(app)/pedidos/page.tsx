@@ -24,7 +24,7 @@ export default function PedidosPage() {
   const all = data?.content ?? [];
   const groups: Record<Tab, Booking[]> = {
     pending: all.filter((b) => b.status === "PENDING_OWNER"),
-    ongoing: all.filter((b) => ["ACCEPTED", "ACTIVE", "DISPUTED"].includes(b.status)),
+    ongoing: all.filter((b) => ["ACCEPTED", "ACTIVE", "IN_PROGRESS", "RETURNED", "DISPUTED"].includes(b.status)),
     past: all.filter((b) => ["COMPLETED", "CANCELLED_OWNER", "CANCELLED_RENTER"].includes(b.status)),
   };
   const list = groups[tab];

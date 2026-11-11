@@ -8,15 +8,19 @@ import { FormError, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { DetailsFields, PriceFields, draftFromItem, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
+import { SavedPhotoGrid } from "@/components/bz/photo";
 import { BackendPending, ErrorState } from "@/components/bz/states";
 import { Segmented } from "@/components/bz/tabs";
 import { BackLink, Button, ButtonLink, Card, Skeleton } from "@/components/bz/ui";
 import { catalogApi, ownerItemApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
+import { compressImage } from "@/lib/images";
 import type { Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
-type Tab = "detalhes" | "preco" | "datas";
+type Tab = "fotos" | "detalhes" | "preco" | "datas";
+
+const MAX_PHOTOS = 8; // limite da API
 
 export default function GerirEquipamentoPage() {
   const session = useRequireSession();
@@ -31,6 +35,7 @@ export default function GerirEquipamentoPage() {
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [blocked, setBlocked] = useState<Set<string>>(new Set());
+  const [photoBusy, setPhotoBusy] = useState(false);
 
   if (!session) return null;
   if (item.error) return <ErrorState message={item.error} onRetry={item.reload} />;
@@ -81,6 +86,33 @@ export default function GerirEquipamentoPage() {
     }
   }
 
+  async function addPhotos(files: File[]) {
+    setPhotoBusy(true);
+    try {
+      const compressed = await Promise.all(files.map((f) => compressImage(f)));
+      const photos = await ownerItemApi.uploadPhotos(id, compressed);
+      item.setData({ ...item.data!, photos });
+      toast.success(files.length === 1 ? "Foto adicionada." : `${files.length} fotos adicionadas.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível enviar as fotos.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
+  async function removePhoto(photoId: string) {
+    setPhotoBusy(true);
+    try {
+      const photos = await ownerItemApi.deletePhoto(id, photoId);
+      item.setData({ ...item.data!, photos });
+      toast.success("Foto removida.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível remover a foto.");
+    } finally {
+      setPhotoBusy(false);
+    }
+  }
+
   async function remove() {
     setBusy(true);
     try {
@@ -117,12 +149,16 @@ export default function GerirEquipamentoPage() {
         value={tab}
         onChange={setTab}
         options={[
+          { value: "fotos", label: "Fotos" },
           { value: "detalhes", label: "Detalhes" },
           { value: "preco", label: "Preço" },
           { value: "datas", label: "Datas" },
         ]}
       />
       <div key={tab} className="animate-sobe">
+        {tab === "fotos" && (
+          <SavedPhotoGrid photos={item.data.photos} max={MAX_PHOTOS} busy={photoBusy} onAdd={addPhotos} onRemove={removePhoto} />
+        )}
         {tab === "detalhes" && <DetailsFields draft={d} set={set} errors={errors} categories={categories} />}
         {tab === "preco" && <PriceFields draft={d} set={set} errors={errors} />}
         {tab === "datas" && (
@@ -135,7 +171,7 @@ export default function GerirEquipamentoPage() {
       </div>
       <FormError message={formErr.form ?? Object.values(formErr.fields)[0]} />
 
-      {tab !== "datas" && (
+      {(tab === "detalhes" || tab === "preco") && (
         <StickyCTA>
           <Button block size="lg" loading={busy} disabled={!draft} onClick={save}>
             Guardar alterações

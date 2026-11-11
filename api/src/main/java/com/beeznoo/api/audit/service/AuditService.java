@@ -7,10 +7,12 @@ import com.beeznoo.api.audit.repository.AuditLogRepository;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -51,9 +53,15 @@ public class AuditService {
 
     @Transactional(readOnly = true)
     public Page<AuditLogResponse> list(String entityType, UUID entityId, Pageable pageable) {
-        Page<AuditLog> page = entityType != null && entityId != null
-                ? auditLogRepository.findByEntityTypeAndEntityIdOrderByCreatedAtDesc(entityType, entityId, pageable)
-                : auditLogRepository.findAllByOrderByCreatedAtDesc(pageable);
-        return page.map(AuditLogResponse::from);
+        return list(entityType, entityId, null, null, pageable);
+    }
+
+    // A ordem é sempre a mais recente primeiro (o cliente não escolhe colunas para ordenar)
+    @Transactional(readOnly = true)
+    public Page<AuditLogResponse> list(String entityType, UUID entityId, AuditAction action, UUID actorId,
+                                       Pageable pageable) {
+        Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+        String type = entityType == null || entityType.isBlank() ? null : entityType.strip().toUpperCase(Locale.ROOT);
+        return auditLogRepository.search(type, entityId, action, actorId, unsorted).map(AuditLogResponse::from);
     }
 }

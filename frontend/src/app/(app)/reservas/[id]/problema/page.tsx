@@ -74,7 +74,7 @@ export default function ProblemaPage() {
       <BackLink href={`/reservas/${id}`}>Reserva {code}</BackLink>
       <PageHeader title="Reportar problema" subtitle={`${b.itemTitle}. A equipa Beeznoo analisa e decide sobre a caução com base nas fotos.`} />
 
-      {b.status !== "ACTIVE" ? (
+      {!["ACTIVE", "IN_PROGRESS", "RETURNED", "DISPUTED"].includes(b.status) ? (
         <Callout tone="info" icon={HelpCircle} title="Só durante o aluguer">
           Podes reportar um problema enquanto a reserva está em curso. Para outras dúvidas, fala connosco no WhatsApp.
         </Callout>

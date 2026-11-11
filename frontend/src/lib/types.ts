@@ -92,6 +92,8 @@ export type BookingStatus =
   | "CANCELLED_RENTER"
   | "CANCELLED_OWNER"
   | "ACTIVE"
+  | "IN_PROGRESS"
+  | "RETURNED"
   | "COMPLETED"
   | "DISPUTED";
 
@@ -116,6 +118,62 @@ export interface Booking {
   ownerNote: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Contrato congelado da reserva (gerado quando o dono aceita). */
+export interface Contract {
+  id: string;
+  bookingId: string;
+  version: string;
+  body: string;
+  bodySha256: string;
+  ownerAcceptedAt: string;
+  renterAcceptedAt: string | null;
+  fullyAccepted: boolean;
+  createdAt: string;
+}
+
+export type ChecklistType = "DELIVERY" | "RETURN";
+
+/** Entrega ou devolução registada por uma parte e confirmada pela outra. URLs das fotos expiram em photosExpireAt. */
+export interface Checklist {
+  id: string;
+  bookingId: string;
+  type: ChecklistType;
+  createdById: string;
+  createdByName: string;
+  notes: string;
+  photos: { id: string; url: string; position: number }[];
+  photosExpireAt: string;
+  confirmed: boolean;
+  confirmedById: string | null;
+  confirmedAt: string | null;
+  createdAt: string;
+}
+
+export interface AuditLog {
+  id: string;
+  actorId: string | null;
+  actorName: string;
+  action: string;
+  entityType: string;
+  entityId: string;
+  reason: string | null;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export type SecuritySeverity = "LOW" | "MEDIUM" | "HIGH";
+
+export interface SecurityEvent {
+  id: string;
+  type: string;
+  severity: SecuritySeverity;
+  profileId: string | null;
+  ip: string | null;
+  requestId: string | null;
+  details: Record<string, unknown>;
+  createdAt: string;
 }
 
 export type PaymentStatus = "AWAITING_PAYMENT" | "CONFIRMED" | "EXPIRED" | "CANCELLED" | "FAILED";

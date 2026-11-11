@@ -1,7 +1,7 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AuthResponse, Booking, Category, Item, ItemCondition, ItemOrder, ItemSummary, LedgerEntry, Page, Payment, Review,
-  UserRole,
+  Account, AuditLog, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Item, ItemCondition, ItemOrder,
+  ItemSummary, LedgerEntry, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
 } from "./types";
 
 export class ApiError extends Error {
@@ -182,6 +182,8 @@ export const ownerItemApi = {
     files.forEach((f, i) => form.append("photos", f, `foto-${i + 1}.jpg`));
     return upload<Item["photos"]>(`/items/${id}/photos`, form);
   },
+  // Devolve as fotos que ficam
+  deletePhoto: (id: string, photoId: string) => del<Item["photos"]>(`/items/${id}/photos/${photoId}`),
   remove: (id: string) => del<void>(`/items/${id}`),
 };
 
@@ -211,6 +213,42 @@ export const adminApi = {
   confirmPayment: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/confirm-payment`),
   complete: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/complete`),
   setFeatured: (itemId: string, featured: boolean) => patch<Item>(`/admin/items/${itemId}/featured`, { featured }),
+  // Auditoria: mais recente primeiro. Filtros opcionais e combináveis
+  auditLogs: (f: { entityType?: string; entityId?: string; action?: string; actorId?: string; page?: number }) => {
+    const q = new URLSearchParams({ page: String(f.page ?? 0), size: "50" });
+    if (f.entityType) q.set("entityType", f.entityType);
+    if (f.entityId) q.set("entityId", f.entityId);
+    if (f.action) q.set("action", f.action);
+    if (f.actorId) q.set("actorId", f.actorId);
+    return request<Page<AuditLog>>(`/admin/audit-logs?${q}`);
+  },
+  securityEvents: (f: { severity?: SecuritySeverity; page?: number }) => {
+    const q = new URLSearchParams({ page: String(f.page ?? 0), size: "50" }); // a API já ordena (mais recente primeiro)
+    if (f.severity) q.set("severity", f.severity);
+    return request<Page<SecurityEvent>>(`/admin/security-events?${q}`);
+  },
+};
+
+/** Contrato da reserva: o arrendatário aceita antes de gerar a referência de pagamento. */
+export const contractApi = {
+  // 409 enquanto o dono não aceitou o pedido (ainda não há contrato)
+  get: (bookingId: string) => request<Contract>(`/bookings/${bookingId}/contract`),
+  accept: (bookingId: string) => post<Contract>(`/bookings/${bookingId}/contract/accept`),
+};
+
+const CHECKLIST_PATH: Record<ChecklistType, string> = { DELIVERY: "delivery", RETURN: "return" };
+
+/** Entrega e devolução: uma parte regista (notas + 2 a 10 fotos), a outra confirma e a reserva avança. */
+export const checklistApi = {
+  list: (bookingId: string) => request<Checklist[]>(`/bookings/${bookingId}/checklists`),
+  create: (bookingId: string, type: ChecklistType, notes: string, photos: Blob[]) => {
+    const form = new FormData();
+    form.append("notes", notes);
+    photos.forEach((p, i) => form.append("photos", p, `foto-${i + 1}.jpg`));
+    return upload<Checklist>(`/bookings/${bookingId}/checklists/${CHECKLIST_PATH[type]}`, form);
+  },
+  confirm: (bookingId: string, type: ChecklistType) =>
+    post<Checklist>(`/bookings/${bookingId}/checklists/${CHECKLIST_PATH[type]}/confirm`),
 };
 
 export const paymentApi = {

@@ -122,3 +122,77 @@ export function CameraSlot({
     </label>
   );
 }
+
+export type SavedPhoto = { id: string; photUrl: string; position: number };
+
+/**
+ * Fotos já guardadas de um equipamento (Gerir equipamento). Adicionar e remover falam logo com a API;
+ * a primeira foto é a capa. `busy` desativa a grelha enquanto há um pedido a decorrer.
+ */
+export function SavedPhotoGrid({
+  photos, max, busy, onAdd, onRemove,
+}: {
+  photos: SavedPhoto[];
+  max: number;
+  busy: boolean;
+  onAdd: (files: File[]) => void;
+  onRemove: (photoId: string) => void;
+}) {
+  const id = useId();
+  const sorted = [...photos].sort((a, b) => a.position - b.position);
+  const room = max - sorted.length;
+  return (
+    <div className="grid gap-3" aria-busy={busy || undefined}>
+      <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
+        {sorted.map((p, i) => (
+          <figure key={p.id} className="relative aspect-[4/3] overflow-hidden rounded-campo bg-areia-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.photUrl} alt={`Foto ${i + 1}`} className="size-full object-cover" />
+            {i === 0 && (
+              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-[11px] font-bold tracking-wider text-ambar uppercase">Capa</span>
+            )}
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onRemove(p.id)}
+              aria-label={`Remover foto ${i + 1}`}
+              className="absolute top-1 right-1 flex size-11 items-center justify-center rounded-full text-areia disabled:opacity-50"
+            >
+              <span className="flex size-8 items-center justify-center rounded-full bg-verde/80">
+                <X className="size-4" strokeWidth={2} />
+              </span>
+            </button>
+          </figure>
+        ))}
+        {room > 0 && (
+          <label
+            htmlFor={id}
+            className={cn(
+              "flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-campo border-2 border-dashed border-borda-forte bg-branco text-center text-[13px] font-medium text-verde transition hover:border-verde has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-verde-medio/25",
+              busy && "pointer-events-none opacity-60",
+            )}
+          >
+            <ImagePlus className="size-6 text-mel" strokeWidth={1.8} aria-hidden />
+            {busy ? "A enviar…" : "Adicionar"}
+            <input
+              id={id}
+              type="file"
+              accept="image/jpeg,image/png"
+              multiple
+              disabled={busy}
+              className="sr-only"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []).slice(0, room);
+                e.target.value = "";
+                if (files.length) onAdd(files);
+              }}
+            />
+          </label>
+        )}
+      </div>
+      <p className="text-[13px] text-cinza">
+        {sorted.length} de {max} fotos. JPEG ou PNG; comprimimos antes de enviar.
+      </p>
+    </div>
+  );
+}

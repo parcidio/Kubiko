@@ -23,7 +23,7 @@ class ContractPdfTest {
     void contratoTemTextoAceitacaoEHash() throws Exception {
         Booking booking = ReceiptPdfTestData.booking();
         ContractService contracts = new ContractService(null, null, null,
-                new ServiceFees(new PaymentProperties(null, null, null, null)));
+                new ServiceFees(new PaymentProperties(null, null, null, null)), null);
         String body = contracts.render(booking);
         Contract contract = Contract.builder().id(UUID.randomUUID()).booking(booking)
                 .version(ContractService.CURRENT_VERSION).body(body).bodySha256("a".repeat(64))
@@ -33,7 +33,7 @@ class ContractPdfTest {
                 .build();
 
         byte[] pdf = new ContractPdfService(null, null, null,
-                new CompanyProperties("Beeznoo, Lda.", null, null, null)).render(contract);
+                new CompanyProperties("Beeznoo, Lda.", null, null, null), null).render(contract);
 
         try (PDDocument doc = Loader.loadPDF(pdf)) {
             String text = new PDFTextStripper().getText(doc);

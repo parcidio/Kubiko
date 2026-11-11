@@ -53,10 +53,16 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 | ✅ | `GET /payments/{id}/receipt` — comprovativo de pagamento **não fiscal**, nº `CP 2026/000001` (V19), total por extenso | Quem pagou ou admin, só `CONFIRMED` (`receiptNumber` em `PaymentResponse`) |
 | ✅ | `GET /bookings/{id}/contract/pdf` — contrato congelado + aceitações + SHA-256 (marca de água "RASCUNHO" na v1) | Partes da reserva ou admin |
 
+## Auditoria (2026-11-11)
+
+`GET /admin/audit-logs` aceita agora `action` e `actorId`, além de `entityType`/`entityId` (combináveis). Ações novas:
+`CONTRACT_ACCEPTED`, `HANDOVER_REGISTERED`, `HANDOVER_CONFIRMED` (feitas pelas partes) e `CONTRACT_VIEWED`,
+`RECEIPT_VIEWED` (documentos abertos por um admin). Ecrã: `/admin/auditoria`.
+
 ## Gate de KYC desligável (2026-11-11)
 
-`KYC_REQUIRED=false` (omissão atual) deixa publicar, reativar e pedir reserva sem identidade verificada, para testar
-em local e staging. **Em produção: `KYC_REQUIRED=true`.** Ver `claude/decisoes-produto.md`.
+Por omissão o gate está **ligado**. `KYC_REQUIRED=false` (no `.env` local e no staging) deixa publicar, reativar e
+pedir reserva sem identidade verificada, para testar. Ver `claude/decisoes-produto.md`.
 
 ## Mudanças que o frontend tem de acompanhar (2026-10-23)
 

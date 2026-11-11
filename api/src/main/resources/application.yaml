@@ -122,9 +122,9 @@ app:
     bucket: ${B2_BUCKET:}
     signed-url-ttl: ${APP_STORAGE_SIGNED_URL_TTL:5m}
   kyc:
-    # true: publicar e pedir reserva exigem KYC aprovado (SPEC §7). false só enquanto o KYC não é testável.
-    # ⚑ Ligar em produção antes do primeiro aluguer real — ver claude/decisoes-produto.md (2026-11-11)
-    required: ${KYC_REQUIRED:false}
+    # true: publicar e pedir reserva exigem KYC aprovado (SPEC §7). Omissão segura: desligar tem de ser explícito
+    # (KYC_REQUIRED=false no .env local e no staging) — ver claude/decisoes-produto.md (2026-11-11)
+    required: ${KYC_REQUIRED:true}
   company:
     # Emitente do comprovativo de pagamento (PDF). Vazios ficam de fora do documento.
     legal-name: ${COMPANY_LEGAL_NAME:Beeznoo}

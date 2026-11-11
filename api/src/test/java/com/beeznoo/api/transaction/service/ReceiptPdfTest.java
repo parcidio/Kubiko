@@ -22,7 +22,7 @@ class ReceiptPdfTest {
     @Test
     void comprovativoTemOsDadosDeUmRecibo() throws Exception {
         ReceiptService service = new ReceiptService(null, null,
-                new CompanyProperties("Beeznoo, Lda.", "5000000000", "Talatona, Luanda, Angola", "ajuda@beeznoo.ao"));
+                new CompanyProperties("Beeznoo, Lda.", "5000000000", "Talatona, Luanda, Angola", "ajuda@beeznoo.ao"), null);
         byte[] pdf = service.render(samplePayment(), OffsetDateTime.of(2026, 10, 15, 14, 0, 0, 0, ZoneOffset.UTC));
 
         try (PDDocument doc = Loader.loadPDF(pdf)) {
@@ -53,7 +53,7 @@ class ReceiptPdfTest {
     void nomesComCaracteresForaDaFonteNaoRebentam() throws Exception {
         Payment p = samplePayment();
         p.getRenter().setFullName("Zé 🚀 Ngola 李");
-        byte[] pdf = new ReceiptService(null, null, new CompanyProperties(null, null, null, null))
+        byte[] pdf = new ReceiptService(null, null, new CompanyProperties(null, null, null, null), null)
                 .render(p, OffsetDateTime.now());
         try (PDDocument doc = Loader.loadPDF(pdf)) {
             assertThat(new PDFTextStripper().getText(doc)).contains("Zé ? Ngola ?");

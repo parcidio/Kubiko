@@ -94,19 +94,20 @@ function PublicarForm({ profileId }: { profileId: string }) {
       } catch {
         /* sem storage */
       }
-      setPublished(item);
+      // O ecrã de sucesso só aparece com as fotos já enviadas ("Ver como os outros veem" mostra-as logo)
       if (photos.photos.length > 0) {
         try {
           const files = await Promise.all(photos.photos.map((p) => compressImage(p.file)));
           await ownerItemApi.uploadPhotos(item.id, files);
           toast.success("Equipamento publicado com fotos.");
         } catch (e) {
-          // o item já existe: as fotos podem ser acrescentadas em "O meu equipamento"
-          toast.error(`Publicado, mas as fotos falharam: ${e instanceof Error ? e.message : "tenta outra vez"}`);
+          // o item já existe: as fotos acrescentam-se em Gerir equipamento › Fotos
+          toast.error(`Publicado, mas as fotos falharam (${e instanceof Error ? e.message : "rede"}). Adiciona-as em Gerir equipamento › Fotos.`);
         }
       } else {
         toast.success("Equipamento publicado.");
       }
+      setPublished(item);
     } catch (e) {
       setFormErr(toFormErrors(e));
     } finally {

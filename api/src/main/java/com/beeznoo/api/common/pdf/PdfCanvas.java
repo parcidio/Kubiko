@@ -28,8 +28,11 @@ import java.util.function.Consumer;
  */
 public final class PdfCanvas implements AutoCloseable {
 
-    public static final PDFont REGULAR = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-    public static final PDFont BOLD = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+    /** Estilo de letra. As fontes do PDFBox são criadas por documento: os objetos do PDFBox não são partilháveis entre threads. */
+    public enum Font { REGULAR, BOLD }
+
+    public static final Font REGULAR = Font.REGULAR;
+    public static final Font BOLD = Font.BOLD;
 
     // Identidade Verde v3 (docs/DESIGN_SYSTEM.md, frontend/src/app/globals.css)
     public static final Color VERDE = new Color(0x0E2A1F);
@@ -50,6 +53,8 @@ public final class PdfCanvas implements AutoCloseable {
     private static final float FOOTER_SPACE = 24;
 
     private final PDDocument doc = new PDDocument();
+    private final PDFont regularFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+    private final PDFont boldFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
     private final List<PDPage> pages = new ArrayList<>();
     private final Consumer<PdfCanvas> pageHeader;
     private PDPageContentStream cs;
@@ -100,12 +105,12 @@ public final class PdfCanvas implements AutoCloseable {
     // ---------------------------------------------------------------- texto
 
     /** Texto numa linha, com a linha de base em baseline (coordenada do PDF, a partir de baixo). */
-    public void textAt(String text, PDFont font, float size, Color color, float x, float baseline) {
+    public void textAt(String text, Font font, float size, Color color, float x, float baseline) {
         String safe = safe(text, font);
         if (safe.isEmpty()) return;
         try {
             cs.beginText();
-            cs.setFont(font, size);
+            cs.setFont(pdfFont(font), size);
             cs.setNonStrokingColor(color);
             cs.newLineAtOffset(x, baseline);
             cs.showText(safe);
@@ -115,12 +120,12 @@ public final class PdfCanvas implements AutoCloseable {
         }
     }
 
-    public void textRightAt(String text, PDFont font, float size, Color color, float rightX, float baseline) {
+    public void textRightAt(String text, Font font, float size, Color color, float rightX, float baseline) {
         textAt(text, font, size, color, rightX - width(text, font, size), baseline);
     }
 
     /** Uma linha no cursor: avança o cursor pela altura da linha. */
-    public void line(String text, PDFont font, float size, Color color, float x) {
+    public void line(String text, Font font, float size, Color color, float x) {
         float leading = size * 1.4f;
         ensure(leading);
         y -= leading;
@@ -128,27 +133,27 @@ public final class PdfCanvas implements AutoCloseable {
     }
 
     /** Parágrafo com quebra de linha dentro de [x, x + maxWidth]. */
-    public void paragraph(String text, PDFont font, float size, Color color, float x, float maxWidth) {
+    public void paragraph(String text, Font font, float size, Color color, float x, float maxWidth) {
         for (String l : wrap(text, font, size, maxWidth)) line(l, font, size, color, x);
     }
 
-    public float width(String text, PDFont font, float size) {
+    public float width(String text, Font font, float size) {
         try {
-            return font.getStringWidth(safe(text, font)) / 1000f * size;
+            return pdfFont(font).getStringWidth(safe(text, font)) / 1000f * size;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     /** Corta o texto com "…" para caber em maxWidth. */
-    public String ellipsize(String text, PDFont font, float size, float maxWidth) {
+    public String ellipsize(String text, Font font, float size, float maxWidth) {
         String s = safe(text, font);
         if (width(s, font, size) <= maxWidth) return s;
         while (s.length() > 1 && width(s + "...", font, size) > maxWidth) s = s.substring(0, s.length() - 1);
         return s.strip() + "...";
     }
 
-    public List<String> wrap(String text, PDFont font, float size, float maxWidth) {
+    public List<String> wrap(String text, Font font, float size, float maxWidth) {
         List<String> out = new ArrayList<>();
         if (text == null) return out;
         for (String para : text.split("\n", -1)) {
@@ -256,7 +261,7 @@ public final class PdfCanvas implements AutoCloseable {
             gs.setNonStrokingAlphaConstant(0.07f);
             stream.setGraphicsStateParameters(gs);
             stream.beginText();
-            stream.setFont(BOLD, 96);
+            stream.setFont(boldFont, 96);
             stream.setNonStrokingColor(VERDE);
             stream.setTextMatrix(Matrix.getRotateInstance(Math.toRadians(40), 120, 200));
             stream.showText(safe(text, BOLD));
@@ -335,7 +340,7 @@ public final class PdfCanvas implements AutoCloseable {
                 stream.stroke();
                 writeFooter(stream, safe(footerLeft, REGULAR), MARGIN, baseline);
                 String right = "Página " + n[0] + " de " + total;
-                writeFooter(stream, right, WIDTH - MARGIN - REGULAR.getStringWidth(right) / 1000f * 8, baseline);
+                writeFooter(stream, right, WIDTH - MARGIN - regularFont.getStringWidth(right) / 1000f * 8, baseline);
             }, false);
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             doc.save(out);
@@ -345,9 +350,9 @@ public final class PdfCanvas implements AutoCloseable {
         }
     }
 
-    private static void writeFooter(PDPageContentStream stream, String text, float x, float baseline) throws IOException {
+    private void writeFooter(PDPageContentStream stream, String text, float x, float baseline) throws IOException {
         stream.beginText();
-        stream.setFont(REGULAR, 8);
+        stream.setFont(regularFont, 8);
         stream.setNonStrokingColor(CINZA);
         stream.newLineAtOffset(x, baseline);
         stream.showText(text);
@@ -394,7 +399,12 @@ public final class PdfCanvas implements AutoCloseable {
     // ---------------------------------------------------------------- caracteres
 
     /** Troca o que a fonte não codifica (emoji, outros alfabetos, controlo) por "?". */
-    static String safe(String text, PDFont font) {
+    private PDFont pdfFont(Font font) {
+        return font == Font.BOLD ? boldFont : regularFont;
+    }
+
+    String safe(String text, Font style) {
+        PDFont font = pdfFont(style);
         if (text == null) return "";
         StringBuilder out = new StringBuilder(text.length());
         text.codePoints().forEach(cp -> {

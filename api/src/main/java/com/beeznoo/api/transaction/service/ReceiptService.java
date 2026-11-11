@@ -1,5 +1,7 @@
 package com.beeznoo.api.transaction.service;
 
+import com.beeznoo.api.audit.entity.AuditAction;
+import com.beeznoo.api.audit.service.AuditService;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.common.pdf.CompanyProperties;
 import com.beeznoo.api.common.pdf.PdfCanvas;
@@ -20,6 +22,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.beeznoo.api.common.pdf.PdfCanvas.*;
@@ -37,17 +40,20 @@ public class ReceiptService {
     private final PaymentRepository paymentRepository;
     private final ProfileRepository profileRepository;
     private final CompanyProperties company;
+    private final AuditService auditService;
 
     public ReceiptService(PaymentRepository paymentRepository, ProfileRepository profileRepository,
-                          CompanyProperties company) {
+                          CompanyProperties company, AuditService auditService) {
         this.paymentRepository = paymentRepository;
         this.profileRepository = profileRepository;
         this.company = company;
+        this.auditService = auditService;
     }
 
     public record ReceiptFile(String fileName, byte[] content) {}
 
-    /** Só quem pagou (arrendatário) ou um admin; só pagamentos confirmados. */
+    /** Só quem pagou (arrendatário) ou um admin; só pagamentos confirmados. Admin fica na auditoria (dados pessoais). */
+    @Transactional
     public ReceiptFile receipt(UUID requesterId, UUID paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("Pagamento não encontrado"));
@@ -57,6 +63,10 @@ public class ReceiptService {
         }
         if (payment.getStatus() != PaymentStatus.CONFIRMED || payment.getReceiptNumber() == null) {
             throw new IllegalStateException("O comprovativo só existe depois de o pagamento ser confirmado");
+        }
+ if (!renter) {
+            auditService.record(requesterId, AuditAction.RECEIPT_VIEWED, AuditService.BOOKING,
+                    payment.getBooking().getId(), null, Map.of("paymentId", payment.getId().toString()));
         }
         String fileName = "comprovativo-" + payment.getReceiptNumber().replaceAll("[^A-Za-z0-9]+", "-") + ".pdf";
         return new ReceiptFile(fileName, render(payment, OffsetDateTime.now()));
