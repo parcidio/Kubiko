@@ -11,6 +11,7 @@ import com.beeznoo.api.deposit.service.DepositService;
 import com.beeznoo.api.item.entity.Item;
 import com.beeznoo.api.item.entity.ItemStatus;
 import com.beeznoo.api.item.repository.ItemRepository;
+import com.beeznoo.api.item.service.AvailabilityService;
 import com.beeznoo.api.item.service.PhotoUrls;
 import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.notification.service.NotificationService;
@@ -38,8 +39,7 @@ import java.util.UUID;
 public class BookingService {
 
     // Reservas que bloqueiam as datas do item
-    private static final List<BookingStatus> BLOCKING_STATUSES =
-            List.of(BookingStatus.ACCEPTED, BookingStatus.ACTIVE, BookingStatus.IN_PROGRESS, BookingStatus.RETURNED);
+    private static final List<BookingStatus> BLOCKING_STATUSES = BookingStatus.OCCUPYING;
 
     private final BookingRepository bookingRepository;
     private final ItemRepository itemRepository;
@@ -52,13 +52,15 @@ public class BookingService {
     private final ContractService contractService;
     private final DepositService depositService;
     private final AuditService auditService;
+    private final AvailabilityService availabilityService;
 
     public BookingService(BookingRepository bookingRepository, ItemRepository itemRepository,
                           ProfileRepository profileRepository, LedgerService ledgerService,
                           PaymentService paymentService, KycService kycService,
                           NotificationService notificationService, PhotoUrls photoUrls,
                           ContractService contractService, DepositService depositService,
-                          AuditService auditService) {
+                          AuditService auditService, AvailabilityService availabilityService) {
+        this.availabilityService = availabilityService;
         this.bookingRepository = bookingRepository;
         this.itemRepository = itemRepository;
         this.profileRepository = profileRepository;
@@ -95,7 +97,12 @@ public class BookingService {
             throw new IllegalArgumentException("Não é possível reservar o próprio item");
         }
 
+        // Lock no item: um bloqueio de datas do dono não se cruza com este pedido
+        itemRepository.findByIdForUpdate(item.getId());
         assertNoOverlap(item, request);
+        if (availabilityService.isBlocked(item.getId(), request.startDate(), request.endDate())) {
+            throw new IllegalStateException("O dono bloqueou algumas destas datas. Escolhe outras");
+        }
 
         long days = ChronoUnit.DAYS.between(request.startDate(), request.endDate());
 
@@ -147,6 +154,10 @@ public class BookingService {
         if (bookingRepository.existsOverlapping(booking.getItem().getId(),
                 booking.getStartDate(), booking.getEndDate(), BLOCKING_STATUSES)) {
             throw new IllegalStateException("O item já tem uma reserva confirmada para estas datas");
+        }
+        // O dono pode ter bloqueado estas datas depois do pedido
+        if (availabilityService.isBlocked(booking.getItem().getId(), booking.getStartDate(), booking.getEndDate())) {
+            throw new IllegalStateException("Bloqueaste algumas destas datas. Remove o bloqueio para aceitar o pedido");
         }
 
         // Sem retenção aqui: o arrendatário paga depois por referência (decisoes-produto.md, 2026-10-16)

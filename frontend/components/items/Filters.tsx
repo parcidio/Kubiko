@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Banknote, Bookmark, Calendar, ChevronDown, MapPin, Star } from "lucide-react";
 import { ChipGroup } from "@/components/bz/form";
-import { LUANDA_AREAS } from "@/lib/format";
+import { LUANDA_AREAS, addDaysIso, formatRange, todayIso } from "@/lib/format";
 import type { ItemCondition } from "@/lib/types";
 
 // Mesmo contrato do backend; a página importa daqui
@@ -33,11 +33,12 @@ function buildChips(f: Filters, categoryName?: string): string[] {
   if (f.area) chips.push(f.area);
   if (f.maxPrice !== "") chips.push(`até ${f.maxPrice.toLocaleString("de-DE")} Kz/dia`);
   if (f.condition && f.condition !== "ANY") chips.push(CONDITION_LABEL[f.condition] ?? f.condition);
+  if (f.dataInicio && f.dataFim) chips.push(`livre ${formatRange(f.dataInicio, f.dataFim)}`);
   return chips;
 }
 
 const isEmpty = (f: Filters, categoryId?: string) =>
-  !f.area && f.maxPrice === "" && (!f.condition || f.condition === "ANY") && !categoryId;
+  !f.area && f.maxPrice === "" && (!f.condition || f.condition === "ANY") && !categoryId && !f.dataInicio;
 
 interface BeeznoFiltersProps {
   value?: Filters;                                  // filtros aplicados (estado da página)
@@ -166,9 +167,31 @@ export default function BeeznoFilters({
       key: "datas", icon: Calendar, label: "Datas de disponibilidade",
       content: (
         <div className="flex flex-col gap-3">
-          <input type="date" disabled value="" className={inputCls} aria-label="Início do arrendamento" />
-          <input type="date" disabled value="" className={inputCls} aria-label="Fim do arrendamento" />
-          <p className="text-xs text-muted-foreground">Chega quando a API tiver disponibilidade.</p>
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            Levantas
+            <input
+              type="date"
+              min={todayIso()}
+              value={draft.dataInicio ?? ""}
+              onChange={(e) => {
+                const v = e.target.value;
+                setDraft((p) => ({ ...p, dataInicio: v || undefined, dataFim: v && (!p.dataFim || p.dataFim <= v) ? addDaysIso(v, 1) : v ? p.dataFim : undefined }));
+              }}
+              className={inputCls}
+            />
+          </label>
+          <label className="grid gap-1 text-xs text-muted-foreground">
+            Devolves
+            <input
+              type="date"
+              min={draft.dataInicio ? addDaysIso(draft.dataInicio, 1) : todayIso(1)}
+              disabled={!draft.dataInicio}
+              value={draft.dataFim ?? ""}
+              onChange={(e) => setDraft((p) => ({ ...p, dataFim: e.target.value || undefined }))}
+              className={inputCls}
+            />
+          </label>
+          <p className="text-xs text-muted-foreground">Mostra só o equipamento livre nesses dias.</p>
         </div>
       ),
     },

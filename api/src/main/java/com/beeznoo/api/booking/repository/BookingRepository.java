@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
@@ -31,4 +32,13 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             """)
     boolean existsOverlapping(UUID itemId, LocalDate startDate, LocalDate endDate,
                               Collection<BookingStatus> statuses);
+
+    /** Reservas [start, end) que ocupam algum dia da janela [from, to] (inclusiva). */
+    @Query("""
+            SELECT b FROM Booking b
+            WHERE b.item.id = :itemId AND b.status IN :statuses
+              AND b.startDate <= :to AND b.endDate > :from
+            ORDER BY b.startDate
+            """)
+    List<Booking> findOccupying(UUID itemId, Collection<BookingStatus> statuses, LocalDate from, LocalDate to);
 }

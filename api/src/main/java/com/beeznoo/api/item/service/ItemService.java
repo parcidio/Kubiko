@@ -23,7 +23,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.security.access.AccessDeniedException;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,14 +102,30 @@ public class ItemService {
         return listActive(categoryId, false, ItemOrder.RECENT, pageable);
     }
 
-    // A ordem vem do enum, não do Pageable (o cliente não escolhe colunas para ordenar)
     @Transactional(readOnly = true)
     public Page<ItemSummaryResponse> listActive(UUID categoryId, boolean featured, ItemOrder order, Pageable pageable) {
+        return listActive(categoryId, featured, order, null, null, pageable);
+    }
+
+    // A ordem vem do enum, não do Pageable (o cliente não escolhe colunas para ordenar).
+    // startDate/endDate (as duas ou nenhuma): só equipamento livre nesse período [início, fim)
+    @Transactional(readOnly = true)
+    public Page<ItemSummaryResponse> listActive(UUID categoryId, boolean featured, ItemOrder order,
+                                                LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        if ((startDate == null) != (endDate == null)) {
+            throw new IllegalArgumentException("Indica as duas datas (início e fim) ou nenhuma");
+        }
+        if (startDate != null && !endDate.isAfter(startDate)) {
+            throw new IllegalArgumentException("A data de fim tem de ser posterior à de início");
+        }
+        if (startDate != null && ChronoUnit.DAYS.between(startDate, endDate) > 366) {
+            throw new IllegalArgumentException("Período máximo de pesquisa: 366 dias");
+        }
         Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
         Page<Item> page = switch (order) {
-            case POPULAR -> itemRepository.findPublicPopular(categoryId, featured, unsorted);
-            case RATING -> itemRepository.findPublicByRating(categoryId, featured, unsorted);
-            case RECENT -> itemRepository.findPublicRecent(categoryId, featured, unsorted);
+            case POPULAR -> itemRepository.findPublicPopular(categoryId, featured, startDate, endDate, unsorted);
+            case RATING -> itemRepository.findPublicByRating(categoryId, featured, startDate, endDate, unsorted);
+            case RECENT -> itemRepository.findPublicRecent(categoryId, featured, startDate, endDate, unsorted);
         };
         return summaries(page);
     }

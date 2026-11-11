@@ -23,8 +23,8 @@ O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próxi
 | `/recuperar` | Recuperar password | Todos | Ligado | A | ✅ |
 | `/oauth2/callback` | Retorno do Google + telefone | Todos | Ligado | A | ✅ |
 | `/bem-vindo` | Onboarding (3 ecrãs) | Todos | UI (estático) | A | — |
-| `/explorar` | Explorar: herói com pesquisas rápidas, faixa de confiança, categorias, faixas Em destaque / Mais alugados / Mais bem avaliados, grelha, convite a publicar | Todos | Parcial (filtros no cliente) | A | 🟡 sem pesquisa no servidor (#17) |
-| `/equipamento/[id]` | Detalhe: galeria, avaliações, estado, dono, datas + preço, caução, mais da categoria | Todos | Parcial (sem disponibilidade) | A | 🟡 sem disponibilidade (#8), selo (#15) |
+| `/explorar` | Explorar: herói com pesquisas rápidas, faixa de confiança, categorias, faixas Em destaque / Mais alugados / Mais bem avaliados, grelha, convite a publicar, filtro por datas livres | Todos | Parcial (texto/bairro/preço no cliente) | A | 🟡 datas ✅, texto/bairro/preço no servidor ⬜ (#17) |
+| `/equipamento/[id]` | Detalhe: galeria, avaliações, estado, dono (selo), calendário de disponibilidade, datas + preço, caução, mais da categoria | Todos | Ligado | A | ✅ |
 | `/equipamento/[id]/reservar` | Pedido de reserva (datas → entrega → mensagem → rever) | Arrendatário | Ligado | A | ✅ |
 | `/reservas` | As minhas reservas | Arrendatário | Ligado | A | ✅ |
 | `/reservas/[id]` | **Detalhe da reserva (hub)** | Ambos | Ligado | A | ✅ estados novos (#10) |
@@ -38,7 +38,7 @@ O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próxi
 | `/pedidos` | Pedidos recebidos (aceitar/recusar) | Dono | Ligado | B | ✅ |
 | `/publicar` | Publicar (fotos → detalhes → preço → pré-visualização) | Dono | Ligado (fotos comprimidas, rascunho por conta) | B | ✅ |
 | `/equipamentos` | O meu equipamento | Dono | Ligado | B | ✅ |
-| `/equipamentos/[id]` | Gerir equipamento (fotos, editar, pausar/reativar, eliminar, datas) | Dono | Parcial (sem datas) | B | 🟡 sem datas (#8) |
+| `/equipamentos/[id]` | Gerir equipamento (fotos, editar, pausar/reativar, eliminar, bloquear datas) | Dono | Ligado | B | ✅ |
 | `/carteira` | Carteira e movimentos | Dono | Ligado (sem levantamentos) | B | 🟡 sem levantamentos (#23) |
 | `/reservas/[id]/checklist` | Checklist com fotos (câmara): uma parte regista, a outra confirma ou reporta problema | Ambos | Ligado | B | ✅ `/bookings/{id}/checklists` |
 | `/reservas/[id]/problema` | Reportar problema (tipo, descrição, até 6 fotos) | Ambos | Ligado | B | ✅ `/bookings/{id}/incidents` |

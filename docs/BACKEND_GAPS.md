@@ -23,7 +23,7 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 
 | # | Estado | O que falta | Como ficou / o que falta | Ecrãs |
 |---|---|---|---|---|
-| 8 | ⬜ | **Disponibilidade**: `GET /items/{id}/availability` e `POST/DELETE /items/{id}/blocks` (`availability_blocks`) | Hoje só a sobreposição com reservas aceites/pagas é validada | Detalhe (calendário), Gerir › Datas, filtro por datas em Explorar |
+| 8 | ✅ | **Disponibilidade** | `GET /items/{id}/availability` (público, dias inclusivos `BOOKED`/`BLOCKED`), `GET/POST /items/{id}/blocks`, `DELETE …/blocks/{id}` (dono). Pedir e aceitar recusam datas bloqueadas; `GET /items?startDate&endDate` só devolve equipamento livre | Detalhe (calendário), Gerir › Datas, Explorar |
 | 9 | ✅ | Checklists de entrega e devolução | `POST /bookings/{id}/checklists/{delivery\|return}` (multipart `notes` + 2–10 `photos`), `POST …/{type}/confirm` (só a **outra** parte), `GET /bookings/{id}/checklists`. Sem código de 4 dígitos no MVP | Checklist |
 | 10 | ✅ | Estados "entregue" / "devolvido" | `ACTIVE` (pago) → `IN_PROGRESS` → `RETURNED` → `COMPLETED`. **Atualizar a timeline** (`lib/booking.ts`) | Reserva (timeline, próximo passo) |
 | 11 | 🟡 | Expiração automática | ✅ referência vencida → `EXPIRED` (a cada minuto). ⬜ pedido sem resposta em 24 h → `expired` | Pedidos, Reserva |
@@ -37,7 +37,7 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 
 | # | Estado | O que falta | Ecrãs |
 |---|---|---|---|
-| 17 | ⬜ | Pesquisa por texto, bairro e preço em `GET /items` (hoje só `categoryId`) | Explorar |
+| 17 | 🟡 | Pesquisa por texto, bairro e preço em `GET /items` (já há `categoryId` e datas livres) | Explorar |
 | 18 | ⬜ | Preço semanal/mensal no item (o SPEC pede a tarifa mais vantajosa) | Publicar, Detalhe, PriceSummary |
 | 19 | ⬜ | Valor declarado (`declared_value`) para calcular a caução no backend | Publicar |
 | 20 | ✅ | Reativar um item pausado: `PATCH /items/{id}/activate` (só `INACTIVE`; `SUSPENDED` é da equipa) | O meu equipamento |

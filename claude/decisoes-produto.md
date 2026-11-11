@@ -379,3 +379,38 @@ ficou em disputa, e ninguém era avisado da resolução.
 4. **Toda a decisão de admin no ecrã pede motivo** (mínimo 5 caracteres), mesmo onde a API o aceita como opcional
    (libertar caução, validar pagamento): fica em `audit_logs`.
 5. Cauções: o ecrã avisa quando há problemas por resolver na reserva, mas não bloqueia a decisão (a API também não).
+
+---
+
+## 2026-11-11 — Disponibilidade e bloqueio de datas (gap #8)
+
+**Contexto.** SPEC §10: "datas ocupadas não são selecionáveis". Hoje só se valida a sobreposição com reservas aceites,
+o dono não consegue bloquear datas (viagem, uso próprio, aluguer fora da app) e o arrendatário só descobre o conflito
+quando o pedido falha. A tabela `item_availability` (V2, um registo por dia) nunca foi usada.
+
+**Hipótese.** Mostrar as datas ocupadas no Detalhe e deixar o dono bloquear datas reduz pedidos impossíveis e recusas.
+**Utilizador-alvo:** arrendatário a escolher datas; dono com o equipamento ocupado fora da app.
+**Critério de sucesso:** zero pedidos recusados por "já está ocupado" nas primeiras 4 semanas; recusas < 15%.
+
+**Opções.**
+- **A — bloqueios manuais numa tabela; reservas calculadas** a partir de `bookings` (fonte de verdade única).
+- **B — tabela única com `booking_id`** (SPEC §8): uma linha por reserva aceite, apagada ao cancelar/expirar.
+  Duas fontes para a mesma informação: cada transição (cancelar, recusar, expirar — #11) tem de limpar o bloqueio;
+  um esquecimento deixa datas presas para sempre.
+
+**Decisão (equipa, nesta data — ⚑ validar com o André: desvia do SPEC §8, que pedia B):** **opção A.**
+
+1. **`availability_blocks`** (V21): `item_id`, `start_date`, `end_date` **inclusivos** (o dono pensa em dias: "16 a 18"
+   bloqueia 16, 17 e 18), nota opcional (só o dono a vê), autor. Máx. 366 dias por bloqueio e 100 bloqueios futuros
+   por item. Não se bloqueia o passado nem datas já com reserva aceite/paga.
+2. **Reservas** continuam `[início, fim)`: o dia de devolução fica livre para a reserva seguinte. Ocupam datas as
+   reservas `ACCEPTED`, `ACTIVE`, `IN_PROGRESS`, `RETURNED` e **`DISPUTED`** (novo: em disputa o equipamento pode
+   ainda estar com o arrendatário). Pedidos pendentes não ocupam: o dono escolhe entre pedidos sobrepostos.
+   A lista vive em `BookingStatus.OCCUPYING` (fonte única para a disponibilidade e para aceitar).
+3. **`GET /items/{id}/availability?from&to`** (público): intervalos de dias indisponíveis, inclusivos, com o motivo
+   `BOOKED` ou `BLOCKED` e **sem** nomes, notas nem ids de reserva. Janela por omissão: hoje + 180 dias; máx. 366.
+4. **`GET/POST /items/{id}/blocks`, `DELETE /items/{id}/blocks/{blockId}`**: só o dono.
+5. **Pedir reserva** recusa datas bloqueadas; **aceitar** volta a verificar (o dono pode ter bloqueado entretanto).
+   Criar bloqueio, criar reserva e aceitar fazem lock na linha do item, para não se cruzarem.
+6. **Explorar**: `GET /items?startDate&endDate` devolve só equipamento livre nesse período.
+7. `item_availability` migra para `availability_blocks` (um dia = um bloqueio, sem perda) e é removida.

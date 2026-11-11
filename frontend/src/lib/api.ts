@@ -1,6 +1,6 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AdminPayment, AuditLog, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Deposit, Incident,
+  Account, AdminPayment, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Deposit, Incident,
   IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, LedgerEntry, Page, Payment, Review, SecurityEvent,
   SecuritySeverity, UserRole,
 } from "./types";
@@ -146,14 +146,26 @@ export const authApi = {
 export const catalogApi = {
   categories: () => request<Category[]>("/categories"),
   // order: RECENT (destaques primeiro) · POPULAR (mais alugados) · RATING (mais bem avaliados)
-  items: (p: { categoryId?: string; page?: number; size?: number; featured?: boolean; order?: ItemOrder }) => {
+  // startDate + endDate (as duas): só equipamento livre nesse período (o dia de devolução é exclusivo)
+  items: (p: { categoryId?: string; page?: number; size?: number; featured?: boolean; order?: ItemOrder; startDate?: string; endDate?: string }) => {
     const q = new URLSearchParams({ page: String(p.page ?? 0), size: String(p.size ?? 20) });
     if (p.categoryId) q.set("categoryId", p.categoryId);
+    if (p.startDate && p.endDate) {
+      q.set("startDate", p.startDate);
+      q.set("endDate", p.endDate);
+    }
     if (p.featured) q.set("featured", "true");
     if (p.order) q.set("order", p.order);
     return request<Page<ItemSummary>>(`/items?${q}`);
   },
   item: (id: string) => request<Item>(`/items/${id}`),
+  // Dias indisponíveis (público). Por omissão: hoje + 180 dias
+  availability: (itemId: string, from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to) q.set("to", to);
+    return request<Availability>(`/items/${itemId}/availability${q.size ? `?${q}` : ""}`);
+  },
   reviews: (itemId: string, page = 0) => request<Page<Review>>(`/items/${itemId}/reviews?page=${page}&size=10`),
 };
 
@@ -183,6 +195,10 @@ export const ownerItemApi = {
     files.forEach((f, i) => form.append("photos", f, `foto-${i + 1}.jpg`));
     return upload<Item["photos"]>(`/items/${id}/photos`, form);
   },
+  // Bloqueios de datas (dias inclusivos). 409 se tocar numa reserva aceite
+  blocks: (id: string) => request<AvailabilityBlock[]>(`/items/${id}/blocks`),
+  createBlock: (id: string, b: { startDate: string; endDate: string; note?: string }) => post<AvailabilityBlock>(`/items/${id}/blocks`, b),
+  deleteBlock: (id: string, blockId: string) => del<void>(`/items/${id}/blocks/${blockId}`),
   // Devolve as fotos que ficam
   deletePhoto: (id: string, photoId: string) => del<Item["photos"]>(`/items/${id}/photos/${photoId}`),
   remove: (id: string) => del<void>(`/items/${id}`),

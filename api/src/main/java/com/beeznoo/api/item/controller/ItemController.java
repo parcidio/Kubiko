@@ -87,6 +87,8 @@ public class ItemController {
                     `order`: `RECENT` (por omissão; destaques primeiro), `POPULAR` (mais reservas concluídas),
                     `RATING` (melhor média de avaliações). O parâmetro `sort` é ignorado.
                     Cada item traz `ratingAverage`, `ratingCount`, `completedRentals` e `featured`.
+                    `startDate` + `endDate` (ISO, as duas ou nenhuma): só equipamento livre de `startDate` até
+                    `endDate` (dia de devolução, exclusivo), sem reservas aceites nem datas bloqueadas pelo dono.
 
                     Endpoint público, não requer autenticação.
                     """
@@ -98,8 +100,12 @@ public class ItemController {
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(defaultValue = "false") boolean featured,
             @RequestParam(defaultValue = "RECENT") ItemOrder order,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(
+                    iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
             Pageable pageable) {
-        return ResponseEntity.ok(itemService.listActive(categoryId, featured, order, pageable));
+        return ResponseEntity.ok(itemService.listActive(categoryId, featured, order, startDate, endDate, pageable));
     }
 
     @Operation(

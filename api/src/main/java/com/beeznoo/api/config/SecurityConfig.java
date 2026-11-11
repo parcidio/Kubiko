@@ -76,6 +76,8 @@ public class SecurityConfig {
                                 "/actuator/health"
                         ).permitAll()
                         .requestMatchers("/api/v1/items/me").authenticated()
+                        // bloqueios de datas: só o dono (a disponibilidade pública fica aberta pela regra seguinte)
+                        .requestMatchers("/api/v1/items/*/blocks", "/api/v1/items/*/blocks/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/v1/items/**", "/api/v1/categories/**").permitAll()
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()

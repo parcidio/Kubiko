@@ -120,6 +120,29 @@ export interface Booking {
   updatedAt: string;
 }
 
+/** Dias indisponíveis, INCLUSIVOS (start <= dia <= end). BOOKED = reserva aceite/em curso; BLOCKED = o dono bloqueou. */
+export interface UnavailableRange {
+  start: string;
+  end: string;
+  reason: "BOOKED" | "BLOCKED";
+}
+
+export interface Availability {
+  itemId: string;
+  from: string;
+  to: string;
+  unavailable: UnavailableRange[];
+}
+
+/** Bloqueio do dono (dias inclusivos). A nota só o dono vê. */
+export interface AvailabilityBlock {
+  id: string;
+  startDate: string;
+  endDate: string;
+  note: string | null;
+  createdAt: string;
+}
+
 /** Contrato congelado da reserva (gerado quando o dono aceita). */
 export interface Contract {
   id: string;
