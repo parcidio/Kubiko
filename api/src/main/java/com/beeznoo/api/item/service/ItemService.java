@@ -27,6 +27,8 @@ import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -62,9 +64,7 @@ public class ItemService {
         if (!canPublish(owner.getRole())) {
             throw new AccessDeniedException("Apenas OWNER ou BOTH podem publicar itens");
         }
-        if (!kycService.isVerified(ownerId)) {
-            throw new AccessDeniedException("Verifica a tua identidade antes de continuar");
-        }
+        kycService.assertCanTransact(ownerId);
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Categoria não encontrada"));
@@ -161,6 +161,20 @@ public class ItemService {
         item.deactivate();
     }
 
+    // Pausado → ativo outra vez. SUSPENDED é decisão do admin e não sai por aqui.
+    public ItemResponse activate(UUID requesterId, UUID itemId) throws AccessDeniedException {
+        Item item = itemRepository.findActiveById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
+        assertOwner(requesterId, item);
+        if (item.getStatus() == ItemStatus.ACTIVE) return toResponse(item);
+        if (item.getStatus() != ItemStatus.INACTIVE) {
+            throw new IllegalStateException("Este equipamento está em revisão pela equipa e não pode ser reativado");
+        }
+        kycService.assertCanTransact(requesterId);
+        item.activate();
+        return toResponse(item);
+    }
+
     public void delete(UUID requesterId, UUID itemId) throws AccessDeniedException {
         Item item = itemRepository.findActiveById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
@@ -195,6 +209,7 @@ public class ItemService {
                 item.getId(),
                 item.getOwner().getId(),
                 item.getOwner().getFullName(),
+                kycService.isVerified(item.getOwner().getId()),
                 toCategoryResponse(item.getCategory()),
                 item.getTitle(),
                 item.getDescription(),
@@ -233,11 +248,13 @@ public class ItemService {
         List<UUID> ids = page.getContent().stream().map(Item::getId).toList();
         Map<UUID, RatingSummary> ratings = reviewService.ratings(ids);
         Map<UUID, Long> rentals = completedRentals(ids);
+        Set<UUID> verified = kycService.verifiedAmong(
+                page.getContent().stream().map(i -> i.getOwner().getId()).collect(Collectors.toSet()));
         return page.map(i -> toSummary(i, ratings.getOrDefault(i.getId(), RatingSummary.NONE),
-                rentals.getOrDefault(i.getId(), 0L)));
+                rentals.getOrDefault(i.getId(), 0L), verified.contains(i.getOwner().getId())));
     }
 
-    private ItemSummaryResponse toSummary(Item item, RatingSummary rating, long rentals) {
+    private ItemSummaryResponse toSummary(Item item, RatingSummary rating, long rentals, boolean ownerVerified) {
         String cover = item.getPhotos().isEmpty() ? null : photoUrls.of(item.getPhotos().get(0));
         return new ItemSummaryResponse(
                 item.getId(),
@@ -253,7 +270,8 @@ public class ItemService {
                 rating.average(),
                 rating.count(),
                 rentals,
-                item.getFeaturedAt() != null
+                item.getFeaturedAt() != null,
+                ownerVerified
         );
     }
 }

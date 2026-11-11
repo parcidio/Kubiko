@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Eye, Pause, Trash2 } from "lucide-react";
+import { Eye, Pause, Play, Trash2 } from "lucide-react";
 import { MonthCalendar } from "@/components/bz/calendar";
 import { FormError, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { DetailsFields, PriceFields, draftFromItem, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
@@ -69,6 +69,15 @@ export default function GerirEquipamentoPage() {
       router.push("/equipamentos");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível pausar.");
+    }
+  }
+
+  async function resume() {
+    try {
+      item.setData(await ownerItemApi.activate(id));
+      toast.success("Reativado. Já aparece outra vez em Explorar.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível reativar.");
     }
   }
 
@@ -140,6 +149,11 @@ export default function GerirEquipamentoPage() {
           {item.data.status === "ACTIVE" && (
             <Button variant="outline" size="sm" onClick={pause}>
               <Pause strokeWidth={1.8} /> Pausar anúncio
+            </Button>
+          )}
+          {item.data.status === "INACTIVE" && (
+            <Button variant="outline" size="sm" onClick={resume}>
+              <Play strokeWidth={1.8} /> Reativar anúncio
             </Button>
           )}
           <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>

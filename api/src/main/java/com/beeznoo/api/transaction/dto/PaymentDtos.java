@@ -51,7 +51,9 @@ public class PaymentDtos {
             BigDecimal amount,
             String status,
             OffsetDateTime expiresAt,
-            OffsetDateTime confirmedAt
+            OffsetDateTime confirmedAt,
+            // preenchido quando CONFIRMED: há comprovativo em GET /payments/{id}/receipt
+            String receiptNumber
     ) {
         public static PaymentResponse from(Payment p) {
             return new PaymentResponse(
@@ -66,7 +68,8 @@ public class PaymentDtos {
                     p.getAmount(),
                     p.getStatus().name(),
                     p.getExpiresAt(),
-                    p.getConfirmedAt()
+                    p.getConfirmedAt(),
+                    p.getReceiptNumber()
             );
         }
     }

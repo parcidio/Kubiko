@@ -121,6 +121,16 @@ app:
     secret-key: ${B2_SECRET_KEY:}
     bucket: ${B2_BUCKET:}
     signed-url-ttl: ${APP_STORAGE_SIGNED_URL_TTL:5m}
+  kyc:
+    # true: publicar e pedir reserva exigem KYC aprovado (SPEC §7). false só enquanto o KYC não é testável.
+    # ⚑ Ligar em produção antes do primeiro aluguer real — ver claude/decisoes-produto.md (2026-11-11)
+    required: ${KYC_REQUIRED:false}
+  company:
+    # Emitente do comprovativo de pagamento (PDF). Vazios ficam de fora do documento.
+    legal-name: ${COMPANY_LEGAL_NAME:Beeznoo}
+    nif: ${COMPANY_NIF:}
+    address: ${COMPANY_ADDRESS:Luanda, Angola}
+    email: ${COMPANY_EMAIL:ajuda@beeznoo.ao}
   notifications:
     email:
       # false: notificações só na app (email_status SKIPPED). true exige RESEND_API_KEY e domínio verificado no Resend.

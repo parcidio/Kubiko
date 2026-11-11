@@ -280,3 +280,57 @@ recebem avaliação; mais pedidos de reserva por visita ao Detalhe (comparar 4 s
 3. **Destaques sem anúncios:** `items.featured_at` posto pelo admin (`PATCH /admin/items/{id}/featured`, com auditoria).
    `GET /items?featured=true` e `GET /items?order=POPULAR` (nº de reservas concluídas) e `order=RATING`.
 4. **Frontend:** faixas "Em destaque", "Mais alugados" e "Novidades" no Explorar; cada faixa só aparece se tiver itens.
+
+---
+
+## 2026-11-05 — Alojamento refeito à mão, com contas `@beeznoo.ao`
+
+**Contexto.** O alojamento vai ser recriado de raiz com as contas do projeto. A branch `staging` passa a seguir a `main`,
+sem configuração própria (decisão do Victor nesta data — ⚑ validar com o André).
+
+**Decisões:**
+1. **Sem `render.yaml`:** serviços criados à mão, com as variáveis só nos painéis. Passos em `docs/DEPLOY.md`.
+2. **Mesma arquitetura nos dois ambientes:** o browser fala só com o Next, que faz proxy para a API. Sem CORS e com cookie
+   `SameSite=Strict`. Não entra na `main` o desenho de 2026-10-26 (browser a chamar a API diretamente).
+3. **Separação por ambiente:** serviço Render, branch Neon, bucket B2, cliente Google e segredos próprios para staging e produção.
+4. **Role `beeznoo_app`** sem permissões de dono na BD; as migrações correm com o dono, pela ligação direta.
+
+**A decidir (recomendação em `docs/DEPLOY.md`):** região (Frankfurt, em vez de Ohio) e planos pagos da Vercel e do Render para a produção.
+
+---
+
+## 2026-11-11 — KYC desligável, reativar item, selo "Verificado", contrato e comprovativo em PDF
+
+**Contexto.** Para testar a publicação e o pedido de reserva em local e em staging é preciso aprovar um KYC à mão em cada
+conta. Faltavam ainda o #20 (reativar equipamento pausado) e o #15 (selo "Verificado") do `docs/BACKEND_GAPS.md`. O
+arrendatário e o dono não tinham nenhum documento para guardar depois de pagar ou de assinar.
+
+**Hipótese (comprovativo).** Um comprovativo de pagamento com aspeto de documento a sério (número, datas, partes, linhas,
+totais, método) aumenta a confiança de quem paga pela primeira vez a um desconhecido, e reduz as perguntas "já pagaste?"
+no WhatsApp da equipa. **Utilizador-alvo:** arrendatário (e a empresa que precisa de justificar a despesa).
+**Critério de sucesso:** zero pedidos manuais de comprovativo à equipa nos primeiros 10 alugueres.
+
+**Decisões (equipa de backend, nesta data — ⚑ validar com o André):**
+
+1. **Gate de KYC por configuração** (`app.kyc.required`, `KYC_REQUIRED`). **Por omissão `false` enquanto o KYC não
+   é testável**; a API escreve um aviso no arranque quando está desligado. Os testes correm com `true`.
+   ⚑ **Ligar (`KYC_REQUIRED=true`) em produção antes do primeiro aluguer real.** O selo "Verificado" continua a vir
+   **só** do KYC aprovado — desligar o gate não põe ninguém como verificado.
+2. **Reativar equipamento**: `PATCH /items/{id}/activate`, só o dono, só a partir de `INACTIVE` (pausado).
+   `SUSPENDED` é decisão do admin e não se reativa por aqui. Passa pelo mesmo gate de KYC que publicar.
+3. **Selo "Verificado"** (#15): `ownerVerified` no `ItemResponse` e `ItemSummaryResponse`; `renterVerified` e
+   `ownerVerified` no `BookingResponse`. Uma consulta por página (sem N+1).
+4. **Comprovativo de pagamento em PDF** (`GET /payments/{id}/receipt`, arrendatário ou admin, só pagamentos `CONFIRMED`):
+   número sequencial próprio (`CP 2026/000001`, sequência na BD, atribuído na confirmação — migração V19 com backfill
+   dos pagamentos já confirmados), emitente, cliente, reserva, linhas (aluguer, taxa de serviço, caução reembolsável),
+   total, método e data do pagamento, e código de verificação.
+   **Chama-se "Comprovativo de pagamento" e diz "Documento não fiscal"**: faturas e recibos com valor fiscal em Angola
+   têm de sair de software certificado pela AGT (fora do âmbito, SPEC §9 — ver decisão KYC de 2026-10-23).
+   Os dados do emitente (nome legal, NIF, morada) vêm de configuração (`app.company.*`) e ficam de fora se vazios.
+5. **Contrato em PDF** (`GET /bookings/{id}/contract/pdf`, partes ou admin): o texto congelado + versão, SHA-256 e
+   datas de aceitação de cada parte. O texto continua a ser o `v1-rascunho` (rever com jurista).
+6. **Biblioteca**: Apache PDFBox 3 (licença Apache 2.0). Não o iText (AGPL). Fontes base do PDF (Helvetica), sem
+   ficheiros de fonte no repo.
+
+**Em aberto.** Nome legal e NIF da empresa para o emitente. Se o dono também deve receber um documento do que recebe
+(fica para quando houver levantamentos, #23).

@@ -38,4 +38,23 @@ public final class Formats {
     public static String date(LocalDate d) {
         return d.getDayOfMonth() + " " + MONTHS[d.getMonthValue() - 1] + " " + d.getYear();
     }
+
+    public static final java.time.ZoneId LUANDA = java.time.ZoneId.of("Africa/Luanda");
+
+    // "11 nov 2026, 14:32" na hora de Luanda
+    public static String dateTime(java.time.OffsetDateTime t) {
+        var local = t.atZoneSameInstant(LUANDA);
+        return date(local.toLocalDate()) + String.format(", %02d:%02d", local.getHour(), local.getMinute());
+    }
+
+    // Igual a CONDITION_LABEL no frontend (lib/format.ts)
+    public static String condition(com.beeznoo.api.item.entity.ItemCondition c) {
+        if (c == null) return "—";
+        return switch (c) {
+            case NEW -> "Novo";
+            case LIKE_NEW -> "Como novo";
+            case GOOD -> "Bom estado";
+            case FAIR -> "Sinais de uso";
+        };
+    }
 }

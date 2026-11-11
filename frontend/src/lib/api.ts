@@ -71,6 +71,48 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
+/** Descarrega um ficheiro autenticado (PDF do contrato, comprovativo). O token não pode ir num link simples. */
+async function download(path: string, fallbackName: string, retry = true): Promise<void> {
+  const session = readSession();
+  const headers = new Headers(CLIENT_HEADER);
+  if (session) headers.set("Authorization", `Bearer ${session.accessToken}`);
+  let res: Response;
+  try {
+    res = await fetch(`/api/v1${path}`, { headers, credentials: "same-origin" });
+  } catch {
+    throw new ApiError(0, NETWORK_ERROR);
+  }
+  if (res.status === 401 && session && retry && (await refreshTokens())) return download(path, fallbackName, false);
+  if (!res.ok) throw await parseError(res);
+
+  const disposition = res.headers.get("content-disposition") ?? "";
+  const name = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1] ?? /filename="?([^";]+)"?/i.exec(disposition)?.[1];
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name ? decodeURIComponent(name) : fallbackName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** Envia fotos em multipart (o browser põe o Content-Type com o boundary). */
+async function upload<T>(path: string, form: FormData, retry = true): Promise<T> {
+  const session = readSession();
+  const headers = new Headers(CLIENT_HEADER);
+  if (session) headers.set("Authorization", `Bearer ${session.accessToken}`);
+  let res: Response;
+  try {
+    res = await fetch(`/api/v1${path}`, { method: "POST", body: form, headers, credentials: "same-origin" });
+  } catch {
+    throw new ApiError(0, NETWORK_ERROR);
+  }
+  if (res.status === 401 && session && retry && (await refreshTokens())) return upload<T>(path, form, false);
+  if (!res.ok) throw await parseError(res);
+  return (await res.json()) as T;
+}
+
 const post = <T>(path: string, body?: unknown) =>
   request<T>(path, { method: "POST", body: body === undefined ? undefined : JSON.stringify(body) });
 const patch = <T>(path: string, body?: unknown) =>
@@ -132,6 +174,14 @@ export const ownerItemApi = {
   // UpdateItemRequest usa "condition" (o publish usa "itemCondition")
   update: (id: string, { itemCondition, ...b }: Partial<ItemInput>) => patch<Item>(`/items/${id}`, { ...b, condition: itemCondition }),
   deactivate: (id: string) => patch<void>(`/items/${id}/deactivate`),
+  // Pausado → ativo (SUSPENDED é da equipa e devolve 409)
+  activate: (id: string) => patch<Item>(`/items/${id}/activate`),
+  // JPEG/PNG até 5 MB, máx. 8 por item. Comprimir antes (lib/images.ts)
+  uploadPhotos: (id: string, files: Blob[]) => {
+    const form = new FormData();
+    files.forEach((f, i) => form.append("photos", f, `foto-${i + 1}.jpg`));
+    return upload<Item["photos"]>(`/items/${id}/photos`, form);
+  },
   remove: (id: string) => del<void>(`/items/${id}`),
 };
 
@@ -167,4 +217,10 @@ export const paymentApi = {
   current: (bookingId: string) => request<Payment | undefined>(`/bookings/${bookingId}/payments/current`),
   create: (bookingId: string) => post<Payment>(`/bookings/${bookingId}/payments`),
   check: (paymentId: string) => post<Payment>(`/payments/${paymentId}/check`),
+};
+
+/** PDFs: contrato (partes da reserva) e comprovativo de pagamento não fiscal (quem pagou). */
+export const documentApi = {
+  contract: (bookingId: string) => download(`/bookings/${bookingId}/contract/pdf`, "contrato.pdf"),
+  receipt: (paymentId: string) => download(`/payments/${paymentId}/receipt`, "comprovativo.pdf"),
 };

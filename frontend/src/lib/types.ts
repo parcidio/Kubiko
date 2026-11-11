@@ -48,6 +48,8 @@ export interface ItemSummary {
   ratingCount: number;
   completedRentals: number;
   featured: boolean;
+  /** KYC do dono aprovado (selo "Verificado") */
+  ownerVerified: boolean;
 }
 
 export interface Review {
@@ -66,6 +68,8 @@ export interface Item {
   id: string;
   ownerId: string;
   ownerName: string;
+  /** KYC do dono aprovado (selo "Verificado") */
+  ownerVerified: boolean;
   category: Category | null;
   title: string;
   description: string | null;
@@ -98,8 +102,11 @@ export interface Booking {
   itemCoverPhoto: string | null;
   renterId: string;
   renterName: string;
+  /** KYC aprovado (selo "Verificado") */
+  renterVerified: boolean;
   ownerId: string;
   ownerName: string;
+  ownerVerified: boolean;
   startDate: string;
   endDate: string;
   totalPrice: number;
@@ -126,6 +133,8 @@ export interface Payment {
   status: PaymentStatus;
   expiresAt: string;
   confirmedAt: string | null;
+  /** Nº do comprovativo ("CP 2026/000001") quando CONFIRMED — PDF em documentApi.receipt */
+  receiptNumber: string | null;
 }
 
 export interface Account {

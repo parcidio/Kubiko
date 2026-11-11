@@ -2,13 +2,13 @@
 
 import { Suspense, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { ChevronRight, ClipboardCheck, FileText, Flag, MessageCircle, type LucideIcon } from "lucide-react";
+import { ChevronRight, ClipboardCheck, FileDown, FileText, Flag, MessageCircle, Receipt, type LucideIcon } from "lucide-react";
 import { BookingTicket, NextStepCard, PriceSummary, SuccessBurst, Timeline } from "@/components/bz/booking";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { RequestActions } from "@/components/bz/requests";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Button, Card, Eyebrow, SectionTitle, Skeleton } from "@/components/bz/ui";
-import { ApiError, bookingApi, paymentApi } from "@/lib/api";
+import { ApiError, bookingApi, documentApi, paymentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { bookingCode, deadlineOf, firstName, nextStep, whatsappLink } from "@/lib/booking";
 import { daysBetween, formatRange, SERVICE_FEE_RATE } from "@/lib/format";
@@ -62,10 +62,37 @@ function ReservaHub() {
     }
   }
 
+  // Pago a partir de ACTIVE (inclui os estados novos da API: IN_PROGRESS, RETURNED)
+  const paid = ["ACTIVE", "IN_PROGRESS", "RETURNED", "COMPLETED", "DISPUTED"].includes(booking.status as string);
+  const hasContract = booking.status === "ACCEPTED" || paid;
+
+  async function downloadContract() {
+    try {
+      await documentApi.contract(booking!.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível descarregar o contrato.");
+    }
+  }
+
+  async function downloadReceipt() {
+    try {
+      const p = await paymentApi.current(booking!.id);
+      if (!p?.receiptNumber) {
+        toast.error("O comprovativo aparece quando o pagamento for confirmado.");
+        return;
+      }
+      await documentApi.receipt(p.id);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível descarregar o comprovativo.");
+    }
+  }
+
   const actions: { icon: LucideIcon; label: string; href?: string; external?: boolean; show: boolean; onClick?: () => void; danger?: boolean }[] = [
     { icon: MessageCircle, label: "Falar com a equipa no WhatsApp", href: whatsappLink(waText), external: true, show: true },
     { icon: ClipboardCheck, label: "Checklist de entrega e devolução", href: `/reservas/${id}/checklist`, show: booking.status === "ACTIVE" },
-    { icon: FileText, label: "Contrato de aluguer", href: `/reservas/${id}/contrato`, show: ["ACCEPTED", "ACTIVE", "COMPLETED", "DISPUTED"].includes(booking.status) },
+    { icon: FileText, label: "Contrato de aluguer", href: `/reservas/${id}/contrato`, show: hasContract },
+    { icon: FileDown, label: "Descarregar contrato (PDF)", show: hasContract, onClick: downloadContract },
+    { icon: Receipt, label: "Comprovativo de pagamento (PDF)", show: paid && as === "renter", onClick: downloadReceipt },
     { icon: Flag, label: "Reportar problema", href: `/reservas/${id}/problema`, show: booking.status === "ACTIVE", danger: true },
     { icon: Flag, label: "Cancelar pedido", show: booking.status === "PENDING_OWNER" && as === "renter", onClick: () => setCancelSheet(true), danger: true },
   ];

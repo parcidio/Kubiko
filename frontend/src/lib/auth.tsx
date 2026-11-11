@@ -37,12 +37,26 @@ export function signIn(res: AuthResponse) {
   writeSession(toSession(res));
 }
 
+/** Prefixo dos rascunhos de "Publicar" (um por conta). Apagados ao sair: o telemóvel pode ser partilhado. */
+export const DRAFT_KEY_PREFIX = "beeznoo.publicar.rascunho";
+
+function clearDrafts() {
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith(DRAFT_KEY_PREFIX))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    /* sem storage */
+  }
+}
+
 export async function signOut() {
   try {
     await authApi.logout();
   } catch {
     /* sessão local é limpa na mesma */
   }
+  clearDrafts();
   writeSession(null);
 }
 

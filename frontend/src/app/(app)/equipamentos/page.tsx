@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Package, Pause, Pencil, Plus } from "lucide-react";
+import { Package, Pause, Pencil, Play, Plus } from "lucide-react";
 import { ItemPhoto } from "@/components/bz/equipment";
 import { toast } from "@/components/bz/overlay";
 import { PageHeader } from "@/components/bz/shell";
@@ -34,6 +34,16 @@ export default function EquipamentosPage() {
       reload();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível pausar.");
+    }
+  }
+
+  async function resume(id: string) {
+    try {
+      await ownerItemApi.activate(id);
+      toast.success("Reativado. Já aparece outra vez em Explorar.");
+      reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível reativar.");
     }
   }
 
@@ -86,6 +96,11 @@ export default function EquipamentosPage() {
                       {item.status === "ACTIVE" && (
                         <Button variant="ghost" size="sm" onClick={() => pause(item.id)}>
                           <Pause strokeWidth={1.8} /> Pausar
+                        </Button>
+                      )}
+                      {item.status === "INACTIVE" && (
+                        <Button variant="ghost" size="sm" onClick={() => resume(item.id)}>
+                          <Play strokeWidth={1.8} /> Reativar
                         </Button>
                       )}
                       <ButtonLink href={`/equipamentos/${item.id}`} variant="soft" size="sm">

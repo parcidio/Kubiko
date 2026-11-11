@@ -1,7 +1,10 @@
 package com.beeznoo.api.transaction.controller;
 
 import com.beeznoo.api.transaction.dto.PaymentDtos.PaymentResponse;
+import com.beeznoo.api.common.pdf.PdfResponses;
 import com.beeznoo.api.transaction.service.PaymentService;
+import com.beeznoo.api.transaction.service.ReceiptService;
+import com.beeznoo.api.transaction.service.ReceiptService.ReceiptFile;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,6 +28,34 @@ import java.util.UUID;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final ReceiptService receiptService;
+
+    @Operation(
+            summary = "Comprovativo de pagamento (PDF)",
+            description = """
+                    PDF com número próprio (`CP 2026/000001`), emitente, cliente, reserva, discriminação (aluguer,
+                    taxa de serviço, caução reembolsável), total por extenso, método e data do pagamento.
+                    **Documento não fiscal.** Só o arrendatário que pagou ou um admin, e só com o pagamento `CONFIRMED`
+                    (o `receiptNumber` vem preenchido em `PaymentResponse`).
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "PDF", content = @Content(mediaType = "application/pdf")),
+            @ApiResponse(responseCode = "400", description = "Pagamento não encontrado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "403", description = "Não é quem pagou nem admin",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Pagamento ainda não confirmado",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/payments/{paymentId}/receipt")
+    public ResponseEntity<byte[]> receipt(
+            @AuthenticationPrincipal UUID profileId,
+            @PathVariable UUID paymentId) {
+        ReceiptFile file = receiptService.receipt(profileId, paymentId);
+        return PdfResponses.attachment(file.fileName(), file.content());
+    }
 
     @Operation(
             summary = "Gerar referência de pagamento",

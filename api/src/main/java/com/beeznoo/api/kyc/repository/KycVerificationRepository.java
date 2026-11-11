@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,6 +20,9 @@ public interface KycVerificationRepository extends JpaRepository<KycVerification
     Optional<KycVerification> findFirstByProfileIdOrderByCreatedAtDesc(UUID profileId);
 
     boolean existsByProfileIdAndStatus(UUID profileId, KycStatus status);
+
+    @Query("SELECT DISTINCT k.profile.id FROM KycVerification k WHERE k.profile.id IN :profileIds AND k.status = :status")
+    List<UUID> findProfileIdsWithStatus(Collection<UUID> profileIds, KycStatus status);
 
     // Fila do admin: mais antiga primeiro
     @EntityGraph(attributePaths = "profile")

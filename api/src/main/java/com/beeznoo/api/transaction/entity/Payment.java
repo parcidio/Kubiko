@@ -75,6 +75,10 @@ public class Payment {
     @Column(name = "confirmed_at")
     private OffsetDateTime confirmedAt;
 
+    // Número do comprovativo (não fiscal), "CP 2026/000001". Atribuído na confirmação (V19)
+    @Column(name = "receipt_number", length = 30)
+    private String receiptNumber;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

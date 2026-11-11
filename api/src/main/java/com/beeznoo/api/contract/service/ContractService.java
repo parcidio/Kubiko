@@ -115,7 +115,7 @@ public class ContractService {
                 Map.entry("ownerName", b.getOwner().getFullName()),
                 Map.entry("renterName", b.getRenter().getFullName()),
                 Map.entry("itemTitle", b.getItem().getTitle()),
-                Map.entry("itemCondition", b.getItem().getCondition().name()),
+                Map.entry("itemCondition", Formats.condition(b.getItem().getCondition())),
                 Map.entry("startDate", Formats.date(b.getStartDate())),
                 Map.entry("endDate", Formats.date(b.getEndDate())),
                 Map.entry("days", Long.toString(ChronoUnit.DAYS.between(b.getStartDate(), b.getEndDate()))),

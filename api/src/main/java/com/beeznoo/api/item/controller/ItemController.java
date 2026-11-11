@@ -165,6 +165,31 @@ public class ItemController {
     }
 
     @Operation(
+            summary = "Reativar item pausado",
+            description = """
+                    Muda o estado de `INACTIVE` (pausado) para `ACTIVE`: volta a aparecer em Explorar.
+                    Apenas o dono. Um item `SUSPENDED` (em revisão pela equipa) não se reativa por aqui.
+                    Passa pelo mesmo gate de identidade que publicar (`KYC_REQUIRED`).
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Item ativo",
+                    content = @Content(schema = @Schema(implementation = ItemResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Perfil não é o dono do item ou falta verificação",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Item não encontrado"),
+            @ApiResponse(responseCode = "409", description = "Item suspenso pela equipa",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @SecurityRequirement(name = "bearerAuth")
+    @PatchMapping("/{id}/activate")
+    public ResponseEntity<ItemResponse> activate(
+            @AuthenticationPrincipal UUID profileId,
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(itemService.activate(profileId, id));
+    }
+
+    @Operation(
             summary = "Eliminar item (soft delete)",
             description = """
                     Muda o estado do item para `DELETED` — o registo não é removido

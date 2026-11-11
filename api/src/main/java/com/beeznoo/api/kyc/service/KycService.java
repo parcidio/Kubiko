@@ -16,6 +16,8 @@ import com.beeznoo.api.profile.entity.AccountType;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -51,11 +53,18 @@ public class KycService {
     private final StorageService storageService;
     private final NotificationService notificationService;
     private final AuditService auditService;
+    private final boolean kycRequired;
 
     public KycService(KycVerificationRepository verificationRepository, KycDocumentRepository documentRepository,
                       KycDecisionRepository decisionRepository, ProfileRepository profileRepository,
                       StorageService storageService, NotificationService notificationService,
-                      AuditService auditService) {
+                      AuditService auditService,
+                      @Value("${app.kyc.required:true}") boolean kycRequired) {
+        this.kycRequired = kycRequired;
+        if (!kycRequired) {
+            log.warn("KYC desligado (KYC_REQUIRED=false): publicar e pedir reserva não exigem identidade verificada. "
+                    + "Ligar antes do primeiro aluguer real.");
+        }
         this.verificationRepository = verificationRepository;
         this.documentRepository = documentRepository;
         this.decisionRepository = decisionRepository;
@@ -202,11 +211,26 @@ public class KycService {
         return KycStatusResponse.from(verification);
     }
 
-    // Gate de publicar equipamento e pedir reserva (SPEC §7)
+    // Selo "Verificado": KYC aprovado. Não depende do gate (app.kyc.required)
     @Transactional(readOnly = true)
     public boolean isVerified(UUID profileId) {
         // APPROVED impede novas submissões, por isso é sempre a mais recente
         return verificationRepository.existsByProfileIdAndStatus(profileId, KycStatus.APPROVED);
+    }
+
+    // Selo para uma página inteira de itens ou reservas, numa só consulta
+    @Transactional(readOnly = true)
+    public Set<UUID> verifiedAmong(Collection<UUID> profileIds) {
+        if (profileIds.isEmpty()) return Set.of();
+        return new HashSet<>(verificationRepository.findProfileIdsWithStatus(profileIds, KycStatus.APPROVED));
+    }
+
+    // Gate de publicar equipamento e pedir reserva (SPEC §7). Desligável em dev/staging — ver decisoes-produto.md 2026-11-11
+    @Transactional(readOnly = true)
+    public void assertCanTransact(UUID profileId) {
+        if (kycRequired && !isVerified(profileId)) {
+            throw new AccessDeniedException("Verifica a tua identidade antes de continuar");
+        }
     }
 
     private void close(KycVerification verification, Profile admin, KycStatus status) {

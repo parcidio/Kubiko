@@ -166,6 +166,12 @@
 			<!-- ≥ 2.30 calcula checksums por omissão, que o B2 não aceita: B2StorageService usa WHEN_REQUIRED -->
 			<version>2.57.3</version>
 		</dependency>
+		<!-- PDFs do contrato e do comprovativo de pagamento. Apache 2.0 (o iText é AGPL) — decisoes-produto.md 2026-11-11 -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>3.0.5</version>
+		</dependency>
 		<dependency>
 			<groupId>com.twilio.sdk</groupId>
 			<artifactId>twilio</artifactId>

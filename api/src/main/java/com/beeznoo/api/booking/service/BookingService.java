@@ -27,8 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -76,9 +78,7 @@ public class BookingService {
         if (renter.getRole() != UserRole.RENTER && renter.getRole() != UserRole.BOTH) {
             throw new AccessDeniedException("Apenas RENTER ou BOTH podem criar reservas");
         }
-        if (!kycService.isVerified(renterId)) {
-            throw new AccessDeniedException("Verifica a tua identidade antes de continuar");
-        }
+        kycService.assertCanTransact(renterId);
 
         if (!request.endDate().isAfter(request.startDate())) {
             throw new IllegalArgumentException("A data de fim tem de ser posterior à data de início");
@@ -126,12 +126,12 @@ public class BookingService {
 
     @Transactional(readOnly = true)
     public Page<BookingResponse> listAsRenter(UUID renterId, Pageable pageable) {
-        return bookingRepository.findByRenterId(renterId, pageable).map(this::toResponse);
+        return withVerified(bookingRepository.findByRenterId(renterId, pageable));
     }
 
     @Transactional(readOnly = true)
     public Page<BookingResponse> listAsOwner(UUID ownerId, Pageable pageable) {
-        return bookingRepository.findByOwnerId(ownerId, pageable).map(this::toResponse);
+        return withVerified(bookingRepository.findByOwnerId(ownerId, pageable));
     }
 
     public BookingResponse accept(UUID requesterId, UUID bookingId, BookingActionRequest request) {
@@ -275,7 +275,23 @@ public class BookingService {
                 .orElseThrow(() -> new IllegalArgumentException("Reserva não encontrada"));
     }
 
+    // Selo "Verificado" das duas partes para a página inteira, numa só consulta
+    private Page<BookingResponse> withVerified(Page<Booking> page) {
+        Set<UUID> parties = new HashSet<>();
+        page.forEach(b -> {
+            parties.add(b.getRenter().getId());
+            parties.add(b.getOwner().getId());
+        });
+        Set<UUID> verified = kycService.verifiedAmong(parties);
+        return page.map(b -> toResponse(b, verified));
+    }
+
     private BookingResponse toResponse(Booking booking) {
+        return toResponse(booking, kycService.verifiedAmong(
+                List.of(booking.getRenter().getId(), booking.getOwner().getId())));
+    }
+
+    private BookingResponse toResponse(Booking booking, Set<UUID> verified) {
         Item item = booking.getItem();
         String cover = item.getPhotos().isEmpty() ? null : photoUrls.of(item.getPhotos().get(0));
         return new BookingResponse(
@@ -285,8 +301,10 @@ public class BookingService {
                 cover,
                 booking.getRenter().getId(),
                 booking.getRenter().getFullName(),
+                verified.contains(booking.getRenter().getId()),
                 booking.getOwner().getId(),
                 booking.getOwner().getFullName(),
+                verified.contains(booking.getOwner().getId()),
                 booking.getStartDate(),
                 booking.getEndDate(),
                 booking.getTotalPrice(),

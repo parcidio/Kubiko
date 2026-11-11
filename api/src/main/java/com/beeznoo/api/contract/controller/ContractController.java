@@ -1,6 +1,9 @@
 package com.beeznoo.api.contract.controller;
 
 import com.beeznoo.api.contract.dto.ContractDtos.ContractResponse;
+import com.beeznoo.api.common.pdf.PdfResponses;
+import com.beeznoo.api.contract.service.ContractPdfService;
+import com.beeznoo.api.contract.service.ContractPdfService.ContractFile;
 import com.beeznoo.api.contract.service.ContractService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -24,6 +27,32 @@ import java.util.UUID;
 public class ContractController {
 
     private final ContractService contractService;
+    private final ContractPdfService contractPdfService;
+
+    @Operation(
+            summary = "Contrato da reserva em PDF",
+            description = """
+                    O texto congelado do contrato, com versão, SHA-256 e as datas de aceitação de cada parte.
+                    Versões "rascunho" levam marca de água. Arrendatário, dono ou admin.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "PDF", content = @Content(mediaType = "application/pdf")),
+            @ApiResponse(responseCode = "400", description = "Reserva não encontrada",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Não autenticado"),
+            @ApiResponse(responseCode = "403", description = "Não é parte da reserva",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "O dono ainda não aceitou (sem contrato)",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/pdf")
+    public ResponseEntity<byte[]> pdf(
+            @AuthenticationPrincipal UUID profileId,
+            @PathVariable UUID bookingId) {
+        ContractFile file = contractPdfService.pdf(profileId, bookingId);
+        return PdfResponses.attachment(file.fileName(), file.content());
+    }
 
     @Operation(
             summary = "Contrato da reserva",

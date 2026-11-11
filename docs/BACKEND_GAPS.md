@@ -1,6 +1,6 @@
 # O que falta no backend
 
-Levantamento feito a 2026-10-17, ao ligar os ecrãs novos (`docs/ECRAS.md`) à API Spring. **Atualizado a 2026-10-23.**
+Levantamento feito a 2026-10-17, ao ligar os ecrãs novos (`docs/ECRAS.md`) à API Spring. **Atualizado a 2026-11-11.**
 No frontend, cada ponto aparece como aviso **"Falta backend"** (`BackendPending`) no ecrã afetado.
 Prioridade pensada para o objetivo do MVP: **o primeiro aluguer pago e concluído**.
 
@@ -30,7 +30,7 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 | 12 | ✅ | `incident_reports` | `POST /bookings/{id}/incidents` (multipart `type` DAMAGE/LOSS/THEFT/OTHER, `description`, até 6 `photos`) → reserva `DISPUTED`. Admin: `GET /admin/incidents`, `GET …/{id}`, `PATCH …/{id}/resolve` | Reportar problema, Admin › Problemas |
 | 13 | ✅ | Contratos | Gerado quando o dono aceita; `GET /bookings/{id}/contract`, `POST …/contract/accept`. **O arrendatário tem de aceitar antes de gerar a referência.** Texto v1 é rascunho — rever com jurista | Contrato |
 | 14 | ⬜ | Entrega/recolha como campos da reserva (modo, bairro, hora) | Ainda vão dentro de `renterMessage` | Pedido, Reserva |
-| 15 | ⬜ | Selo "Verificado" e dados de confiança do dono no `ItemResponse` | `KycService.isVerified(ownerId)` já existe; falta expor no item | Detalhe, Pedidos recebidos |
+| 15 | ✅ | Selo "Verificado" | `ownerVerified` em `ItemResponse`/`ItemSummaryResponse`; `renterVerified` e `ownerVerified` em `BookingResponse` (só KYC aprovado; não depende de `KYC_REQUIRED`) | Detalhe, Pedidos recebidos |
 | 16 | ⬜ | Telefone/WhatsApp do dono só para as partes de uma reserva aceite | O WhatsApp ainda fala com a equipa (`NEXT_PUBLIC_WHATSAPP_NUMBER`) | Reserva |
 
 ## P2 — melhora a experiência
@@ -40,11 +40,23 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 | 17 | ⬜ | Pesquisa por texto, bairro e preço em `GET /items` (hoje só `categoryId`) | Explorar |
 | 18 | ⬜ | Preço semanal/mensal no item (o SPEC pede a tarifa mais vantajosa) | Publicar, Detalhe, PriceSummary |
 | 19 | ⬜ | Valor declarado (`declared_value`) para calcular a caução no backend | Publicar |
-| 20 | ⬜ | Reativar um item pausado (só existe `deactivate`) | O meu equipamento |
+| 20 | ✅ | Reativar um item pausado: `PATCH /items/{id}/activate` (só `INACTIVE`; `SUSPENDED` é da equipa) | O meu equipamento |
 | 21 | ✅ | Avaliações e destaques | `POST/GET /bookings/{id}/review` (arrendatário, reserva `COMPLETED`, uma vez), `GET /items/{id}/reviews`; `ratingAverage`/`ratingCount`/`completedRentals` nos itens; `GET /items?featured=true`, `?order=POPULAR|RATING`; admin: `PATCH /admin/items/{id}/featured` | Avaliar, Explorar, Detalhe |
 | 22 | ✅ | Notificações | `GET /notifications/me`, `/me/unread-count` (polling ~60 s), `PATCH /{id}/read`, `POST /me/read-all`. Email via Resend depois do commit; sem WebSocket nem SMS | Atividade |
 | 23 | ⬜ | Levantamento do saldo do dono e conta da plataforma para a taxa de 8% | Carteira |
 | 24 | ⬜ | Contadores por estado (`GET /bookings/me/owner?status=…`) | Painel, Pedidos |
+
+## Documentos em PDF (2026-11-11)
+
+| Estado | Endpoint | Quem |
+|---|---|---|
+| ✅ | `GET /payments/{id}/receipt` — comprovativo de pagamento **não fiscal**, nº `CP 2026/000001` (V19), total por extenso | Quem pagou ou admin, só `CONFIRMED` (`receiptNumber` em `PaymentResponse`) |
+| ✅ | `GET /bookings/{id}/contract/pdf` — contrato congelado + aceitações + SHA-256 (marca de água "RASCUNHO" na v1) | Partes da reserva ou admin |
+
+## Gate de KYC desligável (2026-11-11)
+
+`KYC_REQUIRED=false` (omissão atual) deixa publicar, reativar e pedir reserva sem identidade verificada, para testar
+em local e staging. **Em produção: `KYC_REQUIRED=true`.** Ver `claude/decisoes-produto.md`.
 
 ## Mudanças que o frontend tem de acompanhar (2026-10-23)
 
@@ -62,5 +74,4 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 - **Estados da reserva**: o backend é a fonte de verdade; a correspondência com os nomes do SPEC está em `SPEC.md` §7.
 - **Valores monetários**: `NUMERIC(12,2)` no schema vs inteiros em Kz no CLAUDE.md (já registado em `decisoes-produto.md`). A taxa e as retenções de caução são sempre em Kz inteiros.
 - **Nomes de campos**: `PublishItemRequest.itemCondition` vs `UpdateItemRequest.condition`; `PhotoResponse.photUrl` (typo). O frontend adapta-se em `lib/api.ts`.
-- **`ItemResponse.createdAt`** devolve o `updatedAt` (bug em `ItemService.toResponse`).
 - **CORS**: não há config — está bem enquanto o browser passa pelo proxy do Next (`next.config.ts`).

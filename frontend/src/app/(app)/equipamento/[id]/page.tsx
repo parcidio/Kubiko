@@ -6,7 +6,7 @@ import { CalendarDays, ChevronRight, Clock, LayoutGrid, MapPin, MessageCircle, R
 import { categoryIcon } from "@/components/bz/brand";
 import { PriceSummary } from "@/components/bz/booking";
 import { Rail, ReviewsSection } from "@/components/bz/discover";
-import { Avatar, ConditionMeter, ItemPhoto, Stars, formatRating, placeOf } from "@/components/bz/equipment";
+import { Avatar, ConditionMeter, ItemPhoto, Stars, VerifiedBadge, formatRating, placeOf } from "@/components/bz/equipment";
 import { TextField } from "@/components/bz/form";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { StickyCTA } from "@/components/bz/shell";
@@ -160,7 +160,10 @@ export default function EquipamentoPage() {
             <Avatar name={item.ownerName} size="lg" />
             <div className="min-w-0 flex-1">
               <Eyebrow>Dono</Eyebrow>
-              <p className="truncate font-titulo text-lg font-bold text-verde">{item.ownerName}</p>
+              <p className="flex min-w-0 items-center gap-2">
+                <span className="truncate font-titulo text-lg font-bold text-verde">{item.ownerName}</span>
+                {item.ownerVerified && <VerifiedBadge compact />}
+              </p>
               <p className="flex items-center gap-1 text-[13px] text-cinza">
                 <Clock className="size-3.5" strokeWidth={1.8} aria-hidden /> Responde em até 24 h
               </p>
