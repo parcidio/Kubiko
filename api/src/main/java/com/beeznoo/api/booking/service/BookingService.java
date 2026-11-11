@@ -3,6 +3,7 @@ package com.beeznoo.api.booking.service;
 import com.beeznoo.api.booking.dto.BookingDtos.*;
 import com.beeznoo.api.booking.entity.Booking;
 import com.beeznoo.api.booking.entity.BookingStatus;
+import com.beeznoo.api.common.util.Formats;
 import com.beeznoo.api.booking.repository.BookingRepository;
 import com.beeznoo.api.audit.entity.AuditAction;
 import com.beeznoo.api.audit.service.AuditService;
@@ -27,6 +28,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.LocalDate;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+@lombok.extern.slf4j.Slf4j
 @Service
 @Transactional
 public class BookingService {
@@ -53,13 +58,16 @@ public class BookingService {
     private final DepositService depositService;
     private final AuditService auditService;
     private final AvailabilityService availabilityService;
+    private final Duration requestTtl;
 
     public BookingService(BookingRepository bookingRepository, ItemRepository itemRepository,
                           ProfileRepository profileRepository, LedgerService ledgerService,
                           PaymentService paymentService, KycService kycService,
                           NotificationService notificationService, PhotoUrls photoUrls,
                           ContractService contractService, DepositService depositService,
-                          AuditService auditService, AvailabilityService availabilityService) {
+                          AuditService auditService, AvailabilityService availabilityService,
+                          @org.springframework.beans.factory.annotation.Value("${app.bookings.request-ttl:24h}") Duration requestTtl) {
+        this.requestTtl = requestTtl;
         this.availabilityService = availabilityService;
         this.bookingRepository = bookingRepository;
         this.itemRepository = itemRepository;
@@ -144,9 +152,17 @@ public class BookingService {
     }
 
     public BookingResponse accept(UUID requesterId, UUID bookingId, BookingActionRequest request) {
-        Booking booking = findBooking(bookingId);
+        // lock na reserva: o agendador de expiração não a muda a meio
+        Booking booking = findBookingForUpdate(bookingId);
         assertOwner(requesterId, booking);
+        if (booking.getStatus() == BookingStatus.EXPIRED) {
+            throw new IllegalStateException("Este pedido expirou: passou o prazo de resposta");
+        }
         assertStatus(booking, BookingStatus.PENDING_OWNER);
+        // prazo vencido mas o agendador ainda não passou: recusar na mesma (expira na próxima volta)
+        if (isOverdue(booking, OffsetDateTime.now())) {
+            throw new IllegalStateException("Este pedido expirou: passou o prazo de resposta");
+        }
 
         // Lock no item: dois "aceitar" ao mesmo tempo para datas sobrepostas ficam em série
         itemRepository.findByIdForUpdate(booking.getItem().getId());
@@ -170,7 +186,7 @@ public class BookingService {
 
     // Dono recusa/cancela ou arrendatário cancela — decide pela parte que faz o pedido
     public BookingResponse cancel(UUID requesterId, UUID bookingId, BookingActionRequest request) {
-        Booking booking = findBooking(bookingId);
+        Booking booking = findBookingForUpdate(bookingId);
 
         if (isOwner(requesterId, booking)) {
             assertStatus(booking, BookingStatus.PENDING_OWNER, BookingStatus.ACCEPTED);
@@ -281,6 +297,38 @@ public class BookingService {
     private Profile findProfile(UUID profileId) {
         return profileRepository.findById(profileId)
                 .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado"));
+    }
+
+    // ─── Expiração de pedidos sem resposta (gap #11) ───────────────────────
+
+    /** Prazo de resposta: pedido + TTL (24 h) ou o fim do dia de levantamento em Luanda, o que vier primeiro. */
+    boolean isOverdue(Booking b, OffsetDateTime now) {
+        if (b.getStatus() != BookingStatus.PENDING_OWNER) return false;
+        LocalDate today = now.atZoneSameInstant(Formats.LUANDA).toLocalDate();
+        return !b.getCreatedAt().plus(requestTtl).isAfter(now) || b.getStartDate().isBefore(today);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> findOverduePendingIds() {
+        OffsetDateTime now = OffsetDateTime.now();
+        return bookingRepository.findOverduePendingIds(now.minus(requestTtl),
+                now.atZoneSameInstant(Formats.LUANDA).toLocalDate());
+    }
+
+    /** Chamado pelo BookingExpiryScheduler, uma transação por pedido. Volta a verificar com a linha bloqueada. */
+    public void expire(UUID bookingId) {
+        bookingRepository.findByIdForUpdate(bookingId)
+                .filter(b -> isOverdue(b, OffsetDateTime.now()))
+                .ifPresent(b -> {
+                    b.setStatus(BookingStatus.EXPIRED);
+                    notificationService.bookingExpired(b);
+                    log.info("Pedido {} expirado sem resposta do dono", b.getId());
+                });
+    }
+
+    private Booking findBookingForUpdate(UUID bookingId) {
+        return bookingRepository.findByIdForUpdate(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Reserva não encontrada"));
     }
 
     private Booking findBooking(UUID bookingId) {

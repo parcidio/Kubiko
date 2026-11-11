@@ -103,7 +103,8 @@ Timeline visível ao utilizador (6 passos): pedido → aceite → pago → entre
 > `cancelled` = `CANCELLED_RENTER` / `CANCELLED_OWNER` · `accepted` / `payment_pending` = `ACCEPTED` (com contrato gerado e
 > referência por pagar) · `paid` = `ACTIVE` · `in_progress` = `IN_PROGRESS` · `returned` = `RETURNED` · `completed` = `COMPLETED`
 > (caução `RELEASED` ou `WITHHELD`, tabela `deposits`) · problema reportado = `DISPUTED`.
-> Ainda por fazer: `payment_review` / `payment_rejected` (comprovativo) e `expired` (24 h sem resposta do dono).
+> `expired` = `EXPIRED` (2026-11-11): 24 h sem resposta do dono ou o dia de levantamento passou, o que vier primeiro.
+> Ainda por fazer: `payment_review` / `payment_rejected` (comprovativo) e o prazo para pagar depois de aceite.
 > Ver `claude/decisoes-produto.md` (2026-10-23) e `docs/BACKEND_GAPS.md`.
 
 **[EM ABERTO]** prazos: tempo para pagar depois de aceite; política de cancelamento e reembolso.

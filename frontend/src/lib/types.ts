@@ -91,6 +91,7 @@ export type BookingStatus =
   | "ACCEPTED"
   | "CANCELLED_RENTER"
   | "CANCELLED_OWNER"
+  | "EXPIRED"
   | "ACTIVE"
   | "IN_PROGRESS"
   | "RETURNED"

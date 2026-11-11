@@ -33,6 +33,19 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     boolean existsOverlapping(UUID itemId, LocalDate startDate, LocalDate endDate,
                               Collection<BookingStatus> statuses);
 
+    // SELECT ... FOR UPDATE — aceitar, cancelar e expirar o mesmo pedido ficam em série
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.id = :id")
+    java.util.Optional<Booking> findByIdForUpdate(UUID id);
+
+    /** Pedidos por responder cujo prazo passou: pedidos há mais de 24 h ou com o dia de levantamento já passado. */
+    @Query("""
+            SELECT b.id FROM Booking b
+            WHERE b.status = com.beeznoo.api.booking.entity.BookingStatus.PENDING_OWNER
+              AND (b.createdAt <= :createdBefore OR b.startDate < :today)
+            """)
+    List<UUID> findOverduePendingIds(java.time.OffsetDateTime createdBefore, LocalDate today);
+
     /** Reservas [start, end) que ocupam algum dia da janela [from, to] (inclusiva). */
     @Query("""
             SELECT b FROM Booking b

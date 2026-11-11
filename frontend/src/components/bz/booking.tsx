@@ -140,7 +140,7 @@ export function NextStepCard({ step, deadline, amount }: { step: NextStep; deadl
 // ── Timeline de 6 passos (nós em hexágono) ────────────────────────────────
 export function Timeline({ booking }: { booking: Booking }) {
   const done = stepsDone(booking.status);
-  const cancelled = booking.status === "CANCELLED_OWNER" || booking.status === "CANCELLED_RENTER";
+  const cancelled = booking.status === "CANCELLED_OWNER" || booking.status === "CANCELLED_RENTER" || booking.status === "EXPIRED";
   const disputed = booking.status === "DISPUTED";
   return (
     <ol className="grid">

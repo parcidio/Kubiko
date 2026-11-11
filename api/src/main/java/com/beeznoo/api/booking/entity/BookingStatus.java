@@ -5,6 +5,7 @@ public enum BookingStatus {
     ACCEPTED,           // dono aceitou, aguarda pagamento
     CANCELLED_RENTER,   // arrendatário cancelou antes do dono responder
     CANCELLED_OWNER,    // dono recusou ou cancelou após aceitar
+    EXPIRED,            // pedido sem resposta do dono no prazo (24 h ou até ao dia de levantamento) — V22
     ACTIVE,             // pagamento confirmado, à espera da entrega
     IN_PROGRESS,        // entrega confirmada pelas duas partes, equipamento em uso
     RETURNED,           // devolução confirmada, à espera da decisão da caução

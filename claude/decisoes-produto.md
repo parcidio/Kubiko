@@ -414,3 +414,27 @@ quando o pedido falha. A tabela `item_availability` (V2, um registo por dia) nun
    Criar bloqueio, criar reserva e aceitar fazem lock na linha do item, para não se cruzarem.
 6. **Explorar**: `GET /items?startDate&endDate` devolve só equipamento livre nesse período.
 7. `item_availability` migra para `availability_blocks` (um dia = um bloqueio, sem perda) e é removida.
+
+---
+
+## 2026-11-11 — Pedido sem resposta expira (gap #11)
+
+**Contexto.** SPEC §7: `requested → expired` (24 h sem resposta). Hoje um pedido `PENDING_OWNER` fica pendurado para
+sempre: o arrendatário não sabe se deve procurar outro equipamento e o frontend mostra um prazo que ninguém aplica.
+
+**Hipótese.** Um prazo real faz os donos responderem mais depressa e liberta o arrendatário para outra opção.
+**Critério de sucesso:** tempo mediano até resposta < 6 h; < 20% dos pedidos expiram (a medir no 1.º mês).
+
+**Decisões (equipa, nesta data — ⚑ validar com o André):**
+
+1. **Estado novo `EXPIRED`** (V22), em vez de reutilizar `CANCELLED_OWNER`: "recusado" e "não respondeu" contam
+   coisas diferentes ao arrendatário e à métrica de resposta.
+2. **Prazo**: 24 h desde o pedido (`app.bookings.request-ttl`, configurável) **ou** o fim do dia de levantamento
+   (hora de Luanda), o que vier primeiro — um pedido não fica à espera depois de o aluguer começar.
+3. **`BookingExpiryScheduler`** a cada minuto, uma transação por pedido (como o dos pagamentos).
+4. **Corrida com o aceitar**: lock na linha da reserva no agendador, no aceitar e no cancelar. Depois do prazo, o
+   aceitar recusa ("O pedido expirou") mesmo que o agendador ainda não tenha passado — e marca-o `EXPIRED`.
+5. **Avisos** (`BOOKING_EXPIRED`): ao arrendatário ("o dono não respondeu a tempo", com atalho para Explorar) e ao dono
+   ("o pedido expirou"). Sem auditoria: é uma transição automática sem decisão humana; fica no log.
+6. **Fora deste ponto:** prazo para pagar depois de aceite (`ACCEPTED` sem pagamento) — depende da política de
+   pagamentos (SPEC §12.3), que está fora desta ronda.

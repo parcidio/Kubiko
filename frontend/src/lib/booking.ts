@@ -12,6 +12,7 @@ export const BOOKING_LABEL: Record<BookingStatus, { label: string; tone: Tone }>
   COMPLETED: { label: "Concluída", tone: "neutro" },
   CANCELLED_RENTER: { label: "Cancelada", tone: "neutro" },
   CANCELLED_OWNER: { label: "Recusada", tone: "erro" },
+  EXPIRED: { label: "Sem resposta", tone: "neutro" },
   DISPUTED: { label: "Problema em análise", tone: "erro" },
 };
 
@@ -35,6 +36,7 @@ export function stepsDone(status: BookingStatus) {
     case "PENDING_OWNER":
     case "CANCELLED_RENTER":
     case "CANCELLED_OWNER":
+    case "EXPIRED":
       return 1;
     case "ACCEPTED":
       return 2;
@@ -57,9 +59,17 @@ export function bookingCode(id: string) {
 
 const DAY = 86_400_000;
 
-/** Prazo do passo atual. O backend ainda não expira pedidos (ver BACKEND_GAPS): calculamos as 24 h no frontend. */
+/**
+ * Prazo do passo atual. Pedido: o mesmo que a API aplica (gap #11) — 24 h desde o pedido ou o fim do dia de
+ * levantamento, o que vier primeiro. Depois disso o pedido passa a EXPIRED.
+ */
 export function deadlineOf(b: Booking, payment?: Payment | null): Date | null {
-  if (b.status === "PENDING_OWNER") return new Date(new Date(b.createdAt).getTime() + DAY);
+  if (b.status === "PENDING_OWNER") {
+    const in24h = new Date(new Date(b.createdAt).getTime() + DAY);
+    const [y, m, d] = b.startDate.slice(0, 10).split("-").map(Number);
+    const endOfPickupDay = new Date(y, m - 1, d, 23, 59);
+    return in24h < endOfPickupDay ? in24h : endOfPickupDay;
+  }
   if (b.status === "ACCEPTED") {
     if (payment?.status === "AWAITING_PAYMENT") return new Date(payment.expiresAt);
     return new Date(new Date(b.updatedAt).getTime() + DAY);
@@ -127,6 +137,10 @@ export function nextStep(b: Booking, as: Perspective): NextStep {
         : { who: "done", title: "Recusaste este pedido", text: "As datas ficaram livres." };
     case "CANCELLED_RENTER":
       return { who: "done", title: "Pedido cancelado", text: "Não houve qualquer pagamento." };
+    case "EXPIRED":
+      return as === "renter"
+        ? { who: "done", title: "O dono não respondeu a tempo", text: "O pedido expirou e não pagaste nada. Há outro equipamento parecido à tua espera.", cta: { label: "Explorar", href: "/explorar" } }
+        : { who: "done", title: "Pedido expirado", text: "Passou o prazo sem resposta e as datas ficaram livres. Responder depressa ajuda-te a alugar mais." };
   }
 }
 

@@ -73,6 +73,20 @@ public class NotificationService {
                 "Pagar reserva", "/reservas/" + b.getId() + "/pagar");
     }
 
+    public void bookingExpired(Booking b) {
+        notify(b.getRenter(), NotificationType.BOOKING_EXPIRED, b,
+                b.getItem().getTitle() + ": o dono não respondeu a tempo",
+                List.of("O pedido para " + period(b) + " expirou sem resposta. Não pagaste nada.",
+                        "Há outro equipamento parecido à tua espera."),
+                "Explorar equipamento", "/explorar");
+        notify(b.getOwner(), NotificationType.BOOKING_EXPIRED, b,
+                b.getItem().getTitle() + ": pedido expirado",
+                List.of("O pedido de " + b.getRenter().getFullName() + " para " + period(b)
+                                + " expirou porque não foi respondido a tempo.",
+                        "Responder depressa ajuda-te a alugar mais: quem pede costuma escolher o primeiro dono que aceita."),
+                "Ver pedidos", "/pedidos");
+    }
+
     public void bookingRejected(Booking b) {
         List<String> lines = new ArrayList<>();
         lines.add(b.getOwner().getFullName() + " não pode aceitar o teu pedido para " + period(b) + ". Não pagaste nada.");

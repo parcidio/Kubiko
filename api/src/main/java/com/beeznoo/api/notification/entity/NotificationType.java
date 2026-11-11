@@ -5,6 +5,7 @@ public enum NotificationType {
     BOOKING_ACCEPTED,            // → arrendatário
     BOOKING_REJECTED,            // → arrendatário: dono recusou um pedido PENDING_OWNER
     BOOKING_CANCELLED,           // → a outra parte
+    BOOKING_EXPIRED,             // → arrendatário e dono: pedido sem resposta no prazo (V22)
     PAYMENT_CONFIRMED,           // → arrendatário e dono
     PAYMENT_AWAITING_VALIDATION, // → admins: "Já paguei" sem confirmação do gateway
     KYC_SUBMITTED,               // → admins
