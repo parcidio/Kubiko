@@ -118,7 +118,9 @@ public class BookingService {
     @Transactional(readOnly = true)
     public BookingResponse getById(UUID requesterId, UUID bookingId) {
         Booking booking = findBooking(bookingId);
-        if (!isRenter(requesterId, booking) && !isOwner(requesterId, booking)) {
+        // admin: detalhe para as filas e a auditoria (dados da reserva, sem documentos — esses são auditados à parte)
+        if (!isRenter(requesterId, booking) && !isOwner(requesterId, booking)
+                && findProfile(requesterId).getRole() != UserRole.ADMIN) {
             throw new AccessDeniedException("Sem permissão para ver esta reserva");
         }
         return toResponse(booking);

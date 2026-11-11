@@ -1,7 +1,8 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AuditLog, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Item, ItemCondition, ItemOrder,
-  ItemSummary, LedgerEntry, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
+  Account, AdminPayment, AuditLog, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Deposit, Incident,
+  IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, LedgerEntry, Page, Payment, Review, SecurityEvent,
+  SecuritySeverity, UserRole,
 } from "./types";
 
 export class ApiError extends Error {
@@ -210,8 +211,21 @@ export const walletApi = {
 
 /** Ações de admin que já existem (sem listagens — ver docs/BACKEND_GAPS.md). */
 export const adminApi = {
-  confirmPayment: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/confirm-payment`),
+  // Motivo fica em audit_logs
+  confirmPayment: (bookingId: string, reason?: string) => patch<Booking>(`/bookings/${bookingId}/confirm-payment`, { reason }),
   complete: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/complete`),
+  // Filas: mais antigo primeiro
+  payments: (page = 0, size = 50) => request<Page<AdminPayment>>(`/admin/payments?status=AWAITING_PAYMENT&page=${page}&size=${size}`),
+  // Só a contagem (o ecrã de verificações ainda não está ligado)
+  kycQueue: (page = 0, size = 50) => request<Page<unknown>>(`/admin/kyc?page=${page}&size=${size}`),
+  deposits: (page = 0, size = 50) => request<Page<Deposit>>(`/admin/deposits?page=${page}&size=${size}`),
+  incidents: (page = 0, size = 50) => request<Page<Incident>>(`/admin/incidents?page=${page}&size=${size}`),
+  incident: (id: string) => request<Incident>(`/admin/incidents/${id}`),
+  // Libertar = tudo volta ao arrendatário; reter = `amount` (Kz inteiros) fica para o dono, o resto volta
+  releaseDeposit: (bookingId: string, reason?: string) => post<Deposit>(`/admin/deposits/${bookingId}/release`, { reason }),
+  withholdDeposit: (bookingId: string, amount: number, reason: string) =>
+    post<Deposit>(`/admin/deposits/${bookingId}/withhold`, { amount, reason }),
+  resolveIncident: (id: string, note: string) => patch<Incident>(`/admin/incidents/${id}/resolve`, { note }),
   setFeatured: (itemId: string, featured: boolean) => patch<Item>(`/admin/items/${itemId}/featured`, { featured }),
   // Auditoria: mais recente primeiro. Filtros opcionais e combináveis
   auditLogs: (f: { entityType?: string; entityId?: string; action?: string; actorId?: string; page?: number }) => {
@@ -234,6 +248,18 @@ export const contractApi = {
   // 409 enquanto o dono não aceitou o pedido (ainda não há contrato)
   get: (bookingId: string) => request<Contract>(`/bookings/${bookingId}/contract`),
   accept: (bookingId: string) => post<Contract>(`/bookings/${bookingId}/contract/accept`),
+};
+
+/** Reportar problema: tipo, descrição e até 6 fotos. A reserva passa a DISPUTED e a equipa é avisada. */
+export const incidentApi = {
+  list: (bookingId: string) => request<Incident[]>(`/bookings/${bookingId}/incidents`),
+  report: (bookingId: string, type: IncidentType, description: string, photos: Blob[]) => {
+    const form = new FormData();
+    form.append("type", type);
+    form.append("description", description);
+    photos.forEach((p, i) => form.append("photos", p, `foto-${i + 1}.jpg`));
+    return upload<Incident>(`/bookings/${bookingId}/incidents`, form);
+  },
 };
 
 const CHECKLIST_PATH: Record<ChecklistType, string> = { DELIVERY: "delivery", RETURN: "return" };

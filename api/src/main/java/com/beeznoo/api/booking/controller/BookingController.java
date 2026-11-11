@@ -106,14 +106,14 @@ public class BookingController {
             summary = "Detalhe de uma reserva",
             description = """
                     Devolve o detalhe da reserva, com resumo do item e nomes das partes.
-                    Apenas o arrendatário ou o dono envolvidos podem consultar.
+                    O arrendatário e o dono envolvidos, ou um admin (filas e auditoria).
                     """
     )
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Reserva encontrada",
                     content = @Content(schema = @Schema(implementation = BookingResponse.class))),
             @ApiResponse(responseCode = "401", description = "Não autenticado"),
-            @ApiResponse(responseCode = "403", description = "Perfil não é parte da reserva",
+            @ApiResponse(responseCode = "403", description = "Perfil não é parte da reserva nem admin",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Reserva não encontrada",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -173,7 +173,7 @@ public class BookingController {
             @ApiResponse(responseCode = "400", description = "Dados inválidos",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "Não autenticado"),
-            @ApiResponse(responseCode = "403", description = "Perfil não é parte da reserva",
+            @ApiResponse(responseCode = "403", description = "Perfil não é parte da reserva nem admin",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Reserva não encontrada",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -255,7 +255,7 @@ public class BookingController {
             @ApiResponse(responseCode = "200", description = "Disputa aberta",
                     content = @Content(schema = @Schema(implementation = BookingResponse.class))),
             @ApiResponse(responseCode = "401", description = "Não autenticado"),
-            @ApiResponse(responseCode = "403", description = "Perfil não é parte da reserva",
+            @ApiResponse(responseCode = "403", description = "Perfil não é parte da reserva nem admin",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "Reserva não encontrada",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),

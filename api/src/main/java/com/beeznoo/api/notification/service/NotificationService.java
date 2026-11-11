@@ -182,6 +182,24 @@ public class NotificationService {
                     List.of(reporter.getFullName() + " reportou " + typeLabel + " (reserva de " + period(b) + ")."),
                     "Abrir problemas", "/admin/problemas");
         }
+        // a outra parte também tem de saber: a reserva ficou em análise
+        Profile other = b.getRenter().getId().equals(reporter.getId()) ? b.getOwner() : b.getRenter();
+        notify(other, NotificationType.INCIDENT_REPORTED, b,
+                b.getItem().getTitle() + ": problema reportado",
+                List.of(reporter.getFullName() + " reportou " + typeLabel + " nesta reserva.",
+                        "A equipa Beeznoo vai analisar com base nas fotos da entrega e da devolução. "
+                                + "Se tens algo a acrescentar, fala connosco."),
+                "Ver reserva", "/reservas/" + b.getId());
+    }
+
+    public void incidentResolved(Booking b, String typeLabel, String note) {
+        for (Profile party : List.of(b.getRenter(), b.getOwner())) {
+            notify(party, NotificationType.INCIDENT_RESOLVED, b,
+                    b.getItem().getTitle() + ": problema analisado",
+                    List.of("A equipa concluiu a análise do problema (" + typeLabel + ").", "Nota da equipa: " + note,
+                            "A decisão sobre a caução chega numa notificação à parte."),
+                    "Ver reserva", "/reservas/" + b.getId());
+        }
     }
 
     // Sem detalhes pessoais: o admin vê o resto em /admin/security-events

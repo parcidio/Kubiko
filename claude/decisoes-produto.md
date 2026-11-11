@@ -359,3 +359,23 @@ não tinha ecrã para o ler.
 
 **Em aberto.** O admin ainda não consegue abrir uma reserva pelo id (`GET /bookings/{id}` é só das partes) — a
 auditoria mostra o código mas não liga ao detalhe. Retenção dos registos de auditoria (hoje: para sempre).
+
+---
+
+## 2026-11-11 (fim do dia) — Filas de admin ligadas; avisos de problemas às duas partes
+
+**Contexto.** As filas de cauções e problemas só tinham "ação por ID". O reporte de problema mandava a descrição e as
+fotos pelo WhatsApp, apesar de a API já as receber. Quem não reportou o problema não era avisado de que a reserva
+ficou em disputa, e ninguém era avisado da resolução.
+
+**Decisões (equipa, nesta data — ⚑ validar com o André):**
+
+1. **Reportar problema avisa a outra parte** (mesmo tipo `INCIDENT_REPORTED`, link para a reserva). Transparência:
+   a outra parte pode acrescentar a sua versão à equipa.
+2. **Resolver um problema avisa as duas partes com a nota da equipa** (`INCIDENT_RESOLVED`, V20). A nota passa a ser
+   escrita a pensar nas partes; o ecrã diz isso ao admin. A caução continua a ser uma decisão à parte.
+3. **O admin pode abrir qualquer reserva** (`GET /bookings/{id}`), sem auditoria por leitura: tem nomes e valores,
+   não documentos. Contrato e comprovativo continuam auditados quando abertos por admin.
+4. **Toda a decisão de admin no ecrã pede motivo** (mínimo 5 caracteres), mesmo onde a API o aceita como opcional
+   (libertar caução, validar pagamento): fica em `audit_logs`.
+5. Cauções: o ecrã avisa quando há problemas por resolver na reserva, mas não bloqueia a decisão (a API também não).

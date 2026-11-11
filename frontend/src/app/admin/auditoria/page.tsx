@@ -2,7 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ScrollText, ShieldAlert, X } from "lucide-react";
+import Link from "next/link";
+import { ExternalLink, ScrollText, ShieldAlert, X } from "lucide-react";
 import { AdminHeader } from "@/components/bz/admin";
 import { SelectField, TextField } from "@/components/bz/form";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/bz/states";
@@ -171,6 +172,15 @@ function AuditTab() {
                 <span className="text-[13px] text-cinza">{ENTITY_LABEL[a.entityType] ?? a.entityType}</span>{" "}
                 <span className="num font-bold text-verde">{a.entityType === "BOOKING" ? bookingCode(a.entityId) : a.entityId.slice(0, 8)}</span>
               </button>
+              {(a.entityType === "BOOKING" || a.entityType === "INCIDENT") && (
+                <Link
+                  href={a.entityType === "BOOKING" ? `/admin/reservas/${a.entityId}` : `/admin/problemas?id=${a.entityId}`}
+                  aria-label="Abrir"
+                  className="ml-1 inline-flex size-8 items-center justify-center rounded-full align-middle text-mel-texto hover:bg-areia"
+                >
+                  <ExternalLink className="size-4" strokeWidth={1.8} />
+                </Link>
+              )}
             </td>
             <td className="px-4 py-3 text-[13px]">
               {a.reason && <p className="text-texto-corpo">{a.reason}</p>}

@@ -41,12 +41,13 @@ O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próxi
 | `/equipamentos/[id]` | Gerir equipamento (fotos, editar, pausar/reativar, eliminar, datas) | Dono | Parcial (sem datas) | B | 🟡 sem datas (#8) |
 | `/carteira` | Carteira e movimentos | Dono | Ligado (sem levantamentos) | B | 🟡 sem levantamentos (#23) |
 | `/reservas/[id]/checklist` | Checklist com fotos (câmara): uma parte regista, a outra confirma ou reporta problema | Ambos | Ligado | B | ✅ `/bookings/{id}/checklists` |
-| `/reservas/[id]/problema` | Reportar problema | Ambos | Parcial (estado + WhatsApp) | B | ✅ `/bookings/{id}/incidents` |
-| `/admin` | Visão geral das filas | Admin | UI | B | ✅ filas de admin |
-| `/admin/pagamentos` | Validar pagamento | Admin | Parcial (ação por ID) | B | ✅ `/admin/payments` (comprovativo ⬜) |
-| `/admin/caucoes` | Libertar caução | Admin | Parcial (ação por ID) | B | ✅ `/admin/deposits` |
+| `/reservas/[id]/problema` | Reportar problema (tipo, descrição, até 6 fotos) | Ambos | Ligado | B | ✅ `/bookings/{id}/incidents` |
+| `/admin` | Visão geral: contadores das 4 filas + auditoria | Admin | Ligado | B | ✅ |
+| `/admin/pagamentos` | Referências em aberto → validar com motivo | Admin | Ligado (sem comprovativo) | B | ✅ `/admin/payments` (comprovativo ⬜ #5) |
+| `/admin/caucoes` | Fila + entrega/devolução lado a lado + libertar/reter (parcial ou total) com motivo | Admin | Ligado | B | ✅ `/admin/deposits` |
 | `/admin/verificacoes` | Verificações | Admin | UI | B | ✅ `/admin/kyc` |
-| `/admin/problemas` | Problemas | Admin | UI | B | ✅ `/admin/incidents` |
+| `/admin/problemas` | Fila + descrição, fotos e provas + resolver com nota (vai às partes) | Admin | Ligado | B | ✅ `/admin/incidents` |
+| `/admin/reservas/[id]` | Reserva vista pela equipa: partes, valores, provas, contrato, rasto de auditoria | Admin | Ligado | B | ✅ `GET /bookings/{id}` (admin) |
 | `/admin/auditoria` | Auditoria (filtros por ação, entidade, autor) e eventos de segurança | Admin | Ligado | B | ✅ `/admin/audit-logs`, `/admin/security-events` |
 | 404 / erro | `not-found.tsx`, `error.tsx` | Todos | — | A | — |
 

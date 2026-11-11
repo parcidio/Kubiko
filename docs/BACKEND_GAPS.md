@@ -59,6 +59,15 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 `CONTRACT_ACCEPTED`, `HANDOVER_REGISTERED`, `HANDOVER_CONFIRMED` (feitas pelas partes) e `CONTRACT_VIEWED`,
 `RECEIPT_VIEWED` (documentos abertos por um admin). Ecrã: `/admin/auditoria`.
 
+## Filas de admin e problemas (2026-11-11)
+
+- `GET /bookings/{id}` aceita também ADMIN (detalhe a partir das filas e da auditoria).
+- Reportar problema avisa também **a outra parte** (`INCIDENT_REPORTED`); resolver avisa **as duas partes** com a
+  nota da equipa (`INCIDENT_RESOLVED`, migração V20).
+- Frontend: `/admin/pagamentos`, `/admin/caucoes`, `/admin/problemas`, `/admin/reservas/[id]` e contadores em `/admin`.
+- Falta: o admin não vê o pagamento de uma reserva (`/bookings/{id}/payments/current` é só das partes) nem descarrega
+  o comprovativo a partir do detalhe da reserva (só pelo id do pagamento).
+
 ## Gate de KYC desligável (2026-11-11)
 
 Por omissão o gate está **ligado**. `KYC_REQUIRED=false` (no `.env` local e no staging) deixa publicar, reativar e

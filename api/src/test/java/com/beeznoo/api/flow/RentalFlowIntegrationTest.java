@@ -268,6 +268,25 @@ class RentalFlowIntegrationTest {
         assertThat(actions(bookingId)).contains(com.beeznoo.api.audit.entity.AuditAction.RECEIPT_VIEWED);
     }
 
+    @Test
+    void filasDeAdmin_paginadas_comoNoEcra() {
+        UUID bookingId = paidBooking();
+        deliverAndReturn(bookingId);
+        // o ecrã pede páginas (com contagem), não Pageable.unpaged()
+        var deposits = depositService.queue(org.springframework.data.domain.PageRequest.of(0, 20));
+        assertThat(deposits.getTotalElements()).isPositive();
+        assertThat(deposits.getContent()).extracting(d -> d.bookingId()).contains(bookingId);
+        assertThat(incidentService.queue(org.springframework.data.domain.PageRequest.of(0, 20))).isNotNull();
+
+        // o admin abre a reserva a partir da fila; um estranho não
+        assertThat(bookingService.getById(admin.getId(), bookingId).id()).isEqualTo(bookingId);
+        Profile stranger = profile("Curioso 2", UserRole.RENTER, null);
+        assertThatThrownBy(() -> bookingService.getById(stranger.getId(), bookingId))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        assertThat(paymentService.adminQueue(com.beeznoo.api.transaction.entity.PaymentStatus.AWAITING_PAYMENT,
+                org.springframework.data.domain.PageRequest.of(0, 20))).isNotNull();
+    }
+
     private String bearer(Profile p) {
         return "Bearer " + jwtService.generateAccessToken(p.getId(), p.getRole().name());
     }
@@ -369,6 +388,11 @@ class RentalFlowIntegrationTest {
         assertThat(incident.photos()).hasSize(1);
         assertThat(notificationRepository.findTop50ByProfileIdOrderByCreatedAtDesc(admin.getId()))
                 .extracting(n -> n.getType()).contains(NotificationType.INCIDENT_REPORTED);
+        // o dono reportou: o arrendatário também é avisado (e quem reportou não)
+        assertThat(notificationRepository.findTop50ByProfileIdOrderByCreatedAtDesc(renter.getId()))
+                .extracting(n -> n.getType()).contains(NotificationType.INCIDENT_REPORTED);
+        assertThat(notificationRepository.findTop50ByProfileIdOrderByCreatedAtDesc(owner.getId()))
+                .extracting(n -> n.getType()).doesNotContain(NotificationType.INCIDENT_REPORTED);
         assertThat(incidentService.queue(Pageable.unpaged()).map(i -> i.id()).toList()).contains(incident.id());
 
         Profile stranger = profile("Outra Pessoa", UserRole.RENTER, null);
@@ -377,6 +401,10 @@ class RentalFlowIntegrationTest {
 
         var resolved = incidentService.resolve(admin.getId(), incident.id(), "Dono compensado com a caução");
         assertThat(resolved.status()).isEqualTo("RESOLVED");
+        for (Profile party : List.of(renter, owner)) {
+            assertThat(notificationRepository.findTop50ByProfileIdOrderByCreatedAtDesc(party.getId()))
+                    .extracting(n -> n.getType()).contains(NotificationType.INCIDENT_RESOLVED);
+        }
         assertThat(auditLogRepository.findByEntityIdOrderByCreatedAtAsc(incident.id()))
                 .extracting(a -> a.getAction()).containsExactly(AuditAction.INCIDENT_RESOLVED);
 

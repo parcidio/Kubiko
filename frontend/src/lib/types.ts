@@ -151,6 +151,58 @@ export interface Checklist {
   createdAt: string;
 }
 
+/** Caução de uma reserva (fila do admin: HELD em reservas RETURNED ou DISPUTED, mais antiga primeiro). */
+export interface Deposit {
+  id: string;
+  bookingId: string;
+  itemTitle: string;
+  renterName: string;
+  ownerName: string;
+  bookingStatus: BookingStatus;
+  amount: number;
+  status: "HELD" | "RELEASED" | "WITHHELD";
+  /** Quanto ficou para o dono (0 se libertada) */
+  withheldAmount: number | null;
+  reason: string | null;
+  heldAt: string;
+  decidedAt: string | null;
+}
+
+export type IncidentType = "DAMAGE" | "LOSS" | "THEFT" | "OTHER";
+
+/** Problema reportado. URLs das fotos expiram em photosExpireAt (10 min). */
+export interface Incident {
+  id: string;
+  bookingId: string;
+  itemTitle: string;
+  bookingStatus: BookingStatus;
+  reporterId: string;
+  reporterName: string;
+  type: IncidentType;
+  description: string;
+  status: "OPEN" | "RESOLVED";
+  resolutionNote: string | null;
+  resolvedAt: string | null;
+  photos: { id: string; url: string; position: number }[];
+  photosExpireAt: string;
+  createdAt: string;
+}
+
+/** Linha da fila de pagamentos do admin. */
+export interface AdminPayment {
+  id: string;
+  bookingId: string;
+  itemTitle: string;
+  renterId: string;
+  renterName: string;
+  entity: string | null;
+  reference: string | null;
+  amount: number;
+  status: PaymentStatus;
+  expiresAt: string;
+  createdAt: string;
+}
+
 export interface AuditLog {
   id: string;
   actorId: string | null;
