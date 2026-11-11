@@ -1,5 +1,6 @@
 package com.beeznoo.api.auth.service;
 
+import com.beeznoo.api.common.util.Emails;
 import com.beeznoo.api.auth.dto.AuthDtos.*;
 import com.beeznoo.api.auth.entity.GooglePendingSignup;
 import com.beeznoo.api.auth.entity.OAuthLoginCode;
@@ -79,16 +80,17 @@ public class AuthService {
         assertSelfServiceRole(request.role());
         passwordPolicy.validate(request.password(), request.phone(), request.fullName());
         if (profileRepository.existsByPhone(request.phone())) {
-            throw new IllegalArgumentException("Ester número já está registado.");
+            throw new IllegalArgumentException("Este número já está registado.");
         }
-        if (request.email() != null && profileRepository.existsByEmail(request.email())) {
-            throw  new IllegalArgumentException("Este email já está em uso.");
+        String email = Emails.normalize(request.email());
+        if (email != null && profileRepository.existsByEmailIgnoreCase(email)) {
+            throw new IllegalArgumentException("Este email já está em uso.");
         }
 
         Profile profile = Profile.builder()
                 .fullName(request.fullName())
                 .phone(request.phone())
-                .email(request.email())
+                .email(email)
                 .passwordHash(encoder.encode(request.password()))
                 .role(request.role())
                 .isVerified(false)
@@ -121,7 +123,8 @@ public class AuthService {
             throw new IllegalArgumentException("Número de telefone ou email é obrigatório.");
         }
 
-        String identifier = request.phone() != null ? request.phone().strip() : request.email().strip().toLowerCase();
+        String identifier = request.phone() != null ? request.phone().strip() : Emails.normalize(request.email());
+        if (identifier == null) throw new IllegalArgumentException("Número de telefone ou email é obrigatório.");
         try {
             rateLimiter.check("login-id:" + identifier, LOGIN_ATTEMPTS, LOGIN_WINDOW,
                     "Demasiadas tentativas de entrar com esta conta. Tenta daqui a 15 minutos ou recupera a password.");
@@ -132,7 +135,7 @@ public class AuthService {
 
         var found = request.phone() != null
                 ? profileRepository.findByPhone(request.phone())
-                : profileRepository.findByEmail(request.email());
+                : profileRepository.findByEmailIgnoreCase(identifier);
 
         // Compara sempre um hash (real ou fictício): mesma resposta e mesmo tempo com ou sem conta
         String hash = found.map(Profile::getPasswordHash).filter(h -> !h.isBlank()).orElse(dummyHash);
@@ -197,7 +200,9 @@ public class AuthService {
         GooglePendingSignup pending = findValidPendingSignup(request.pendingToken());
 
         if (profileRepository.existsByPhone(request.phone())) {
-            throw new IllegalArgumentException("Ester número já está registado.");
+            // beco sem saída antigo: quem já tem conta associa o Google em Conta, com a sessão iniciada
+            throw new IllegalArgumentException(
+                    "Este número já tem conta na Beeznoo. Entra com o telefone e associa o Google em Conta.");
         }
 
         pending.setPhone(request.phone());
@@ -220,11 +225,17 @@ public class AuthService {
         if (profileRepository.existsByGoogleId(pending.getGoogleId())) {
             throw new IllegalStateException("Esta conta Google já está associada a outro perfil.");
         }
+        // o email do Google pode já existir noutra conta com maiúsculas diferentes: não duplicar contas
+        String googleEmail = Emails.normalize(pending.getEmail());
+        if (googleEmail != null && profileRepository.existsByEmailIgnoreCase(googleEmail)) {
+            throw new IllegalStateException(
+                    "Este email já tem conta na Beeznoo. Entra com o telefone e associa o Google em Conta.");
+        }
 
         Profile profile = Profile.builder()
                 .fullName(pending.getFullName() != null ? pending.getFullName() : "Utilizador Beeznoo")
                 .phone(pending.getPhone())
-                .email(pending.getEmail())
+                .email(googleEmail)
                 .passwordHash("")
                 .googleId(pending.getGoogleId())
                 .avatarUrl(pending.getAvatarUrl())

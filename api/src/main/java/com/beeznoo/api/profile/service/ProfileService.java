@@ -1,5 +1,6 @@
 package com.beeznoo.api.profile.service;
 
+import com.beeznoo.api.common.util.Emails;
 import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.profile.dto.CreateProfileRequest;
 import com.beeznoo.api.profile.dto.MeDtos.MeResponse;
@@ -38,12 +39,12 @@ public class ProfileService {
             profile.setFullName(request.fullName().strip());
         }
         if (request.email() != null) {
-            String email = request.email().strip().toLowerCase();
-            if (email.isEmpty()) {
+            String email = Emails.normalize(request.email());
+            if (email == null) {
                 profile.setEmail(null);
                 profile.setEmailVerifiedAt(null);
             } else if (!email.equalsIgnoreCase(profile.getEmail())) {
-                if (profileRepository.existsByEmail(email)) {
+                if (profileRepository.existsByEmailIgnoreCase(email)) {
                     throw new IllegalStateException("Este email já está associado a outra conta");
                 }
                 profile.setEmail(email);
@@ -79,7 +80,7 @@ public class ProfileService {
         Profile profile = Profile.builder()
                 .phone(request.phone())
                 .fullName(request.fullName())
-                .email(request.email())
+                .email(Emails.normalize(request.email()))
                 .role(request.role())
                 .passwordHash("")
                 .build();

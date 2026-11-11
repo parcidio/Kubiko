@@ -438,3 +438,32 @@ sempre: o arrendatário não sabe se deve procurar outro equipamento e o fronten
    ("o pedido expirou"). Sem auditoria: é uma transição automática sem decisão humana; fica no log.
 6. **Fora deste ponto:** prazo para pagar depois de aceite (`ACCEPTED` sem pagamento) — depende da política de
    pagamentos (SPEC §12.3), que está fora desta ronda.
+
+---
+
+## 2026-11-11 — Associar Google a uma conta existente; emails sem diferença de maiúsculas
+
+**Contexto.** Quem já tem conta (telefone + password) e carrega em "Entrar com Google" com o mesmo email recebe
+`email_in_use`: por segurança (decisão de 2026-10-23), só associamos automaticamente com o email **verificado** na
+Beeznoo. Mas a verificação de email manda o código por email, que está desligado (Resend por configurar), e o ecrã
+Conta nem a oferece — beco sem saída. Além disso os emails comparam-se com maiúsculas/minúsculas: o registo e o login
+guardam/procuram o email tal como foi escrito, e o Google devolve sempre minúsculas.
+
+**Decisões (equipa, nesta data — ⚑ validar com o André):**
+
+1. **Associar Google com sessão iniciada** (a "história própria" prevista em 2026-10-23 #5): em Conta, "Associar
+   conta Google" → `POST /auth/google/link` (autenticado) guarda a intenção **na sessão HTTP do fluxo OAuth2** (cookie
+   `httpOnly`, `SameSite=Lax`, 10 min) e o browser segue para o Google. No regresso, a conta Google fica associada
+   ao perfil da sessão. A sessão Beeznoo prova a posse da conta; o Google prova a posse da conta Google. **Sem token
+   no URL** e sem depender de envio de emails.
+   - Conta Google já associada a outro perfil → recusa (`link_conflict`). Perfil já com outra conta Google → recusa.
+   - Se o email do Google (verificado pelo Google) for o email do perfil, o email fica **verificado** na Beeznoo.
+   - Evento de segurança `GOOGLE_LINKED` (como na associação automática).
+2. **Emails normalizados** (minúsculas, sem espaços) em todas as entradas — registo, login, perfil, Google — e
+   procurados sem diferença de maiúsculas. V23 normaliza os emails existentes (só quando não colide com outra conta)
+   e cria índice em `lower(email)`.
+3. O ecrã `email_in_use` passa a explicar o caminho: entrar com telefone e associar o Google em Conta.
+
+**Fora do código.** `redirect_uri_mismatch` é configuração do cliente OAuth na Google Cloud: o URI exato de cada
+ambiente tem de estar em "URIs de redirecionamento autorizados". Hoje staging e produção usam o **mesmo** cliente
+(`107243221268…`), ao contrário da decisão de 2026-11-05 (um cliente por ambiente).

@@ -121,6 +121,25 @@ export interface Booking {
   updatedAt: string;
 }
 
+/** Perfil da pessoa autenticada (GET /profiles/me). phoneVerified ≠ identityVerified (KYC). */
+export interface Me {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  emailVerified: boolean;
+  googleLinked: boolean;
+  avatarUrl: string | null;
+  province: string | null;
+  city: string | null;
+  role: UserRole;
+  accountType: "INDIVIDUAL" | "BUSINESS";
+  phoneVerified: boolean;
+  identityVerified: boolean;
+  kycStatus: string | null;
+  createdAt: string;
+}
+
 /** Dias indisponíveis, INCLUSIVOS (start <= dia <= end). BOOKED = reserva aceite/em curso; BLOCKED = o dono bloqueou. */
 export interface UnavailableRange {
   start: string;

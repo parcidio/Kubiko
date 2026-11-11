@@ -1,6 +1,6 @@
 # Modelo de dados — schema atual
 
-Gerado a partir das migrações Flyway **V1–V22** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-11.
+Gerado a partir das migrações Flyway **V1–V23** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-11.
 As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
 A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
 
@@ -278,6 +278,7 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V20 | notificação `INCIDENT_RESOLVED` |
 | V21 | `availability_blocks` (bloqueios do dono, dias inclusivos); `item_availability` migrada e removida |
 | V22 | reserva `EXPIRED` (pedido sem resposta) e notificação `BOOKING_EXPIRED`; índice parcial dos pedidos pendentes |
+| V23 | emails em minúsculas (sem colisões) e índice em `lower(email)` |
 
 **Disponibilidade:** os dias ocupados por reservas **não** se guardam em `availability_blocks` — calculam-se a partir de
 `bookings` nos estados `ACCEPTED`, `ACTIVE`, `IN_PROGRESS`, `RETURNED`, `DISPUTED` (`BookingStatus.OCCUPYING`), com o

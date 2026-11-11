@@ -68,6 +68,14 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 - Falta: o admin não vê o pagamento de uma reserva (`/bookings/{id}/payments/current` é só das partes) nem descarrega
   o comprovativo a partir do detalhe da reserva (só pelo id do pagamento).
 
+## Login Google e emails (2026-11-11)
+
+- `POST /auth/google/link` (autenticado): associar Google a uma conta existente com a sessão iniciada (sem token no
+  URL). Regresso em `/conta?google=linked|already|conflict`. `MeResponse.googleLinked`.
+- Emails normalizados (minúsculas) e procurados sem diferença de maiúsculas (V23). Registo via Google recusa um
+  email que já existe noutra conta (antes criava uma segunda conta).
+- `redirect_uri_mismatch`: não definir `NEXT_PUBLIC_API_URL` no frontend; `GOOGLE_REDIRECT_URI` = URL do frontend.
+
 ## Gate de KYC desligável (2026-11-11)
 
 Por omissão o gate está **ligado**. `KYC_REQUIRED=false` (no `.env` local e no staging) deixa publicar, reativar e

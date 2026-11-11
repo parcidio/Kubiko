@@ -3,6 +3,8 @@ package com.beeznoo.api.auth.security;
 import com.beeznoo.api.auth.entity.GooglePendingSignup;
 import com.beeznoo.api.auth.repository.GooglePendingSignupRepository;
 import com.beeznoo.api.auth.service.AuthService;
+import com.beeznoo.api.common.util.Emails;
+import com.beeznoo.api.auth.service.GoogleLinkService;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import com.beeznoo.api.security.entity.SecurityEventType;
@@ -23,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Chamado pelo Spring Security depois do login Google. Ver claude/decisoes-produto.md (2026-10-23, segurança).
@@ -45,6 +48,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final AuthService authService;
     private final GooglePendingSignupRepository googlePendingSignupRepository;
     private final SecurityEventService securityEvents;
+    private final GoogleLinkService googleLinkService;
 
     @Value("${app.frontend-url:http://localhost:3000}")
     private String frontendUrl;
@@ -57,7 +61,16 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
         String googleId = oidcUser.getSubject();
         // Só usamos o email do Google se o próprio Google o deu como verificado
-        String email = Boolean.TRUE.equals(oidcUser.getEmailVerified()) ? oidcUser.getEmail() : null;
+        String email = Emails.normalize(Boolean.TRUE.equals(oidcUser.getEmailVerified()) ? oidcUser.getEmail() : null);
+
+        // "Associar Google" a partir de Conta (sessão Beeznoo iniciada): não é um login
+        Optional<UUID> linkFor = googleLinkService.consume(request);
+        if (linkFor.isPresent()) {
+            GoogleLinkService.LinkResult result = googleLinkService.link(linkFor.get(), googleId, email);
+            response.setHeader("Referrer-Policy", "no-referrer");
+            response.sendRedirect(base() + "/conta?google=" + result.code);
+            return;
+        }
 
         Optional<Profile> existing = profileRepository.findByGoogleId(googleId);
         if (existing.isPresent()) {
@@ -66,7 +79,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             return;
         }
 
-        Optional<Profile> byEmail = email == null ? Optional.empty() : profileRepository.findByEmail(email);
+        Optional<Profile> byEmail = email == null ? Optional.empty() : profileRepository.findByEmailIgnoreCase(email);
         if (byEmail.isPresent()) {
             Profile profile = byEmail.get();
             if (profile.getEmailVerifiedAt() != null && profile.getGoogleId() == null) {
@@ -96,8 +109,12 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         redirect(response, "status=pending_phone&pendingToken=" + pending.getToken());
     }
 
+    private String base() {
+        return frontendUrl != null && !frontendUrl.isBlank() ? frontendUrl : "";
+    }
+
     private void redirect(HttpServletResponse response, String query) throws IOException {
-        String base = frontendUrl != null && !frontendUrl.isBlank() ? frontendUrl : "";
+        String base = base();
         // no-referrer: o código no URL de destino não passa para terceiros
         response.setHeader("Referrer-Policy", "no-referrer");
         response.sendRedirect(base + "/oauth2/callback?" + query);

@@ -2,8 +2,13 @@ import type { NextConfig } from "next";
 
 // O browser fala só com o Next (mesma origem); o Next encaminha /api/v1 para o Spring.
 // Evita CORS no backend e não expõe o URL interno da API.
-const apiUrl = process.env.API_URL ?? "https://beeznoo.onrender.com";
 const isDev = process.env.NODE_ENV !== "production";
+// Sem API_URL: em desenvolvimento usa a API local (nunca a alojada sem dar por isso); em produção mantém a antiga
+// omissão, mas avisa no build — cada ambiente do Vercel deve ter o seu API_URL (docs/DEPLOY.md)
+const apiUrl = process.env.API_URL ?? (isDev ? "http://localhost:8081" : "https://beeznoo.onrender.com");
+if (!process.env.API_URL && !isDev) {
+  console.warn(`[beeznoo] API_URL não definido: o proxy vai para ${apiUrl}. Define-o no ambiente do Vercel.`);
+}
 
 // Cabeçalhos de segurança (OWASP A02/A05). Ver docs/SEGURANCA.md.
 // - imagens: as fotos e documentos vêm de URLs assinadas do Backblaze B2 (*.backblazeb2.com)

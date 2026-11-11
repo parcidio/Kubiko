@@ -82,10 +82,10 @@ public class Account {
 
     public void withholdHeld(BigDecimal amount) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Valor a reter por sinistro tem de ser positivo");
+            throw new IllegalArgumentException("O valor a reter da caução tem de ser positivo");
         }
         if (heldBalance.compareTo(amount) < 0) {
-            throw new IllegalStateException("Saldo retido insuficiente para retenção por sinistro");
+            throw new IllegalStateException("A caução retida não chega para este valor");
         }
         heldBalance = heldBalance.subtract(amount);
     }

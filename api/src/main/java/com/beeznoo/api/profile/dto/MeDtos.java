@@ -20,6 +20,8 @@ public class MeDtos {
             String phone,
             String email,
             boolean emailVerified,
+            // conta Google associada (entrar com Google funciona)
+            boolean googleLinked,
             String avatarUrl,
             String province,
             String city,
@@ -38,6 +40,7 @@ public class MeDtos {
                     p.getPhone(),
                     p.getEmail(),
                     p.getEmailVerifiedAt() != null,
+                    p.getGoogleId() != null,
                     p.getAvatarUrl(),
                     p.getProvince(),
                     p.getCity(),

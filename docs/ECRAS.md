@@ -32,7 +32,7 @@ O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próxi
 | `/reservas/[id]/contrato` | Contrato: texto congelado, quem aceitou, aceitar (arrendatário), PDF | Ambos | Ligado | A | ✅ `/bookings/{id}/contract`, `/accept`, `/pdf` |
 | `/reservas/[id]/avaliar` | Avaliar | Arrendatário | Ligado | A | ✅ |
 | `/atividade` | Atividade | Arrendatário | Parcial (reservas recentes) | A | ✅ `/notifications/me` |
-| `/conta` | Conta, modo, sair | Ambos | Parcial (sem perfil) | A | ✅ `/profiles/me` |
+| `/conta` | Conta: dados pessoais, verificar email, associar Google, modo, tema, sair | Ambos | Ligado | A | ✅ `/profiles/me`, `/auth/google/link` |
 | `/verificacao` | Verificação (BI + selfie / NIF) | Ambos | UI | A | ✅ `/kyc/submit`, `/kyc/me` |
 | `/painel` | Painel do dono | Dono | Ligado | B | ✅ |
 | `/pedidos` | Pedidos recebidos (aceitar/recusar) | Dono | Ligado | B | ✅ |

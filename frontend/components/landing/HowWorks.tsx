@@ -53,24 +53,24 @@ export default function BeeznoHowItWorks() {
     },
     {
       step: "02",
-      title: "Cotação de seguro automática",
+      title: "Contrato e caução",
       icon: <ShieldCheck className="h-5 w-5" />,
       description:
-        "Calculamos o prémio pelo valor declarado do item e pela duração do contrato.",
+        "O proprietário aceita e recebe o contrato com os valores e uma caução reembolsável, retida pela Beeznoo.",
     },
     {
       step: "03",
       title: "Pague por Multicaixa Express",
       icon: <Banknote className="h-5 w-5" />,
       description:
-        "Aluguer, caução e prémio num só pagamento, validado pelo ID da transacção.",
+        "Aluguer, taxa de serviço e caução num só pagamento, validado pela equipa Beeznoo.",
     },
     {
       step: "04",
-      title: "Apólice activa até à devolução",
+      title: "Fotos na entrega, caução devolvida",
       icon: <FileCheck2 className="h-5 w-5" />,
       description:
-        "Certificado emitido na hora e participação de sinistro em qualquer momento.",
+        "Checklist com fotos na entrega e na devolução. Se correr tudo bem, a caução é devolvida; se não, reporte o problema na app.",
     },
   ];
 

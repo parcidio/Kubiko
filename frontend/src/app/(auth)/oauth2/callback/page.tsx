@@ -55,9 +55,9 @@ function Callback() {
       <>
         <AuthTitle
           title="Este email já tem conta na Beeznoo"
-          subtitle="Entra com o teu número de telefone e password. Por segurança, não juntamos contas automaticamente."
+          subtitle="Por segurança, não juntamos contas sozinhos. Entra com o teu telefone e password e, em Conta, carrega em “Associar conta Google”. A partir daí entras com o Google diretamente."
         />
-        <ButtonLink href="/entrar" block>
+        <ButtonLink href="/entrar?next=%2Fconta" block>
           Entrar com telefone
         </ButtonLink>
       </>

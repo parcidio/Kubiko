@@ -1,6 +1,6 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AdminPayment, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Deposit, Incident,
+  Account, AdminPayment, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Deposit, Incident,
   IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, LedgerEntry, Page, Payment, Review, SecurityEvent,
   SecuritySeverity, UserRole,
 } from "./types";
@@ -141,6 +141,26 @@ export const authApi = {
   // 2FA de contas ADMIN: desafio do 1.º passo + código SMS
   loginMfa: (b: { mfaToken: string; code: string }) => post<AuthResponse>("/auth/login/mfa", b),
   changePassword: (b: { currentPassword: string; newPassword: string }) => post<AuthResponse>("/auth/password/change", b),
+  /**
+   * Associar Google com a sessão iniciada: a API guarda a intenção na sessão OAuth2 (cookie httpOnly) e o browser
+   * segue para o Google. Volta a /conta?google=linked|already|conflict.
+   */
+  linkGoogle: async () => {
+    await post<void>("/auth/google/link");
+    // navegação completa de propósito: /oauth2/* não é uma página do Next, é o proxy para a API (next.config.ts)
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+    window.location.assign("/oauth2/authorization/google");
+  },
+};
+
+/** Perfil da pessoa autenticada. */
+export const profileApi = {
+  me: () => request<Me>("/profiles/me"),
+  // null = não mexe; email "" = remover
+  update: (b: { fullName?: string; email?: string; province?: string; city?: string }) => patch<Me>("/profiles/me", b),
+  // 409 se o envio de emails estiver desligado no servidor
+  requestEmailCode: () => post<void>("/profiles/me/email/verification"),
+  confirmEmail: (code: string) => post<Me>("/profiles/me/email/verification/confirm", { code }),
 };
 
 export const catalogApi = {
