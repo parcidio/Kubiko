@@ -286,10 +286,10 @@ export default function EquipamentoPage() {
 
 function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; deposit: number }) {
   const steps = [
-    { t: "Pagas o aluguer + a caução", d: `Neste equipamento a caução é ${deposit.toLocaleString("de-DE")} Kz. Fica retida pela Beeznoo, não vai para o dono.` },
+    { t: "Pagas ao dono, na entrega", d: `Aluguer + taxa + caução. Neste equipamento a caução é ${deposit.toLocaleString("de-DE")} Kz e fica com o dono durante o aluguer.` },
     { t: "Fotografam juntos na entrega", d: "A checklist com fotos regista o estado. Protege-te a ti e ao dono." },
-    { t: "Devolves e a equipa confirma", d: "Se estiver tudo em ordem, a caução volta para ti." },
-    { t: "Se houver dano", d: "Reportas o problema e a equipa decide, com base nas fotos, se retém parte ou toda a caução." },
+    { t: "Devolves e o dono devolve a caução", d: "Se estiver tudo em ordem, a caução volta inteira para ti e o dono regista-o na app." },
+    { t: "Se houver dano", d: "O dono pode reter parte, com motivo. Se não concordares, reportas até 7 dias depois e a equipa decide com base nas fotos." },
   ];
   return (
     <div className="grid gap-5 pt-2">

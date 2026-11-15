@@ -23,7 +23,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /** OTP pelo WhatsApp (Losambo): a Beeznoo guarda o pedido e o propósito, o Losambo gera e valida o código. */
-@SpringBootTest(properties = "otp.channel=whatsapp")
+@SpringBootTest(properties = {"otp.channel=whatsapp", "ombala.token="})
 @Testcontainers
 @Transactional
 class WhatsAppOtpIntegrationTest {

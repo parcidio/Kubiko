@@ -35,9 +35,14 @@ const ACTION_LABEL: Record<string, string> = {
   CONTRACT_ACCEPTED: "Contrato aceite",
   HANDOVER_REGISTERED: "Entrega/devolução registada",
   HANDOVER_CONFIRMED: "Entrega/devolução confirmada",
+  // Pagamento direto ao dono (2026-11-15)
+  PAYMENT_RECEIVED: "Dono confirmou o pagamento",
+  COMMISSION_SETTLED: "Comissão recebida do dono",
+  DEPOSIT_RETURNED_BY_OWNER: "Dono devolveu a caução",
+  DEPOSIT_WITHHELD_BY_OWNER: "Dono reteve parte da caução",
 };
 
-const ENTITY_LABEL: Record<string, string> = { BOOKING: "Reserva", KYC: "Verificação", ACCOUNT: "Conta", INCIDENT: "Problema", ITEM: "Equipamento" };
+const ENTITY_LABEL: Record<string, string> = { BOOKING: "Reserva", KYC: "Verificação", ACCOUNT: "Conta / dono", INCIDENT: "Problema", ITEM: "Equipamento" };
 
 const SECURITY_LABEL: Record<string, string> = {
   LOGIN_LOCKED: "Login bloqueado (tentativas)",

@@ -388,6 +388,12 @@ public class AuthService {
             }
         }
 
+        if (!smsAvailable()) {
+            // nem WhatsApp (chave do Losambo) nem SMS (OMBALA_TOKEN) configurados neste ambiente
+            log.error("OTP sem canal: definir WHATSAPP_API_KEY_{} ou OMBALA_TOKEN", useWhatsApp() ? "(válida)" : "PRD/TST");
+            throw new IllegalStateException("Não foi possível enviar o código agora. Tenta daqui a pouco.");
+        }
+
         // 6 dígitos uniformes: 100000–999999
         String code = String.valueOf(100_000 + secureRandom.nextInt(900_000));
 
