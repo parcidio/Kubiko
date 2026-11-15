@@ -4,11 +4,14 @@
 #   Domínios (separador de cada serviço):  web → https://beeznoo.ao:3000   garage → https://s3.beeznoo.ao:3900
 #   Variáveis: o Coolify lista todas as ${...} deste ficheiro no separador Environment Variables.
 # HTTPS: o proxy do Coolify (Traefik) trata dos certificados. Nada publica portas no servidor.
+# Caminhos de build relativos à RAIZ do repositório: o Coolify corre o compose com --project-directory na raiz
+# ("../../frontend" saía do repositório e o BuildKit recusava). Base Directory no Coolify: "/".
+#   Fora do Coolify: docker compose --project-directory . -f deploy/coolify/docker-compose.yml ...
 
 services:
   web:
     build:
-      context: ../../frontend
+      context: ./frontend
       args:
         API_URL: http://api:8080
         STORAGE_PUBLIC_ORIGIN: ${PUBLIC_S3_URL}
@@ -26,7 +29,7 @@ services:
 
   api:
     build:
-      context: ../../api
+      context: ./api
     restart: unless-stopped
     environment:
       # base de dados (serviço postgres deste stack)
@@ -108,7 +111,7 @@ services:
 
   garage:
     build:
-      context: ./garage
+      context: ./deploy/coolify/garage
     restart: unless-stopped
     environment:
       GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
