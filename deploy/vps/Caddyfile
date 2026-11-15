@@ -1,0 +1,22 @@
+# HTTPS automático (Let's Encrypt) para os dois domínios. Os DNS (registo A) têm de apontar para a VPS antes de arrancar.
+{
+	email {$ACME_EMAIL}
+}
+
+# Site e API (a API não é pública: o Next encaminha /api/v1, /oauth2 e /login/oauth2 pela rede interna)
+{$WEB_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 30MB
+	}
+	reverse_proxy web:3000
+}
+
+# Armazenamento S3 (Garage). Só serve URLs assinadas; sem assinatura válida responde 403.
+# O cabeçalho Host passa intacto: faz parte da assinatura.
+{$S3_DOMAIN} {
+	request_body {
+		max_size 30MB
+	}
+	reverse_proxy garage:3900
+}

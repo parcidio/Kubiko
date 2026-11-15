@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Package, Pause, Pencil, Play, Plus } from "lucide-react";
 import { ItemPhoto } from "@/components/bz/equipment";
 import { toast } from "@/components/bz/overlay";
@@ -12,6 +13,7 @@ import { useRequireSession } from "@/lib/auth";
 import { CONDITION_LABEL } from "@/lib/format";
 import { useMode } from "@/lib/mode";
 import { useResource } from "@/lib/use-resource";
+import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
 
 const STATUS: Record<string, { label: string; tone: Tone }> = {
   ACTIVE: { label: "Ativo", tone: "ok" },
@@ -21,6 +23,7 @@ const STATUS: Record<string, { label: string; tone: Tone }> = {
 
 export default function EquipamentosPage() {
   const session = useRequireSession();
+  const router = useRouter();
   const mode = useMode(session?.role);
   const { data, error, loading, reload } = useResource(session ? "items:mine" : null, () => ownerItemApi.mine());
 
@@ -43,6 +46,11 @@ export default function EquipamentosPage() {
       toast.success("Reativado. Já aparece outra vez em Explorar.");
       reload();
     } catch (e) {
+      if (isKycRequired(e)) {
+        toast(KYC_REDIRECT_TOAST);
+        router.push("/verificacao");
+        return;
+      }
       toast.error(e instanceof Error ? e.message : "Não foi possível reativar.");
     }
   }

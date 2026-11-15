@@ -7,6 +7,7 @@ import { PriceSummary } from "@/components/bz/booking";
 import { MonthCalendar } from "@/components/bz/calendar";
 import { ItemPhoto } from "@/components/bz/equipment";
 import { Checkbox, FormError, RadioCards, SelectField, StepProgress, TextArea, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
+import { toast } from "@/components/bz/overlay";
 import { StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Button, ButtonLink, Callout, Card, Kz, Skeleton } from "@/components/bz/ui";
@@ -17,6 +18,7 @@ import { addDaysIso, daysBetween, formatDay, formatRange, LUANDA_AREAS, todayIso
 import { canRent } from "@/lib/mode";
 import type { Availability, Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
 
 const STEPS = ["Datas", "Entrega", "Mensagem", "Rever"];
 type Handover = "pickup" | "delivery";
@@ -78,6 +80,11 @@ function Reservar() {
       });
       router.replace(`/reservas/${booking.id}?novo=1`);
     } catch (err) {
+      if (isKycRequired(err)) {
+        toast(KYC_REDIRECT_TOAST);
+        router.push("/verificacao");
+        return;
+      }
       setErrors(toFormErrors(err));
     } finally {
       setSending(false);

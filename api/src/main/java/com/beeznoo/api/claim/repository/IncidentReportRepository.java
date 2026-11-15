@@ -17,4 +17,7 @@ public interface IncidentReportRepository extends JpaRepository<IncidentReport, 
     // Fila do admin: mais antigos primeiro
     @EntityGraph(attributePaths = {"booking", "booking.item", "reporter"})
     Page<IncidentReport> findByStatusOrderByCreatedAtAsc(IncidentStatus status, Pageable pageable);
+
+    // Modo direct: o arrendatário só contesta a decisão do dono sobre a caução uma vez
+    boolean existsByBookingIdAndCreatedAtAfter(java.util.UUID bookingId, java.time.OffsetDateTime after);
 }

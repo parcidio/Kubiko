@@ -202,6 +202,11 @@ GOOGLE_CLIENT_ID=<cliente Beeznoo Staging>
 GOOGLE_CLIENT_SECRET=<cliente Beeznoo Staging>
 GOOGLE_REDIRECT_URI=https://staging.beeznoo.ao/login/oauth2/code/google
 FRONTEND_URL=https://staging.beeznoo.ao
+# OTP por WhatsApp (Losambo). Staging usa a chave TST; produção a PRD com WHATSAPP_ENV=prd
+WHATSAPP_API_KEY_TST=<chave TST, lsb_live_…>
+WHATSAPP_ENV=tst
+OTP_CHANNEL=auto
+# SMS: alternativa quando o número não tem WhatsApp ou o Losambo falha (opcional)
 OMBALA_TOKEN=<token de staging>
 OMBALA_SENDER=Beeznoo
 
@@ -217,11 +222,12 @@ NOTIFICATIONS_EMAIL_ENABLED=false
 RESEND_API_KEY=<chave de staging>
 RESEND_FROM=Beeznoo <noreply@beeznoo.ao>
 
-# Pagamentos: nunca auto-confirm fora de demo, o admin valida
+# Pagamentos: direct = paga-se ao dono na entrega (2026-11-15). As outras duas só contam no modo reference
+PAYMENTS_MODE=direct
 PAYMENTS_PROVIDER=simulated
 PAYMENTS_AUTO_CONFIRM=false
 
-# KYC: false em staging enquanto o KYC não é testável; true em produção
+# KYC: os ecrãs já existem (2026-11-15). true em produção; false em staging só para testar sem aprovar contas
 KYC_REQUIRED=false
 
 # Emitente do comprovativo de pagamento (PDF não fiscal)
@@ -257,7 +263,7 @@ Anotar o URL real do serviço (`https://….onrender.com`): é o `API_URL` da fa
 
 | Erro nos logs | Causa provável |
 |---|---|
-| `Could not resolve placeholder` | Falta `OMBALA_*` ou `GOOGLE_CLIENT_*` |
+| `Could not resolve placeholder` | Falta `GOOGLE_CLIENT_*` (`OMBALA_*` e `WHATSAPP_*` passaram a opcionais) |
 | Falha no arranque com `JWT` ou `B2` | `JWT_SECRET` curto, ou `B2_*` em falta |
 | `permission denied for table` | `ALTER DEFAULT PRIVILEGES` não correu antes das migrações, ou o dono tem outro nome |
 | Flyway bloqueado ou com erro no pooler | `SPRING_FLYWAY_URL` com `-pooler` no host |
@@ -348,7 +354,7 @@ Repetir as fases 2 a 8 com estes valores. Só muda o que está na tabela; o rest
 | Render | `GOOGLE_REDIRECT_URI` | `https://beeznoo.ao/login/oauth2/code/google` |
 | Render | `FRONTEND_URL` | `https://beeznoo.ao` |
 | Render | `B2_*` | Bucket `beeznoo-prod` com chave própria |
-| Render | `OMBALA_TOKEN`, `RESEND_API_KEY` | Próprios de produção |
+| Render | `WHATSAPP_API_KEY_PRD` (+ `WHATSAPP_ENV=prd`), `OMBALA_TOKEN`, `RESEND_API_KEY` | Próprios de produção |
 | Render | `NOTIFICATIONS_EMAIL_ENABLED` | `true` |
 | Render | `KYC_REQUIRED` | `true` (é a omissão; nunca `false` em produção) |
 | Render | `COMPANY_LEGAL_NAME`, `COMPANY_NIF`, `COMPANY_ADDRESS` | Dados legais da empresa (aparecem no comprovativo) |

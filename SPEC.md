@@ -40,17 +40,17 @@ Como trabalhar no código: ver `CLAUDE.md`. Decisões fechadas: `claude/decisoes
 | Visitante | Explorar e ver detalhe |
 | Arrendatário | Pedir reserva, pagar, acompanhar reservas, fazer checklist, reportar problema |
 | Dono | Publicar equipamento, gerir disponibilidade, aceitar/recusar pedidos, checklist |
-| Admin (equipa Beeznoo) | Aprovar verificações, validar pagamentos, gerir caução, resolver problemas |
+| Admin (equipa Beeznoo) | Aprovar verificações, receber comissões dos donos, mediar disputas de caução, resolver problemas |
 
 Um utilizador pode ser dono e arrendatário ao mesmo tempo.
 
 ## 5. Modelo económico (MVP)
 
 - **Taxa de serviço:** 8% sobre o valor do aluguer, paga pelo arrendatário.
-- **Caução reembolsável:** retida até à devolução e inspeção; libertada se tudo estiver em condições.
+- **Caução reembolsável:** paga ao dono na entrega e devolvida por ele depois da devolução; pode reter parte por dano, com motivo. O arrendatário contesta até 7 dias depois e a equipa medeia (2026-11-15).
   - Regra atual no código: o **menor** entre 10% do valor do equipamento e 3 diárias. **[EM ABERTO]** confirmar — para equipamento caro, 3 diárias pode ser uma caução baixa face ao risco.
 - **Preço:** diário, semanal e mensal definidos pelo dono; o cálculo usa a tarifa mais vantajosa para o período.
-- **Pagamento:** Multicaixa Express / pagamento por referência, com **validação manual** pela equipa (comprovativo + ID da transação).
+- **Pagamento (2026-11-15, ⚑):** **direto ao dono, na entrega** (numerário, transferência ou Multicaixa Express), como na Yango. O dono confirma na app; a app emite o comprovativo. A taxa de serviço (8%) é entregue pelo dono à Beeznoo (comissão). O pagamento por referência Multicaixa fica no código, desligado, para quando houver EMIS (`PAYMENTS_MODE=reference`).
 - **Sem seguro.** Comunicar apenas caução, contrato, verificação e proteção. Nada de "seguro/apólice/sinistro" até existir seguradora parceira.
 
 **[EM ABERTO] Semântica de `total_amount`.** Proposta: `subtotal` = valor do aluguer · `service_fee` = 8% · `deposit_amount` = caução (campo de apresentação, espelha o registo em `deposits`) · `total_amount` = o que a Beeznoo efetivamente cobra. Decidir se a caução entra no `total_amount` para evitar dupla contagem na reconciliação.
@@ -64,7 +64,7 @@ Fonte visual: `docs/DESIGN_SYSTEM.md` (Identidade Verde v3). Rotas e estado de c
 | 1 | **Explorar** | Todos | Pesquisa, chips de categoria, filtros (bairro, preço, datas), grelha de `EquipmentCard`, estados vazio/a carregar/erro |
 | 2 | **Detalhe** | Todos | Galeria, estado do equipamento, calendário de disponibilidade, dono (com selo se verificado), `PriceSummary`, CTA "Pedir reserva" + "Falar no WhatsApp", barra fixa no telemóvel |
 | 3 | **Pedido de reserva** | Arrendatário | Datas, ponto de entrega/recolha, mensagem ao dono, aceitar termos, `PriceSummary`, aviso "o dono tem 24 h para responder" |
-| 4 | **Pagamento** | Arrendatário | Instruções Multicaixa Express / referência (copiar), envio de comprovativo + ID da transação, estado "A validar" |
+| 4 | **Pagamento** | Ambos | Arrendatário: quanto pagar ao dono e regras (conferir antes, nunca pagar antes do encontro). Dono: confirmar que recebeu e o meio |
 | 5 | **As minhas reservas** | Arrendatário | Separadores (ativas/passadas), estado, `Timeline` de 6 passos, ações |
 | 6 | **Publicar** | Dono | Passos: fotos → detalhes (título, categoria, estado, descrição, bairro) → preços (Kz) → valor declarado → pré-visualização |
 | 7 | **Pedidos recebidos** | Dono | `RequestCard` com arrendatário (selo), datas, valor, prazo (normal/urgente), Aceitar / Recusar |
@@ -72,15 +72,15 @@ Fonte visual: `docs/DESIGN_SYSTEM.md` (Identidade Verde v3). Rotas e estado de c
 | 9 | **Checklist de entrega/devolução** | Ambos | Fotos obrigatórias por ângulo, notas de estado, confirmação das duas partes |
 | 10 | **Entrar** | Todos | Telefone (+244) + código OTP; escolher particular/empresa |
 | 11 | **Verificação** | Todos | Particular: BI (frente/verso) + selfie · Empresa: NIF. Estado "Em análise" |
-| 12 | **Admin** | Admin | Filas: verificações pendentes, pagamentos a validar, cauções a libertar/reter, problemas reportados |
+| 12 | **Admin** | Admin | Filas: verificações pendentes, comissões por receber, cauções em disputa, problemas reportados |
 
 Requisitos transversais: mobile-first (360px), corpo ≥ 15px, alvos ≥ 44px, funciona em rede lenta (skeletons, imagens comprimidas).
 
 ## 7. Fluxo principal
 
 ```
-Explorar → Detalhe → Pedido → [dono aceita em 24 h] → Pagamento → [admin valida]
-→ Entrega + checklist → Uso → Devolução + checklist → Inspeção → Caução libertada / retida
+Explorar → Detalhe → Pedido → [dono aceita em 24 h] → Contrato → [paga ao dono na entrega; o dono confirma]
+→ Checklist de entrega → Uso → Devolução + checklist → [o dono devolve a caução ou retém parte] → Concluída
 ```
 
 ### Estados da reserva
@@ -96,7 +96,7 @@ Explorar → Detalhe → Pedido → [dono aceita em 24 h] → Pagamento → [adm
 | `returned` | Checklist de devolução | `completed` |
 | `completed` | Admin após inspeção | — (caução: `released` ou `withheld`) |
 
-Timeline visível ao utilizador (6 passos): pedido → aceite → pago → entregue → devolvido → caução libertada.
+Timeline visível ao utilizador (6 passos): pedido → aceite → pago ao dono → entregue → devolvido → caução devolvida.
 
 > **Implementação (2026-10-23).** O backend usa nomes próprios e ainda não tem os estados de comprovativo nem de expiração
 > do pedido. Correspondência: `requested` = `PENDING_OWNER` · `declined` = `CANCELLED_OWNER` (a partir de `PENDING_OWNER`) ·
@@ -105,6 +105,11 @@ Timeline visível ao utilizador (6 passos): pedido → aceite → pago → entre
 > (caução `RELEASED` ou `WITHHELD`, tabela `deposits`) · problema reportado = `DISPUTED`.
 > `expired` = `EXPIRED` (2026-11-11): 24 h sem resposta do dono ou o dia de levantamento passou, o que vier primeiro.
 > Ainda por fazer: `payment_review` / `payment_rejected` (comprovativo) e o prazo para pagar depois de aceite.
+>
+> **Pagamento direto (2026-11-15).** `payment_review`/`payment_rejected` deixam de se aplicar: `ACCEPTED → ACTIVE` quando o
+> dono confirma que recebeu. O arrendatário pode cancelar enquanto `ACCEPTED` (não pagou nada); uma reserva `ACCEPTED`
+> nunca paga passa a `EXPIRED` depois do dia de devolução. `RETURNED → COMPLETED` quando o dono regista a caução (sem
+> caução, logo na devolução); contestação até 7 dias → `DISPUTED`.
 > Ver `claude/decisoes-produto.md` (2026-10-23) e `docs/BACKEND_GAPS.md`.
 
 **[EM ABERTO]** prazos: tempo para pagar depois de aceite; política de cancelamento e reembolso.
@@ -150,9 +155,9 @@ Só entram com evidência de que aumentam transações ou confiança.
 - [ ] Um dono verificado publica um equipamento com fotos e preço, e ele aparece em Explorar.
 - [ ] Um arrendatário verificado pede reserva para datas livres; datas ocupadas não são selecionáveis.
 - [ ] O dono recebe o pedido, aceita, e as datas ficam bloqueadas.
-- [ ] O arrendatário vê a referência de pagamento, envia comprovativo; o admin valida e a reserva passa a `paid`.
+- [ ] O arrendatário vê quanto pagar ao dono na entrega; o dono confirma que recebeu e a reserva passa a `paid`, com comprovativo (2026-11-15).
 - [ ] Checklist de entrega e devolução com fotos fica registado nas duas pontas.
-- [ ] Admin liberta ou retém (parcial/total) a caução, com registo em `audit_logs`.
+- [ ] O dono devolve ou retém (parcial/total) a caução, com registo em `audit_logs`; em disputa decide a equipa.
 - [ ] Nenhum texto da app usa "seguro", "apólice" ou "sinistro".
 - [ ] Todos os ecrãs de lista têm estados vazio, a carregar e erro.
 - [ ] Documentos de KYC e comprovativos não são acessíveis sem autorização.
@@ -171,7 +176,7 @@ Só entram com evidência de que aumentam transações ou confiança.
 
 1. Semântica de `total_amount` e se a caução entra no total cobrado.
 2. Regra da caução para equipamento de valor alto.
-3. Prazo de pagamento após aceitação e política de cancelamento/reembolso.
+3. ~~Prazo de pagamento após aceitação~~ (resolvido com o pagamento na entrega, 2026-11-15). Política de cancelamento depois de pago: em aberto.
 4. Estado do repo: confirmar remoção de vestígios de Supabase após a migração para Spring Boot.
 5. Quem faz entrega/recolha no MVP (dono, arrendatário, ou equipa Beeznoo) e se tem custo.
 6. Contratos de blockchain (ideia do hackathon Colosseum): **fora do MVP** — só registo de hash do contrato, se for retomado, nunca pagamentos em cripto.

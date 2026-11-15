@@ -64,6 +64,9 @@ public class AuthService {
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
     private final OmbalaProperties ombalaProperties;
+    // OTP por WhatsApp (Losambo); SMS fica como alternativa — decisoes-produto.md 2026-11-15
+    private final WhatsAppOtpClient whatsAppOtpClient;
+    private final com.beeznoo.api.config.OtpProperties otpProperties;
     private final OAuthLoginCodeRepository oAuthLoginCodeRepository;
     private final RateLimiter rateLimiter;
     private final PasswordPolicy passwordPolicy;
@@ -361,6 +364,36 @@ public class AuthService {
 
         otpCodeRepository.invalidateAllForPhone(phone, purpose);
 
+        if (useWhatsApp()) {
+            try {
+                WhatsAppOtpClient.OtpSent sent = whatsAppOtpClient.send(phone);
+                // o Losambo gera e guarda o código; aqui fica o pedido (propósito, validade, uso único)
+                otpCodeRepository.save(OtpCode.builder()
+                        .phone(phone)
+                        .purpose(purpose)
+                        .codeHash(WHATSAPP_REF_PREFIX + (sent.id() == null ? "" : sent.id()))
+                        .expiresAt(OffsetDateTime.now().plusSeconds(sent.expiresInSeconds()))
+                        .build());
+                return;
+            } catch (WhatsAppOtpClient.NotOnWhatsAppException e) {
+                if (!smsAvailable()) {
+                    throw new IllegalArgumentException("Este número não tem WhatsApp. Usa um número com WhatsApp para receber o código.");
+                }
+                log.info("{} sem WhatsApp: código enviado por SMS", maskPhone(phone));
+            } catch (WhatsAppOtpClient.UnavailableException e) {
+                if (!smsAvailable()) {
+                    throw new IllegalStateException("Não foi possível enviar o código agora. Tenta daqui a pouco.");
+                }
+                log.warn("WhatsApp indisponível ({}): código enviado por SMS", e.getMessage());
+            }
+        }
+
+        if (!smsAvailable()) {
+            // nem WhatsApp (chave do Losambo) nem SMS (OMBALA_TOKEN) configurados neste ambiente
+            log.error("OTP sem canal: definir WHATSAPP_API_KEY_{} ou OMBALA_TOKEN", useWhatsApp() ? "(válida)" : "PRD/TST");
+            throw new IllegalStateException("Não foi possível enviar o código agora. Tenta daqui a pouco.");
+        }
+
         // 6 dígitos uniformes: 100000–999999
         String code = String.valueOf(100_000 + secureRandom.nextInt(900_000));
 
@@ -386,7 +419,7 @@ public class AuthService {
         if (rateLimiter.isExceeded(failures, OTP_FAILURES_PER_CODE)) {
             throw new IllegalArgumentException("Demasiadas tentativas com este código. Pede um código novo.");
         }
-        if (!encoder.matches(code, otpCode.getCodeHash())) {
+        if (!codeMatches(otpCode, phone, code)) {
             int count = rateLimiter.record(failures, Duration.ofMinutes(ombalaProperties.otpExpirationMinutes()));
             if (count >= OTP_FAILURES_PER_CODE) {
                 log.warn("OTP bloqueado após {} tentativas para {}", count, maskPhone(phone));
@@ -401,7 +434,35 @@ public class AuthService {
         otpCodeRepository.save(otpCode);
     }
 
-    // Contas ADMIN com 2FA: em vez de tokens, envia código por SMS
+    private static final String WHATSAPP_REF_PREFIX = "losambo:";
+
+    // auto: WhatsApp quando há chave do Losambo para este ambiente; senão SMS
+    private boolean useWhatsApp() {
+        return switch (otpProperties.channel()) {
+            case "whatsapp" -> true;
+            case "sms" -> false;
+            default -> whatsAppOtpClient.configured();
+        };
+    }
+
+    private boolean smsAvailable() {
+        return ombalaProperties.token() != null && !ombalaProperties.token().isBlank();
+    }
+
+    // Código do WhatsApp: valida no Losambo. Código por SMS: compara com o hash guardado
+    private boolean codeMatches(OtpCode otpCode, String phone, String code) {
+        String stored = otpCode.getCodeHash();
+        if (!stored.startsWith(WHATSAPP_REF_PREFIX)) return encoder.matches(code, stored);
+        if (code == null || !code.matches("\\d{6}")) return false;
+        String ref = stored.substring(WHATSAPP_REF_PREFIX.length());
+        try {
+            return whatsAppOtpClient.verify(ref.isEmpty() ? null : ref, phone, code);
+        } catch (WhatsAppOtpClient.UnavailableException e) {
+            throw new IllegalStateException("Não foi possível validar o código agora. Tenta daqui a pouco.");
+        }
+    }
+
+    // Contas ADMIN com 2FA: em vez de tokens, envia código por WhatsApp (ou SMS)
     private AuthResponse issueTokensOrMfa(Profile profile) {
         if (securityProperties.adminMfaEnabled() && profile.getRole() == UserRole.ADMIN) {
             sendOtp(profile.getPhone(), Purpose.ADMIN_LOGIN);

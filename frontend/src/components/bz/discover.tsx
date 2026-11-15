@@ -100,7 +100,7 @@ function RailSkeleton({ title }: { title: string }) {
 
 const TRUST: { icon: LucideIcon; title: string; text: string }[] = [
   { icon: BadgeCheck, title: "Donos verificados", text: "Identidade confirmada pela equipa" },
-  { icon: ShieldCheck, title: "Pagamento protegido", text: "Fica com a Beeznoo até receberes" },
+  { icon: ShieldCheck, title: "Pagas na entrega", text: "Só depois de conferires, com comprovativo" },
   { icon: Camera, title: "Fotos na entrega", text: "Checklist e contrato em cada aluguer" },
 ];
 

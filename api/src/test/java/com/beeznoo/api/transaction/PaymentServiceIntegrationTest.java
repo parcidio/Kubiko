@@ -47,7 +47,8 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
-@SpringBootTest
+// Fluxo de referência Multicaixa (modo reference); o modo direct tem o DirectPaymentIntegrationTest
+@SpringBootTest(properties = "app.payments.mode=reference")
 @Testcontainers
 @Transactional
 class PaymentServiceIntegrationTest {

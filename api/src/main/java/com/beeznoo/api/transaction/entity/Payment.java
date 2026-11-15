@@ -79,6 +79,19 @@ public class Payment {
     @Column(name = "receipt_number", length = 30)
     private String receiptNumber;
 
+    // Quem confirmou um pagamento DIRECT: o dono ou um admin em nome dele (V24)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "confirmed_by")
+    private Profile confirmedBy;
+
+    // Taxa de serviço (comissão) recebida do dono — só pagamentos DIRECT (V24)
+    @Column(name = "commission_settled_at")
+    private OffsetDateTime commissionSettledAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "commission_settled_by")
+    private Profile commissionSettledBy;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

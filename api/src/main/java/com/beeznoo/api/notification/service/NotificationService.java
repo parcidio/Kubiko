@@ -66,6 +66,19 @@ public class NotificationService {
     }
 
     public void bookingAccepted(Booking b) {
+        bookingAccepted(b, false);
+    }
+
+    // payOnPickup: modo direct (2026-11-15) — paga-se ao dono na entrega, não à Beeznoo
+    public void bookingAccepted(Booking b, boolean payOnPickup) {
+        if (payOnPickup) {
+            notify(b.getRenter(), NotificationType.BOOKING_ACCEPTED, b,
+                    b.getItem().getTitle() + ": pedido aceite",
+                    List.of(b.getOwner().getFullName() + " aceitou o teu pedido para " + period(b) + ".",
+                            "Aceita o contrato na app. Pagas ao dono quando levantares o equipamento, depois de o conferires."),
+                    "Ver contrato", "/reservas/" + b.getId() + "/contrato");
+            return;
+        }
         notify(b.getRenter(), NotificationType.BOOKING_ACCEPTED, b,
                 b.getItem().getTitle() + ": pedido aceite",
                 List.of(b.getOwner().getFullName() + " aceitou o teu pedido para " + period(b) + ".",
@@ -87,6 +100,17 @@ public class NotificationService {
                 "Ver pedidos", "/pedidos");
     }
 
+    // Aceite mas nunca pago até ao dia de devolução: ninguém apareceu ou o dono não confirmou o pagamento
+    public void acceptedBookingExpired(Booking b) {
+        for (Profile p : List.of(b.getRenter(), b.getOwner())) {
+            notify(p, NotificationType.BOOKING_EXPIRED, b,
+                    b.getItem().getTitle() + ": reserva expirada",
+                    List.of("A reserva de " + period(b) + " terminou sem pagamento confirmado na app e foi fechada.",
+                            "Se o aluguer aconteceu e houve pagamento, avisa a equipa Beeznoo."),
+                    "Ver reserva", "/reservas/" + b.getId());
+        }
+    }
+
     public void bookingRejected(Booking b) {
         List<String> lines = new ArrayList<>();
         lines.add(b.getOwner().getFullName() + " não pode aceitar o teu pedido para " + period(b) + ". Não pagaste nada.");
@@ -104,7 +128,9 @@ public class NotificationService {
         Profile recipient = byOwner ? b.getRenter() : b.getOwner();
         notify(recipient, NotificationType.BOOKING_CANCELLED, b,
                 b.getItem().getTitle() + ": reserva cancelada",
-                List.of(cancelledBy.getFullName() + " cancelou a reserva de " + period(b) + "."),
+                byOwner && b.getOwnerNote() != null && !b.getOwnerNote().isBlank()
+                        ? List.of(cancelledBy.getFullName() + " cancelou a reserva de " + period(b) + ".", "Mensagem do dono: " + b.getOwnerNote())
+                        : List.of(cancelledBy.getFullName() + " cancelou a reserva de " + period(b) + "."),
                 byOwner ? "Ver reserva" : "Ver pedidos",
                 byOwner ? "/reservas/" + b.getId() : "/pedidos");
     }
@@ -123,6 +149,16 @@ public class NotificationService {
                 List.of(b.getRenter().getFullName() + " pagou a reserva de " + period(b) + ".",
                         "Prepara o equipamento para a entrega."),
                 "Ver pedidos", "/pedidos");
+    }
+
+    // Modo direct: o dono confirmou que recebeu na entrega
+    public void directPaymentConfirmed(Booking b, BigDecimal amount, String channel) {
+        String item = b.getItem().getTitle();
+        notify(b.getRenter(), NotificationType.PAYMENT_CONFIRMED, b,
+                item + ": pagamento registado",
+                List.of(b.getOwner().getFullName() + " confirmou que recebeu " + kz(amount) + " (" + channel.toLowerCase() + ").",
+                        "O comprovativo está na reserva. Se não pagaste este valor, reporta um problema."),
+                "Ver reserva", "/reservas/" + b.getId());
     }
 
     // "Já paguei" sem confirmação do gateway: a equipa valida à mão. Uma vez por reserva.
@@ -165,6 +201,49 @@ public class NotificationService {
                     "Caução a decidir: " + b.getItem().getTitle(),
                     List.of("A devolução foi confirmada. Revê as checklists e liberta ou retém a caução."),
                     "Abrir cauções", "/admin/caucoes");
+        }
+    }
+
+    // Modo direct: a caução está com o dono, é ele que a devolve
+    public void depositToReturn(Booking b) {
+        notify(b.getOwner(), NotificationType.BOOKING_RETURNED, b,
+                b.getItem().getTitle() + ": devolve a caução",
+                List.of("A devolução foi confirmada. Devolve a caução de " + kz(b.getDepositAmount()) + " a "
+                                + b.getRenter().getFullName() + " e regista-o na app.",
+                        "Se houver dano, podes reter parte da caução: indica o valor e o motivo."),
+                "Ver reserva", "/reservas/" + b.getId());
+    }
+
+    public void depositReturnedByOwner(Booking b, BigDecimal amount) {
+        notify(b.getRenter(), NotificationType.DEPOSIT_RELEASED, b,
+                b.getItem().getTitle() + ": caução devolvida",
+                List.of(b.getOwner().getFullName() + " indicou que te devolveu a caução de " + kz(amount) + ".",
+                        "Se não a recebeste, reporta um problema nos próximos 7 dias."),
+                "Ver reserva", "/reservas/" + b.getId());
+    }
+
+    public void depositWithheldByOwner(Booking b, BigDecimal withheld, BigDecimal returned, String reason) {
+        notify(b.getRenter(), NotificationType.DEPOSIT_WITHHELD, b,
+                b.getItem().getTitle() + ": parte da caução retida",
+                List.of(b.getOwner().getFullName() + " reteve " + kz(withheld) + " da caução"
+                                + (returned.signum() > 0 ? " e indicou que te devolveu " + kz(returned) + "." : "."),
+                        "Motivo: " + reason,
+                        "Se não concordas, reporta um problema nos próximos 7 dias: a equipa Beeznoo analisa."),
+                "Ver reserva", "/reservas/" + b.getId());
+    }
+
+    // Modo direct, depois de um problema: a equipa medeia — o dinheiro está com o dono, não com a Beeznoo
+    public void depositDecidedByTeam(Booking b, BigDecimal withheld, BigDecimal returned, String reason) {
+        String decision = withheld.signum() == 0
+                ? "o dono devolve a caução toda (" + kz(returned) + ")."
+                : "o dono fica com " + kz(withheld) + " da caução" + (returned.signum() > 0
+                        ? " e devolve " + kz(returned) + "." : ".");
+        List<String> lines = new ArrayList<>();
+        lines.add("Depois de analisar o caso, a equipa Beeznoo decidiu: " + decision);
+        if (reason != null && !reason.isBlank()) lines.add("Motivo: " + reason);
+        for (Profile p : List.of(b.getRenter(), b.getOwner())) {
+            notify(p, withheld.signum() == 0 ? NotificationType.DEPOSIT_RELEASED : NotificationType.DEPOSIT_WITHHELD, b,
+                    b.getItem().getTitle() + ": decisão sobre a caução", lines, "Ver reserva", "/reservas/" + b.getId());
         }
     }
 
@@ -211,7 +290,7 @@ public class NotificationService {
             notify(party, NotificationType.INCIDENT_RESOLVED, b,
                     b.getItem().getTitle() + ": problema analisado",
                     List.of("A equipa concluiu a análise do problema (" + typeLabel + ").", "Nota da equipa: " + note,
-                            "A decisão sobre a caução chega numa notificação à parte."),
+                            "Se houver decisão sobre a caução, chega numa notificação à parte."),
                     "Ver reserva", "/reservas/" + b.getId());
         }
     }

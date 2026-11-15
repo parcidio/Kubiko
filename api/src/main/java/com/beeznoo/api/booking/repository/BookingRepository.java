@@ -41,8 +41,9 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     /** Pedidos por responder cujo prazo passou: pedidos há mais de 24 h ou com o dia de levantamento já passado. */
     @Query("""
             SELECT b.id FROM Booking b
-            WHERE b.status = com.beeznoo.api.booking.entity.BookingStatus.PENDING_OWNER
-              AND (b.createdAt <= :createdBefore OR b.startDate < :today)
+            WHERE (b.status = com.beeznoo.api.booking.entity.BookingStatus.PENDING_OWNER
+                   AND (b.createdAt <= :createdBefore OR b.startDate < :today))
+               OR (b.status = com.beeznoo.api.booking.entity.BookingStatus.ACCEPTED AND b.endDate < :today)
             """)
     List<UUID> findOverduePendingIds(java.time.OffsetDateTime createdBefore, LocalDate today);
 

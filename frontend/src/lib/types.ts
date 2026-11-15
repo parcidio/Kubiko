@@ -250,11 +250,18 @@ export interface AdminPayment {
   itemTitle: string;
   renterId: string;
   renterName: string;
+  ownerName: string;
+  method: "REFERENCE" | "MANUAL" | "DIRECT";
+  channel: DirectChannel | null;
   entity: string | null;
   reference: string | null;
   amount: number;
+  serviceFee: number;
   status: PaymentStatus;
+  receiptNumber: string | null;
   expiresAt: string;
+  confirmedAt: string | null;
+  commissionSettledAt: string | null;
   createdAt: string;
 }
 
@@ -288,7 +295,7 @@ export type PaymentStatus = "AWAITING_PAYMENT" | "CONFIRMED" | "EXPIRED" | "CANC
 export interface Payment {
   id: string;
   bookingId: string;
-  method: "REFERENCE" | "MANUAL";
+  method: "REFERENCE" | "MANUAL" | "DIRECT";
   entity: string | null;
   reference: string | null;
   rentalAmount: number;
@@ -300,6 +307,98 @@ export interface Payment {
   confirmedAt: string | null;
   /** Nº do comprovativo ("CP 2026/000001") quando CONFIRMED — PDF em documentApi.receipt */
   receiptNumber: string | null;
+  /** Pagamento direto ao dono: meio usado */
+  channel: DirectChannel | null;
+}
+
+/** Meio do pagamento direto ao dono, na entrega (decisoes-produto.md 2026-11-15). */
+export type DirectChannel = "CASH" | "TRANSFER" | "MULTICAIXA_EXPRESS";
+
+export const CHANNEL_LABEL: Record<DirectChannel, string> = {
+  CASH: "Numerário",
+  TRANSFER: "Transferência bancária",
+  MULTICAIXA_EXPRESS: "Multicaixa Express",
+};
+
+/** Comissão (taxa de serviço) de um pagamento recebido pelo dono. */
+export interface CommissionLine {
+  paymentId: string;
+  bookingId: string;
+  itemTitle: string;
+  receiptNumber: string | null;
+  channel: DirectChannel | null;
+  amountReceived: number;
+  /** Só o aluguer (o que fica para o dono) */
+  rentalAmount: number;
+  serviceFee: number;
+  confirmedAt: string;
+  commissionSettledAt: string | null;
+}
+
+export interface MyCommissions {
+  due: number;
+  lines: CommissionLine[];
+}
+
+/** Admin › Comissões: o que cada dono deve. */
+export interface CommissionDue {
+  ownerId: string;
+  ownerName: string;
+  ownerPhone: string;
+  payments: number;
+  amount: number;
+  oldestConfirmedAt: string;
+}
+
+/** KYC (SPEC §7): a equipa decide à mão. */
+export type KycStatus = "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "INFO_REQUESTED";
+export type KycAccountType = "INDIVIDUAL" | "BUSINESS";
+export type KycDocumentType = "BI_FRONT" | "BI_BACK" | "SELFIE" | "NIF_DOCUMENT" | "BUSINESS_DOCUMENT";
+
+/** Todos a null se ainda não submeteu. */
+export interface KycStatusInfo {
+  id: string | null;
+  status: KycStatus | null;
+  accountType: KycAccountType | null;
+  submittedAt: string | null;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+  infoRequestNote: string | null;
+}
+
+export interface KycQueueItem {
+  id: string;
+  profileId: string;
+  profileName: string;
+  accountType: KycAccountType;
+  status: KycStatus;
+  submittedAt: string;
+}
+
+export interface KycDocument {
+  id: string;
+  documentType: KycDocumentType;
+  contentType: string;
+  signedUrl: string;
+  expiresAt: string;
+  uploadedAt: string;
+}
+
+export interface KycDecision {
+  id: string;
+  action: "START_REVIEW" | "APPROVE" | "REJECT" | "REQUEST_INFO" | "RESUBMIT";
+  actorId: string;
+  actorName: string;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface KycDetail {
+  verification: KycStatusInfo;
+  profileId: string;
+  profileName: string;
+  documents: KycDocument[];
+  decisions: KycDecision[];
 }
 
 export interface Account {

@@ -186,14 +186,22 @@ export function PriceSummary({
 }: { pricePerDay: number; days: number; deposit: number; as?: "renter" | "owner"; serviceFee?: number }) {
   const rental = Math.round(pricePerDay * days);
   const fee = serviceFee ?? Math.round(rental * SERVICE_FEE_RATE);
+  // Pagamento direto (2026-11-15): o arrendatário paga tudo ao dono na entrega; o dono entrega a taxa à Beeznoo
   if (as === "owner") {
     return (
-      <div className="grid gap-1">
-        <p className="text-sm text-cinza">Recebes</p>
-        <Kz value={rental} className="text-3xl text-verde" />
-        <p className="text-[13px] text-cinza">
-          {days} {days === 1 ? "dia" : "dias"} × {formatKz(pricePerDay)}. A taxa de serviço é paga pelo arrendatário.
-        </p>
+      <div className="grid gap-3 text-[15px]">
+        <div className="grid gap-1">
+          <p className="text-sm text-cinza">Ficas com</p>
+          <Kz value={rental} className="text-3xl text-verde" />
+          <p className="text-[13px] text-cinza">
+            {days} {days === 1 ? "dia" : "dias"} × {formatKz(pricePerDay)}
+          </p>
+        </div>
+        <div className="grid gap-2 border-t border-borda pt-3">
+          <Row label="Recebes na entrega" value={formatKz(rental + fee + deposit)} />
+          <Row label="Taxa de serviço a entregar à Beeznoo" value={formatKz(fee)} />
+          {deposit > 0 && <Row label="Caução a devolver no fim" value={formatKz(deposit)} />}
+        </div>
       </div>
     );
   }
@@ -210,10 +218,10 @@ export function PriceSummary({
           }
           value={formatKz(deposit)}
         />
-        <p className="text-[13px] text-cinza">Devolvida depois da devolução, se estiver tudo em ordem.</p>
+        <p className="text-[13px] text-cinza">Fica com o dono e volta para ti depois da devolução, se estiver tudo em ordem.</p>
       </div>
       <div className="flex items-end justify-between gap-3 border-t border-borda pt-3">
-        <span className="font-bold text-verde">Total a pagar</span>
+        <span className="font-bold text-verde">Total a pagar ao dono, na entrega</span>
         <Kz value={rental + fee + deposit} className="text-2xl text-verde" />
       </div>
     </div>

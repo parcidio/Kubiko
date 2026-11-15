@@ -1,0 +1,41 @@
+CONTRATO DE ALUGUER DE EQUIPAMENTO — BEEZNOO
+Versão {{version}} · RASCUNHO TÉCNICO, A REVER POR JURISTA ANTES DO PRIMEIRO ALUGUER REAL
+
+Reserva: {{bookingId}}
+
+1. Partes
+Dono: {{ownerName}}
+Arrendatário: {{renterName}}
+A Beeznoo põe as partes em contacto, regista a reserva e medeia problemas. Não é parte no aluguer e não recebe nem guarda o dinheiro do aluguer nem da caução.
+
+2. Equipamento
+{{itemTitle}} — estado declarado pelo dono: {{itemCondition}}.
+
+3. Período
+De {{startDate}} a {{endDate}} ({{days}} dias).
+
+4. Valores
+Aluguer: {{rentalAmount}}
+Taxa de serviço Beeznoo (8%): {{serviceFee}}
+Caução reembolsável: {{depositAmount}}
+Total a pagar pelo arrendatário: {{totalAmount}}
+
+5. Pagamento
+O arrendatário paga o total ao dono no levantamento do equipamento, depois de o conferir, em numerário, transferência bancária ou Multicaixa Express. Nada é pago antes do encontro. O dono confirma na app Beeznoo que recebeu o pagamento; a app emite um comprovativo para as duas partes. A taxa de serviço é recebida pelo dono em nome da Beeznoo e entregue por ele à Beeznoo.
+
+6. Caução
+A caução fica com o dono durante o aluguer. Depois da devolução, o dono devolve-a ao arrendatário e regista-o na app. Só pode reter parte ou toda a caução por dano, perda ou roubo, indicando o valor e o motivo na app.
+
+7. Entrega e devolução
+Na entrega e na devolução, uma das partes regista o estado do equipamento na app (notas e fotos) e a outra parte confirma. O equipamento deve ser devolvido no estado em que foi entregue, salvo desgaste normal de uso.
+
+8. Problemas
+Dano, perda ou roubo devem ser reportados na app logo que sejam conhecidos. O arrendatário pode também reportar, até 7 dias depois, se não concordar com a retenção da caução ou se não a tiver recebido. A equipa Beeznoo analisa o caso com base nos registos de entrega e devolução e comunica a sua decisão às partes. A Beeznoo pode suspender a conta de quem não cumprir esta decisão ou este contrato.
+
+9. Cancelamento
+[EM ABERTO — política de cancelamento a definir pela Beeznoo.]
+
+10. Lei aplicável
+Este contrato rege-se pela lei da República de Angola.
+
+Aceitação: o dono aceita ao aceitar o pedido de reserva; o arrendatário aceita na app antes do levantamento.

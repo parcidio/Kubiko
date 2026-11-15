@@ -20,5 +20,10 @@ public enum AuditAction {
     // Mudanças de estado com valor de prova (SPEC §8), feitas pelas partes
     CONTRACT_ACCEPTED,          // arrendatário aceitou o contrato
     HANDOVER_REGISTERED,        // entrega ou devolução registada com fotos
-    HANDOVER_CONFIRMED          // a outra parte confirmou → reserva avança
+    HANDOVER_CONFIRMED,         // a outra parte confirmou → reserva avança
+    // Pagamento direto ao dono (decisoes-produto.md 2026-11-15)
+    PAYMENT_RECEIVED,           // o dono confirmou que recebeu o pagamento na entrega
+    COMMISSION_SETTLED,         // a equipa recebeu do dono as comissões em aberto
+    DEPOSIT_RETURNED_BY_OWNER,  // o dono devolveu a caução toda
+    DEPOSIT_WITHHELD_BY_OWNER   // o dono reteve parte ou toda a caução
 }

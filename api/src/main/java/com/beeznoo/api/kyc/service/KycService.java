@@ -273,18 +273,23 @@ public class KycService {
         });
 
         for (DocumentType type : required) {
-            if (!sent.containsKey(type)) throw new IllegalArgumentException("Falta o documento " + type);
+            if (!sent.containsKey(type)) throw new IllegalArgumentException("Falta " + type.label);
         }
         for (DocumentType type : sent.keySet()) {
             if (!required.contains(type)) {
-                throw new IllegalArgumentException("O documento " + type + " não se aplica a uma conta " + accountType);
+                throw new IllegalArgumentException("Não envies " + type.label + " numa conta "
+                        + (accountType == AccountType.BUSINESS ? "de empresa" : "particular"));
             }
         }
 
         Map<DocumentType, ValidFile> valid = new EnumMap<>(DocumentType.class);
         sent.forEach((type, file) ->
-                valid.put(type, UploadedFiles.validate(file, "O documento " + type, UploadedFiles.IMAGES_AND_PDF)));
+                valid.put(type, UploadedFiles.validate(file, capitalize(type.label), UploadedFiles.IMAGES_AND_PDF)));
         return valid;
+    }
+
+    private static String capitalize(String s) {
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     private KycVerification findVerification(UUID kycId) {

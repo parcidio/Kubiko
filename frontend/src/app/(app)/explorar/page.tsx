@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Flame, LayoutGrid, MapPin, PackageSearch, Search, Sparkles, SlidersHorizontal, Star, X } from "lucide-react";
 import { HexGlow, categoryIcon } from "@/components/bz/brand";
 import { PublishPromo, QuickSearches, Rail, TrustStrip } from "@/components/bz/discover";
@@ -17,14 +18,30 @@ import BeeznoFilters, { type Filters } from "../../../../components/items/Filter
 
 
 export default function ExplorarPage() {
+  return (
+    <Suspense>
+      <Explorar />
+    </Suspense>
+  );
+}
+
+/** Sem acentos nem maiúsculas: "Vídeo" na landing = "video" na categoria. */
+const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+function Explorar() {
   const session = useSession();
-  const [categoryId, setCategoryId] = useState<string | undefined>();
+  const wanted = useSearchParams().get("categoria");
+  // null = ainda não escolheu: vale a categoria do link (landing → /explorar?categoria=Fotografia)
+  const [chosen, setChosen] = useState<string | undefined | null>(null);
+  const setCategoryId = (id: string | undefined) => setChosen(id);
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<Filters>({ maxPrice: "" });
   const [draft, setDraft] = useState<Filters>({ maxPrice: "" });
   const [sheet, setSheet] = useState(false);
 
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
+  const fromUrl = wanted ? categories.find((c) => norm(c.name) === norm(wanted) || c.slug === norm(wanted))?.id : undefined;
+  const categoryId = chosen === null ? fromUrl : chosen;
   // Datas filtram no servidor (só equipamento livre); o resto ainda filtra no cliente
   const dates = filters.dataInicio && filters.dataFim ? { startDate: filters.dataInicio, endDate: filters.dataFim } : {};
   const listKey = `items:${categoryId ?? "all"}:${filters.dataInicio ?? ""}:${filters.dataFim ?? ""}`;

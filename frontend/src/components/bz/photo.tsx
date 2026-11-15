@@ -81,8 +81,8 @@ export function PhotoPicker({
 
 /** Um ângulo da checklist: abre a câmara traseira no telemóvel. */
 export function CameraSlot({
-  label, hint, photo, onPick,
-}: { label: string; hint: string; photo?: string; onPick: (f: File) => void }) {
+  label, hint, photo, onPick, capture = "environment",
+}: { label: string; hint: string; photo?: string; onPick: (f: File) => void; capture?: "user" | "environment" }) {
   const id = useId();
   return (
     <label
@@ -115,7 +115,7 @@ export function CameraSlot({
         id={id}
         type="file"
         accept="image/*"
-        capture="environment"
+        capture={capture}
         className="sr-only"
         onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])}
       />

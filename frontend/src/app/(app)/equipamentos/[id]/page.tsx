@@ -20,6 +20,7 @@ import { unavailableDays } from "@/lib/availability";
 import { formatDay, formatDays, formatRange } from "@/lib/format";
 import type { Availability, AvailabilityBlock, Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
 
 type Tab = "fotos" | "detalhes" | "preco" | "datas";
 
@@ -84,6 +85,11 @@ export default function GerirEquipamentoPage() {
       item.setData(await ownerItemApi.activate(id));
       toast.success("Reativado. Já aparece outra vez em Explorar.");
     } catch (e) {
+      if (isKycRequired(e)) {
+        toast(KYC_REDIRECT_TOAST);
+        router.push("/verificacao");
+        return;
+      }
       toast.error(e instanceof Error ? e.message : "Não foi possível reativar.");
     }
   }

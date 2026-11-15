@@ -1,8 +1,8 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AdminPayment, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType, Contract, Deposit, Incident,
-  IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, LedgerEntry, Page, Payment, Review, SecurityEvent,
-  SecuritySeverity, UserRole,
+  Account, AdminPayment, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType,
+  CommissionDue, Contract, Deposit, DirectChannel, Incident, IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, KycAccountType, KycDetail,
+  KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
 } from "./types";
 
 export class ApiError extends Error {
@@ -138,7 +138,7 @@ export const authApi = {
   // Código de uso único (60 s) do redirect do Google → tokens. Os tokens nunca vêm na URL.
   googleExchange: (code: string) => post<AuthResponse>("/auth/google/exchange", { code }),
   logout: () => post<void>("/auth/logout"),
-  // 2FA de contas ADMIN: desafio do 1.º passo + código SMS
+  // 2FA de contas ADMIN: desafio do 1.º passo + código (WhatsApp ou SMS)
   loginMfa: (b: { mfaToken: string; code: string }) => post<AuthResponse>("/auth/login/mfa", b),
   changePassword: (b: { currentPassword: string; newPassword: string }) => post<AuthResponse>("/auth/password/change", b),
   /**
@@ -256,12 +256,21 @@ export const walletApi = {
 /** Ações de admin que já existem (sem listagens — ver docs/BACKEND_GAPS.md). */
 export const adminApi = {
   // Motivo fica em audit_logs
-  confirmPayment: (bookingId: string, reason?: string) => patch<Booking>(`/bookings/${bookingId}/confirm-payment`, { reason }),
-  complete: (bookingId: string) => patch<Booking>(`/bookings/${bookingId}/complete`),
-  // Filas: mais antigo primeiro
-  payments: (page = 0, size = 50) => request<Page<AdminPayment>>(`/admin/payments?status=AWAITING_PAYMENT&page=${page}&size=${size}`),
-  // Só a contagem (o ecrã de verificações ainda não está ligado)
-  kycQueue: (page = 0, size = 50) => request<Page<unknown>>(`/admin/kyc?page=${page}&size=${size}`),
+  // Pagamento direto: confirmar em nome do dono (motivo e meio obrigatórios)
+  confirmPayment: (bookingId: string, reason: string, channel: DirectChannel) =>
+    patch<Booking>(`/bookings/${bookingId}/confirm-payment`, { reason, channel }),
+  complete: (bookingId: string, reason?: string) => patch<Booking>(`/bookings/${bookingId}/complete`, { reason }),
+  // Pagamentos diretos confirmados: mais recentes primeiro
+  payments: (page = 0, size = 50) => request<Page<AdminPayment>>(`/admin/payments?status=CONFIRMED&page=${page}&size=${size}`),
+  // Comissões por receber dos donos (quem deve há mais tempo primeiro)
+  commissions: () => request<CommissionDue[]>("/admin/commissions"),
+  settleCommissions: (ownerId: string, reason?: string) =>
+    post<{ ownerId: string; payments: number; amount: number }>(`/admin/commissions/${ownerId}/settle`, { reason }),
+  // KYC: fila (PENDING e IN_REVIEW, mais antigas primeiro), detalhe com URLs de 5 min, decisão
+  kycQueue: (page = 0, size = 50) => request<Page<KycQueueItem>>(`/admin/kyc?page=${page}&size=${size}`),
+  kycDetail: (id: string) => request<KycDetail>(`/admin/kyc/${id}`),
+  kycReview: (id: string, action: "START_REVIEW" | "APPROVE" | "REJECT" | "REQUEST_INFO", note?: string) =>
+    patch<KycStatusInfo>(`/admin/kyc/${id}/review`, { action, note }),
   deposits: (page = 0, size = 50) => request<Page<Deposit>>(`/admin/deposits?page=${page}&size=${size}`),
   incidents: (page = 0, size = 50) => request<Page<Incident>>(`/admin/incidents?page=${page}&size=${size}`),
   incident: (id: string) => request<Incident>(`/admin/incidents/${id}`),
@@ -323,11 +332,28 @@ export const checklistApi = {
 
 export const paymentApi = {
   current: (bookingId: string) => request<Payment | undefined>(`/bookings/${bookingId}/payments/current`),
+  // Pagamento direto (modo por omissão): o dono confirma que recebeu na entrega
+  received: (bookingId: string, channel: DirectChannel) => post<Booking>(`/bookings/${bookingId}/payment-received`, { channel }),
+  // O dono regista a devolução da caução: withheldAmount 0 = devolveu tudo
+  depositDecision: (bookingId: string, withheldAmount: number, reason?: string) =>
+    post<Booking>(`/bookings/${bookingId}/deposit/decision`, { withheldAmount, reason }),
+  myCommissions: () => request<MyCommissions>("/payments/commissions/me"),
   create: (bookingId: string) => post<Payment>(`/bookings/${bookingId}/payments`),
   check: (paymentId: string) => post<Payment>(`/payments/${paymentId}/check`),
 };
 
-/** PDFs: contrato (partes da reserva) e comprovativo de pagamento não fiscal (quem pagou). */
+/** KYC manual: BI frente/verso + selfie (particular) ou NIF + certidão (empresa). A equipa decide à mão. */
+export const kycApi = {
+  me: () => request<KycStatusInfo>("/kyc/me"),
+  submit: (accountType: KycAccountType, files: Partial<Record<"biFront" | "biBack" | "selfie" | "nifDocument" | "businessDocument", Blob>>) => {
+    const form = new FormData();
+    form.append("accountType", accountType);
+    for (const [k, f] of Object.entries(files)) if (f) form.append(k, f, `${k}.${f.type === "application/pdf" ? "pdf" : "jpg"}`);
+    return upload<KycStatusInfo>("/kyc/submit", form);
+  },
+};
+
+/** PDFs: contrato (partes da reserva) e comprovativo de pagamento não fiscal (quem pagou e, no pagamento direto, quem recebeu). */
 export const documentApi = {
   contract: (bookingId: string) => download(`/bookings/${bookingId}/contract/pdf`, "contrato.pdf"),
   receipt: (paymentId: string) => download(`/payments/${paymentId}/receipt`, "comprovativo.pdf"),

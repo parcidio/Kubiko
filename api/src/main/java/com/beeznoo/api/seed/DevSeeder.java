@@ -72,6 +72,8 @@ public class DevSeeder implements ApplicationRunner {
     private final ChecklistService checklistService;
     private final IncidentService incidentService;
     private final ReviewService reviewService;
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.beeznoo.api.booking.repository.BookingRepository bookingRepository;
     private final ApplicationContext context;
     private final String password;
 
@@ -163,11 +165,11 @@ public class DevSeeder implements ApplicationRunner {
         UUID r3 = book(telma, "canon", 6, 9, "Sessão de moda para uma marca local.");
         bookingService.accept(edson, r3, new BookingActionRequest("Levanta em Talatona, perto do Belas Shopping."));
 
-        // Aceite, com referência emitida
+        // Aceite, contrato aceite — à espera do pagamento na entrega (ou da referência, no modo reference)
         UUID r4 = book(ana, "godox", 2, 4, "Retratos em estúdio.");
         bookingService.accept(edson, r4, null);
         contractService.acceptAsRenter(ana, r4);
-        paymentService.createReference(ana, r4);
+        if (!paymentService.directMode()) paymentService.createReference(ana, r4);
 
         // Paga, à espera da entrega
         UUID r11 = book(ana, "drone", 1, 3, "Imagens aéreas de um evento na Ilha.");
@@ -178,7 +180,7 @@ public class DevSeeder implements ApplicationRunner {
         pay(admin, edson, mauro, r5);
         deliver(edson, mauro, r5);
 
-        // Devolvida, caução à espera da equipa
+        // Devolvida, caução por devolver (dono no modo direct, equipa no modo reference)
         UUID r12 = book(paulo, "jbl", -6, -4, "Festa de fim de ano da empresa.");
         pay(admin, luzia, paulo, r12);
         deliver(luzia, paulo, r12);
@@ -189,13 +191,13 @@ public class DevSeeder implements ApplicationRunner {
         pay(admin, luzia, ana, r6);
         deliver(luzia, ana, r6);
         giveBack(ana, luzia, r6);
-        bookingService.complete(admin, r6, "Seed: devolvido em bom estado");
+        finish(admin, luzia, r6);
 
         UUID r7 = book(telma, "aputure", -20, -17, "Campanha de fotografia de produto.");
         pay(admin, luzia, telma, r7);
         deliver(luzia, telma, r7);
         giveBack(telma, luzia, r7);
-        bookingService.complete(admin, r7, "Seed: devolvido em bom estado");
+        finish(admin, luzia, r7);
 
         // Mais concluídas, com avaliações (faixas "Mais alugados" e "Mais bem avaliados" do Explorar)
         review(ana, r6, 5, "Som limpíssimo nas entrevistas. A Luzia explicou tudo na entrega.");
@@ -238,7 +240,7 @@ public class DevSeeder implements ApplicationRunner {
         pay(admin, owner, renter, id);
         deliver(owner, renter, id);
         giveBack(renter, owner, id);
-        bookingService.complete(admin, id, "Seed: devolvido em bom estado");
+        finish(admin, owner, id);
         return id;
     }
 
@@ -249,7 +251,23 @@ public class DevSeeder implements ApplicationRunner {
     private void pay(UUID admin, UUID owner, UUID renter, UUID bookingId) {
         bookingService.accept(owner, bookingId, null);
         contractService.acceptAsRenter(renter, bookingId);
-        bookingService.confirmPayment(admin, bookingId, "Seed: pagamento de demonstração");
+        if (paymentService.directMode()) {
+            bookingService.confirmPaymentReceived(owner, bookingId, com.beeznoo.api.transaction.entity.DirectChannel.CASH);
+        } else {
+            bookingService.confirmPayment(admin, bookingId, "Seed: pagamento de demonstração");
+        }
+        moveToPast(bookingId);
+    }
+
+    // Concluir depois da devolução: no modo direct o dono devolve a caução (sem caução já ficou concluída)
+    private void finish(UUID admin, UUID owner, UUID bookingId) {
+        var status = bookingService.getById(admin, bookingId).status();
+        if (!"RETURNED".equals(status)) return;
+        if (paymentService.directMode()) {
+            bookingService.decideDepositAsOwner(owner, bookingId, java.math.BigDecimal.ZERO, null);
+        } else {
+            bookingService.complete(admin, bookingId, "Seed: devolvido em bom estado");
+        }
     }
 
     // Entrega: o dono regista, o arrendatário confirma
@@ -325,9 +343,27 @@ public class DevSeeder implements ApplicationRunner {
     }
 
     /** Datas relativas a hoje: book(ana, "sony", 5, 8) → levanta daqui a 5 dias, devolve daqui a 8. */
+    // Reservas no passado: pedem-se e aceitam-se no futuro (aceitar depois do dia de levantamento dá "expirou", #11)
+    // e só depois de pagas passam para as datas pedidas (pay → moveToPast)
+    private static final int FUTURE_SHIFT = 400;
+    private final Map<UUID, int[]> pastDates = new HashMap<>();
+
     private UUID book(UUID renter, String itemKey, int startOffset, int endOffset, String message) {
         LocalDate today = LocalDate.now();
-        return bookingService.create(renter, new CreateBookingRequest(
-                items.get(itemKey), today.plusDays(startOffset), today.plusDays(endOffset), message)).id();
+        int shift = startOffset <= 0 ? FUTURE_SHIFT : 0;
+        UUID id = bookingService.create(renter, new CreateBookingRequest(
+                items.get(itemKey), today.plusDays(startOffset + shift), today.plusDays(endOffset + shift), message)).id();
+        if (shift > 0) pastDates.put(id, new int[]{startOffset, endOffset});
+        return id;
+    }
+
+    private void moveToPast(UUID bookingId) {
+        int[] d = pastDates.remove(bookingId);
+        if (d == null) return;
+        bookingRepository.findById(bookingId).ifPresent(b -> {
+            b.setStartDate(LocalDate.now().plusDays(d[0]));
+            b.setEndDate(LocalDate.now().plusDays(d[1]));
+            bookingRepository.saveAndFlush(b);
+        });
     }
 }

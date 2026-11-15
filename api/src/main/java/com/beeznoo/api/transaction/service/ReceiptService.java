@@ -10,6 +10,7 @@ import com.beeznoo.api.common.util.Formats;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
+import com.beeznoo.api.transaction.entity.DirectChannel;
 import com.beeznoo.api.transaction.entity.Payment;
 import com.beeznoo.api.transaction.entity.PaymentMethod;
 import com.beeznoo.api.transaction.entity.PaymentStatus;
@@ -52,19 +53,24 @@ public class ReceiptService {
 
     public record ReceiptFile(String fileName, byte[] content) {}
 
-    /** Só quem pagou (arrendatário) ou um admin; só pagamentos confirmados. Admin fica na auditoria (dados pessoais). */
+    /**
+     * Só quem pagou (arrendatário), quem recebeu num pagamento direto (dono) ou um admin; só pagamentos confirmados.
+     * Admin fica na auditoria (dados pessoais).
+     */
     @Transactional
     public ReceiptFile receipt(UUID requesterId, UUID paymentId) {
         Payment payment = paymentRepository.findById(paymentId)
                 .orElseThrow(() -> new IllegalArgumentException("Pagamento não encontrado"));
         boolean renter = payment.getRenter().getId().equals(requesterId);
-        if (!renter && !isAdmin(requesterId)) {
+        boolean payee = payment.getMethod() == PaymentMethod.DIRECT
+                && payment.getBooking().getOwner().getId().equals(requesterId);
+        if (!renter && !payee && !isAdmin(requesterId)) {
             throw new AccessDeniedException("Sem acesso a este comprovativo");
         }
         if (payment.getStatus() != PaymentStatus.CONFIRMED || payment.getReceiptNumber() == null) {
             throw new IllegalStateException("O comprovativo só existe depois de o pagamento ser confirmado");
         }
- if (!renter) {
+        if (!renter && !payee) {
             auditService.record(requesterId, AuditAction.RECEIPT_VIEWED, AuditService.BOOKING,
                     payment.getBooking().getId(), null, Map.of("paymentId", payment.getId().toString()));
         }
@@ -107,7 +113,8 @@ public class ReceiptService {
             pdf.roundRect(MARGIN + 16, boxBottom + 17, 62, 24, 6, null, VERDE_MEDIO, 1.6f);
             pdf.textAt("PAGO", BOLD, 13, VERDE_MEDIO, MARGIN + 30, boxBottom + 24);
             float nameWidth = CONTENT_WIDTH - 94 - 170;
-            pdf.textAt("Recebemos de", REGULAR, 8.5f, CINZA, MARGIN + 94, boxBottom + 34);
+            boolean direct = payment.getMethod() == PaymentMethod.DIRECT;
+            pdf.textAt(direct ? "Pago por" : "Recebemos de", REGULAR, 8.5f, CINZA, MARGIN + 94, boxBottom + 34);
             pdf.textAt(pdf.ellipsize(client.getFullName(), BOLD, 10.5f, nameWidth), BOLD, 10.5f, VERDE,
                     MARGIN + 94, boxBottom + 19);
             pdf.textRightAt("Total pago", REGULAR, 8.5f, CINZA, WIDTH - MARGIN - 16, boxBottom + 36);
@@ -131,8 +138,16 @@ public class ReceiptService {
             float px = MARGIN + CONTENT_WIDTH / 2 + 12;
             boolean manual = payment.getMethod() == PaymentMethod.MANUAL;
             pdf.sectionTitle("Pagamento", px, half);
-            pdf.labelValue("Método", manual ? "Transferência validada pela equipa" : "Referência Multicaixa", px, half, 92);
-            if (!manual && notBlank(payment.getReference())) {
+            if (direct) {
+                pdf.labelValue("Método", DirectChannel.labelOf(payment.getProvider()), px, half, 92);
+                pdf.labelValue("Pago a", booking.getOwner().getFullName() + " (dono)", px, half, 92);
+                pdf.labelValue("Confirmado por", payment.getConfirmedBy() != null
+                        && payment.getConfirmedBy().getId().equals(booking.getOwner().getId())
+                        ? "Dono, na app" : "Equipa Beeznoo, em nome do dono", px, half, 92);
+            } else {
+                pdf.labelValue("Método", manual ? "Transferência validada pela equipa" : "Referência Multicaixa", px, half, 92);
+            }
+            if (!direct && !manual && notBlank(payment.getReference())) {
                 pdf.labelValue("Entidade / Ref.", payment.getEntity() + " / " + groupReference(payment.getReference()),
                         px, half, 92);
             }
@@ -157,13 +172,25 @@ public class ReceiptService {
 
             // ---- notas
             pdf.gap(14);
-            String depositNote = payment.getDepositAmount().signum() > 0
-                    ? "A caução de " + Formats.kz(payment.getDepositAmount()) + " é reembolsável: volta para ti depois da "
-                      + "devolução e inspeção do equipamento, salvo retenção por dano, perda ou roubo, nos termos do "
-                      + "contrato da reserva. "
-                    : "";
-            notesBox(pdf, depositNote + "O valor do aluguer é entregue ao dono depois da entrega do equipamento. "
-                    + "Guarda este comprovativo até a caução ser libertada.");
+            boolean hasDeposit = payment.getDepositAmount().signum() > 0;
+            if (direct) {
+                String depositNote = hasDeposit
+                        ? "A caução de " + Formats.kz(payment.getDepositAmount()) + " ficou com o dono e é reembolsável: "
+                          + "o dono devolve-a depois da devolução e inspeção do equipamento, salvo retenção por dano, "
+                          + "perda ou roubo, nos termos do contrato da reserva. "
+                        : "";
+                notesBox(pdf, "Pagamento feito diretamente ao dono, que confirmou a receção na app Beeznoo. "
+                        + "A Beeznoo não recebeu nem guarda este valor. " + depositNote
+                        + "Guarda este comprovativo até a reserva estar concluída.");
+            } else {
+                String depositNote = hasDeposit
+                        ? "A caução de " + Formats.kz(payment.getDepositAmount()) + " é reembolsável: volta para ti depois da "
+                          + "devolução e inspeção do equipamento, salvo retenção por dano, perda ou roubo, nos termos do "
+                          + "contrato da reserva. "
+                        : "";
+                notesBox(pdf, depositNote + "O valor do aluguer é entregue ao dono depois da entrega do equipamento. "
+                        + "Guarda este comprovativo até a caução ser libertada.");
+            }
 
             pdf.gap(10);
             pdf.paragraph("Documento não fiscal. Não substitui fatura nem recibo emitidos por software certificado pela AGT.",

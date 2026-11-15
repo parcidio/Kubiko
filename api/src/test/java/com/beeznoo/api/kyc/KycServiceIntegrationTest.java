@@ -111,7 +111,7 @@ class KycServiceIntegrationTest {
 
         assertThatThrownBy(() -> kycService.submit(user.getId(), AccountType.INDIVIDUAL, files))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("BI_FRONT");
+                .hasMessageContaining("frente do BI");
         assertThat(storage.objects()).isEmpty();
     }
 
