@@ -149,6 +149,8 @@ export interface Me {
   phoneVerified: boolean;
   identityVerified: boolean;
   kycStatus: string | null;
+  /** Pode publicar e pedir reserva já (KYC aprovado, ou o servidor não o exige). Avisar antes de começar um pedido. */
+  canTransact: boolean;
   createdAt: string;
 }
 

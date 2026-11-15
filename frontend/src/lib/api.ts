@@ -175,9 +175,17 @@ export const catalogApi = {
   categories: () => request<Category[]>("/categories"),
   // order: RECENT (destaques primeiro) · POPULAR (mais alugados) · RATING (mais bem avaliados)
   // startDate + endDate (as duas): só equipamento livre nesse período (o dia de devolução é exclusivo)
-  items: (p: { categoryId?: string; page?: number; size?: number; featured?: boolean; order?: ItemOrder; startDate?: string; endDate?: string }) => {
+  items: (p: {
+    categoryId?: string; page?: number; size?: number; featured?: boolean; order?: ItemOrder; startDate?: string; endDate?: string;
+    // pesquisa no servidor (#17): título, cidade/província, Kz por dia, estado
+    text?: string; area?: string; maxPrice?: number; condition?: ItemCondition;
+  }) => {
     const q = new URLSearchParams({ page: String(p.page ?? 0), size: String(p.size ?? 20) });
     if (p.categoryId) q.set("categoryId", p.categoryId);
+    if (p.text?.trim()) q.set("q", p.text.trim());
+    if (p.area?.trim()) q.set("area", p.area.trim());
+    if (p.maxPrice !== undefined) q.set("maxPrice", String(p.maxPrice));
+    if (p.condition) q.set("condition", p.condition);
     if (p.startDate && p.endDate) {
       q.set("startDate", p.startDate);
       q.set("endDate", p.endDate);

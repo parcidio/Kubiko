@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { CalendarDays, ChevronRight, Clock, LayoutGrid, MapPin, MessageCircle, Repeat2, ShieldCheck, Sparkles } from "lucide-react";
 import { categoryIcon } from "@/components/bz/brand";
 import { PriceSummary } from "@/components/bz/booking";
@@ -12,15 +12,16 @@ import { TextField } from "@/components/bz/form";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
-import { BackLink, Badge, Button, ButtonLink, Card, Eyebrow, Kz, Skeleton, buttonClass } from "@/components/bz/ui";
-import { adminApi, catalogApi } from "@/lib/api";
+import { BackLink, Badge, Button, ButtonLink, Callout, Card, Eyebrow, Kz, Skeleton, buttonClass } from "@/components/bz/ui";
+import { adminApi, catalogApi, profileApi } from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import { whatsappLink } from "@/lib/booking";
 import { firstConflict, unavailableDays } from "@/lib/availability";
-import { addDaysIso, daysBetween, formatDay, formatRange, todayIso } from "@/lib/format";
+import { addDaysIso, daysBetween, formatDay, formatRange, SERVICE_FEE_RATE, todayIso } from "@/lib/format";
+import { canRent } from "@/lib/mode";
 import { cn } from "@/lib/utils";
 import { useResource } from "@/lib/use-resource";
-import type { Availability, Item } from "@/lib/types";
+import type { Availability, Item, Me } from "@/lib/types";
 
 export default function EquipamentoPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,8 +30,15 @@ export default function EquipamentoPage() {
   const [featuring, setFeaturing] = useState(false);
   const gallery = useRef<HTMLDivElement>(null);
   const [photo, setPhoto] = useState(0);
-  const [start, setStart] = useState(todayIso(1));
-  const [end, setEnd] = useState(todayIso(3));
+  // Datas escolhidas no Explorar (?de=&ate=) vêm já preenchidas; senão, amanhã a daqui a 3 dias
+  const params = useSearchParams();
+  const fromIso = validIso(params.get("de"));
+  const toIso = validIso(params.get("ate"));
+  const givenDates = fromIso && toIso && fromIso >= todayIso() && toIso > fromIso;
+  const [start, setStart] = useState(givenDates ? fromIso : todayIso(1));
+  const [end, setEnd] = useState(givenDates ? toIso : todayIso(3));
+  // Quem ainda não pode pedir (KYC por aprovar) é avisado aqui, não depois de preencher o pedido
+  const me = useResource<Me>(session ? "profile:me" : null, () => profileApi.me());
   const [depositInfo, setDepositInfo] = useState(false);
   // Dias ocupados (público). Se falhar, o pedido continua possível: a API valida na mesma
   const availability = useResource<Availability>(`availability:${id}`, () => catalogApi.availability(id));
@@ -57,6 +65,11 @@ export default function EquipamentoPage() {
   const busyDays = unavailableDays(availability.data);
   const conflict = firstConflict(busyDays, start, end);
   const reserveHref = `/equipamento/${id}/reservar?de=${start}&ate=${end}`;
+  const isOwn = session?.profileId === item.ownerId;
+  const needsKyc = !!session && canRent(session.role) && !isOwn && me.data?.canTransact === false;
+  const rentalTotal = days > 0 ? Math.round(Number(item.pricePerDay) * days * (1 + SERVICE_FEE_RATE)) : 0;
+  // O botão diz porque não dá para pedir, em vez de ficar só cinzento
+  const ctaBlocked = !available ? "Indisponível" : conflict ? "Escolhe outras datas" : days < 1 ? "Escolhe as datas" : null;
   const waText = `Olá Beeznoo! Tenho uma pergunta sobre "${item.title}" (${formatRange(start, end)}).`;
 
   async function toggleFeatured() {
@@ -171,7 +184,7 @@ export default function EquipamentoPage() {
                 {item.ownerVerified && <VerifiedBadge compact />}
               </p>
               <p className="flex items-center gap-1 text-[13px] text-cinza">
-                <Clock className="size-3.5" strokeWidth={1.8} aria-hidden /> Responde em até 24 h
+                <Clock className="size-3.5" strokeWidth={1.8} aria-hidden /> Tem 24 h para responder ao teu pedido
               </p>
             </div>
           </Card>
@@ -242,12 +255,28 @@ export default function EquipamentoPage() {
             </Card>
           )}
 
+          {needsKyc && (
+            <Callout tone="warn" title="Antes de pedir, verifica a tua identidade">
+              É feito à mão pela equipa e pode demorar até 2 dias úteis. Só precisas de o fazer uma vez.
+            </Callout>
+          )}
+
           <StickyCTA
             aside={
-              <p className="leading-tight text-verde">
-                <Kz value={item.pricePerDay} className="text-xl" />
-                <span className="text-[13px] text-cinza"> /dia</span>
-              </p>
+              ctaBlocked ? (
+                <p className="leading-tight text-verde">
+                  <Kz value={item.pricePerDay} className="text-xl" />
+                  <span className="text-[13px] text-cinza"> /dia</span>
+                </p>
+              ) : (
+                // o total das datas é o número que decide (aluguer + taxa; a caução está no resumo acima)
+                <p className="leading-tight text-verde">
+                  <Kz value={rentalTotal} className="text-xl" />
+                  <span className="block text-[13px] text-cinza">
+                    {formatRange(start, end)} · {days} {days === 1 ? "dia" : "dias"}
+                  </span>
+                </p>
+              )
             }
           >
             <div className="flex gap-2">
@@ -255,9 +284,15 @@ export default function EquipamentoPage() {
                 <MessageCircle strokeWidth={1.8} />
                 <span className="hidden md:inline">WhatsApp</span>
               </a>
-              <ButtonLink href={reserveHref} className={cn("md:flex-1", !available || days < 1 || conflict ? "pointer-events-none opacity-50" : "")} aria-disabled={!available || days < 1 || !!conflict}>
-                Pedir reserva
-              </ButtonLink>
+              {needsKyc ? (
+                <ButtonLink href="/verificacao" className="md:flex-1">
+                  Verificar identidade
+                </ButtonLink>
+              ) : (
+                <ButtonLink href={reserveHref} className={cn("md:flex-1", ctaBlocked ? "pointer-events-none opacity-50" : "")} aria-disabled={!!ctaBlocked}>
+                  {ctaBlocked ?? "Pedir reserva"}
+                </ButtonLink>
+              )}
             </div>
           </StickyCTA>
         </div>
@@ -310,4 +345,9 @@ function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; depos
       </div>
     </div>
   );
+}
+
+// "2026-11-16" ou null (parâmetros do URL não são de confiança)
+function validIso(v: string | null) {
+  return v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
 }

@@ -89,6 +89,8 @@ public class ItemController {
                     Cada item traz `ratingAverage`, `ratingCount`, `completedRentals` e `featured`.
                     `startDate` + `endDate` (ISO, as duas ou nenhuma): só equipamento livre de `startDate` até
                     `endDate` (dia de devolução, exclusivo), sem reservas aceites nem datas bloqueadas pelo dono.
+                    Pesquisa: `q` (título, até 100 caracteres), `area` (cidade ou província), `maxPrice` (Kz por dia),
+                    `condition` (`NEW`, `LIKE_NEW`, `GOOD`, `FAIR`). Sem diferença de maiúsculas; `%` e `_` são literais.
 
                     Endpoint público, não requer autenticação.
                     """
@@ -104,8 +106,13 @@ public class ItemController {
                     iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate startDate,
             @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(
                     iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate endDate,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String area,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
+            @RequestParam(required = false) com.beeznoo.api.item.entity.ItemCondition condition,
             Pageable pageable) {
-        return ResponseEntity.ok(itemService.listActive(categoryId, featured, order, startDate, endDate, pageable));
+        return ResponseEntity.ok(itemService.listActive(categoryId, featured, order, startDate, endDate,
+                q, area, maxPrice, condition, pageable));
     }
 
     @Operation(
