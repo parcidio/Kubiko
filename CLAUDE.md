@@ -123,7 +123,7 @@ App mobile nativa, chat interno, IA/recomendações, mapas avançados, loyalty, 
 
 - `SPEC.md` — especificação funcional do MVP.
 - `claude/decisoes-produto.md` — registo de decisões (fonte de verdade).
-- `docs/DESIGN_SYSTEM.md`, `docs/ECRAS.md`, `docs/BACKEND_GAPS.md`, `docs/DB-MODEL.md` (schema atual), `docs/SEGURANCA.md` (OWASP), `docs/DEPLOY.md` (alojamento passo a passo).
+- `docs/DESIGN_SYSTEM.md`, `docs/ECRAS.md`, `docs/BACKEND_GAPS.md`, `docs/DB-MODEL.md` (schema atual), `docs/SEGURANCA.md` (OWASP), `docs/DEPLOY.md` (alojamento passo a passo), `docs/DEPLOY_VPS.md` (VPS/Coolify: tudo no mesmo servidor).
 - Swagger da API em local: `http://localhost:8081/swagger-ui.html`.
 - `Beeznoo — App v2.html` (raiz): exportação do Claude Design que serviu de ponto de partida (substituída pela v3).
 - Roadmap de 24 semanas: `Kubiko_Roadmap_Startup.pdf`.
