@@ -125,3 +125,10 @@ pedir reserva sem identidade verificada, para testar. Ver `claude/decisoes-produ
 - **Valores monetários**: `NUMERIC(12,2)` no schema vs inteiros em Kz no CLAUDE.md (já registado em `decisoes-produto.md`). A taxa e as retenções de caução são sempre em Kz inteiros.
 - **Nomes de campos**: `PublishItemRequest.itemCondition` vs `UpdateItemRequest.condition`; `PhotoResponse.photUrl` (typo). O frontend adapta-se em `lib/api.ts`.
 - **CORS**: não há config — está bem enquanto o browser passa pelo proxy do Next (`next.config.ts`).
+
+## Painel de métricas do admin (2026-11-15)
+
+✅ `GET /admin/metrics` (ADMIN): alugueres concluídos este mês e no anterior (North Star), últimos 6 meses (concluídos,
+pagos, valor alugado, taxa), funil dos pedidos de 30 dias, comissões por receber, fila e tempo médio do KYC, utilizadores
+e equipamento ativo. Ecrã: `/admin` (KPIs e gráficos em `components/bz/charts.tsx`, sem biblioteca). Regras de contagem
+em `claude/decisoes-produto.md` (2026-11-15).

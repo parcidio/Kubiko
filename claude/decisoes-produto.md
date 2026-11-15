@@ -574,3 +574,30 @@ tem um gateway próprio de WhatsApp, Losambo (`https://message.beeznoo.ao/v1`, a
 **A confirmar com quem gere o Losambo:** o corpo do `/otp/verify` não está na documentação pública. Enviamos
 `{ "id", "to", "code" }` e aceitamos como válido um 2xx sem `valid`/`verified` a `false`. Testar em staging com a chave
 TST antes de produção.
+
+---
+
+## 2026-11-15 — Painel de métricas do admin (North Star)
+
+**Contexto.** A visão geral do admin só mostra as quatro filas. Para saber se o MVP está a funcionar, a equipa precisa de
+ver a North Star (alugueres pagos e concluídos por mês) e o que a trava, sem correr SQL à mão.
+
+**Hipótese.** Se a equipa vir todas as semanas os alugueres concluídos, o funil de pedidos e o tempo de KYC, descobre
+mais cedo onde se perdem os alugueres (dono não responde, KYC lento, pedidos que expiram) e age sobre isso.
+**Para quem:** equipa Beeznoo (ADMIN). **Sucesso:** a demo de sexta usa este ecrã em vez de consultas à base de dados.
+
+**Decisões (pedidas pela equipa nesta data — ⚑ validar com o André):**
+
+1. **Um endpoint só de leitura**, `GET /api/v1/admin/metrics` (ADMIN), calculado na hora com SQL agregado. Sem tabelas
+   novas nem jobs: com o volume do MVP a consulta custa milissegundos. Se crescer, passa a vista materializada.
+2. **Meses no fuso de Luanda** (`Africa/Luanda`), últimos 6 meses incluindo o atual, meses sem dados a zero.
+3. **Concluído** = reserva `COMPLETED`, contada no mês da última alteração (`bookings.updated_at`; a reserva não muda
+   depois de concluída). **Pago** = pagamento `CONFIRMED`, no mês de `confirmed_at`. **Valor alugado** = soma do aluguer
+   (`rental_amount`), sem taxa nem caução. **Comissão** = `service_fee` dos pagamentos confirmados.
+4. **Funil dos últimos 30 dias**, por data do pedido, a partir do estado atual de cada reserva: pedidos → aceites (passou
+   de `PENDING_OWNER` para um estado de aluguer) → pagos (tem pagamento confirmado) → concluídos; perdidos =
+   recusados/cancelados/expirados. Um pedido cancelado depois de aceite conta como perdido, não como aceite — aproximação
+   aceitável sem histórico de estados.
+5. **KYC:** pendentes (`PENDING`, `IN_REVIEW`, `INFO_REQUESTED`) e tempo médio de decisão (submissão → `reviewed_at`) das
+   decisões dos últimos 30 dias.
+6. **Gráficos sem biblioteca** (SVG próprio em `src/components/bz/`), seguindo a regra de não juntar bibliotecas de UI.

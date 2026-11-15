@@ -1,6 +1,6 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AdminPayment, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType,
+  Account, AdminMetrics, AdminPayment, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType,
   CommissionDue, Contract, Deposit, DirectChannel, Incident, IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, KycAccountType, KycDetail,
   KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
 } from "./types";
@@ -255,6 +255,8 @@ export const walletApi = {
 
 /** Ações de admin que já existem (sem listagens — ver docs/BACKEND_GAPS.md). */
 export const adminApi = {
+  // Painel: North Star, funil, comissões, KYC (só leitura)
+  metrics: () => request<AdminMetrics>("/admin/metrics"),
   // Motivo fica em audit_logs
   // Pagamento direto: confirmar em nome do dono (motivo e meio obrigatórios)
   confirmPayment: (bookingId: string, reason: string, channel: DirectChannel) =>

@@ -417,3 +417,14 @@ export interface LedgerEntry {
   description: string | null;
   createdAt: string;
 }
+
+/** GET /admin/metrics — painel de métricas (decisoes-produto.md 2026-11-15). Kz inteiros; meses YYYY-MM no fuso de Luanda. */
+export interface AdminMetrics {
+  generatedAt: string;
+  northStar: { completedThisMonth: number; completedLastMonth: number };
+  months: { month: string; completed: number; paid: number; rentalValue: number; serviceFee: number }[];
+  funnel30d: { requested: number; accepted: number; paid: number; completed: number; lost: number; pending: number };
+  commissions: { earnedThisMonth: number; pendingTotal: number; pendingOwners: number };
+  kyc: { pending: number; avgDecisionHours: number | null; decided30d: number };
+  marketplace: { users: number; newUsers30d: number; verifiedUsers: number; activeItems: number; ownersWithItems: number };
+}

@@ -51,7 +51,7 @@ Sprints semanais: segunda planning · terça–quinta execução · sexta demo, 
 ### Notas de backend
 - `spring.jpa.hibernate.ddl-auto: validate` — o schema vem **só** das migrações Flyway, nunca do Hibernate.
 - Neon: usar a connection string **pooled** e ligações Hikari de vida curta (o Neon fecha ligações inativas).
-- Pacotes Java organizados por domínio: `auth`, `profile`, `item`, `booking`, `contract`, `transaction`, `handover`, `deposit`, `kyc`, `claim`, `notification`, `audit`, `review`, `security`, `common`.
+- Pacotes Java organizados por domínio: `auth`, `profile`, `item`, `booking`, `contract`, `transaction`, `handover`, `deposit`, `kyc`, `claim`, `notification`, `audit`, `review`, `security`, `metrics`, `common`.
 - Usa branches do Neon para testar migrações antes de staging/produção.
 - **Migrações aplicadas: V1–V24.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V25).
 - **Estados da reserva:** `PENDING_OWNER → ACCEPTED → ACTIVE (pago) → IN_PROGRESS (entregue) → RETURNED (devolvido) → COMPLETED`, mais `CANCELLED_RENTER`, `CANCELLED_OWNER`, `EXPIRED` (pedido sem resposta, `BookingExpiryScheduler`), `DISPUTED`. Recusar = o dono faz `cancel` a um pedido `PENDING_OWNER`. Datas ocupadas: `BookingStatus.OCCUPYING`.
