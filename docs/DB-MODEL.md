@@ -1,6 +1,6 @@
 # Modelo de dados — schema atual
 
-Gerado a partir das migrações Flyway **V1–V24** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-15.
+Gerado a partir das migrações Flyway **V1–V25** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-15.
 As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
 A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
 
@@ -283,6 +283,7 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V22 | reserva `EXPIRED` (pedido sem resposta) e notificação `BOOKING_EXPIRED`; índice parcial dos pedidos pendentes |
 | V23 | emails em minúsculas (sem colisões) e índice em `lower(email)` |
 | V24 | pagamento direto ao dono: método `DIRECT`, `payments.confirmed_by`, `commission_settled_at/by`; um só pagamento `CONFIRMED` por reserva (índice único parcial); índice das comissões por receber |
+| V25 | suspensão de contas pela equipa: `profiles.suspended_at`, `suspension_reason` (obrigatório se suspensa), `suspended_by` |
 
 **Pagamento direto (V24, modo por omissão):** o arrendatário paga ao dono na entrega e o dono confirma. Não há
 movimentos no ledger (`accounts`/`ledger_entries` só registam dinheiro que passa pela Beeznoo, modo `reference`). A

@@ -1,6 +1,6 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AdminMetrics, AdminPayment, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType,
+  Account, AdminMetrics, AdminPayment, AdminUserDetail, AdminUserSummary, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType,
   CommissionDue, Contract, Deposit, DirectChannel, Incident, IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, KycAccountType, KycDetail,
   KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
 } from "./types";
@@ -296,6 +296,14 @@ export const adminApi = {
     if (f.severity) q.set("severity", f.severity);
     return request<Page<SecurityEvent>>(`/admin/security-events?${q}`);
   },
+  // Utilizadores: pesquisa por nome, email ou telefone; suspensão com motivo (auditoria)
+  users: (q: string, suspended = false, page = 0, size = 20) =>
+    request<Page<AdminUserSummary>>(`/admin/users?${new URLSearchParams({ q, suspended: String(suspended), page: String(page), size: String(size) })}`),
+  user: (id: string) => request<AdminUserDetail>(`/admin/users/${id}`),
+  suspendUser: (id: string, reason: string) => post<AdminUserSummary>(`/admin/users/${id}/suspend`, { reason }),
+  reinstateUser: (id: string, reason?: string) => post<AdminUserSummary>(`/admin/users/${id}/reinstate`, { reason }),
+  suspendItem: (id: string, reason: string) => patch<Item>(`/admin/items/${id}/suspend`, { reason }),
+  reinstateItem: (id: string, reason?: string) => patch<Item>(`/admin/items/${id}/reinstate`, { reason }),
 };
 
 /** Contrato da reserva: o arrendatário aceita antes de gerar a referência de pagamento. */

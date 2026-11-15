@@ -264,6 +264,30 @@ export interface AdminPayment {
   commissionSettledAt: string | null;
   createdAt: string;
 }
+/** Admin › Utilizadores (decisoes-produto.md 2026-11-15 — ações de admin). */
+export interface AdminUserSummary {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  role: UserRole;
+  phoneVerified: boolean;
+  /** estado da verificação mais recente; null = nunca submeteu */
+  kycStatus: KycStatus | null;
+  createdAt: string;
+  suspendedAt: string | null;
+  suspensionReason: string | null;
+  items: number;
+  bookingsAsRenter: number;
+  bookingsAsOwner: number;
+}
+
+export interface AdminUserDetail {
+  user: AdminUserSummary;
+  city: string | null;
+  items: { id: string; title: string; status: "ACTIVE" | "INACTIVE" | "SUSPENDED"; pricePerDay: number; featured: boolean }[];
+  recentBookings: { id: string; itemTitle: string; side: "RENTER" | "OWNER"; status: BookingStatus; startDate: string; endDate: string; createdAt: string }[];
+}
 
 export interface AuditLog {
   id: string;

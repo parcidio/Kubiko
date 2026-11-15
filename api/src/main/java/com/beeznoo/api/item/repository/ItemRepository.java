@@ -24,11 +24,11 @@ public interface ItemRepository extends JpaRepository<Item, UUID> {
 
     Page<Item> findByOwnerIdAndStatusNot(UUID ownerId, ItemStatus status, Pageable pageable);
 
-    // Lista pública. featured=true → só destaques; ordem fixa no servidor (o cliente não escolhe colunas)
+    // Lista pública: só ativos de donos não suspensos (V25). featured=true → só destaques; ordem fixa no servidor (o cliente não escolhe colunas)
     // Datas (opcional, as duas ou nenhuma): só itens livres em [startDate, endDate) — sem reserva a ocupar
     // (BookingStatus.OCCUPYING) nem bloqueio do dono (dias inclusivos). Ver decisoes-produto.md 2026-11-11 (#8)
     String PUBLIC_FILTER = """
-            FROM Item i WHERE i.status = 'ACTIVE'
+            FROM Item i WHERE i.status = 'ACTIVE' AND i.owner.suspendedAt IS NULL
               AND (:categoryId IS NULL OR i.category.id = :categoryId)
               AND (:featured = false OR i.featuredAt IS NOT NULL)
               AND (CAST(:startDate AS LocalDate) IS NULL OR (

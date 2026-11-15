@@ -65,8 +65,8 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 - Reportar problema avisa também **a outra parte** (`INCIDENT_REPORTED`); resolver avisa **as duas partes** com a
   nota da equipa (`INCIDENT_RESOLVED`, migração V20).
 - Frontend: `/admin/pagamentos`, `/admin/caucoes`, `/admin/problemas`, `/admin/reservas/[id]` e contadores em `/admin`.
-- Falta: o admin não vê o pagamento de uma reserva (`/bookings/{id}/payments/current` é só das partes) nem descarrega
-  o comprovativo a partir do detalhe da reserva (só pelo id do pagamento).
+- ✅ (2026-11-15) O admin vê o pagamento no detalhe da reserva (`/bookings/{id}/payments/current` aceita ADMIN) e
+  descarrega o comprovativo a partir dali.
 
 ## Login Google e emails (2026-11-11)
 
@@ -132,3 +132,10 @@ pedir reserva sem identidade verificada, para testar. Ver `claude/decisoes-produ
 pagos, valor alugado, taxa), funil dos pedidos de 30 dias, comissões por receber, fila e tempo médio do KYC, utilizadores
 e equipamento ativo. Ecrã: `/admin` (KPIs e gráficos em `components/bz/charts.tsx`, sem biblioteca). Regras de contagem
 em `claude/decisoes-produto.md` (2026-11-15).
+## Ações de admin (2026-11-15)
+
+✅ `GET /admin/users?q=&suspended=` (pesquisa por nome, email ou telefone) e `GET /admin/users/{id}` (ficha com
+equipamento e reservas recentes). ✅ `POST /admin/users/{id}/suspend` e `/reinstate` (V25; login/refresh recusados,
+sessões revogadas, equipamento fora do Explorar). ✅ `PATCH /admin/items/{id}/suspend` e `/reinstate`. Motivo na
+auditoria em todas. Ecrãs: `/admin/utilizadores` e `/admin/utilizadores/[id]`. Regras em `claude/decisoes-produto.md`.
+⬜ Avisar a pessoa automaticamente da suspensão (hoje a equipa avisa).

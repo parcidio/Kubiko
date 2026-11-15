@@ -25,6 +25,7 @@ import com.beeznoo.api.transaction.entity.Account;
 import com.beeznoo.api.transaction.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -464,6 +465,7 @@ public class AuthService {
 
     // Contas ADMIN com 2FA: em vez de tokens, envia código por WhatsApp (ou SMS)
     private AuthResponse issueTokensOrMfa(Profile profile) {
+        assertNotSuspended(profile);
         if (securityProperties.adminMfaEnabled() && profile.getRole() == UserRole.ADMIN) {
             sendOtp(profile.getPhone(), Purpose.ADMIN_LOGIN);
             String raw = randomToken();
@@ -478,6 +480,7 @@ public class AuthService {
     }
 
     private AuthResponse issueTokens(Profile profile) {
+        assertNotSuspended(profile);
         String accessToken = jwtService.generateAccessToken(
                 profile.getId(), profile.getRole().name());
 
@@ -534,4 +537,12 @@ public class AuthService {
         if (phone == null || phone.length() < 6) return "***";
         return phone.substring(0, phone.length() - 6) + "***" + phone.substring(phone.length() - 3);
     }
+
+    // Conta suspensa pela equipa: nenhuma via de entrada emite sessão (login, refresh, Google, 2FA, registo)
+    private static void assertNotSuspended(Profile profile) {
+        if (profile.isSuspended()) {
+            throw new AccessDeniedException("A tua conta está suspensa. Fala com a equipa Beeznoo: ajuda@beeznoo.ao");
+        }
+    }
+
 }
