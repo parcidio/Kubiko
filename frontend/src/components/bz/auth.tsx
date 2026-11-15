@@ -17,7 +17,7 @@ export function AuthTitle({ title, subtitle }: { title: string; subtitle?: React
   );
 }
 
-/** 2.º passo do login de uma conta ADMIN: código enviado por SMS (2FA). */
+/** 2.º passo do login de uma conta ADMIN: código enviado por WhatsApp ou SMS (2FA). */
 export function AdminMfaStep({ mfaToken, phoneHint, onDone }: { mfaToken: string; phoneHint?: string | null; onDone: () => void }) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | undefined>();
@@ -42,7 +42,7 @@ export function AdminMfaStep({ mfaToken, phoneHint, onDone }: { mfaToken: string
     <>
       <AuthTitle
         title="Confirma que és tu"
-        subtitle={`Enviámos um código por SMS${phoneHint ? ` para ${phoneHint}` : ""}. As contas da equipa têm verificação em dois passos.`}
+        subtitle={`Enviámos um código por WhatsApp${phoneHint ? ` para ${phoneHint}` : ""}. As contas da equipa têm verificação em dois passos.`}
       />
       <form onSubmit={submit} className="grid gap-5" noValidate>
         <OtpField value={code} onChange={setCode} error={error} />

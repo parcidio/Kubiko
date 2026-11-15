@@ -69,7 +69,8 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-@SpringBootTest
+// Textos do fluxo de referência; os do pagamento direto estão no DirectPaymentIntegrationTest
+@SpringBootTest(properties = "app.payments.mode=reference")
 @Testcontainers
 @Transactional
 class NotificationServiceIntegrationTest {

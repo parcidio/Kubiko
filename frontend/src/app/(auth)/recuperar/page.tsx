@@ -61,7 +61,7 @@ export default function RecuperarPage() {
       <>
         <AuthTitle
           title="Nova password"
-          subtitle={<>Se <strong className="num text-verde">{normalizePhone(phone)}</strong> tiver conta, recebes um código.</>}
+          subtitle={<>Se <strong className="num text-verde">{normalizePhone(phone)}</strong> tiver conta, recebes um código no WhatsApp.</>}
         />
         <form onSubmit={submitReset} className="grid gap-5" noValidate>
           <OtpField value={code} onChange={setCode} error={errors.fields.code} />
@@ -86,7 +86,7 @@ export default function RecuperarPage() {
 
   return (
     <>
-      <AuthTitle title="Recuperar acesso" subtitle="Escreve o número da tua conta. Enviamos-te um código." />
+      <AuthTitle title="Recuperar acesso" subtitle="Escreve o número da tua conta. Enviamos-te um código por WhatsApp." />
       <form onSubmit={submitPhone} className="grid gap-5" noValidate>
         <PhoneField value={phone} onChange={setPhone} error={errors.fields.phone} />
         <FormError message={errors.form} />

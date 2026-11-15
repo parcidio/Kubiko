@@ -35,7 +35,8 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
 
-@SpringBootTest
+// Fluxo de referência Multicaixa (modo reference); o modo direct tem o DirectPaymentIntegrationTest
+@SpringBootTest(properties = "app.payments.mode=reference")
 @Testcontainers
 @Transactional
 class LedgerServiceIntegrationTest {

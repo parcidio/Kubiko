@@ -56,10 +56,13 @@ public class IncidentService {
     private final StorageService storageService;
     private final NotificationService notificationService;
     private final AuditService auditService;
+    private final com.beeznoo.api.deposit.service.DepositService depositService;
 
     public IncidentService(IncidentReportRepository incidentRepository, BookingRepository bookingRepository,
                            ProfileRepository profileRepository, StorageService storageService,
-                           NotificationService notificationService, AuditService auditService) {
+                           NotificationService notificationService, AuditService auditService,
+                           com.beeznoo.api.deposit.service.DepositService depositService) {
+        this.depositService = depositService;
         this.incidentRepository = incidentRepository;
         this.bookingRepository = bookingRepository;
         this.profileRepository = profileRepository;
@@ -73,8 +76,16 @@ public class IncidentService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new IllegalArgumentException("Reserva não encontrada"));
         Profile reporter = partyOf(reporterId, booking);
-        if (!REPORTABLE.contains(booking.getStatus())) {
-            throw new IllegalStateException("Só podes reportar um problema numa reserva paga e ainda não concluída");
+        // modo direct: o arrendatário pode contestar a decisão do dono sobre a caução até 7 dias depois
+        boolean contest = booking.getStatus() == BookingStatus.COMPLETED
+                && booking.getRenter().getId().equals(reporterId)
+                && depositService.contestableSince(bookingId)
+                        .map(since -> !incidentRepository.existsByBookingIdAndCreatedAtAfter(bookingId, since))
+                        .orElse(false);
+        if (!REPORTABLE.contains(booking.getStatus()) && !contest) {
+            throw new IllegalStateException(booking.getStatus() == BookingStatus.COMPLETED
+                    ? "Esta reserva já está concluída. Sobre a caução, só podes reportar até 7 dias depois de o dono a registar"
+                    : "Só podes reportar um problema numa reserva paga e ainda não concluída");
         }
         if (type == null) throw new IllegalArgumentException("Escolhe o tipo de problema");
         if (description == null || description.isBlank()) throw new IllegalArgumentException("Descreve o que aconteceu");

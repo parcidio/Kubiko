@@ -19,10 +19,11 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.backblazeb2.com",
+  // em desenvolvimento também um S3 local (MinIO/S3Mock, B2_PATH_STYLE=true)
+  `img-src 'self' data: blob: https://*.backblazeb2.com${isDev ? " http://localhost:*" : ""}`,
   "font-src 'self' data:",
-  //`connect-src 'self'${isDev ? " ws: http://localhost:*" : ""}`,
-  `connect-src 'self' ws: http://localhost:* https://script.google.com https://script.googleusercontent.com;`,
+  // Google Apps Script: formulário da lista de espera na landing. ws:/localhost só em desenvolvimento (React Refresh)
+  `connect-src 'self' https://script.google.com https://script.googleusercontent.com${isDev ? " ws: http://localhost:*" : ""}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

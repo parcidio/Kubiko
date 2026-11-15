@@ -212,8 +212,64 @@ public class BookingController {
     public ResponseEntity<BookingResponse> confirmPayment(
             @AuthenticationPrincipal UUID profileId,
             @PathVariable UUID id,
-            @Valid @RequestBody(required = false) AdminActionRequest request) {
-        return ResponseEntity.ok(bookingService.confirmPayment(profileId, id, request == null ? null : request.reason()));
+            @Valid @RequestBody(required = false) ConfirmPaymentRequest request) {
+        return ResponseEntity.ok(bookingService.confirmPayment(profileId, id,
+                request == null ? null : request.reason(), request == null ? null : request.channel()));
+    }
+
+    @Operation(
+            summary = "Dono confirma que recebeu o pagamento",
+            description = """
+                    Modo `direct` (omissão, decisoes-produto.md 2026-11-15): o arrendatário paga ao dono na entrega
+                    (aluguer + taxa de serviço + caução) e o dono confirma aqui, com o meio usado
+                    (`CASH`, `TRANSFER` ou `MULTICAIXA_EXPRESS`). Exige o contrato aceite pelo arrendatário.
+                    Transição `ACCEPTED` → `ACTIVE`; gera o comprovativo e avisa o arrendatário.
+                    A taxa de serviço fica como comissão a pagar pelo dono à Beeznoo.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pagamento registado, reserva ativa",
+                    content = @Content(schema = @Schema(implementation = BookingResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Meio de pagamento em falta",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Não é o dono da reserva",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Reserva não está ACCEPTED, contrato por aceitar, já pago ou modo reference",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/{id}/payment-received")
+    public ResponseEntity<BookingResponse> paymentReceived(
+            @AuthenticationPrincipal UUID profileId,
+            @PathVariable UUID id,
+            @Valid @RequestBody com.beeznoo.api.transaction.dto.PaymentDtos.DirectPaymentRequest request) {
+        return ResponseEntity.ok(bookingService.confirmPaymentReceived(profileId, id, request.channel()));
+    }
+
+    @Operation(
+            summary = "Dono regista a devolução da caução",
+            description = """
+                    Modo `direct`: a caução está com o dono. Depois da devolução confirmada (`RETURNED`), o dono indica
+                    se a devolveu toda (`withheldAmount` 0 ou vazio) ou se reteve parte (`withheldAmount` + `reason`
+                    obrigatório). Transição `RETURNED` → `COMPLETED`. O arrendatário pode reportar um problema até
+                    7 dias depois se não concordar.
+                    """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Caução registada, reserva concluída",
+                    content = @Content(schema = @Schema(implementation = BookingResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Valor fora dos limites ou motivo em falta",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Não é o dono da reserva",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Reserva não está RETURNED ou caução já decidida",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/{id}/deposit/decision")
+    public ResponseEntity<BookingResponse> depositDecision(
+            @AuthenticationPrincipal UUID profileId,
+            @PathVariable UUID id,
+            @Valid @RequestBody DepositDecisionRequest request) {
+        return ResponseEntity.ok(bookingService.decideDepositAsOwner(profileId, id, request.withheldAmount(), request.reason()));
     }
 
     @Operation(

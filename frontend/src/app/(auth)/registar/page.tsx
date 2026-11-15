@@ -71,7 +71,7 @@ function RegisterFlow() {
         <div className="h-6" />
         <AuthTitle
           title="Confirma o teu número"
-          subtitle={<>Enviámos um código para <strong className="num text-verde">{normalizePhone(phone)}</strong>.</>}
+          subtitle={<>Enviámos um código por WhatsApp para <strong className="num text-verde">{normalizePhone(phone)}</strong>. Se não tiveres WhatsApp, chega por SMS.</>}
         />
         <form onSubmit={submitOtp} className="grid gap-5" noValidate>
           <OtpField value={code} onChange={setCode} error={errors.fields.code} />
@@ -103,7 +103,7 @@ function RegisterFlow() {
     <>
       <StepProgress step={1} total={2} label="Os teus dados" />
       <div className="h-6" />
-      <AuthTitle title="Cria a tua conta" subtitle="Menos de um minuto. Confirmamos o teu número com um código." />
+      <AuthTitle title="Cria a tua conta" subtitle="Menos de um minuto. Confirmamos o teu número com um código no WhatsApp." />
       <form onSubmit={submitData} className="grid gap-5" noValidate>
         <TextField label="Nome completo" autoComplete="name" value={fullName} onChange={setFullName} error={errors.fields.fullName} />
         <PhoneField value={phone} onChange={setPhone} error={errors.fields.phone} />
@@ -111,6 +111,13 @@ function RegisterFlow() {
         <PasswordField value={password} onChange={setPassword} autoComplete="new-password" hint="Pelo menos 8 caracteres." error={errors.fields.password} />
         <RolePicker value={role} onChange={setRole} />
         <FormError message={errors.form} />
+        <p className="text-[13px] text-cinza">
+          Ao continuar, aceitas a{" "}
+          <Link href="/privacidade" target="_blank" className="font-medium text-mel-texto underline">
+            Política de Privacidade
+          </Link>
+          .
+        </p>
         <Button type="submit" loading={loading} block size="lg">
           {loading ? "A enviar código…" : "Continuar"}
         </Button>

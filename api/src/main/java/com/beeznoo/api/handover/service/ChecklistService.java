@@ -51,11 +51,14 @@ public class ChecklistService {
     private final StorageService storageService;
     private final NotificationService notificationService;
     private final AuditService auditService;
+    private final com.beeznoo.api.deposit.service.DepositService depositService;
 
     public ChecklistService(ChecklistRepository checklistRepository, BookingRepository bookingRepository,
                             ProfileRepository profileRepository, StorageService storageService,
-                            NotificationService notificationService, AuditService auditService) {
+                            NotificationService notificationService, AuditService auditService,
+                            com.beeznoo.api.deposit.service.DepositService depositService) {
         this.auditService = auditService;
+        this.depositService = depositService;
         this.checklistRepository = checklistRepository;
         this.bookingRepository = bookingRepository;
         this.profileRepository = profileRepository;
@@ -136,7 +139,7 @@ public class ChecklistService {
         } else {
             requireStatus(booking, BookingStatus.IN_PROGRESS);
             booking.setStatus(BookingStatus.RETURNED);
-            notificationService.bookingReturned(booking);
+            depositService.afterReturn(booking); // modo direct: o dono devolve a caução ou conclui logo
         }
         auditService.record(profileId, AuditAction.HANDOVER_CONFIRMED, AuditService.BOOKING, bookingId, null,
                 Map.of("type", type.name(), "checklistId", checklist.getId().toString(),

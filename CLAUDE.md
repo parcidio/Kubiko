@@ -53,13 +53,15 @@ Sprints semanais: segunda planning · terça–quinta execução · sexta demo, 
 - Neon: usar a connection string **pooled** e ligações Hikari de vida curta (o Neon fecha ligações inativas).
 - Pacotes Java organizados por domínio: `auth`, `profile`, `item`, `booking`, `contract`, `transaction`, `handover`, `deposit`, `kyc`, `claim`, `notification`, `audit`, `review`, `security`, `common`.
 - Usa branches do Neon para testar migrações antes de staging/produção.
-- **Migrações aplicadas: V1–V23.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V24).
+- **Migrações aplicadas: V1–V24.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V25).
 - **Estados da reserva:** `PENDING_OWNER → ACCEPTED → ACTIVE (pago) → IN_PROGRESS (entregue) → RETURNED (devolvido) → COMPLETED`, mais `CANCELLED_RENTER`, `CANCELLED_OWNER`, `EXPIRED` (pedido sem resposta, `BookingExpiryScheduler`), `DISPUTED`. Recusar = o dono faz `cancel` a um pedido `PENDING_OWNER`. Datas ocupadas: `BookingStatus.OCCUPYING`.
+- **Pagamento direto ao dono** (`app.payments.mode=direct`, omissão — decisoes-produto.md 2026-11-15): paga-se ao dono na entrega; o dono confirma (`POST /bookings/{id}/payment-received`) → `ACTIVE`; a caução fica com ele e é ele que a regista no fim (`POST /bookings/{id}/deposit/decision`) → `COMPLETED`. A taxa de serviço é comissão a cobrar ao dono (Admin › Pagamentos). Sem ledger neste modo. O modo `reference` (Multicaixa) fica no código para a EMIS.
 - **"Verificado"** = KYC aprovado (`KycService.isVerified`). `profiles.is_verified` é o **telefone** confirmado — não confundir.
 - **Ficheiros:** validar com `UploadedFiles.validate(...)` (tipo pelos bytes, 5 MB) e ligar à transação com `StorageTransactions.deleteOnRollback(...)` / `deleteAfterCommit(...)`. A `storage_key` nunca sai em DTOs nem logs — só URLs assinadas.
 - **Auditoria:** ações sensíveis de admin chamam `AuditService.record(...)` na mesma transação (`audit_logs` é append-only).
 - **Notificações:** chamar `NotificationService.<evento>(...)` dentro do serviço de domínio. O email sai **depois do commit** e em segundo plano — nunca fazer HTTP externo dentro da transação de negócio.
 - Spring Boot 4 não cria `RestClient.Builder` automaticamente: usar `RestClient.builder()`.
+- **OTP:** por WhatsApp (Losambo, `WhatsAppOtpClient`) com SMS (Ombala) como alternativa; `OTP_CHANNEL=auto` escolhe pelo que estiver configurado. O Losambo gera e valida o código; `otp_codes` guarda o propósito e a validade (decisoes-produto.md 2026-11-15).
 - Taxa de serviço: `ServiceFees.of(...)`. Formatos de Kz e datas para copy: `common.util.Formats`.
 
 ### Notas de frontend
@@ -67,7 +69,7 @@ Sprints semanais: segunda planning · terça–quinta execução · sexta demo, 
 - **Sem shadcn/ui nem outras bibliotecas de UI** (decisão 2026-10-17). Usa os componentes de `src/components/bz/` e HTML nativo (`<dialog>`, `<input type="date">`). A acessibilidade é nossa: foco visível, teclado, ARIA.
 - O browser fala só com o Next; `next.config.ts` faz proxy de `/api/v1` para o Spring (sem CORS).
 - Mapa de ecrãs e divisão de trabalho: `docs/ECRAS.md`. O que falta na API: `docs/BACKEND_GAPS.md`.
-- Dados mock antigos em `src/lib/marketplace.ts` (páginas `/items`, `/arrendador`, `/arrendatario`) — a substituir pela API.
+- As páginas antigas com dados mock (`/items`, `/arrendador`, `/arrendatario`, `lib/marketplace.ts`) foram removidas a 2026-11-15; tudo usa a API.
 
 ## 5. Repositório e fluxo Git
 
@@ -91,7 +93,7 @@ Implementado · revisto · testado · integrado · responsivo · sem erros crít
   autorização por recurso no serviço, DTO com `@Valid` e limites de tamanho, erros 4xx (nunca 500 por input do cliente),
   nada de segredos, tokens ou códigos em URLs ou logs, e ver se precisa de limite em `RateLimitFilter`.
 - Segredos sem valor por omissão: a API não arranca sem `JWT_SECRET` (≥ 32 bytes) nem `B2_*`.
-- Migrações aplicadas: V1–V23 (próxima: V24).
+- Migrações aplicadas: V1–V24 (próxima: V25).
 
 ## 7. Design — "Identidade Verde v3"
 

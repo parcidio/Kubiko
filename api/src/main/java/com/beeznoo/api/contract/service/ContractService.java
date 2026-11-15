@@ -38,8 +38,11 @@ import java.util.UUID;
 @Transactional
 public class ContractService {
 
+    // v1: pagamento à Beeznoo (modo reference). v2: pagamento e caução entregues ao dono (modo direct, 2026-11-15)
     public static final String CURRENT_VERSION = "v1-rascunho";
+    public static final String DIRECT_VERSION = "v2-rascunho";
     private static final String TEMPLATE = "contracts/aluguer-v1.txt";
+    private static final String DIRECT_TEMPLATE = "contracts/aluguer-v2.txt";
 
     private final ContractRepository contractRepository;
     private final BookingRepository bookingRepository;
@@ -47,18 +50,23 @@ public class ContractService {
     private final ServiceFees serviceFees;
     private final AuditService auditService;
     private final String template;
+    private final String version;
 
     public ContractService(ContractRepository contractRepository, BookingRepository bookingRepository,
-                           ProfileRepository profileRepository, ServiceFees serviceFees, AuditService auditService) {
+                           ProfileRepository profileRepository, ServiceFees serviceFees, AuditService auditService,
+                           com.beeznoo.api.transaction.config.PaymentProperties paymentProperties) {
         this.contractRepository = contractRepository;
         this.bookingRepository = bookingRepository;
         this.profileRepository = profileRepository;
         this.serviceFees = serviceFees;
         this.auditService = auditService;
+        boolean direct = paymentProperties == null || paymentProperties.direct();
+        String path = direct ? DIRECT_TEMPLATE : TEMPLATE;
+        this.version = direct ? DIRECT_VERSION : CURRENT_VERSION;
         try {
-            this.template = new ClassPathResource(TEMPLATE).getContentAsString(StandardCharsets.UTF_8);
+            this.template = new ClassPathResource(path).getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new UncheckedIOException("Modelo de contrato em falta: " + TEMPLATE, e);
+            throw new UncheckedIOException("Modelo de contrato em falta: " + path, e);
         }
     }
 
@@ -70,7 +78,7 @@ public class ContractService {
         String body = render(booking);
         return contractRepository.save(Contract.builder()
                 .booking(booking)
-                .version(CURRENT_VERSION)
+                .version(version)
                 .body(body)
                 .bodySha256(sha256(body))
                 .ownerAcceptedAt(OffsetDateTime.now())
@@ -107,6 +115,11 @@ public class ContractService {
         return ContractResponse.from(contract);
     }
 
+    @Transactional(readOnly = true)
+    public boolean isRenterAccepted(UUID bookingId) {
+        return contractRepository.existsByBookingIdAndRenterAcceptedAtIsNotNull(bookingId);
+    }
+
     // Gate do pagamento
     @Transactional(readOnly = true)
     public void assertRenterAccepted(UUID bookingId) {
@@ -120,7 +133,7 @@ public class ContractService {
         BigDecimal deposit = b.getDepositAmount() == null ? BigDecimal.ZERO : b.getDepositAmount();
         BigDecimal fee = serviceFees.of(rental);
         Map<String, String> values = Map.ofEntries(
-                Map.entry("version", CURRENT_VERSION),
+                Map.entry("version", version),
                 Map.entry("bookingId", b.getId().toString()),
                 Map.entry("ownerName", b.getOwner().getFullName()),
                 Map.entry("renterName", b.getRenter().getFullName()),

@@ -16,5 +16,7 @@ public record StorageProperties(
         @NotBlank String accessKey,
         @NotBlank String secretKey,
         @NotBlank String bucket,
-        @NotNull Duration signedUrlTtl
+        @NotNull Duration signedUrlTtl,
+        // true só em desenvolvimento com um S3 local (MinIO, S3Mock): o B2 usa o bucket no nome do host
+        boolean pathStyle
 ) {}

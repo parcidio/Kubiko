@@ -116,18 +116,18 @@ export default function ContratoPage() {
           {canAccept && (
             <>
               <Checkbox checked={agreed} onChange={setAgreed}>
-                Li o contrato e aceito as condições. Sei que a caução fica retida até à devolução e inspeção do equipamento.
+                Li o contrato e aceito as condições. Sei que pago ao dono na entrega e que a caução fica com ele até à devolução e inspeção do equipamento.
               </Checkbox>
               <StickyCTA>
                 <Button block size="lg" disabled={!agreed} loading={busy} onClick={accept}>
-                  Aceitar e ir para o pagamento
+                  Aceitar o contrato
                 </Button>
               </StickyCTA>
             </>
           )}
           {isRenter && c.renterAcceptedAt && b.status === "ACCEPTED" && (
             <ButtonLink href={`/reservas/${id}/pagar`} block size="lg">
-              Ir para o pagamento
+              Como pagar na entrega
             </ButtonLink>
           )}
         </>

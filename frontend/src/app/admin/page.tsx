@@ -12,8 +12,8 @@ const total = (p: Page<unknown>) => p.page?.totalElements ?? p.content.length;
 
 const QUEUES: { href: string; title: string; text: string; icon: LucideIcon; count: () => Promise<number> }[] = [
   { href: "/admin/verificacoes", title: "Verificações pendentes", text: "BI, selfie e NIF para aprovar", icon: BadgeCheck, count: () => adminApi.kycQueue(0, 1).then(total) },
-  { href: "/admin/pagamentos", title: "Pagamentos a validar", text: "Referências em aberto", icon: Banknote, count: () => adminApi.payments(0, 1).then(total) },
-  { href: "/admin/caucoes", title: "Cauções a libertar ou reter", text: "Depois da devolução ou de um problema", icon: ShieldCheck, count: () => adminApi.deposits(0, 1).then(total) },
+  { href: "/admin/pagamentos", title: "Comissões por receber", text: "Donos com taxa de serviço por entregar", icon: Banknote, count: () => adminApi.commissions().then((c) => c.length) },
+  { href: "/admin/caucoes", title: "Cauções em disputa", text: "Problema reportado: a equipa medeia", icon: ShieldCheck, count: () => adminApi.deposits(0, 1).then(total) },
   { href: "/admin/problemas", title: "Problemas reportados", text: "Dano, perda, roubo", icon: Flag, count: () => adminApi.incidents(0, 1).then(total) },
 ];
 

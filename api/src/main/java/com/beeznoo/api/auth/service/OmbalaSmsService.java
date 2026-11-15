@@ -20,7 +20,7 @@ public class OmbalaSmsService {
     public void sendOtp(String phone, String code) {
         String normalizedPhone = normalizePhone(phone);
         String message = String.format(
-                "O teu código Beeznoo é *%s*. Válido pro %d minutos. Não partilhes este código.",
+                "O teu código Beeznoo é *%s*. Válido por %d minutos. Não partilhes este código.",
                 code, props.otpExpirationMinutes()
         );
 

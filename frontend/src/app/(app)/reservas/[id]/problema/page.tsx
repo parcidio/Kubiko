@@ -76,7 +76,12 @@ export default function ProblemaPage() {
       <BackLink href={`/reservas/${id}`}>Reserva {code}</BackLink>
       <PageHeader title="Reportar problema" subtitle={`${b.itemTitle}. A equipa Beeznoo analisa e decide sobre a caução com base nas fotos.`} />
 
-      {!["ACTIVE", "IN_PROGRESS", "RETURNED", "DISPUTED"].includes(b.status) ? (
+      {b.status === "COMPLETED" && b.renterId === session?.profileId && (
+        <Callout tone="info" icon={HelpCircle} title="Caução">
+          Se não recebeste a caução ou não concordas com o valor retido pelo dono, podes reportar até 7 dias depois de ele o registar.
+        </Callout>
+      )}
+      {!["ACTIVE", "IN_PROGRESS", "RETURNED", "DISPUTED", "COMPLETED"].includes(b.status) ? (
         <Callout tone="info" icon={HelpCircle} title="Só durante o aluguer">
           Podes reportar um problema enquanto a reserva está em curso. Para outras dúvidas, fala connosco no WhatsApp.
         </Callout>

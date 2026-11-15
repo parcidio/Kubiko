@@ -85,6 +85,17 @@ public class PaymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.createReference(profileId, bookingId));
     }
 
+    @Operation(summary = "As minhas comissões (dono)", description = """
+            Modo `direct`: a taxa de serviço dos pagamentos que recebeste na entrega é paga por ti à Beeznoo.
+            Devolve o total em dívida (`due`) e os últimos 50 pagamentos recebidos, com a data em que a comissão foi
+            recebida pela equipa (`commissionSettledAt`, `null` se ainda em dívida).
+            """)
+    @GetMapping("/payments/commissions/me")
+    public ResponseEntity<com.beeznoo.api.transaction.dto.PaymentDtos.MyCommissions> myCommissions(
+            @AuthenticationPrincipal UUID profileId) {
+        return ResponseEntity.ok(paymentService.myCommissions(profileId));
+    }
+
     @Operation(
             summary = "Pagamento atual da reserva",
             description = """

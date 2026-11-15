@@ -9,7 +9,7 @@ Coluna **API**: ✅ o endpoint já existe (o ecrã pode deixar de mostrar `Backe
 
 ```
 Explorar → Detalhe → Pedido (4 passos) → [dono aceita em Pedidos: contrato gerado] → Contrato (arrendatário aceita)
-→ Pagamento → [admin valida] → Checklist de entrega → Uso → Checklist de devolução → [admin liberta/retém caução] → Avaliar
+→ Contrato → [paga ao dono na entrega; o dono confirma] → Checklist de entrega → Uso → Checklist de devolução → [o dono devolve a caução] → Avaliar
 ```
 O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próximo passo com prazo, timeline, valores e ações.
 
@@ -28,30 +28,31 @@ O centro de tudo é o **Detalhe da reserva** (`/reservas/[id]`): bilhete, próxi
 | `/equipamento/[id]/reservar` | Pedido de reserva (datas → entrega → mensagem → rever) | Arrendatário | Ligado | A | ✅ |
 | `/reservas` | As minhas reservas | Arrendatário | Ligado | A | ✅ |
 | `/reservas/[id]` | **Detalhe da reserva (hub)** | Ambos | Ligado | A | ✅ estados novos (#10) |
-| `/reservas/[id]/pagar` | Pagamento por referência | Arrendatário | Parcial (sem comprovativo) | A | 🟡 contrato antes de pagar ✅, comprovativo ⬜ (#5) |
+| `/reservas/[id]/pagar` | Pagamento na entrega: arrendatário vê quanto e como pagar; dono confirma que recebeu (meio + confirmação) | Ambos | Ligado | A | ✅ `/bookings/{id}/payment-received` (2026-11-15) |
+| `/reservas/[id]/caucao` | Dono regista a caução: devolveu tudo ou reteve parte com motivo | Dono | Ligado | B | ✅ `/bookings/{id}/deposit/decision` |
 | `/reservas/[id]/contrato` | Contrato: texto congelado, quem aceitou, aceitar (arrendatário), PDF | Ambos | Ligado | A | ✅ `/bookings/{id}/contract`, `/accept`, `/pdf` |
 | `/reservas/[id]/avaliar` | Avaliar | Arrendatário | Ligado | A | ✅ |
 | `/atividade` | Atividade: avisos (por ler em destaque, abrir leva ao sítio certo, marcar todas como lidas); sino com contador no topo (todos os modos) | Ambos | Ligado | A | ✅ `/notifications/me` (polling 60 s) |
 | `/conta` | Conta: dados pessoais, verificar email, associar Google, modo, tema, sair | Ambos | Ligado | A | ✅ `/profiles/me`, `/auth/google/link` |
-| `/verificacao` | Verificação (BI + selfie / NIF) | Ambos | UI | A | ✅ `/kyc/submit`, `/kyc/me` |
+| `/verificacao` | Verificação (BI + selfie / NIF), estados e aviso de que pode demorar até 2 dias úteis | Ambos | Ligado | A | ✅ `/kyc/submit`, `/kyc/me` |
 | `/painel` | Painel do dono | Dono | Ligado | B | ✅ |
 | `/pedidos` | Pedidos recebidos (aceitar/recusar) | Dono | Ligado | B | ✅ |
 | `/publicar` | Publicar (fotos → detalhes → preço → pré-visualização) | Dono | Ligado (fotos comprimidas, rascunho por conta) | B | ✅ |
 | `/equipamentos` | O meu equipamento | Dono | Ligado | B | ✅ |
 | `/equipamentos/[id]` | Gerir equipamento (fotos, editar, pausar/reativar, eliminar, bloquear datas) | Dono | Ligado | B | ✅ |
-| `/carteira` | Carteira e movimentos | Dono | Ligado (sem levantamentos) | B | 🟡 sem levantamentos (#23) |
+| `/carteira` | Pagamentos recebidos na entrega e taxa de serviço por entregar | Dono | Ligado | B | ✅ `/payments/commissions/me` |
 | `/reservas/[id]/checklist` | Checklist com fotos (câmara): uma parte regista, a outra confirma ou reporta problema | Ambos | Ligado | B | ✅ `/bookings/{id}/checklists` |
 | `/reservas/[id]/problema` | Reportar problema (tipo, descrição, até 6 fotos) | Ambos | Ligado | B | ✅ `/bookings/{id}/incidents` |
 | `/admin` | Visão geral: contadores das 4 filas + auditoria | Admin | Ligado | B | ✅ |
-| `/admin/pagamentos` | Referências em aberto → validar com motivo | Admin | Ligado (sem comprovativo) | B | ✅ `/admin/payments` (comprovativo ⬜ #5) |
-| `/admin/caucoes` | Fila + entrega/devolução lado a lado + libertar/reter (parcial ou total) com motivo | Admin | Ligado | B | ✅ `/admin/deposits` |
-| `/admin/verificacoes` | Verificações | Admin | UI | B | ✅ `/admin/kyc` |
+| `/admin/pagamentos` | Comissões por receber (registar recebida, com motivo) + pagamentos diretos confirmados | Admin | Ligado | B | ✅ `/admin/commissions`, `/admin/payments?status=CONFIRMED` |
+| `/admin/caucoes` | Cauções em disputa + entrega/devolução lado a lado + decisão (o dono devolve tudo ou fica com parte) | Admin | Ligado | B | ✅ `/admin/deposits` |
+| `/admin/verificacoes` | Fila + documentos (links de 5 min) + aprovar / pedir informação / recusar com motivo | Admin | Ligado | B | ✅ `/admin/kyc` |
 | `/admin/problemas` | Fila + descrição, fotos e provas + resolver com nota (vai às partes) | Admin | Ligado | B | ✅ `/admin/incidents` |
 | `/admin/reservas/[id]` | Reserva vista pela equipa: partes, valores, provas, contrato, rasto de auditoria | Admin | Ligado | B | ✅ `GET /bookings/{id}` (admin) |
 | `/admin/auditoria` | Auditoria (filtros por ação, entidade, autor) e eventos de segurança | Admin | Ligado | B | ✅ `/admin/audit-logs`, `/admin/security-events` |
 | 404 / erro | `not-found.tsx`, `error.tsx` | Todos | — | A | — |
 
-`/items`, `/arrendador` e `/arrendatario` são páginas antigas da fase 0 (dados mock em `lib/marketplace.ts`). **Por decidir** se saem.
+`/items`, `/arrendador` e `/arrendatario` (páginas antigas da fase 0, dados mock) foram removidas a 2026-11-15. As categorias da landing abrem `/explorar?categoria=…`.
 
 ## Divisão em duas frentes
 

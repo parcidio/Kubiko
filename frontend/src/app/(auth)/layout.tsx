@@ -9,7 +9,7 @@ import { Firefly } from "@/components/bz/firefly";
 const PROMISES = [
   { icon: BadgeCheck, text: "Donos e arrendatários verificados" },
   { icon: ShieldCheck, text: "Caução devolvida quando tudo corre bem" },
-  { icon: Ticket, text: "Pagas por referência Multicaixa" },
+  { icon: Ticket, text: "Pagas ao dono na entrega, com comprovativo" },
 ];
 
 const EASE = "cubic-bezier(0.77, 0, 0.18, 1)";

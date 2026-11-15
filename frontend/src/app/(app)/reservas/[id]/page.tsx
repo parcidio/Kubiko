@@ -2,10 +2,11 @@
 
 import { Suspense, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { ChevronRight, ClipboardCheck, FileDown, FileText, Flag, MessageCircle, Receipt, type LucideIcon } from "lucide-react";
+import { ChevronRight, ClipboardCheck, FileDown, FileText, Flag, HandCoins, MessageCircle, Receipt, ShieldCheck, type LucideIcon } from "lucide-react";
 import { BookingTicket, NextStepCard, PriceSummary, SuccessBurst, Timeline } from "@/components/bz/booking";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { RequestActions } from "@/components/bz/requests";
+import { TextArea } from "@/components/bz/form";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Button, Card, Eyebrow, SectionTitle, Skeleton } from "@/components/bz/ui";
 import { ApiError, bookingApi, documentApi, paymentApi } from "@/lib/api";
@@ -30,6 +31,7 @@ function ReservaHub() {
   );
   const [cancelSheet, setCancelSheet] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelNote, setCancelNote] = useState("");
 
   if (!session) return null;
   if (error) return <ErrorState message={error} onRetry={reload} />;
@@ -52,8 +54,8 @@ function ReservaHub() {
   async function cancel() {
     setCancelling(true);
     try {
-      setBooking(await bookingApi.cancel(booking!.id));
-      toast.success("Pedido cancelado.");
+      setBooking(await bookingApi.cancel(booking!.id, cancelNote.trim() || undefined));
+      toast.success(booking!.status === "ACCEPTED" ? "Reserva cancelada." : "Pedido cancelado.");
       setCancelSheet(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível cancelar.");
@@ -92,9 +94,13 @@ function ReservaHub() {
     { icon: ClipboardCheck, label: "Checklist de entrega e devolução", href: `/reservas/${id}/checklist`, show: handover || booking.status === "COMPLETED" || booking.status === "DISPUTED" },
     { icon: FileText, label: "Contrato de aluguer", href: `/reservas/${id}/contrato`, show: hasContract },
     { icon: FileDown, label: "Descarregar contrato (PDF)", show: hasContract, onClick: downloadContract },
-    { icon: Receipt, label: "Comprovativo de pagamento (PDF)", show: paid && as === "renter", onClick: downloadReceipt },
-    { icon: Flag, label: "Reportar problema", href: `/reservas/${id}/problema`, show: handover, danger: true },
-    { icon: Flag, label: "Cancelar pedido", show: booking.status === "PENDING_OWNER" && as === "renter", onClick: () => setCancelSheet(true), danger: true },
+    { icon: Receipt, label: "Comprovativo de pagamento (PDF)", show: paid, onClick: downloadReceipt },
+    { icon: ShieldCheck, label: "Registar devolução da caução", href: `/reservas/${id}/caucao`, show: booking.status === "RETURNED" && as === "owner" },
+    { icon: HandCoins, label: as === "owner" ? "Confirmar que recebi o pagamento" : "Como pagar na entrega", href: `/reservas/${id}/pagar`, show: booking.status === "ACCEPTED" },
+    // a API só aceita em COMPLETED nos 7 dias depois de o dono registar a caução
+    { icon: Flag, label: "Reportar problema", href: `/reservas/${id}/problema`, show: handover || (booking.status === "COMPLETED" && as === "renter"), danger: true },
+    // Até pagar não há dinheiro a devolver: o arrendatário cancela o pedido ou a reserva aceite; o dono cancela a aceite (ex.: não apareceu)
+    { icon: Flag, label: booking.status === "ACCEPTED" ? "Cancelar reserva" : "Cancelar pedido", show: (booking.status === "PENDING_OWNER" && as === "renter") || booking.status === "ACCEPTED", onClick: () => setCancelSheet(true), danger: true },
   ];
 
   return (
@@ -167,7 +173,7 @@ function ReservaHub() {
       <Sheet
         open={cancelSheet}
         onClose={() => setCancelSheet(false)}
-        title="Cancelar pedido?"
+        title={booking.status === "ACCEPTED" ? "Cancelar reserva?" : "Cancelar pedido?"}
         footer={
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setCancelSheet(false)}>
@@ -179,7 +185,18 @@ function ReservaHub() {
           </div>
         }
       >
-        <p className="pt-2">O dono é avisado e as datas ficam livres. Ainda não pagaste nada, por isso não há reembolso a tratar.</p>
+        <div className="grid gap-3 pt-2">
+          <p>
+            {as === "owner"
+              ? `${firstName(booking.renterName)} é avisado e as datas ficam livres. Usa isto se não apareceu ou se combinaram cancelar. Ainda não recebeste o pagamento na app.`
+              : booking.status === "ACCEPTED"
+                ? "O dono é avisado e as datas ficam livres. Ainda não pagaste nada na app, por isso não há reembolso a tratar."
+                : "O dono é avisado e as datas ficam livres. Ainda não pagaste nada, por isso não há reembolso a tratar."}
+          </p>
+          {as === "owner" && (
+            <TextArea label="Mensagem para o arrendatário (opcional)" value={cancelNote} onChange={setCancelNote} maxLength={500} />
+          )}
+        </div>
       </Sheet>
     </div>
   );

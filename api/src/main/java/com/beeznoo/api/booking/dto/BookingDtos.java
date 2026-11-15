@@ -9,6 +9,18 @@ import java.util.UUID;
 
 public class BookingDtos {
 
+    // Admin confirma o pagamento. Modo direct: channel obrigatório (como o dono recebeu) e reason obrigatório
+    public record ConfirmPaymentRequest(
+            @jakarta.validation.constraints.Size(max = 500) String reason,
+            com.beeznoo.api.transaction.entity.DirectChannel channel
+    ) {}
+
+    // Modo direct: o dono indica o que fez com a caução. withheldAmount 0 ou vazio = devolveu tudo
+    public record DepositDecisionRequest(
+            @jakarta.validation.constraints.PositiveOrZero java.math.BigDecimal withheldAmount,
+            @jakarta.validation.constraints.Size(max = 500) String reason
+    ) {}
+
     public record CreateBookingRequest(
             @NotNull UUID itemId,
             @NotNull @FutureOrPresent LocalDate startDate,

@@ -32,7 +32,7 @@ function CaucoesInner() {
     <div className="grid max-w-7xl gap-6">
       <AdminHeader
         title="Cauções"
-        text="Reservas devolvidas ou com problema, a mais antiga primeiro. Compara a entrega com a devolução antes de decidir: a decisão conclui a reserva e não se desfaz."
+        text="Cauções com um problema reportado, a mais antiga primeiro. A caução está com o dono: a equipa compara a entrega com a devolução e decide quanto ele devolve. A decisão conclui a reserva e não se desfaz."
       />
       <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
         <Card className="overflow-hidden">
@@ -46,7 +46,7 @@ function CaucoesInner() {
             empty={rows.length === 0}
             onRetry={queue.reload}
             emptyTitle="Sem cauções por decidir"
-            emptyText="Aparecem aqui quando uma devolução é confirmada ou quando é reportado um problema."
+            emptyText="Aparecem aqui quando é reportado um problema numa reserva com caução. Sem problemas, é o dono que devolve a caução."
           />
           {rows.map((d) => (
             <QueueRow
@@ -55,7 +55,7 @@ function CaucoesInner() {
               onSelect={() => select(d.bookingId)}
               title={d.itemTitle}
               badge={<BookingStatusBadge status={d.bookingStatus} />}
-              meta={<>{bookingCode(d.bookingId)} · {d.renterName} → {d.ownerName} · retida {age(d.heldAt)}</>}
+              meta={<>{bookingCode(d.bookingId)} · {d.renterName} → {d.ownerName} · pago {age(d.heldAt)}</>}
               aside={<Kz value={d.amount} className="text-lg text-verde" />}
             />
           ))}
@@ -101,7 +101,7 @@ function DepositPanel({ deposit, onDone }: { deposit: Deposit; onDone: () => voi
         : await adminApi.withholdDeposit(deposit.bookingId, withheld, reason);
     toast.success(
       result.status === "RELEASED"
-        ? `${bookingCode(deposit.bookingId)}: caução libertada, reserva concluída.`
+        ? `${bookingCode(deposit.bookingId)}: decisão registada, reserva concluída.`
         : `${bookingCode(deposit.bookingId)}: ${formatKz(withheld)} para o dono, reserva concluída.`,
     );
     onDone();
@@ -113,7 +113,7 @@ function DepositPanel({ deposit, onDone }: { deposit: Deposit; onDone: () => voi
         <div className="grid gap-1">
           <p className="text-[13px] text-cinza">
             <AdminBookingLink bookingId={deposit.bookingId}>Reserva {bookingCode(deposit.bookingId)} <ExternalLink className="inline size-3.5" aria-hidden /></AdminBookingLink>
-            {" · "}retida em {formatDateTime(deposit.heldAt)}
+            {" · "}com o dono desde {formatDateTime(deposit.heldAt)}
           </p>
           <h2 className="font-titulo text-2xl font-bold text-verde">{deposit.itemTitle}</h2>
           <p className="text-[15px]">
@@ -142,7 +142,7 @@ function DepositPanel({ deposit, onDone }: { deposit: Deposit; onDone: () => voi
           onChange={setDecision}
           columns={2}
           options={[
-            { value: "release", title: "Libertar tudo", text: "Sem dano: a caução volta inteira ao arrendatário" },
+            { value: "release", title: "Devolver tudo", text: "Sem dano: o dono devolve a caução inteira" },
             { value: "withhold", title: "Reter", text: "Parte ou tudo vai para o dono (dano, perda, roubo)" },
           ]}
         />
@@ -165,24 +165,24 @@ function DepositPanel({ deposit, onDone }: { deposit: Deposit; onDone: () => voi
           </div>
         </dl>
         <Button variant="dark" size="lg" block disabled={!!amountError} onClick={() => setConfirming(true)}>
-          {decision === "release" ? "Libertar caução" : `Reter ${formatKz(withheld)}`}
+          {decision === "release" ? "Decidir: devolver tudo" : `Decidir: dono fica com ${formatKz(withheld)}`}
         </Button>
       </div>
 
       <ConfirmWithReason
         open={confirming}
         onClose={() => setConfirming(false)}
-        title={decision === "release" ? "Libertar a caução?" : "Reter a caução?"}
-        confirmLabel={decision === "release" ? "Sim, libertar" : "Sim, reter"}
+        title={decision === "release" ? "O dono devolve a caução toda?" : "O dono fica com parte da caução?"}
+        confirmLabel="Registar decisão"
         danger={decision === "withhold"}
         onConfirm={run}
         placeholder={decision === "release" ? "Ex.: fotos da devolução iguais às da entrega." : "Ex.: risco no ecrã visível na foto 2 da devolução."}
       >
         <p>
           {decision === "release"
-            ? `${formatKz(total)} voltam a ${deposit.renterName}.`
-            : `${formatKz(withheld)} vão para ${deposit.ownerName} e ${formatKz(total - withheld)} voltam a ${deposit.renterName}.`}{" "}
-          A reserva fica concluída{decision === "withhold" ? " e as duas partes recebem o motivo" : "; o motivo fica na auditoria"}. Não dá para desfazer.
+            ? `${deposit.ownerName} devolve ${formatKz(total)} a ${deposit.renterName}.`
+            : `${deposit.ownerName} fica com ${formatKz(withheld)} e devolve ${formatKz(total - withheld)} a ${deposit.renterName}.`}{" "}
+          O dinheiro não passa pela Beeznoo: as duas partes recebem a decisão e o motivo, e a reserva fica concluída. Não dá para desfazer.
         </p>
       </ConfirmWithReason>
     </Card>

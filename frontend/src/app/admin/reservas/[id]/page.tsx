@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { FileDown, Flag, ScrollText, ShieldCheck } from "lucide-react";
-import { AdminHeader, BookingEvidence, BookingStatusBadge } from "@/components/bz/admin";
+import { CheckCircle2, FileDown, Flag, HandCoins, ScrollText, ShieldCheck } from "lucide-react";
+import { AdminHeader, BookingEvidence, BookingStatusBadge, ConfirmWithReason } from "@/components/bz/admin";
 import { Timeline } from "@/components/bz/booking";
 import { VerifiedBadge } from "@/components/bz/equipment";
 import { toast } from "@/components/bz/overlay";
@@ -13,7 +13,7 @@ import { BackLink, Button, ButtonLink, Card, Kz, Skeleton } from "@/components/b
 import { ApiError, adminApi, bookingApi, documentApi } from "@/lib/api";
 import { bookingCode } from "@/lib/booking";
 import { daysBetween, formatDateTime, formatRange } from "@/lib/format";
-import type { AuditLog, Booking, Page } from "@/lib/types";
+import { CHANNEL_LABEL, type AuditLog, type Booking, type DirectChannel, type Page } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
 const HAS_CONTRACT = ["ACCEPTED", "ACTIVE", "IN_PROGRESS", "RETURNED", "COMPLETED", "DISPUTED"];
@@ -24,6 +24,9 @@ export default function AdminReserva() {
   const booking = useResource<Booking>(`booking:${id}`, () => bookingApi.get(id));
   const audit = useResource<Page<AuditLog>>(`audit:booking:${id}`, () => adminApi.auditLogs({ entityId: id }));
   const [downloading, setDownloading] = useState(false);
+  const [confirmPay, setConfirmPay] = useState(false);
+  const [channel, setChannel] = useState<DirectChannel>("CASH");
+  const [completeOpen, setCompleteOpen] = useState(false);
 
   if (booking.error) {
     const notFound = booking.error.includes("não encontrad");
@@ -68,9 +71,67 @@ export default function AdminReserva() {
                 <Flag strokeWidth={1.8} /> Problemas
               </ButtonLink>
             )}
+            {b.status === "ACCEPTED" && (
+              <Button variant="outline" size="sm" onClick={() => setConfirmPay(true)}>
+                <HandCoins strokeWidth={1.8} /> Confirmar pagamento pelo dono
+              </Button>
+            )}
+            {b.status === "DISPUTED" && (
+              <Button variant="outline" size="sm" onClick={() => setCompleteOpen(true)}>
+                <CheckCircle2 strokeWidth={1.8} /> Concluir reserva
+              </Button>
+            )}
           </div>
         }
       />
+
+      {/* Pagamento direto (2026-11-15): o dono confirmou fora da app, por exemplo por telefone */}
+      <ConfirmWithReason
+        open={confirmPay}
+        onClose={() => setConfirmPay(false)}
+        title="Confirmar o pagamento em nome do dono?"
+        confirmLabel="Confirmar pagamento"
+        placeholder="Ex.: o dono ligou a confirmar que recebeu em numerário no levantamento."
+        onConfirm={async (reason) => {
+          booking.setData(await adminApi.confirmPayment(b.id, reason, channel));
+          audit.reload();
+          toast.success("Pagamento registado. A reserva está paga.");
+        }}
+      >
+        <div className="grid gap-3">
+          <p>Só faz isto se o dono confirmou que recebeu e não consegue fazê-lo na app. Fica na auditoria em teu nome.</p>
+          <label className="grid gap-1.5 text-sm font-medium text-verde">
+            Como o dono recebeu
+            <select
+              value={channel}
+              onChange={(e) => setChannel(e.target.value as DirectChannel)}
+              className="min-h-12 rounded-campo border border-borda-forte bg-branco px-3 text-[15px]"
+            >
+              {(Object.keys(CHANNEL_LABEL) as DirectChannel[]).map((c) => (
+                <option key={c} value={c}>{CHANNEL_LABEL[c]}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </ConfirmWithReason>
+
+      <ConfirmWithReason
+        open={completeOpen}
+        onClose={() => setCompleteOpen(false)}
+        title="Concluir esta reserva?"
+        confirmLabel="Concluir"
+        placeholder="Ex.: o dono devolveu os 5.000 Kz retidos; as partes estão de acordo."
+        onConfirm={async (reason) => {
+          booking.setData(await adminApi.complete(b.id, reason));
+          audit.reload();
+          toast.success("Reserva concluída.");
+        }}
+      >
+        <p>
+          Usa depois de fechares o problema. Se a caução ainda não tiver sido decidida, fica registada como devolvida na totalidade. Para reter parte, usa
+          &quot;Decidir caução&quot;.
+        </p>
+      </ConfirmWithReason>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start">
         <div className="grid gap-5">
