@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Flame, LayoutGrid, MapPin, PackageSearch, Search, Sparkles, SlidersHorizontal, Star, X } from "lucide-react";
 import { HexGlow, categoryIcon } from "@/components/bz/brand";
@@ -10,9 +10,9 @@ import { Sheet } from "@/components/bz/overlay";
 import { EmptyState, ErrorState, GridSkeleton } from "@/components/bz/states";
 import { Button } from "@/components/bz/ui";
 import { catalogApi, totalPages } from "@/lib/api";
-import { formatRange } from "@/lib/format";
+import { addDaysIso, formatRange, todayIso } from "@/lib/format";
 import { useSession } from "@/lib/auth";
-import type { ItemSummary } from "@/lib/types";
+import type { ItemCondition, ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import BeeznoFilters, { type Filters } from "../../../../components/items/Filters";
 
@@ -35,6 +35,12 @@ function Explorar() {
   const [chosen, setChosen] = useState<string | undefined | null>(null);
   const setCategoryId = (id: string | undefined) => setChosen(id);
   const [query, setQuery] = useState("");
+  // a pesquisa vai ao servidor 300 ms depois de parar de escrever
+  const [searched, setSearched] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setSearched(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
   const [filters, setFilters] = useState<Filters>({ maxPrice: "" });
   const [draft, setDraft] = useState<Filters>({ maxPrice: "" });
   const [sheet, setSheet] = useState(false);
@@ -44,8 +50,16 @@ function Explorar() {
   const categoryId = chosen === null ? fromUrl : chosen;
   // Datas filtram no servidor (só equipamento livre); o resto ainda filtra no cliente
   const dates = filters.dataInicio && filters.dataFim ? { startDate: filters.dataInicio, endDate: filters.dataFim } : {};
-  const listKey = `items:${categoryId ?? "all"}:${filters.dataInicio ?? ""}:${filters.dataFim ?? ""}`;
-  const first = useResource(listKey, () => catalogApi.items({ categoryId, page: 0, ...dates }));
+  // Tudo filtra no servidor (#17): resultados e contagem são os verdadeiros, com qualquer número de páginas
+  const search = {
+    ...dates,
+    text: searched || undefined,
+    area: filters.area || undefined,
+    maxPrice: filters.maxPrice === "" ? undefined : filters.maxPrice,
+    condition: filters.condition && filters.condition !== "ANY" ? (filters.condition as ItemCondition) : undefined,
+  };
+  const listKey = `items:${categoryId ?? "all"}:${JSON.stringify(search)}`;
+  const first = useResource(listKey, () => catalogApi.items({ categoryId, page: 0, ...search }));
   const [more, setMore] = useState<{ key: string; page: number; items: ItemSummary[] } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -58,24 +72,15 @@ function Explorar() {
   async function loadMore() {
     setLoadingMore(true);
     try {
-      const res = await catalogApi.items({ categoryId, page: page + 1, ...dates });
+      const res = await catalogApi.items({ categoryId, page: page + 1, ...search });
       setMore({ key: listKey, page: page + 1, items: [...(extra?.items ?? []), ...res.content] });
     } finally {
       setLoadingMore(false);
     }
   }
 
-  // A API filtra por categoria e datas (ver BACKEND_GAPS #17): texto, bairro, preço e estado filtram o que já veio.
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return items.filter(
-      (i) =>
-        (!q || i.title.toLowerCase().includes(q)) &&
-        (!filters.area || `${i.city ?? ""} ${i.province ?? ""}`.toLowerCase().includes(filters.area.toLowerCase())) &&
-        (filters.maxPrice === "" || Number(i.pricePerDay) <= filters.maxPrice) &&
-        (!filters.condition || filters.condition === "ANY" || i.condition === filters.condition),
-    );
-  }, [items, query, filters]);
+  const visible = items;
+  const total = first.data?.page?.totalElements ?? items.length;
 
   const activeFilters = [filters.area, filters.maxPrice !== "" ? 1 : null, filters.condition && filters.condition !== "ANY" ? 1 : null, filters.dataInicio ? 1 : null].filter(Boolean).length;
   const roots = categories.filter((c) => !c.parentId);
@@ -85,7 +90,8 @@ function Explorar() {
   return (
     <div className="grid gap-5 px-4 md:gap-7 md:px-12">
       {/* Herói */}
-      <section className="hero-explore relative -mx-4 -mt-5 flex min-h-[calc(78svh-4rem)] items-center overflow-hidden bg-verde-noite px-4 pt-20 pb-10 text-areia md:-mx-12 md:-mt-8 md:min-h-[calc(78svh-5rem)] md:rounded-none md:px-12 md:py-16">
+      {/* No telemóvel o herói é compacto: o primeiro equipamento tem de aparecer cedo (revisão de UX 2026-11-15) */}
+      <section className="hero-explore relative -mx-4 -mt-5 flex items-center overflow-hidden bg-verde-noite px-4 pt-20 pb-6 text-areia md:-mx-12 md:-mt-8 md:min-h-[calc(78svh-5rem)] md:rounded-none md:px-12 md:py-16">
         <HexGlow />
         <div className="relative grid gap-4 md:max-w-2xl ">
           <p className="text-sm font-medium text-salvia">{session ? "Bem-vindo de volta" : "Luanda · fotografia, vídeo e eventos"}</p>
@@ -119,6 +125,38 @@ function Explorar() {
               )}
             </button>
           </div>
+          {/* "Quando?" — quem aluga sabe as datas primeiro; a API devolve só o equipamento livre nesses dias */}
+          <fieldset className="grid grid-cols-2 gap-2">
+            <legend className="sr-only">Quando precisas?</legend>
+            <label className="grid gap-1">
+              <span className="text-xs font-medium text-salvia">Levanto</span>
+              <input
+                type="date"
+                min={todayIso()}
+                value={filters.dataInicio ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) return setFilters({ ...filters, dataInicio: undefined, dataFim: undefined });
+                  setFilters({ ...filters, dataInicio: v, dataFim: filters.dataFim && filters.dataFim > v ? filters.dataFim : addDaysIso(v, 1) });
+                }}
+                className="h-12 w-full rounded-full bg-branco px-4 text-[15px] text-verde outline-none focus:ring-4 focus:ring-ambar/40"
+              />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-xs font-medium text-salvia">Devolvo</span>
+              <input
+                type="date"
+                min={filters.dataInicio ? addDaysIso(filters.dataInicio, 1) : todayIso(1)}
+                value={filters.dataFim ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) return setFilters({ ...filters, dataInicio: undefined, dataFim: undefined });
+                  setFilters({ ...filters, dataFim: v, dataInicio: filters.dataInicio && filters.dataInicio < v ? filters.dataInicio : addDaysIso(v, -1) });
+                }}
+                className="h-12 w-full rounded-full bg-branco px-4 text-[15px] text-verde outline-none focus:ring-4 focus:ring-ambar/40"
+              />
+            </label>
+          </fieldset>
           <QuickSearches active={query} onPick={setQuery} />
         </div>
       </section>
@@ -131,7 +169,8 @@ function Explorar() {
           onCategoryChange={setCategoryId}/>
 
         <div className="grid gap-5 md:gap-7">
-          <TrustStrip />
+          {/* No telemóvel a faixa de confiança passa para depois dos resultados */}
+          <div className="hidden md:block"><TrustStrip /></div>
 
           {/* Categorias em mosaico */}
           <section aria-label="Categorias" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:gap-8 md:px-0">
@@ -185,7 +224,7 @@ function Explorar() {
           <h2 className="font-titulo text-xl font-bold text-verde">
             {query.trim() ? `Resultados para "${query.trim()}"` : categoryId ? categories.find((c) => c.id === categoryId)?.name : "Todo o equipamento"}
           </h2>
-          {state === "ready" && <span className="num text-[13px] text-cinza">{visible.length} resultados</span>}
+          {state === "ready" && <span className="num text-[13px] text-cinza">{total} {total === 1 ? "resultado" : "resultados"}</span>}
         </div>
 
         {state === "loading" && <GridSkeleton />}
@@ -214,7 +253,12 @@ function Explorar() {
             <ul className="grid grid-cols-2 gap-x-3 gap-y-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
               {visible.map((item, i) => (
                 <li key={item.id}>
-                  <EquipmentCard item={item} href={`/equipamento/${item.id}`} index={i} />
+                  <EquipmentCard
+                    item={item}
+                    href={filters.dataInicio && filters.dataFim ? `/equipamento/${item.id}?de=${filters.dataInicio}&ate=${filters.dataFim}` : `/equipamento/${item.id}`}
+                    dates={filters.dataInicio && filters.dataFim ? { start: filters.dataInicio, end: filters.dataFim } : undefined}
+                    index={i}
+                  />
                 </li>
               ))}
             </ul>
@@ -227,6 +271,7 @@ function Explorar() {
         )}
           </section>
 
+          <div className="md:hidden"><TrustStrip /></div>
           {browsing && state === "ready" && <PublishPromo />}
         </div>
       </div>

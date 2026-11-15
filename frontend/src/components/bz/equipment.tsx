@@ -3,7 +3,7 @@ import { BadgeCheck, MapPin, Package, Repeat2, Sparkles, Star, type LucideIcon }
 import { categoryIcon, hexPath } from "./brand";
 import { Kz } from "./ui";
 import { initials } from "@/lib/booking";
-import { CONDITION_LABEL } from "@/lib/format";
+import { CONDITION_LABEL, daysBetween, formatKz, SERVICE_FEE_RATE } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ItemCondition, ItemSummary } from "@/lib/types";
 
@@ -115,10 +115,14 @@ export function RatingInline({ average, count, className }: { average: number | 
   );
 }
 
-/** Cartão de equipamento: foto domina, preço flutua por cima, prova social por baixo. */
+/**
+ * Cartão de equipamento: foto domina, preço flutua por cima, prova social por baixo.
+ * Com `dates` (pesquisa com datas no Explorar), mostra o total desses dias (aluguer + taxa; a caução vê-se no Detalhe).
+ */
 export function EquipmentCard({
-  item, href, icon, index = 0, className, showFeatured = true,
-}: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean }) {
+  item, href, icon, index = 0, className, showFeatured = true, dates,
+}: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean; dates?: { start: string; end: string } }) {
+  const days = dates ? daysBetween(dates.start, dates.end) : 0;
   const tag = item.featured && showFeatured
     ? { label: "Em destaque", icon: Sparkles, cls: "bg-verde text-ambar" }
     : null;
@@ -151,6 +155,11 @@ export function EquipmentCard({
       </div>
       <div className="grid gap-1 px-1 pt-2">
         <h3 className="line-clamp-2 font-titulo text-base leading-snug font-bold text-verde group-hover:underline md:text-[17px]">{item.title}</h3>
+        {days > 0 && (
+          <p className="text-[13px] text-texto-corpo">
+            <b className="num text-verde">{formatKz(Number(item.pricePerDay) * days * (1 + SERVICE_FEE_RATE))}</b> · {days} {days === 1 ? "dia" : "dias"}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <RatingInline average={item.ratingAverage} count={item.ratingCount} />
           {item.completedRentals > 0 && (
@@ -168,6 +177,11 @@ export function EquipmentCard({
           <span aria-hidden>·</span>
           <span className="truncate">{CONDITION_LABEL[item.condition] ?? item.condition}</span>
         </p>
+        {item.ownerVerified && (
+          <p className="flex items-center gap-1 text-[13px] font-medium text-verde-medio">
+            <BadgeCheck className="size-3.5 shrink-0" strokeWidth={2} aria-hidden /> Dono verificado
+          </p>
+        )}
       </div>
     </Link>
   );

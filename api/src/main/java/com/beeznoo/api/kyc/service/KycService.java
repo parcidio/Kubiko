@@ -225,10 +225,16 @@ public class KycService {
         return new HashSet<>(verificationRepository.findProfileIdsWithStatus(profileIds, KycStatus.APPROVED));
     }
 
+    // O mesmo critério de assertCanTransact, para o frontend avisar antes (MeResponse.canTransact)
+    @Transactional(readOnly = true)
+    public boolean canTransact(UUID profileId) {
+        return !kycRequired || isVerified(profileId);
+    }
+
     // Gate de publicar equipamento e pedir reserva (SPEC §7). Desligável em dev/staging — ver decisoes-produto.md 2026-11-11
     @Transactional(readOnly = true)
     public void assertCanTransact(UUID profileId) {
-        if (kycRequired && !isVerified(profileId)) {
+        if (!canTransact(profileId)) {
             throw new AccessDeniedException("Verifica a tua identidade antes de continuar");
         }
     }

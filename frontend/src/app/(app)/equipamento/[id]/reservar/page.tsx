@@ -11,12 +11,12 @@ import { toast } from "@/components/bz/overlay";
 import { StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Button, ButtonLink, Callout, Card, Kz, Skeleton } from "@/components/bz/ui";
-import { bookingApi, catalogApi } from "@/lib/api";
+import { bookingApi, catalogApi, profileApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { firstConflict, unavailableDays } from "@/lib/availability";
 import { addDaysIso, daysBetween, formatDay, formatRange, LUANDA_AREAS, todayIso } from "@/lib/format";
 import { canRent } from "@/lib/mode";
-import type { Availability, Item } from "@/lib/types";
+import type { Availability, Item, Me } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
 
@@ -30,9 +30,11 @@ function Reservar() {
   const { id } = useParams<{ id: string }>();
   const { data: item, error: loadError, reload } = useResource<Item>(`item:${id}`, () => catalogApi.item(id));
 
-  const [step, setStep] = useState(1);
-  const [start, setStart] = useState(params.get("de") ?? todayIso(1));
-  const [end, setEnd] = useState(params.get("ate") ?? todayIso(3));
+  // Datas já escolhidas no Detalhe: começa no passo 2 (o 1 continua a um toque, em "Passo anterior")
+  const given = validIso(params.get("de")) && validIso(params.get("ate")) && params.get("de")! >= todayIso() && params.get("ate")! > params.get("de")!;
+  const [step, setStep] = useState(given ? 2 : 1);
+  const [start, setStart] = useState(given ? params.get("de")! : todayIso(1));
+  const [end, setEnd] = useState(given ? params.get("ate")! : todayIso(3));
   const [handover, setHandover] = useState<Handover>("pickup");
   const [area, setArea] = useState("");
   const [time, setTime] = useState("10:00");
@@ -41,6 +43,7 @@ function Reservar() {
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [sending, setSending] = useState(false);
   const availability = useResource<Availability>(`availability:${id}`, () => catalogApi.availability(id));
+  const me = useResource<Me>(session ? "profile:me" : null, () => profileApi.me());
 
   if (!session) return null;
   if (loadError) return <ErrorState message={loadError} onRetry={reload} />;
@@ -51,6 +54,8 @@ function Reservar() {
   const conflict = firstConflict(busyDays, start, end);
   const isOwnItem = item.ownerId === session.profileId;
   const blocked = isOwnItem || !canRent(session.role);
+  // KYC por aprovar: avisar já, em vez de deixar preencher os 4 passos e falhar no envio
+  const needsKyc = !blocked && me.data?.canTransact === false;
 
   function validate(s: number) {
     const fields: Record<string, string> = {};
@@ -66,6 +71,11 @@ function Reservar() {
   }
 
   async function submit() {
+    // as datas podem ter vindo do Detalhe sem passar pelo passo 1: validam-se aqui também
+    if (!validate(1)) {
+      setStep(1);
+      return;
+    }
     if (!validate(4)) return;
     setSending(true);
     try {
@@ -113,7 +123,14 @@ function Reservar() {
         </div>
       </Card>
 
-      {blocked ? (
+      {needsKyc ? (
+        <div className="grid gap-4">
+          <Callout tone="warn" title="Antes de pedir, verifica a tua identidade">
+            É feito à mão pela equipa e pode demorar até 2 dias úteis. Só precisas de o fazer uma vez. Depois voltas a este equipamento e pedes.
+          </Callout>
+          <ButtonLink href="/verificacao" size="lg">Verificar identidade</ButtonLink>
+        </div>
+      ) : blocked ? (
         <Callout tone="warn" title={isOwnItem ? "Este equipamento é teu" : "A tua conta é só de dono"}>
           {isOwnItem ? "Não podes reservar o teu próprio equipamento." : "Para alugar, a conta tem de ser de arrendatário ou de \"as duas coisas\". Fala connosco para mudar."}
         </Callout>
@@ -187,7 +204,7 @@ function Reservar() {
                 </p>
                 <PriceSummary pricePerDay={Number(item.pricePerDay)} days={days} deposit={Number(item.depositAmount ?? 0)} />
               </Card>
-              <Callout tone="warn" icon={Clock}>O dono tem 24 h para responder. Só pagas depois de ele aceitar.</Callout>
+              <Callout tone="warn" icon={Clock}>O dono tem 24 h para responder. Pagas na entrega, ao dono, depois de conferires o equipamento.</Callout>
               <Checkbox checked={terms} onChange={setTerms} error={errors.fields.terms}>
                 Aceito as condições: devolvo nas datas combinadas e no mesmo estado, e a caução pode ser retida se houver dano.
               </Checkbox>
@@ -223,4 +240,9 @@ export default function ReservarPage() {
       <Reservar />
     </Suspense>
   );
+}
+
+// "2026-11-16" ou null (parâmetros do URL não são de confiança)
+function validIso(v: string | null) {
+  return v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
 }

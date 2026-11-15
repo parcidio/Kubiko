@@ -37,7 +37,7 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 
 | # | Estado | O que falta | Ecrãs |
 |---|---|---|---|
-| 17 | 🟡 | Pesquisa por texto, bairro e preço em `GET /items` (já há `categoryId` e datas livres) | Explorar |
+| 17 | ✅ | Pesquisa por texto, bairro e preço em `GET /items`: `q` (título), `area` (cidade/província), `maxPrice`, `condition`, além de `categoryId` e datas livres (2026-11-15) | Explorar |
 | 18 | ⬜ | Preço semanal/mensal no item (o SPEC pede a tarifa mais vantajosa) | Publicar, Detalhe, PriceSummary |
 | 19 | ⬜ | Valor declarado (`declared_value`) para calcular a caução no backend | Publicar |
 | 20 | ✅ | Reativar um item pausado: `PATCH /items/{id}/activate` (só `INACTIVE`; `SUSPENDED` é da equipa) | O meu equipamento |
