@@ -193,6 +193,28 @@ public class ItemService {
         return toResponse(item);
     }
 
+    // Admin: tira do Explorar e bloqueia pedidos novos; o dono não o reativa (decisoes-produto.md 2026-11-15)
+    public ItemResponse suspend(UUID adminId, UUID itemId, String reason) {
+        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Indica o motivo da suspensão");
+        Item item = itemRepository.findActiveById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
+        if (item.getStatus() == ItemStatus.SUSPENDED) throw new IllegalStateException("Este equipamento já está suspenso");
+        item.setStatus(ItemStatus.SUSPENDED);
+        item.setFeaturedAt(null);
+        auditService.record(adminId, AuditAction.ITEM_SUSPENDED, AuditService.ITEM, itemId, reason.strip(), Map.of());
+        return toResponse(item);
+    }
+
+    public ItemResponse reinstate(UUID adminId, UUID itemId, String reason) {
+        Item item = itemRepository.findActiveById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
+        if (item.getStatus() != ItemStatus.SUSPENDED) throw new IllegalStateException("Este equipamento não está suspenso");
+        item.setStatus(ItemStatus.ACTIVE);
+        auditService.record(adminId, AuditAction.ITEM_REINSTATED, AuditService.ITEM, itemId,
+                reason == null || reason.isBlank() ? null : reason.strip(), Map.of());
+        return toResponse(item);
+    }
+
     public void delete(UUID requesterId, UUID itemId) throws AccessDeniedException {
         Item item = itemRepository.findActiveById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));

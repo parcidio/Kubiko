@@ -90,6 +90,9 @@ public class BookingService {
             throw new AccessDeniedException("Apenas RENTER ou BOTH podem criar reservas");
         }
         kycService.assertCanTransact(renterId);
+        if (renter.isSuspended()) {
+            throw new AccessDeniedException("A tua conta está suspensa. Fala com a equipa Beeznoo.");
+        }
 
         if (!request.endDate().isAfter(request.startDate())) {
             throw new IllegalArgumentException("A data de fim tem de ser posterior à data de início");
@@ -98,7 +101,8 @@ public class BookingService {
         Item item = itemRepository.findActiveById(request.itemId())
                 .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
 
-        if (item.getStatus() != ItemStatus.ACTIVE) {
+        // item suspenso pela equipa ou dono com a conta suspensa: indisponível (sem dizer porquê)
+        if (item.getStatus() != ItemStatus.ACTIVE || item.getOwner().isSuspended()) {
             throw new IllegalStateException("O item não está disponível para reserva");
         }
 

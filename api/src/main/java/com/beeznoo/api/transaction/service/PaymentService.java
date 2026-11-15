@@ -114,7 +114,8 @@ public class PaymentService {
     @Transactional(readOnly = true)
     public Optional<PaymentResponse> findCurrent(UUID requesterId, UUID bookingId) {
         Booking booking = findBooking(bookingId);
-        if (!booking.getOwner().getId().equals(requesterId)) assertRenter(requesterId, booking);
+        // partes da reserva ou ADMIN (detalhe da reserva no portal da equipa)
+        if (!booking.getOwner().getId().equals(requesterId) && !isAdmin(requesterId)) assertRenter(requesterId, booking);
         return paymentRepository.findFirstByBookingIdOrderByCreatedAtDesc(bookingId).map(PaymentResponse::from);
     }
 
@@ -326,4 +327,9 @@ public class PaymentService {
             throw new IllegalStateException("A reserva não está à espera de pagamento");
         }
     }
+
+    private boolean isAdmin(UUID profileId) {
+        return profileRepository.findById(profileId).map(p -> p.getRole() == com.beeznoo.api.profile.entity.UserRole.ADMIN).orElse(false);
+    }
+
 }

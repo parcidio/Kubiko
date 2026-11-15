@@ -40,6 +40,11 @@ const ACTION_LABEL: Record<string, string> = {
   COMMISSION_SETTLED: "Comissão recebida do dono",
   DEPOSIT_RETURNED_BY_OWNER: "Dono devolveu a caução",
   DEPOSIT_WITHHELD_BY_OWNER: "Dono reteve parte da caução",
+  // Ações de admin (2026-11-15)
+  ITEM_SUSPENDED: "Equipamento suspenso",
+  ITEM_REINSTATED: "Equipamento reativado",
+  ACCOUNT_SUSPENDED: "Conta suspensa",
+  ACCOUNT_REINSTATED: "Conta reativada",
 };
 
 const ENTITY_LABEL: Record<string, string> = { BOOKING: "Reserva", KYC: "Verificação", ACCOUNT: "Conta / dono", INCIDENT: "Problema", ITEM: "Equipamento" };

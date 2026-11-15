@@ -53,7 +53,7 @@ Sprints semanais: segunda planning · terça–quinta execução · sexta demo, 
 - Neon: usar a connection string **pooled** e ligações Hikari de vida curta (o Neon fecha ligações inativas).
 - Pacotes Java organizados por domínio: `auth`, `profile`, `item`, `booking`, `contract`, `transaction`, `handover`, `deposit`, `kyc`, `claim`, `notification`, `audit`, `review`, `security`, `common`.
 - Usa branches do Neon para testar migrações antes de staging/produção.
-- **Migrações aplicadas: V1–V24.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V25).
+- **Migrações aplicadas: V1–V25.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V26).
 - **Estados da reserva:** `PENDING_OWNER → ACCEPTED → ACTIVE (pago) → IN_PROGRESS (entregue) → RETURNED (devolvido) → COMPLETED`, mais `CANCELLED_RENTER`, `CANCELLED_OWNER`, `EXPIRED` (pedido sem resposta, `BookingExpiryScheduler`), `DISPUTED`. Recusar = o dono faz `cancel` a um pedido `PENDING_OWNER`. Datas ocupadas: `BookingStatus.OCCUPYING`.
 - **Pagamento direto ao dono** (`app.payments.mode=direct`, omissão — decisoes-produto.md 2026-11-15): paga-se ao dono na entrega; o dono confirma (`POST /bookings/{id}/payment-received`) → `ACTIVE`; a caução fica com ele e é ele que a regista no fim (`POST /bookings/{id}/deposit/decision`) → `COMPLETED`. A taxa de serviço é comissão a cobrar ao dono (Admin › Pagamentos). Sem ledger neste modo. O modo `reference` (Multicaixa) fica no código para a EMIS.
 - **"Verificado"** = KYC aprovado (`KycService.isVerified`). `profiles.is_verified` é o **telefone** confirmado — não confundir.
@@ -93,7 +93,7 @@ Implementado · revisto · testado · integrado · responsivo · sem erros crít
   autorização por recurso no serviço, DTO com `@Valid` e limites de tamanho, erros 4xx (nunca 500 por input do cliente),
   nada de segredos, tokens ou códigos em URLs ou logs, e ver se precisa de limite em `RateLimitFilter`.
 - Segredos sem valor por omissão: a API não arranca sem `JWT_SECRET` (≥ 32 bytes) nem `B2_*`.
-- Migrações aplicadas: V1–V24 (próxima: V25).
+- Migrações aplicadas: V1–V25 (próxima: V26).
 
 ## 7. Design — "Identidade Verde v3"
 

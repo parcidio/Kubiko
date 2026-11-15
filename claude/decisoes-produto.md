@@ -574,3 +574,33 @@ tem um gateway próprio de WhatsApp, Losambo (`https://message.beeznoo.ao/v1`, a
 **A confirmar com quem gere o Losambo:** o corpo do `/otp/verify` não está na documentação pública. Enviamos
 `{ "id", "to", "code" }` e aceitamos como válido um 2xx sem `valid`/`verified` a `false`. Testar em staging com a chave
 TST antes de produção.
+
+---
+
+## 2026-11-15 — Ações de admin: utilizadores, suspensões e pagamento na reserva
+
+**Contexto.** No teste de staging a equipa não tinha como encontrar uma pessoa, afastar quem não cumpre (o contrato v2
+diz que "a Beeznoo pode suspender a conta") nem ver o pagamento a partir do detalhe de uma reserva (falha anotada em
+`BACKEND_GAPS.md`). Hoje isto exigia SQL no servidor.
+
+**Hipótese.** Com estas ações no portal, a equipa resolve problemas de confiança (equipamento enganador, dono ou
+arrendatário que não cumpre) no próprio dia, sem acesso à base de dados. **Para quem:** equipa Beeznoo (ADMIN).
+**Sucesso:** nenhuma operação do dia a dia precisa de SQL; cada suspensão fica na auditoria com motivo.
+
+**Decisões (pedidas pela equipa nesta data — ⚑ validar com o André):**
+
+1. **Pesquisar utilizadores** (`GET /admin/users?q=`): por nome, telefone ou email; mostra papel, telefone confirmado,
+   estado do KYC, suspensão e contagens. Ficha (`GET /admin/users/{id}`) com o equipamento e as últimas reservas.
+   Ver a ficha não fica na auditoria (não abre documentos); abrir documentos de KYC continua a ficar.
+2. **Suspender equipamento** (`PATCH /admin/items/{id}/suspend`, motivo obrigatório): passa a `SUSPENDED`, perde o
+   destaque, sai do Explorar e não aceita pedidos. **Reativar** (`/reinstate`) volta a `ACTIVE`. O dono não reativa um
+   item suspenso (já era assim). Auditoria `ITEM_SUSPENDED` / `ITEM_REINSTATED`.
+3. **Suspender conta** (`POST /admin/users/{id}/suspend`, motivo obrigatório; migração V25 `profiles.suspended_at`,
+   `suspension_reason`, `suspended_by`): sessões revogadas e não volta a entrar (login, refresh, Google e 2FA de admin
+   recusados com "A tua conta está suspensa"). O token de acesso já emitido vale no máximo 15 min. O equipamento da conta
+   sai do Explorar e não recebe pedidos, sem mudar o estado de cada item (reativar a conta devolve tudo como estava).
+   Contas ADMIN não se suspendem por aqui. Auditoria `ACCOUNT_SUSPENDED` / `ACCOUNT_REINSTATED`.
+4. **Reservas em curso** de uma conta ou item suspenso **não são canceladas automaticamente**: a equipa decide caso a
+   caso (manual antes de automatizar). Não há notificação automática da suspensão: a equipa avisa a pessoa.
+5. **Pagamento no detalhe da reserva:** `GET /bookings/{id}/payments/current` passa a aceitar ADMIN (como o
+   comprovativo já aceitava).

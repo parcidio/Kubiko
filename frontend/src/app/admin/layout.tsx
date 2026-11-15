@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BadgeCheck, Banknote, Flag, LayoutDashboard, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Banknote, Flag, LayoutDashboard, ScrollText, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/bz/brand";
 import { ErrorState } from "@/components/bz/states";
 import { ButtonLink } from "@/components/bz/ui";
@@ -16,6 +16,7 @@ const ADMIN_NAV: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/admin/pagamentos", label: "Pagamentos", icon: Banknote },
   { href: "/admin/caucoes", label: "Cauções", icon: ShieldCheck },
   { href: "/admin/problemas", label: "Problemas", icon: Flag },
+  { href: "/admin/utilizadores", label: "Utilizadores", icon: Users },
   { href: "/admin/auditoria", label: "Auditoria", icon: ScrollText },
 ];
 
