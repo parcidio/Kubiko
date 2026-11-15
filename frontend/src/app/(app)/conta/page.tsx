@@ -88,7 +88,7 @@ function ContaInner() {
               <ul className="grid gap-2 rounded-cartao bg-white/10 p-4 text-left text-sm">
                 <Status icon={Phone} label={me.data.phone} ok={me.data.phoneVerified} okText="confirmado" noText="por confirmar" />
                 {me.data.email && <Status icon={Mail} label={me.data.email} ok={me.data.emailVerified} okText="verificado" noText="por verificar" />}
-                <Status icon={BadgeCheck} label="Identidade" ok={me.data.identityVerified} okText="verificada" noText={me.data.kycStatus ? "em análise" : "por verificar"} />
+                <Status icon={BadgeCheck} label="Identidade" ok={me.data.identityVerified} okText="verificada" noText={me.data.kycStatus === "PENDING" || me.data.kycStatus === "IN_REVIEW" ? "em análise" : me.data.kycStatus === "REJECTED" ? "recusada" : me.data.kycStatus === "INFO_REQUESTED" ? "falta informação" : "por verificar"} />
               </ul>
             )}
           </div>

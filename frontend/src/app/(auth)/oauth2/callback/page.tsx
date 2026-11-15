@@ -33,7 +33,7 @@ function Callback() {
     authApi
       .googleExchange(code)
       .then((tokens) => {
-        // conta ADMIN: falta o 2.º passo (código por SMS)
+        // conta ADMIN: falta o 2.º passo (código por WhatsApp ou SMS)
         if (tokens.mfaRequired && tokens.mfaToken) {
           setMfa({ token: tokens.mfaToken, hint: tokens.mfaPhoneHint });
           return;
@@ -121,7 +121,7 @@ function CompletePhone({ pendingToken }: { pendingToken: string }) {
   if (step === "otp") {
     return (
       <>
-        <AuthTitle title="Confirma o teu número" subtitle={<>Enviámos um código para <strong className="text-verde">{normalizePhone(phone)}</strong>.</>} />
+        <AuthTitle title="Confirma o teu número" subtitle={<>Enviámos um código por WhatsApp para <strong className="text-verde">{normalizePhone(phone)}</strong>. Se não tiveres WhatsApp, chega por SMS.</>} />
         <form onSubmit={submitOtp} className="grid gap-5" noValidate>
           <OtpField value={code} onChange={setCode} error={errors.fields.code} />
           <FormError message={errors.form} />

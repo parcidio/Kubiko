@@ -42,8 +42,11 @@ public class B2StorageService implements StorageService {
                 // o B2 não suporta as checksums que o SDK ≥ 2.30 envia por omissão
                 .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
                 .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
+                .forcePathStyle(props.pathStyle())
                 .build();
         this.presigner = S3Presigner.builder()
+                .serviceConfiguration(software.amazon.awssdk.services.s3.S3Configuration.builder()
+                        .pathStyleAccessEnabled(props.pathStyle()).build())
                 .endpointOverride(endpoint)
                 .region(region)
                 .credentialsProvider(credentials)

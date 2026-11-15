@@ -31,11 +31,6 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-  rabbitmq:
-    host: ${RABBITMQ_HOST:localhost}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USER:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
   security:
     oauth2:
       client:
@@ -52,6 +47,13 @@ server:
   port: ${PORT:8080}
   # Termina os pedidos em curso antes de parar (deploys sem cortar pedidos)
   shutdown: graceful
+  tomcat:
+    threads:
+      # 200 por omissão: cada thread tem pilha própria. 40 chegam para o tráfego do MVP num contentor de 512 MB
+      max: ${TOMCAT_MAX_THREADS:40}
+      min-spare: 4
+    # pedidos em espera quando as 40 threads estão ocupadas (em vez de abrir mais)
+    accept-count: 100
   error:
     include-message: never
     include-stacktrace: never
@@ -84,10 +86,6 @@ management:
     web:
       exposure:
         include: health,info
-  health:
-    # Não há RabbitMQ no Render e nenhum código o usa ainda: não deixar o health check falhar por isso
-    rabbit:
-      enabled: ${RABBITMQ_HEALTH_ENABLED:false}
 
 jwt:
   # Sem valor por omissão: a API não arranca sem JWT_SECRET (≥ 32 bytes). Gera com: openssl rand -base64 64
@@ -96,15 +94,32 @@ jwt:
   expiration-minutes: ${JWT_EXPIRATION_MINUTES:15}
   refresh-expiration-days: ${JWT_REFRESH_EXPIRATION_DAYS:30}
 
+# SMS (alternativa ao WhatsApp): sem OMBALA_TOKEN não há SMS
 ombala:
   api-url: https://api.useombala.ao/v1
-  token: ${OMBALA_TOKEN}
-  sender: ${OMBALA_SENDER}
+  token: ${OMBALA_TOKEN:}
+  sender: ${OMBALA_SENDER:}
   otp-expiration-minutes: ${OMBALA_OTP_EXPIRATION_MINUTES:10}
+
+# Códigos OTP por WhatsApp (Losambo) — decisoes-produto.md 2026-11-15
+whatsapp:
+  api-url: ${WHATSAPP_API_URL:https://message.beeznoo.ao/v1}
+  api-key-prd: ${WHATSAPP_API_KEY_PRD:}
+  api-key-tst: ${WHATSAPP_API_KEY_TST:}
+  # prd em produção; tst em staging e local
+  env: ${WHATSAPP_ENV:tst}
+  app-name: Beeznoo
+
+otp:
+  # auto (WhatsApp se houver chave, senão SMS) | whatsapp | sms
+  channel: ${OTP_CHANNEL:auto}
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
   payments:
+    # direct: o arrendatário paga ao dono na entrega e o dono confirma (2026-11-15)
+    # reference: referência Multicaixa paga à Beeznoo (precisa da EMIS)
+    mode: ${PAYMENTS_MODE:direct}
     # simulated (MVP) | emis (futuro) — ver claude/decisoes-produto.md
     provider: ${PAYMENTS_PROVIDER:simulated}
     service-fee-rate: ${PAYMENTS_SERVICE_FEE_RATE:0.08}
@@ -121,6 +136,8 @@ app:
     secret-key: ${B2_SECRET_KEY:}
     bucket: ${B2_BUCKET:}
     signed-url-ttl: ${APP_STORAGE_SIGNED_URL_TTL:5m}
+    # true só com um S3 local em desenvolvimento; o B2 fica false
+    path-style: ${B2_PATH_STYLE:false}
   bookings:
     # Prazo para o dono responder a um pedido; também expira no fim do dia de levantamento (gap #11)
     request-ttl: ${BOOKINGS_REQUEST_TTL:24h}

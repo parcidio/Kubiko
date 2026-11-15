@@ -57,7 +57,7 @@ export default function BeeznoCategories() {
     if (label === "Todas") {
       router.push("/explorar");
     } else {
-      router.push(`/items?categoria=${encodeURIComponent(label)}`);
+      router.push(`/explorar?categoria=${encodeURIComponent(label)}`);
     }
   };
 

@@ -24,8 +24,50 @@ public interface PaymentRepository extends JpaRepository<Payment, UUID> {
     boolean existsByEntityAndReference(String entity, String reference);
 
     // Fila do admin: mais antigos primeiro
-    @EntityGraph(attributePaths = {"booking", "booking.item", "renter"})
+    @EntityGraph(attributePaths = {"booking", "booking.item", "booking.owner", "renter"})
     Page<Payment> findByStatusOrderByCreatedAtAsc(PaymentStatus status, Pageable pageable);
+
+    // Confirmados: mais recentes primeiro (modo direct, 2026-11-15)
+    @EntityGraph(attributePaths = {"booking", "booking.item", "booking.owner", "renter"})
+    Page<Payment> findByStatusOrderByCreatedAtDesc(PaymentStatus status, Pageable pageable);
+
+    boolean existsByBookingIdAndStatus(UUID bookingId, PaymentStatus status);
+
+    // Comissões (taxa de serviço) por receber dos donos, mais antigas primeiro
+    @Query("""
+            SELECT p FROM Payment p JOIN FETCH p.booking b JOIN FETCH b.owner JOIN FETCH b.item
+            WHERE p.method = com.beeznoo.api.transaction.entity.PaymentMethod.DIRECT
+              AND p.status = com.beeznoo.api.transaction.entity.PaymentStatus.CONFIRMED
+              AND p.commissionSettledAt IS NULL
+            ORDER BY p.confirmedAt ASC""")
+    List<Payment> findCommissionsDue();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT p FROM Payment p
+            WHERE p.booking.owner.id = :ownerId
+              AND p.method = com.beeznoo.api.transaction.entity.PaymentMethod.DIRECT
+              AND p.status = com.beeznoo.api.transaction.entity.PaymentStatus.CONFIRMED
+              AND p.commissionSettledAt IS NULL
+            ORDER BY p.confirmedAt ASC""")
+    List<Payment> findCommissionsDueForUpdate(UUID ownerId);
+
+    @Query("""
+            SELECT COALESCE(SUM(p.serviceFee), 0) FROM Payment p
+            WHERE p.booking.owner.id = :ownerId
+              AND p.method = com.beeznoo.api.transaction.entity.PaymentMethod.DIRECT
+              AND p.status = com.beeznoo.api.transaction.entity.PaymentStatus.CONFIRMED
+              AND p.commissionSettledAt IS NULL""")
+    java.math.BigDecimal sumCommissionDue(UUID ownerId);
+
+    // Carteira do dono: pagamentos diretos que recebeu (recentes primeiro)
+    @Query("""
+            SELECT p FROM Payment p JOIN FETCH p.booking b JOIN FETCH b.item
+            WHERE b.owner.id = :ownerId
+              AND p.method = com.beeznoo.api.transaction.entity.PaymentMethod.DIRECT
+              AND p.status = com.beeznoo.api.transaction.entity.PaymentStatus.CONFIRMED
+            ORDER BY p.confirmedAt DESC""")
+    List<Payment> findDirectReceivedBy(UUID ownerId, Pageable pageable);
 
     // SELECT ... FOR UPDATE — usar sempre que o estado do pagamento vai mudar
     @Lock(LockModeType.PESSIMISTIC_WRITE)

@@ -14,3 +14,7 @@ jwt:
 springdoc:
   api-docs:
     enabled: true
+
+# O SMS é simulado (@MockitoBean OmbalaSmsService); com token definido conta como canal de OTP disponível
+ombala:
+  token: test-token

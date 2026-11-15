@@ -5,10 +5,10 @@ export type Perspective = "renter" | "owner";
 
 export const BOOKING_LABEL: Record<BookingStatus, { label: string; tone: Tone }> = {
   PENDING_OWNER: { label: "À espera do dono", tone: "pendente" },
-  ACCEPTED: { label: "Aceite · por pagar", tone: "pendente" },
+  ACCEPTED: { label: "Aceite · paga na entrega", tone: "pendente" },
   ACTIVE: { label: "Pago · por entregar", tone: "ok" },
   IN_PROGRESS: { label: "Entregue · em uso", tone: "ok" },
-  RETURNED: { label: "Devolvido · em inspeção", tone: "pendente" },
+  RETURNED: { label: "Devolvido · caução por devolver", tone: "pendente" },
   COMPLETED: { label: "Concluída", tone: "neutro" },
   CANCELLED_RENTER: { label: "Cancelada", tone: "neutro" },
   CANCELLED_OWNER: { label: "Recusada", tone: "erro" },
@@ -24,10 +24,10 @@ export const PAID_STATUSES: BookingStatus[] = ["ACTIVE", "IN_PROGRESS", "RETURNE
 export const TIMELINE_STEPS = [
   "Pedido enviado",
   "Aceite pelo dono",
-  "Pagamento confirmado",
+  "Pago ao dono",
   "Equipamento entregue",
   "Devolvido",
-  "Caução libertada",
+  "Caução devolvida",
 ];
 
 /** Quantos passos da timeline estão feitos. */
@@ -70,9 +70,10 @@ export function deadlineOf(b: Booking, payment?: Payment | null): Date | null {
     const endOfPickupDay = new Date(y, m - 1, d, 23, 59);
     return in24h < endOfPickupDay ? in24h : endOfPickupDay;
   }
+  // Pagamento direto: paga-se no levantamento
   if (b.status === "ACCEPTED") {
     if (payment?.status === "AWAITING_PAYMENT") return new Date(payment.expiresAt);
-    return new Date(new Date(b.updatedAt).getTime() + DAY);
+    return endOfDay(b.startDate);
   }
   if (b.status === "ACTIVE") return endOfDay(b.startDate);
   if (b.status === "IN_PROGRESS") return endOfDay(b.endDate);
@@ -99,10 +100,11 @@ export function nextStep(b: Booking, as: Perspective): NextStep {
       return as === "owner"
         ? { who: "you", title: "Responde ao pedido", text: `${b.renterName} quer alugar. Se não responderes a tempo, o pedido expira.` }
         : { who: "other", title: `À espera de ${firstName(b.ownerName)}`, text: "O dono tem 24 h para responder. Ainda não pagas nada." };
+    // Pagamento direto ao dono, na entrega (decisoes-produto.md 2026-11-15)
     case "ACCEPTED":
       return as === "renter"
-        ? { who: "you", title: "Paga para confirmar", text: "O dono aceitou. Paga por referência Multicaixa para garantir as datas.", cta: { label: "Pagar agora", href: `/reservas/${id}/pagar` } }
-        : { who: "other", title: "À espera do pagamento", text: `Aceitaste. Avisamos-te quando ${firstName(b.renterName)} pagar.` };
+        ? { who: "you", title: "Aceita o contrato e paga na entrega", text: `Combina o levantamento com ${firstName(b.ownerName)}. Confere o equipamento e só depois pagas ao dono.`, cta: { label: "Como pagar", href: `/reservas/${id}/pagar` } }
+        : { who: "you", title: "Recebe o pagamento na entrega", text: `${firstName(b.renterName)} paga-te quando levantar o equipamento. Depois confirma aqui que recebeste.`, cta: { label: "Confirmar pagamento", href: `/reservas/${id}/pagar` } };
     case "ACTIVE":
       return {
         who: "you",
@@ -118,29 +120,26 @@ export function nextStep(b: Booking, as: Perspective): NextStep {
         cta: { label: "Abrir checklist de devolução", href: `/reservas/${id}/checklist` },
       };
     case "RETURNED":
-      return {
-        who: "team",
-        title: "A equipa está a verificar",
-        text: as === "renter"
-          ? "Comparamos a entrega e a devolução. Se estiver tudo bem, a caução volta para ti."
-          : "Comparamos a entrega e a devolução e decidimos a caução. Se houver dano, reporta já.",
-      };
+      return as === "renter"
+        ? { who: "other", title: `${firstName(b.ownerName)} devolve a caução`, text: "A devolução foi confirmada. O dono devolve-te a caução e regista-o na app. Se houver dano, pode reter parte, com motivo." }
+        : { who: "you", title: "Devolve a caução", text: `Devolve a caução a ${firstName(b.renterName)} e regista-o. Se houver dano, podes reter parte, com motivo.`, cta: { label: "Registar caução", href: `/reservas/${id}/caucao` } };
     case "DISPUTED":
       return { who: "team", title: "Problema em análise", text: "A equipa Beeznoo está a analisar. Falamos contigo por WhatsApp." };
     case "COMPLETED":
       return as === "renter"
-        ? { who: "done", title: "Aluguer concluído", text: "A caução foi libertada. Conta-nos como correu.", cta: { label: "Avaliar", href: `/reservas/${id}/avaliar` } }
-        : { who: "done", title: "Aluguer concluído", text: "O valor do aluguer está na tua carteira.", cta: { label: "Ver carteira", href: "/carteira" } };
+        ? { who: "done", title: "Aluguer concluído", text: "Conta-nos como correu. Se não recebeste a caução, reporta um problema até 7 dias depois.", cta: { label: "Avaliar", href: `/reservas/${id}/avaliar` } }
+        : { who: "done", title: "Aluguer concluído", text: "Recebeste o pagamento na entrega. A taxa de serviço a entregar à Beeznoo está na Carteira.", cta: { label: "Ver carteira", href: "/carteira" } };
     case "CANCELLED_OWNER":
       return as === "renter"
         ? { who: "done", title: "O dono recusou", text: "Não pagaste nada. Há outro equipamento parecido à tua espera.", cta: { label: "Explorar", href: "/explorar" } }
         : { who: "done", title: "Recusaste este pedido", text: "As datas ficaram livres." };
     case "CANCELLED_RENTER":
       return { who: "done", title: "Pedido cancelado", text: "Não houve qualquer pagamento." };
+    // Pedido sem resposta a tempo, ou reserva aceite que terminou sem pagamento confirmado (2026-11-15)
     case "EXPIRED":
       return as === "renter"
-        ? { who: "done", title: "O dono não respondeu a tempo", text: "O pedido expirou e não pagaste nada. Há outro equipamento parecido à tua espera.", cta: { label: "Explorar", href: "/explorar" } }
-        : { who: "done", title: "Pedido expirado", text: "Passou o prazo sem resposta e as datas ficaram livres. Responder depressa ajuda-te a alugar mais." };
+        ? { who: "done", title: "Reserva expirada", text: "Passou o prazo sem resposta do dono ou sem pagamento confirmado. Se pagaste ao dono, fala connosco.", cta: { label: "Explorar", href: "/explorar" } }
+        : { who: "done", title: "Expirada", text: "Passou o prazo sem resposta ou sem pagamento confirmado, e as datas ficaram livres. Se recebeste o pagamento, fala connosco." };
   }
 }
 

@@ -23,10 +23,10 @@ class ContractPdfTest {
     void contratoTemTextoAceitacaoEHash() throws Exception {
         Booking booking = ReceiptPdfTestData.booking();
         ContractService contracts = new ContractService(null, null, null,
-                new ServiceFees(new PaymentProperties(null, null, null, null)), null);
+                new ServiceFees(new PaymentProperties(null, null, null, null, null)), null, null);
         String body = contracts.render(booking);
         Contract contract = Contract.builder().id(UUID.randomUUID()).booking(booking)
-                .version(ContractService.CURRENT_VERSION).body(body).bodySha256("a".repeat(64))
+                .version(ContractService.DIRECT_VERSION).body(body).bodySha256("a".repeat(64))
                 .ownerAcceptedAt(OffsetDateTime.of(2026, 10, 14, 9, 5, 0, 0, ZoneOffset.UTC))
                 .renterAcceptedAt(OffsetDateTime.of(2026, 10, 15, 10, 0, 0, 0, ZoneOffset.UTC))
                 .createdAt(OffsetDateTime.of(2026, 10, 14, 9, 5, 0, 0, ZoneOffset.UTC))

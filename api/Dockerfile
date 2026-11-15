@@ -23,8 +23,16 @@ USER spring:spring
 
 # O Render define PORT (10000 por omissão); em local fica 8080. application.yaml: server.port=${PORT:8080}
 ENV PORT=8080
-# Memória limitada no plano do Render: a JVM usa 75% do contentor e termina (o Render reinicia) se faltar memória
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+# Contentor de 512 MB no Render (Free e Starter). O heap é só uma parte: medido com Native Memory Tracking, a API
+# usa ~200 MB FORA dele (metaspace ~95, symbols ~42, código compilado, threads). Com MaxRAMPercentage=75 a soma
+# passava os 512 MB e o Render matava o contentor ("exceeded its memory limit") sem OutOfMemoryError nos logs.
+# Medido em local com --memory=512m e 6 uploads simultâneos de fotos de 35 MP: antes OOMKilled; com isto
+# 372–398 MB em repouso e pico de ~420 MB (ver claude/decisoes-produto.md, 2026-11-11).
+#   heap 40% (~205 MB) · metaspace ≤ 128 MB · código ≤ 32 MB · só o compilador C1 (−60 MB, arranque mais rápido)
+#   SerialGC (menos memória própria que o G1) · pilhas de 512 KB
+# Atingir um teto termina a JVM com OutOfMemoryError (fica nos logs) e o Render reinicia.
+# Plano com mais memória (Standard, 2 GB): subir MaxRAMPercentage e tirar TieredStopAtLevel.
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=40 -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=32m -XX:TieredStopAtLevel=1 -XX:MaxDirectMemorySize=32m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
 
 EXPOSE 8080
 

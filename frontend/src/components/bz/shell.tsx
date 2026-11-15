@@ -10,6 +10,7 @@ import { Logo } from "./brand";
 import { ButtonLink } from "./ui";
 import { useSession } from "@/lib/auth";
 import { canOwn, canRent, isAdmin, setMode, useMode, type Mode } from "@/lib/mode";
+import { useUnreadCount } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
@@ -43,6 +44,37 @@ function useNav() {
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/** Contador de avisos por ler (nada quando é zero). */
+function UnreadBadge({ className }: { className?: string }) {
+  const unread = useUnreadCount();
+  if (unread <= 0) return null;
+  return (
+    <span className={cn("num flex h-5 min-w-5 items-center justify-center rounded-full bg-erro px-1 text-[11px] leading-none font-bold text-branco", className)} aria-hidden>
+      {unread > 9 ? "9+" : unread}
+    </span>
+  );
+}
+
+/** Sino no topo, em todos os modos (o modo dono não tem "Atividade" na barra de baixo). */
+function NotificationBell({ dark, active }: { dark: boolean; active: boolean }) {
+  const unread = useUnreadCount();
+  return (
+    <Link
+      href="/atividade"
+      aria-label={unread > 0 ? `Notificações, ${unread} por ler` : "Notificações"}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "relative flex size-11 items-center justify-center rounded-full transition",
+        dark ? "text-areia hover:bg-white/10" : "text-verde hover:bg-areia-2",
+        active && (dark ? "bg-white/10" : "bg-areia-2"),
+      )}
+    >
+      <Bell className="size-5" strokeWidth={1.8} aria-hidden />
+      <UnreadBadge className="absolute top-1 right-0.5" />
+    </Link>
+  );
 }
 
 /** "A alugar" / "Sou dono" — só aparece a quem pode as duas coisas. */
@@ -117,6 +149,7 @@ export function TopBar() {
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <ModeSwitch dark={overlay} className="hidden md:grid" />
+          {session && <NotificationBell dark={overlay} active={isActive(pathname, "/atividade")} />}
           {session && isAdmin(session.role) && (
             <ButtonLink href="/admin" variant="soft" size="sm" className="hidden md:inline-flex">
               <ShieldCheck strokeWidth={1.8} /> Admin
@@ -171,7 +204,10 @@ export function BottomNav() {
             className={cn("relative flex flex-col items-center justify-center gap-1 text-xs", active ? "font-bold text-verde" : "text-cinza")}
           >
             {active && <span className="absolute top-0 h-1 w-8 rounded-b-full bg-ambar" aria-hidden />}
-            <Icon className="size-6" strokeWidth={active ? 2 : 1.8} aria-hidden />
+            <span className="relative">
+              <Icon className="size-6" strokeWidth={active ? 2 : 1.8} aria-hidden />
+              {href === "/atividade" && <UnreadBadge className="absolute -top-1.5 -right-2" />}
+            </span>
             {label}
           </Link>
         );

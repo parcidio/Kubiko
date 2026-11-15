@@ -15,7 +15,7 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 | 2 | ✅ | Upload de fotos do equipamento | `POST /items/{id}/photos` (multipart `photos`, JPEG/PNG, 5 MB, máx. 8), `DELETE /items/{id}/photos/{photoId}`. Bucket privado + URL assinada de 12 h. **Comprimir no frontend antes de enviar** | Publicar, Gerir equipamento, Explorar, Detalhe |
 | 3 | ✅ | KYC | `POST /kyc/submit` (multipart: `accountType` + `biFront`/`biBack`/`selfie` ou `nifDocument`/`businessDocument`), `GET /kyc/me`. Admin: `GET /admin/kyc`, `GET /admin/kyc/{id}` (URLs de 5 min), `PATCH /admin/kyc/{id}/review` | Verificação, Admin › Verificações |
 | 4 | ✅ | Listagens de admin | `GET /admin/kyc`, `/admin/payments`, `/admin/deposits`, `/admin/incidents` (mais antigos primeiro), `/admin/audit-logs` | Admin (todas as filas) |
-| 5 | ⬜ | **Comprovativo de pagamento**: `POST /payments/{id}/proof` (ficheiro + ID da transação) e estado `payment_review` | Hoje o admin valida com `PATCH /bookings/{id}/confirm-payment` sem prova anexada. **Próximo passo recomendado** | Pagamento, Admin › Pagamentos |
+| 5 | ➖ | ~~Comprovativo de pagamento enviado pelo arrendatário~~ | **Deixou de se aplicar (2026-11-15):** paga-se ao dono na entrega e é o dono que confirma. Volta se o modo `reference` (EMIS) for ligado | Pagamento, Admin › Pagamentos |
 | 6 | ✅ | Reter caução (parcial ou total) | `POST /admin/deposits/{bookingId}/release` e `/withhold` (`amount` em Kz + `reason` obrigatório). `PATCH /bookings/{id}/complete` = libertar | Admin › Cauções |
 | 7 | ✅ | `audit_logs` | KYC, confirmação manual de pagamento, ajuste de saldo, libertar/reter caução, resolver problema. Motivo opcional em `confirm-payment` e `complete` (`{ "reason": "..." }`) | Admin |
 
@@ -75,6 +75,33 @@ Detalhe de cada endpoint no Swagger (`http://localhost:8081/swagger-ui.html`). D
 - Emails normalizados (minúsculas) e procurados sem diferença de maiúsculas (V23). Registo via Google recusa um
   email que já existe noutra conta (antes criava uma segunda conta).
 - `redirect_uri_mismatch`: não definir `NEXT_PUBLIC_API_URL` no frontend; `GOOGLE_REDIRECT_URI` = URL do frontend.
+
+## OTP por WhatsApp (2026-11-15)
+
+Códigos de registo, recuperação de password, registo Google e 2FA de admin passam a ir por WhatsApp (Losambo,
+`/otp/send` + `/otp/verify`), com SMS como alternativa. Variáveis: `WHATSAPP_API_KEY_PRD`, `WHATSAPP_API_KEY_TST`,
+`WHATSAPP_ENV`, `OTP_CHANNEL`. ⬜ Confirmar o corpo do `/otp/verify` com a chave TST em staging. ⬜ `/messages`,
+`/contacts/{phone}` e `/numbers/{id}/health` (avisos por WhatsApp, validar o número, alerta de quota).
+
+## Pagamento direto ao dono e KYC no frontend (2026-11-15)
+
+Ver `claude/decisoes-produto.md` (2026-11-15). Modo `PAYMENTS_MODE=direct` por omissão; V24.
+
+| Endpoint | Quem | O quê |
+|---|---|---|
+| `POST /bookings/{id}/payment-received` `{ channel }` | dono | Recebeu na entrega (`CASH`, `TRANSFER`, `MULTICAIXA_EXPRESS`). Exige contrato aceite. `ACCEPTED → ACTIVE`, comprovativo, aviso ao arrendatário |
+| `PATCH /bookings/{id}/confirm-payment` `{ reason, channel }` | admin | O mesmo, em nome do dono (motivo e meio obrigatórios) |
+| `POST /bookings/{id}/deposit/decision` `{ withheldAmount, reason }` | dono | Devolveu a caução (0 = tudo) ou reteve parte com motivo. `RETURNED → COMPLETED`. Sem caução, conclui-se sozinha na devolução |
+| `POST /bookings/{id}/incidents` | arrendatário | Também em `COMPLETED`, até 7 dias depois de o dono decidir a caução → `DISPUTED`; a equipa fecha com `complete` |
+| `GET /payments/commissions/me` | dono | Taxa de serviço em dívida + pagamentos recebidos (Carteira) |
+| `GET /admin/commissions`, `POST /admin/commissions/{ownerId}/settle` | admin | Comissões por dono; registar que foram recebidas (auditado) |
+| `GET /payments/{id}/receipt` | arrendatário, dono (se DIRECT), admin | O comprovativo diz "pago ao dono" |
+
+Gerar referência (`POST /bookings/{id}/payments`) dá 409 no modo `direct`. Admin › Cauções só mostra reservas `DISPUTED`.
+
+Frontend: `/verificacao` (envio do BI e estados), Admin › Verificações (documentos, aprovar/recusar/pedir informação),
+`/reservas/[id]/pagar` (arrendatário: como pagar; dono: confirmar), `/reservas/[id]/caucao`, Carteira (comissões),
+Admin › Pagamentos (comissões + confirmados). Erro de KYC (403) ao publicar, reativar ou reservar leva a `/verificacao`.
 
 ## Gate de KYC desligável (2026-11-11)
 

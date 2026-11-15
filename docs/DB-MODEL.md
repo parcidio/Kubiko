@@ -1,6 +1,6 @@
 # Modelo de dados — schema atual
 
-Gerado a partir das migrações Flyway **V1–V23** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-11.
+Gerado a partir das migrações Flyway **V1–V24** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-15.
 As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
 A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
 
@@ -139,8 +139,8 @@ erDiagram
         uuid id PK
         uuid booking_id FK
         uuid renter_id FK
-        varchar method "REFERENCE | MANUAL"
-        varchar provider "SIMULATED | MANUAL | EMIS (futuro)"
+        varchar method "REFERENCE | MANUAL | DIRECT (V24, pago ao dono)"
+        varchar provider "SIMULATED | MANUAL | EMIS (futuro) · DIRECT: CASH | TRANSFER | MULTICAIXA_EXPRESS"
         varchar entity
         varchar reference
         numeric rental_amount
@@ -150,6 +150,9 @@ erDiagram
         varchar status "AWAITING_PAYMENT | CONFIRMED | EXPIRED | CANCELLED | FAILED"
         timestamptz expires_at
         varchar receipt_number UK "V19; CP 2026/000001, obrigatório se CONFIRMED"
+        uuid confirmed_by FK "V24; dono ou admin em nome dele"
+        timestamptz commission_settled_at "V24; taxa recebida do dono (só DIRECT)"
+        uuid commission_settled_by FK "V24"
     }
     DEPOSITS {
         uuid id PK
@@ -279,6 +282,11 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V21 | `availability_blocks` (bloqueios do dono, dias inclusivos); `item_availability` migrada e removida |
 | V22 | reserva `EXPIRED` (pedido sem resposta) e notificação `BOOKING_EXPIRED`; índice parcial dos pedidos pendentes |
 | V23 | emails em minúsculas (sem colisões) e índice em `lower(email)` |
+| V24 | pagamento direto ao dono: método `DIRECT`, `payments.confirmed_by`, `commission_settled_at/by`; um só pagamento `CONFIRMED` por reserva (índice único parcial); índice das comissões por receber |
+
+**Pagamento direto (V24, modo por omissão):** o arrendatário paga ao dono na entrega e o dono confirma. Não há
+movimentos no ledger (`accounts`/`ledger_entries` só registam dinheiro que passa pela Beeznoo, modo `reference`). A
+caução (`deposits`) fica com o dono: `decided_by` é o dono quando ele a devolve, ou o admin depois de um problema.
 
 **Disponibilidade:** os dias ocupados por reservas **não** se guardam em `availability_blocks` — calculam-se a partir de
 `bookings` nos estados `ACCEPTED`, `ACTIVE`, `IN_PROGRESS`, `RETURNED`, `DISPUTED` (`BookingStatus.OCCUPYING`), com o

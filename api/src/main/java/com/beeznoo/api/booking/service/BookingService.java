@@ -20,6 +20,7 @@ import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import com.beeznoo.api.transaction.service.LedgerService;
+import com.beeznoo.api.transaction.entity.DirectChannel;
 import com.beeznoo.api.transaction.service.PaymentService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -180,7 +181,7 @@ public class BookingService {
         booking.setStatus(BookingStatus.ACCEPTED);
         if (request != null) booking.setOwnerNote(request.ownerNote());
         contractService.generateOnAccept(booking);
-        notificationService.bookingAccepted(booking);
+        notificationService.bookingAccepted(booking, paymentService.directMode());
         return toResponse(booking);
     }
 
@@ -197,8 +198,8 @@ public class BookingService {
             if (wasPending) notificationService.bookingRejected(booking);
             else notificationService.bookingCancelled(booking, booking.getOwner());
         } else if (isRenter(requesterId, booking)) {
-            // Cancelamento após ACCEPTED é uma história futura
-            assertStatus(booking, BookingStatus.PENDING_OWNER);
+            // Pode cancelar até pagar: em ACCEPTED ainda não pagou nada (decisoes-produto.md 2026-11-15)
+            assertStatus(booking, BookingStatus.PENDING_OWNER, BookingStatus.ACCEPTED);
             booking.setStatus(BookingStatus.CANCELLED_RENTER);
             notificationService.bookingCancelled(booking, booking.getRenter());
         } else {
@@ -219,9 +220,47 @@ public class BookingService {
     }
 
     public BookingResponse confirmPayment(UUID requesterId, UUID bookingId, String reason) {
-        assertAdmin(requesterId);
-        Booking booking = findBooking(bookingId);
+        return confirmPayment(requesterId, bookingId, reason, null);
+    }
+
+    // Modo direct (2026-11-15): o dono confirma que recebeu o pagamento na entrega
+    public BookingResponse confirmPaymentReceived(UUID ownerId, UUID bookingId, DirectChannel channel) {
+        Booking booking = findBookingForUpdate(bookingId);
+        if (!isOwner(ownerId, booking)) {
+            throw new AccessDeniedException("Só o dono pode confirmar que recebeu o pagamento");
+        }
         assertStatus(booking, BookingStatus.ACCEPTED);
+        var payment = paymentService.confirmDirect(ownerId, booking, channel);
+        auditService.record(ownerId, AuditAction.PAYMENT_RECEIVED, AuditService.BOOKING, bookingId, null,
+                Map.of("paymentId", payment.id().toString(), "channel", channel.name(),
+                        "amount", payment.amount().toPlainString()));
+        return toResponse(booking);
+    }
+
+    // Modo direct: o dono regista que devolveu a caução (toda ou com retenção) → COMPLETED
+    public BookingResponse decideDepositAsOwner(UUID ownerId, UUID bookingId, java.math.BigDecimal withheld, String reason) {
+        Booking booking = findBookingForUpdate(bookingId);
+        if (!isOwner(ownerId, booking)) {
+            throw new AccessDeniedException("Só o dono pode registar a devolução da caução");
+        }
+        depositService.decideAsOwner(ownerId, bookingId, withheld, reason);
+        return toResponse(booking);
+    }
+
+    // channel: só no modo direct — o admin confirma em nome do dono (por exemplo, por telefone)
+    public BookingResponse confirmPayment(UUID requesterId, UUID bookingId, String reason, DirectChannel channel) {
+        assertAdmin(requesterId);
+        Booking booking = findBookingForUpdate(bookingId);
+        assertStatus(booking, BookingStatus.ACCEPTED);
+        if (paymentService.directMode()) {
+            if (reason == null || reason.isBlank()) {
+                throw new IllegalArgumentException("Indica o motivo (por exemplo: o dono confirmou por telefone)");
+            }
+            paymentService.confirmDirect(requesterId, booking, channel);
+            auditService.record(requesterId, AuditAction.PAYMENT_CONFIRMED_MANUALLY, AuditService.BOOKING, bookingId,
+                    reason, Map.of("status", booking.getStatus().name(), "channel", channel.name()));
+            return toResponse(booking);
+        }
         // Validação manual (comprovativo): liquida no ledger e passa a ACTIVE
         paymentService.confirmManually(booking);
         auditService.record(requesterId, AuditAction.PAYMENT_CONFIRMED_MANUALLY, AuditService.BOOKING, bookingId,
@@ -302,9 +341,12 @@ public class BookingService {
     // ─── Expiração de pedidos sem resposta (gap #11) ───────────────────────
 
     /** Prazo de resposta: pedido + TTL (24 h) ou o fim do dia de levantamento em Luanda, o que vier primeiro. */
+    // Pedido sem resposta (24 h ou dia de levantamento) ou reserva aceite que nunca foi paga até ao dia de devolução
+    // (ninguém apareceu ou ninguém confirmou o pagamento — decisoes-produto.md 2026-11-15)
     boolean isOverdue(Booking b, OffsetDateTime now) {
-        if (b.getStatus() != BookingStatus.PENDING_OWNER) return false;
         LocalDate today = now.atZoneSameInstant(Formats.LUANDA).toLocalDate();
+        if (b.getStatus() == BookingStatus.ACCEPTED) return b.getEndDate().isBefore(today);
+        if (b.getStatus() != BookingStatus.PENDING_OWNER) return false;
         return !b.getCreatedAt().plus(requestTtl).isAfter(now) || b.getStartDate().isBefore(today);
     }
 
@@ -320,9 +362,16 @@ public class BookingService {
         bookingRepository.findByIdForUpdate(bookingId)
                 .filter(b -> isOverdue(b, OffsetDateTime.now()))
                 .ifPresent(b -> {
+                    boolean accepted = b.getStatus() == BookingStatus.ACCEPTED;
                     b.setStatus(BookingStatus.EXPIRED);
-                    notificationService.bookingExpired(b);
-                    log.info("Pedido {} expirado sem resposta do dono", b.getId());
+                    if (accepted) {
+                        paymentService.cancelOpen(b.getId());
+                        notificationService.acceptedBookingExpired(b);
+                        log.info("Reserva {} aceite e nunca paga — expirada depois do dia de devolução", b.getId());
+                    } else {
+                        notificationService.bookingExpired(b);
+                        log.info("Pedido {} expirado sem resposta do dono", b.getId());
+                    }
                 });
     }
 

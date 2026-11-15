@@ -4,6 +4,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
 import javax.imageio.ImageReader;
 import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
@@ -28,6 +29,12 @@ public final class UploadedFiles {
     public static final long MAX_BYTES = 5L * 1024 * 1024;
     static final long MAX_PIXELS = 40_000_000L;
     static final int MAX_SIDE = 12_000;
+    // Lado maior guardado. A imagem é DESCODIFICADA já reduzida (subamostragem): uma foto de 40 MP ocupava
+    // ~160 MB descodificada (o dobro com conversão de cor) e rebentava o contentor de 512 MB do Render.
+    // 3000 px chegam para ler um BI e para fotos de equipamento.
+    static final int MAX_STORED_SIDE = 3000;
+    // No máximo duas imagens a descodificar ao mesmo tempo: um pico de uploads não multiplica a memória
+    private static final java.util.concurrent.Semaphore DECODE_SLOTS = new java.util.concurrent.Semaphore(2, true);
 
     public enum Kind { JPEG, PNG, PDF }
 
@@ -73,18 +80,38 @@ public final class UploadedFiles {
                 if (width > MAX_SIDE || height > MAX_SIDE || (long) width * height > MAX_PIXELS) {
                     throw new IllegalArgumentException(label + " tem demasiados píxeis (máx. 40 megapíxeis)");
                 }
-                BufferedImage image = reader.read(0);
-                if (format.equals("jpeg") && image.getColorModel().hasAlpha()) {
-                    BufferedImage rgb = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-                    rgb.createGraphics().drawImage(image, 0, 0, null);
-                    image = rgb;
+                int factor = Math.max(1, (int) Math.ceil(Math.max(width, height) / (double) MAX_STORED_SIDE));
+                ImageReadParam param = reader.getDefaultReadParam();
+                if (factor > 1) param.setSourceSubsampling(factor, factor, 0, 0);
+
+                if (!DECODE_SLOTS.tryAcquire(20, java.util.concurrent.TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("Estamos a processar muitas fotos. Tenta outra vez daqui a pouco.");
                 }
-                return new ValidFile(write(image, format), file.contentType(), file.extension());
+                try {
+                    BufferedImage image = reader.read(0, param);
+                    if (format.equals("jpeg") && image.getColorModel().hasAlpha()) {
+                        BufferedImage rgb = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
+                        java.awt.Graphics2D g = rgb.createGraphics();
+                        try {
+                            g.drawImage(image, 0, 0, null);
+                        } finally {
+                            g.dispose();
+                        }
+                        image = rgb;
+                    }
+                    return new ValidFile(write(image, format), file.contentType(), file.extension());
+                } finally {
+                    DECODE_SLOTS.release();
+                }
             } finally {
                 reader.dispose();
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Pedido interrompido. Tenta outra vez.");
         } catch (IOException | RuntimeException e) {
             if (e instanceof IllegalArgumentException iae) throw iae;
+            if (e instanceof IllegalStateException ise) throw ise;
             throw new IllegalArgumentException(label + " não é uma imagem válida (exporta-a outra vez como JPEG ou PNG)");
         }
     }

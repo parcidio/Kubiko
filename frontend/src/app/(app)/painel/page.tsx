@@ -8,7 +8,7 @@ import { RequestCard } from "@/components/bz/requests";
 import { ModeSwitch } from "@/components/bz/shell";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/bz/states";
 import { ButtonLink, Callout, Eyebrow, Kz, SectionTitle, Skeleton } from "@/components/bz/ui";
-import { bookingApi, ownerItemApi, walletApi } from "@/lib/api";
+import { bookingApi, ownerItemApi, paymentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { canOwn } from "@/lib/mode";
 import { useResource } from "@/lib/use-resource";
@@ -18,7 +18,8 @@ export default function PainelPage() {
   const owner = !!session && canOwn(session.role);
   const received = useResource(owner ? "bookings:owner" : null, () => bookingApi.received());
   const items = useResource(owner ? "items:mine" : null, () => ownerItemApi.mine());
-  const account = useResource(owner ? "account" : null, () => walletApi.account());
+  // pagamento direto (2026-11-15): sem saldo na Beeznoo; o que importa é a taxa por entregar
+  const commissions = useResource(owner ? "commissions:me" : null, () => paymentApi.myCommissions());
 
   if (!session) return null;
   if (!owner) {
@@ -48,8 +49,8 @@ export default function PainelPage() {
               <div className="absolute -top-20 -right-16 size-56 rounded-full bg-ambar/15 blur-3xl" aria-hidden />
               <div className="relative flex items-start justify-between">
                 <div className="grid gap-1">
-                  <p className="text-xs font-bold tracking-[0.16em] text-areia/65 uppercase">Beeznoo Pay</p>
-                  <p className="font-titulo text-lg font-bold">Cartão de débito</p>
+                  <p className="text-xs font-bold tracking-[0.16em] text-areia/65 uppercase">Carteira</p>
+                  <p className="font-titulo text-lg font-bold">Recebes na entrega</p>
                 </div>
                 <CreditCard className="size-7 text-ambar" strokeWidth={1.6} aria-hidden />
               </div>
@@ -60,21 +61,20 @@ export default function PainelPage() {
                 <Radio className="size-5 rotate-90 text-areia/70" strokeWidth={1.5} aria-hidden />
               </div>
               <div className="relative grid gap-1">
-                <p className="num text-lg tracking-[0.18em] text-areia/85">••••  ••••  ••••  {account.data?.availableBalance ? "2048" : "0000"}</p>
                 <div className="flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-[10px] tracking-[0.14em] text-areia/55 uppercase">Saldo disponível</p>
-                    {account.loading ? <Skeleton className="mt-1 h-8 w-40 bg-white/10" /> : <Kz value={account.data?.availableBalance ?? 0} className="text-3xl leading-none text-ambar" />}
+                    <p className="text-[10px] tracking-[0.14em] text-areia/55 uppercase">Taxa por entregar à Beeznoo</p>
+                    {commissions.loading ? <Skeleton className="mt-1 h-8 w-40 bg-white/10" /> : <Kz value={commissions.data?.due ?? 0} className="text-3xl leading-none text-ambar" />}
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-areia/55 uppercase">Titular</p>
-                    <p className="text-sm font-bold">Beeznoo member</p>
+                    <p className="text-[10px] text-areia/55 uppercase">Pagamentos</p>
+                    <p className="num text-sm font-bold">{commissions.data?.lines.length ?? 0}</p>
                   </div>
                 </div>
               </div>
             </div>
             <Link href="/carteira" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-areia hover:underline">
-              Ver movimentos <ArrowUpRight className="size-4" strokeWidth={2} aria-hidden />
+              Ver carteira <ArrowUpRight className="size-4" strokeWidth={2} aria-hidden />
             </Link>
           </div>
           <dl className="grid grid-cols-3 gap-2">

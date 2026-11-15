@@ -158,6 +158,40 @@ class BookingExpiryIntegrationTest {
         assertThat(request(today.plusDays(20), today.plusDays(22))).isNotNull();
     }
 
+    @Test
+    void reservaAceiteNuncaPaga_expiraDepoisDoDiaDeDevolucao() {
+        UUID accepted = request(today.plusDays(10), today.plusDays(12));
+        bookingService.accept(owner.getId(), accepted, null);
+        // simula que o período já passou sem pagamento confirmado
+        bookingRepository.flush();
+        jdbc.update("UPDATE bookings SET start_date = ?, end_date = ? WHERE id = ?",
+                today.minusDays(4), today.minusDays(1), accepted);
+        em.clear();
+
+        assertThat(bookingService.findOverduePendingIds()).contains(accepted);
+        bookingService.expire(accepted);
+        assertThat(status(accepted)).isEqualTo(BookingStatus.EXPIRED);
+    }
+
+    @Test
+    void reservaAceiteNoDiaDeDevolucao_aindaNaoExpira() {
+        UUID accepted = request(today.plusDays(10), today.plusDays(12));
+        bookingService.accept(owner.getId(), accepted, null);
+        bookingRepository.flush();
+        jdbc.update("UPDATE bookings SET start_date = ?, end_date = ? WHERE id = ?", today.minusDays(2), today, accepted);
+        em.clear();
+        assertThat(bookingService.findOverduePendingIds()).doesNotContain(accepted);
+    }
+
+    @Test
+    void arrendatarioCancelaReservaAceiteAntesDePagar_eAsDatasFicamLivres() {
+        UUID accepted = request(today.plusDays(30), today.plusDays(32));
+        bookingService.accept(owner.getId(), accepted, null);
+        bookingService.cancel(renter.getId(), accepted, null);
+        assertThat(status(accepted)).isEqualTo(BookingStatus.CANCELLED_RENTER);
+        assertThat(request(today.plusDays(30), today.plusDays(32))).isNotNull();
+    }
+
     // ─── apoio ───
 
     private UUID request(LocalDate start, LocalDate end) {

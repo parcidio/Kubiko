@@ -467,3 +467,110 @@ guardam/procuram o email tal como foi escrito, e o Google devolve sempre minúsc
 **Fora do código.** `redirect_uri_mismatch` é configuração do cliente OAuth na Google Cloud: o URI exato de cada
 ambiente tem de estar em "URIs de redirecionamento autorizados". Hoje staging e produção usam o **mesmo** cliente
 (`107243221268…`), ao contrário da decisão de 2026-11-05 (um cliente por ambiente).
+
+---
+
+## 2026-11-11 — API a ser morta por memória no Render (512 MB)
+
+**Contexto.** O Render avisou "exceeded its memory limit" e reiniciou o serviço. Reproduzido em local com o mesmo
+limite (`docker --memory=512m`, sem swap) e a imagem/JVM em produção: **497 MB em repouso** (às vezes nem arranca) e
+**morto pelo kernel** (OOMKilled) com 6 uploads simultâneos de fotos de 35 MP. Native Memory Tracking: ~200 MB fora do
+heap (metaspace ~100, symbols ~43, código ~30) + heap até 384 MB (`MaxRAMPercentage=75`) > 512 MB. A recodificação de
+imagens descodificava cada foto em tamanho real (35 MP ≈ 140 MB; o dobro com conversão de cor).
+
+**Decisões (equipa, nesta data — ⚑ validar com o André a remoção do RabbitMQ, que constava da stack):**
+
+1. **Imagens descodificadas já reduzidas** (subamostragem, lado maior ≤ 3000 px) e no máximo **2 em simultâneo**.
+   As fotos guardadas passam a ter no máximo 3000 px (chega para BI e equipamento; poupa B2 e dados móveis).
+2. **Sem RabbitMQ nem Twilio na API**: nenhum código os usava; carregavam classes (−20 MB) e o Twilio trazia o
+   `org.json` vulnerável (GHSA-ghc9-756g-vrcv). Voltam quando houver uma história que precise deles.
+3. **JVM dimensionada para 512 MB** (`api/Dockerfile`): heap 40%, metaspace ≤ 128 MB, código ≤ 32 MB, só C1,
+   SerialGC, pilhas de 512 KB; Tomcat com 40 threads (`TOMCAT_MAX_THREADS`).
+   **Resultado medido (3 corridas):** 372–398 MB em repouso, pico 411–420 MB com a mesma carga, sem OOM.
+4. Com o plano Standard (2 GB) — se o tráfego crescer — subir `MaxRAMPercentage` e voltar ao compilador C2.
+
+---
+
+## 2026-11-15 — Pagamento direto ao dono (modelo "Yango") e KYC manual pelo portal
+
+**Contexto.** A integração com a EMIS não está fechada e a equipa não quer, nesta fase, receber nem guardar dinheiro
+de terceiros. Em Angola as pessoas já conhecem o modelo da Yango: o cliente paga ao motorista (numerário ou
+transferência) e a plataforma cobra a comissão ao motorista à parte. O KYC já tinha API mas não tinha ecrãs.
+
+**Hipótese.** Pagar ao dono na entrega, com contrato, checklist e comprovativo na app, chega para o primeiro aluguer
+real; tirar a Beeznoo do caminho do dinheiro remove a dependência da EMIS e o risco de guardar cauções.
+**Utilizador-alvo:** dono e arrendatário em Luanda que se encontram para a entrega.
+**Critério de sucesso:** primeiros 10 alugueres pagos e concluídos sem a equipa mexer em dinheiro, com a comissão
+de todos cobrada até 7 dias depois do pagamento.
+
+**Decisões (pedidas pela equipa nesta data — ⚑ validar com o André):**
+
+1. **Modo de pagamento `direct` por omissão** (`app.payments.mode`, `PAYMENTS_MODE`). O modo `reference` (referência
+   Multicaixa, 2026-10-16) fica no código, desligado, para quando houver EMIS. No modo `direct` gerar referência dá 409.
+2. **O arrendatário paga ao dono, na entrega**, o mesmo total de antes: aluguer + taxa de serviço (8%) + caução.
+   Primeiro confere o equipamento, depois paga. A app mostra o valor e as regras; nada é pago antes do encontro.
+3. **O dono confirma na app que recebeu** (`POST /bookings/{id}/payment-received`, com o meio: numerário,
+   transferência ou Multicaixa Express) → pagamento `DIRECT`/`CONFIRMED`, comprovativo `CP …` (diz "pago ao dono"),
+   reserva `ACTIVE`, aviso ao arrendatário, auditoria `PAYMENT_RECEIVED`. Exige o contrato aceite pelo arrendatário.
+   O admin pode confirmar em nome do dono (com motivo, auditado), por exemplo se o dono confirmar por telefone.
+4. **A taxa de serviço passa a ser dívida do dono** (comissão): fica no próprio pagamento (`service_fee`) até a equipa
+   registar que a recebeu (`commission_settled_at`, `POST /admin/commissions/{ownerId}/settle`, auditado
+   `COMMISSION_SETTLED`). O dono vê o que deve na Carteira. Sem saldo negativo nem ledger no modo `direct`: o ledger
+   só regista dinheiro que passa pela Beeznoo. ⚑ Alternativa: comissão descontada ao dono e o arrendatário paga só
+   aluguer + caução (mais parecido com a Yango, mas muda os preços que o dono vê).
+5. **A caução fica com o dono e é ele que a devolve.** Depois da devolução confirmada (`RETURNED`), o dono indica
+   "devolvi tudo" ou "retive X Kz, motivo" (`POST /bookings/{id}/deposit/decision`) → reserva `COMPLETED`, aviso ao
+   arrendatário. Sem caução, a reserva conclui-se sozinha quando a devolução é confirmada.
+   **Se o arrendatário não concordar**, reporta um problema até **7 dias** depois da decisão do dono (a reserva
+   concluída passa a `DISPUTED`); a equipa medeia e fecha o caso. A Beeznoo não move dinheiro: a sanção possível é
+   suspender a conta de quem não cumprir.
+6. **Contrato v2** (`v2-rascunho`): diz que o pagamento e a caução são entregues ao dono, que a Beeznoo não recebe nem
+   guarda dinheiro do aluguer e que a taxa de serviço é entregue pelo dono à Beeznoo. Continua a rever por jurista.
+7. **KYC manual pelo portal.** O utilizador envia BI (frente e verso) e uma selfie com o BI (empresa: documento do NIF
+   e certidão/alvará) em `/verificacao`; a equipa decide em Admin › Verificações (aprovar, recusar com motivo, pedir
+   mais informação). A app avisa **antes e depois do envio** que a verificação é feita à mão e pode demorar até
+   **2 dias úteis** ⚑ (prazo a confirmar). Com os ecrãs feitos, `KYC_REQUIRED=true` volta a fazer sentido em produção.
+
+**Consequências.** Sem dinheiro de terceiros na Beeznoo nem cauções a guardar; em troca, a Beeznoo não garante o
+pagamento nem a devolução da caução — só regista, medeia e pode suspender contas. A comissão depende de o dono pagar.
+
+**Complemento (mesma data), depois da revisão — ⚑ validar com o André:**
+
+8. **Cancelar antes de pagar.** O arrendatário pode cancelar uma reserva `ACCEPTED` (ainda não pagou nada); o dono já
+   podia, e a app passa a mostrar o botão aos dois (o dono pode deixar uma mensagem). Depois de pago, o cancelamento
+   continua em aberto (contrato §9).
+9. **Reserva aceite nunca paga expira** no dia seguinte ao da devolução (`BookingExpiryScheduler`): ninguém apareceu ou o
+   dono não confirmou o pagamento. As duas partes são avisadas; se o aluguer aconteceu, falam com a equipa.
+10. **Contestação da caução: uma vez.** O arrendatário contesta uma vez, até 7 dias depois de o dono registar a caução.
+11. **Política de Privacidade** (`/privacidade`), escrita a partir do que a app recolhe de facto, marcada como provisória.
+    ⚑ Rever por jurista e confirmar com a APD (Lei n.º 22/11) a notificação do tratamento de documentos de identidade e a
+    transferência para fornecedores fora de Angola (alojamento, armazenamento, email, SMS).
+12. Páginas antigas com dados mock (`/items`, `/arrendador`, `/arrendatario`) removidas; as categorias da landing abrem o
+    Explorar filtrado.
+
+---
+
+## 2026-11-15 — Códigos OTP por WhatsApp (Losambo)
+
+**Contexto.** O SMS (Ombala) custa por mensagem e chega com atraso; em Luanda quase toda a gente usa WhatsApp. A equipa
+tem um gateway próprio de WhatsApp, Losambo (`https://message.beeznoo.ao/v1`, autenticação `Bearer lsb_live_…`), com
+`/otp/send` (gera e envia um código de 6 dígitos, válido 5 min, guardado só como hash) e `/otp/verify`.
+
+**Decisões (pedidas pela equipa nesta data — ⚑ validar com o André):**
+
+1. **Canal do OTP** (`OTP_CHANNEL`): `whatsapp`, `sms` ou `auto` (omissão). `auto` usa WhatsApp quando há chave do
+   Losambo para o ambiente e SMS (Ombala) caso contrário — local e testes continuam a funcionar sem chave.
+2. **Duas chaves**, `WHATSAPP_API_KEY_PRD` e `WHATSAPP_API_KEY_TST`; `WHATSAPP_ENV` (`prd`/`tst`, omissão `tst`) escolhe
+   qual. Produção: `prd`. Staging e local: `tst`.
+3. **O Losambo gera e valida o código**; a Beeznoo continua a guardar um registo por pedido (`otp_codes`, com o
+   **propósito** e a validade) e a aplicar os limites de reenvio e de tentativas. Assim um código pedido para registo não
+   serve para repor a password, e um código só se usa uma vez. Em `code_hash` fica a referência do pedido no Losambo
+   (`losambo:<id>`), não o código.
+4. **Número sem WhatsApp** (404 `not_on_whatsapp`): se o SMS estiver configurado, o código segue por SMS; se não, a
+   pessoa vê "Este número não tem WhatsApp". Número desligado ou sem quota (409/429) também cai para SMS quando possível.
+5. Os outros endpoints do Losambo (`/messages`, `/contacts/{phone}`, `/numbers/{id}/health`) ficam para uma história
+   própria (avisos por WhatsApp, verificar o número no registo, alerta de quota).
+
+**A confirmar com quem gere o Losambo:** o corpo do `/otp/verify` não está na documentação pública. Enviamos
+`{ "id", "to", "code" }` e aceitamos como válido um 2xx sem `valid`/`verified` a `false`. Testar em staging com a chave
+TST antes de produção.

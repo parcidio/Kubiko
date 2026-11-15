@@ -68,7 +68,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Fluxo do SPEC §7 de ponta a ponta: pedido → aceite (contrato) → pago → entregue → devolvido → caução decidida,
  * mais perfil, fotos do equipamento, reportar problema e auditoria.
  */
-@SpringBootTest
+// Fluxo de referência Multicaixa (modo reference); o modo direct tem o DirectPaymentIntegrationTest
+@SpringBootTest(properties = "app.payments.mode=reference")
 @org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc
 @Testcontainers
 @Transactional
