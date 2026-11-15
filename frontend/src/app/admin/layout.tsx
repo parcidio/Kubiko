@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BadgeCheck, Banknote, Flag, LayoutDashboard, LogOut, ScrollText, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/bz/brand";
+import { PageTransition } from "@/components/bz/motion";
 import { ErrorState } from "@/components/bz/states";
 import { ButtonLink } from "@/components/bz/ui";
 import { signOut, useRequireSession } from "@/lib/auth";
@@ -66,7 +67,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <SignOutButton />
         </nav>
       </aside>
-      <main className="px-4 py-6 md:px-10 md:py-10">{children}</main>
+      <main className="px-4 py-6 md:px-10 md:py-10"><PageTransition>{children}</PageTransition></main>
     </div>
   );
 }

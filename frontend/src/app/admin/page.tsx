@@ -26,13 +26,13 @@ export default function AdminHome() {
       <AdminHeader title="Visão geral" text="Alugueres concluídos por mês é o número que conta. Por baixo, as filas: o mais antigo primeiro." />
       <Metrics />
       <h2 className="mt-2 font-titulo text-xl font-bold text-verde">Filas</h2>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="entra-cascata grid gap-4 sm:grid-cols-2">
         {QUEUES.map((q) => (
           <QueueCard key={q.href} {...q} />
         ))}
       </div>
       <Link href="/admin/auditoria" className="group">
-        <Card className="flex items-center gap-4 p-5 transition group-hover:border-verde">
+        <Card className="flex items-center gap-4 p-5 transition group-hover:border-verde group-active:scale-[.98]">
           <span className="flex size-11 items-center justify-center rounded-full bg-areia-2 text-mel">
             <ScrollText className="size-5" strokeWidth={1.8} aria-hidden />
           </span>
@@ -51,7 +51,7 @@ function QueueCard({ href, title, text, icon: Icon, count }: (typeof QUEUES)[num
   const n = useResource<number>(`admin:count:${href}`, count);
   return (
     <Link href={href} className="group">
-      <Card className="grid gap-4 p-5 transition group-hover:border-verde">
+      <Card className="grid gap-4 p-5 transition group-hover:border-verde group-active:scale-[.98]">
         <div className="flex items-center justify-between">
           <span className="flex size-11 items-center justify-center rounded-full bg-verde text-ambar">
             <Icon className="size-5" strokeWidth={1.8} aria-hidden />
@@ -85,7 +85,7 @@ function Metrics() {
 
   return (
     <section aria-label="Métricas" className="grid gap-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="entra-cascata grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           accent
           icon={CheckCircle2}

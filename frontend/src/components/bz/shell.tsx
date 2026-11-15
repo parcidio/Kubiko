@@ -1,5 +1,6 @@
 "use client";
 
+import { PageTransition } from "./motion";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -253,7 +254,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className={cn(
         "pt-5 pb-40 md:pt-8 md:pb-20",
         isFullBleed ? "w-full px-0" : "mx-auto max-w-6xl px-4 md:px-12",
-      )}>{children}</main>
+      )}><PageTransition>{children}</PageTransition></main>
       <BottomNav />
     </div>
   );
