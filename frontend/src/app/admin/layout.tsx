@@ -1,12 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { BadgeCheck, Banknote, Flag, LayoutDashboard, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { BadgeCheck, Banknote, Flag, LayoutDashboard, LogOut, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/bz/brand";
 import { ErrorState } from "@/components/bz/states";
 import { ButtonLink } from "@/components/bz/ui";
-import { useRequireSession } from "@/lib/auth";
+import { signOut, useRequireSession } from "@/lib/auth";
 import { isAdmin } from "@/lib/mode";
 import { cn } from "@/lib/utils";
 
@@ -61,9 +62,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             );
           })}
+          <SignOutButton />
         </nav>
       </aside>
       <main className="px-4 py-6 md:px-10 md:py-10">{children}</main>
     </div>
+  );
+}
+
+/** Terminar sessão: revoga o refresh no servidor e limpa a sessão local (como em Conta). */
+function SignOutButton() {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        await signOut();
+        router.replace("/entrar");
+      }}
+      className="flex min-h-11 shrink-0 cursor-pointer items-center gap-3 rounded-campo px-3 text-sm font-medium whitespace-nowrap text-areia/80 transition hover:bg-white/10 hover:text-areia disabled:opacity-60 md:mt-4 md:border-t md:border-white/10 md:pt-4"
+    >
+      <LogOut className="size-5 text-ambar" strokeWidth={1.8} aria-hidden />
+      {busy ? "A sair…" : "Sair"}
+    </button>
   );
 }
