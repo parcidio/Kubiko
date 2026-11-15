@@ -103,7 +103,7 @@ export default function AdminPagamentos() {
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="entra-cascata">
                 {rows.map((p) => (
                   <tr key={p.id} className="border-b border-borda align-middle last:border-0">
                     <td className="px-4 py-3">

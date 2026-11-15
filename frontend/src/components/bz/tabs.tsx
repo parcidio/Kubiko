@@ -15,6 +15,7 @@ export function Segmented<T extends string>({
   dark?: boolean;
 }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const active = options.findIndex((o) => o.value === value);
 
   function onKey(e: React.KeyboardEvent, i: number) {
     const dir = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
@@ -29,8 +30,22 @@ export function Segmented<T extends string>({
     <div
       role="tablist"
       aria-label={label}
-      className={cn("grid auto-cols-fr grid-flow-col gap-1 rounded-full p-1", dark ? "bg-white/10" : "bg-areia-2", className)}
+      className={cn("relative grid auto-cols-fr grid-flow-col gap-1 rounded-full p-1", dark ? "bg-white/10" : "bg-areia-2", className)}
     >
+      {/* pílula que desliza até à opção ativa (colunas iguais: posição = índice × (largura + gap)) */}
+      {active >= 0 && (
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute inset-y-1 left-1 rounded-full transition-transform duration-300 ease-[cubic-bezier(.2,.8,.2,1)]",
+            dark ? "bg-areia" : "bg-branco shadow-[0_1px_2px_rgba(14,42,31,.12)]",
+          )}
+          style={{
+            width: `calc((100% - 0.5rem - ${options.length - 1} * 0.25rem) / ${options.length})`,
+            transform: `translateX(calc(${active} * (100% + 0.25rem)))`,
+          }}
+        />
+      )}
       {options.map((o, i) => {
         const on = o.value === value;
         return (
@@ -46,11 +61,9 @@ export function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
             onKeyDown={(e) => onKey(e, i)}
             className={cn(
-              "flex min-h-10 items-center justify-center cursor-pointer gap-2 rounded-full px-3 text-sm font-medium transition",
+              "relative flex min-h-10 items-center justify-center cursor-pointer gap-2 rounded-full px-3 text-sm font-medium transition-colors",
               on
-                ? dark
-                  ? "bg-areia font-bold text-verde"
-                  : "bg-branco font-bold text-verde shadow-[0_1px_2px_rgba(14,42,31,.12)]"
+                ? "font-bold text-verde"
                 : dark
                   ? "text-areia/80 hover:text-areia"
                   : "text-cinza hover:text-verde",

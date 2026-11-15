@@ -21,13 +21,13 @@ export default function AdminHome() {
   return (
     <div className="grid max-w-5xl gap-6">
       <AdminHeader title="Visão geral" text="Quatro filas, o mais antigo primeiro. Cada decisão pede motivo e fica na auditoria." />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="entra-cascata grid gap-4 sm:grid-cols-2">
         {QUEUES.map((q) => (
           <QueueCard key={q.href} {...q} />
         ))}
       </div>
       <Link href="/admin/auditoria" className="group">
-        <Card className="flex items-center gap-4 p-5 transition group-hover:border-verde">
+        <Card className="flex items-center gap-4 p-5 transition group-hover:border-verde group-active:scale-[.98]">
           <span className="flex size-11 items-center justify-center rounded-full bg-areia-2 text-mel">
             <ScrollText className="size-5" strokeWidth={1.8} aria-hidden />
           </span>
@@ -46,7 +46,7 @@ function QueueCard({ href, title, text, icon: Icon, count }: (typeof QUEUES)[num
   const n = useResource<number>(`admin:count:${href}`, count);
   return (
     <Link href={href} className="group">
-      <Card className="grid gap-4 p-5 transition group-hover:border-verde">
+      <Card className="grid gap-4 p-5 transition group-hover:border-verde group-active:scale-[.98]">
         <div className="flex items-center justify-between">
           <span className="flex size-11 items-center justify-center rounded-full bg-verde text-ambar">
             <Icon className="size-5" strokeWidth={1.8} aria-hidden />

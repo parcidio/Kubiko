@@ -98,7 +98,7 @@ export default function AdminVerificacoes() {
             emptyText="Quando alguém envia o BI, aparece aqui."
           />
           {rows.length > 0 && (
-            <ul>
+            <ul className="entra-cascata">
               {rows.map((k) => (
                 <li key={k.id} className="border-b border-borda last:border-0">
                   <button

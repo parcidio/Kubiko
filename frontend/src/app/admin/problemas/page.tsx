@@ -30,7 +30,7 @@ function ProblemasInner() {
         text="Dano, perda, roubo ou outro, o mais antigo primeiro. Resolve com uma nota (vai para as duas partes) e depois decide a caução."
       />
       <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
-        <Card className="overflow-hidden">
+        <Card className="entra-cascata overflow-hidden">
           <div className="flex items-center justify-between border-b border-borda bg-areia px-4 py-3">
             <p className="text-xs font-bold tracking-[0.1em] text-cinza uppercase">Por resolver</p>
             {queue.data && <p className="num text-sm font-bold text-verde">{queue.data.page?.totalElements ?? rows.length}</p>}

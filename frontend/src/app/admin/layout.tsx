@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { BadgeCheck, Banknote, Flag, LayoutDashboard, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/bz/brand";
+import { PageTransition } from "@/components/bz/motion";
 import { ErrorState } from "@/components/bz/states";
 import { ButtonLink } from "@/components/bz/ui";
 import { useRequireSession } from "@/lib/auth";
@@ -63,7 +64,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           })}
         </nav>
       </aside>
-      <main className="px-4 py-6 md:px-10 md:py-10">{children}</main>
+      <main className="px-4 py-6 md:px-10 md:py-10"><PageTransition>{children}</PageTransition></main>
     </div>
   );
 }

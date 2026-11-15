@@ -81,6 +81,9 @@ Curto e útil — nunca decorativo em loop.
 | `skeleton-brilho` | Skeleton: brilho a passar em vez de piscar | 1.4s, só enquanto carrega |
 | Foto do cartão | `group-hover:scale-105` dentro da moldura | 500ms ease-out |
 | Toque | `active:scale-[.98]` em botões e cartões | 120ms |
+| Mudança de ecrã | `PageTransition` (`components/bz/motion.tsx`, View Transitions): sai a desvanecer, entra a subir 8px | 120ms + 280ms mesma curva |
+| `entra-cascata` | Listas e filas: cada filho sobe 40ms depois do anterior (até ao 8.º) | 280ms cada |
+| Separadores (`Segmented`) | A pílula desliza até à opção ativa | 300ms mesma curva |
 
 Tudo desliga com `prefers-reduced-motion`.
 

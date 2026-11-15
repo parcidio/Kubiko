@@ -35,7 +35,7 @@ function CaucoesInner() {
         text="Cauções com um problema reportado, a mais antiga primeiro. A caução está com o dono: a equipa compara a entrega com a devolução e decide quanto ele devolve. A decisão conclui a reserva e não se desfaz."
       />
       <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
-        <Card className="overflow-hidden">
+        <Card className="entra-cascata overflow-hidden">
           <div className="flex items-center justify-between border-b border-borda bg-areia px-4 py-3">
             <p className="text-xs font-bold tracking-[0.1em] text-cinza uppercase">Na fila</p>
             {queue.data && <p className="num text-sm font-bold text-verde">{queue.data.page?.totalElements ?? queue.data.content.length}</p>}

@@ -104,7 +104,7 @@ export default function AtividadePage() {
         />
       ) : (
         <Card className="overflow-hidden">
-          <ul>
+          <ul className="entra-cascata">
             {items.map((n) => {
               const Icon = iconOf(n.type);
               const isUnread = !n.readAt;
