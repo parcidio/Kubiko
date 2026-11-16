@@ -40,7 +40,7 @@ export default function CarteiraPage() {
       </button>
       <PageHeader title="Carteira" subtitle="O que recebeste na entrega e a taxa de serviço por entregar à Beeznoo." />
 
-      <section className="relative overflow-hidden rounded-sheet bg-verde-noite p-5 text-areia md:p-8">
+      <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde-noite p-5 text-areia md:p-8">
         <HexGlow />
         <div className="relative grid gap-4 md:grid-cols-2">
           <div className="grid gap-1 rounded-cartao border border-white/10 bg-white/5 p-4">

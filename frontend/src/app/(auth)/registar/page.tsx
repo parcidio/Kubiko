@@ -106,7 +106,7 @@ function RegisterFlow() {
       <AuthTitle title="Cria a tua conta" subtitle="Menos de um minuto. Confirmamos o teu número com um código no WhatsApp." />
       <form onSubmit={submitData} className="grid gap-5" noValidate>
         <TextField label="Nome completo" autoComplete="name" value={fullName} onChange={setFullName} error={errors.fields.fullName} />
-        <PhoneField value={phone} onChange={setPhone} error={errors.fields.phone} />
+        <PhoneField value={phone} onChange={setPhone} error={errors.fields.phone} autoComplete="username" />
         <TextField label="Email (opcional)" type="email" autoComplete="email" value={email} onChange={setEmail} error={errors.fields.email} />
         <PasswordField value={password} onChange={setPassword} autoComplete="new-password" hint="Pelo menos 8 caracteres." error={errors.fields.password} />
         <RolePicker value={role} onChange={setRole} />

@@ -104,7 +104,7 @@ export function Toaster() {
           <div
             key={t.id}
             role={t.kind === "erro" ? "alert" : "status"}
-            className="pointer-events-auto flex w-full max-w-sm animate-sobe items-center gap-3 rounded-cartao bg-verde px-4 py-3 font-corpo text-[15px] text-areia shadow-flutua"
+            className="superficie-marca pointer-events-auto flex w-full max-w-sm animate-sobe items-center gap-3 rounded-cartao bg-verde px-4 py-3 font-corpo text-[15px] text-areia shadow-flutua"
           >
             <Icon className={cn("size-5 shrink-0", t.kind === "erro" ? "text-[#F4A29C]" : "text-ambar")} strokeWidth={1.8} aria-hidden />
             <p>{t.text}</p>

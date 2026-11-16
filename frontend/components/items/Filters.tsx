@@ -51,6 +51,8 @@ interface BeeznoFiltersProps {
   categoryId?: string;
   onCategoryChange?: (id: string | undefined) => void;
   mobile?: boolean;
+  /** Depois de "Guardar" ou "Limpar" (o Explorar fecha o Sheet no telemóvel) */
+  onApplied?: () => void;
 }
 
 export default function BeeznoFilters({
@@ -62,6 +64,7 @@ export default function BeeznoFilters({
   categoryId,
   onCategoryChange,
   mobile = false,
+  onApplied,
 }: BeeznoFiltersProps) {
   const applied = value ?? initialFilters ?? EMPTY_FILTERS;
   const [open, setOpen] = useState<string | null>(null);
@@ -87,6 +90,7 @@ export default function BeeznoFilters({
     onSave?.({ ...draft });
     onCategoryChange?.(draftCat);
     setOpen(null);
+    onApplied?.();
   };
 
   const handleClear = () => {
@@ -96,6 +100,7 @@ export default function BeeznoFilters({
     onSave?.(EMPTY_FILTERS);
     onCategoryChange?.(undefined);
     setOpen(null);
+    onApplied?.();
   };
 
   const savedChips = buildChips(applied, categories.find((c) => c.id === categoryId)?.name);

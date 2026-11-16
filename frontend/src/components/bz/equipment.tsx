@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useServiceFeeRate } from "@/lib/fee";
 import { BadgeCheck, MapPin, Package, Repeat2, Sparkles, Star, type LucideIcon } from "lucide-react";
 import { categoryIcon, hexPath } from "./brand";
 import { Kz } from "./ui";
 import { initials } from "@/lib/booking";
-import { CONDITION_LABEL, daysBetween, formatKz, SERVICE_FEE_RATE } from "@/lib/format";
+import { CONDITION_LABEL, daysBetween, formatKz } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ItemCondition, ItemSummary } from "@/lib/types";
 
@@ -53,13 +56,13 @@ export function VerifiedBadge({ className, compact }: { className?: string; comp
   );
 }
 
-/** Avatar com iniciais (verde + âmbar). */
+/** Avatar com iniciais (salvia-tint + verde-médio: âmbar nunca em texto). */
 export function Avatar({ name, size = "md", className }: { name?: string | null; size?: "sm" | "md" | "lg"; className?: string }) {
   return (
     <span
       aria-hidden
       className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-verde font-titulo font-bold text-ambar",
+        "flex shrink-0 items-center justify-center rounded-full bg-salvia-tint font-titulo font-bold text-verde-medio",
         size === "sm" && "size-9 text-sm",
         size === "md" && "size-11 text-base",
         size === "lg" && "size-14 text-lg",
@@ -126,6 +129,7 @@ export function RatingInline({ average, count, className }: { average: number | 
 export function EquipmentCard({
   item, href, icon, index = 0, className, showFeatured = true, dates,
 }: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean; dates?: { start: string; end: string } }) {
+  const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
   const days = dates ? daysBetween(dates.start, dates.end) : 0;
   const tag = item.featured && showFeatured
     ? { label: "Em destaque", icon: Sparkles, cls: "bg-verde text-areia [&_svg]:text-ambar" }
@@ -162,7 +166,7 @@ export function EquipmentCard({
         <h3 className="line-clamp-2 font-titulo text-base leading-snug font-bold text-verde md:text-lg">{item.title}</h3>
         {days > 0 && (
           <p className="text-[13px] text-texto-corpo">
-            <b className="num text-verde">{formatKz(Number(item.pricePerDay) * days * (1 + SERVICE_FEE_RATE))}</b> · {days} {days === 1 ? "dia" : "dias"}
+            <b className="num text-verde">{formatKz(Number(item.pricePerDay) * days * (1 + feeRate))}</b> · {days} {days === 1 ? "dia" : "dias"}
           </p>
         )}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -189,29 +193,6 @@ export function EquipmentCard({
         )}
       </div>
     </Link>
-  );
-}
-
-/** Mosaico de categoria no Explorar (inclina em 3D no hover, só com rato). */
-export function CategoryTile({
-  label, icon: Icon, active, onClick, tone,
-}: { label: string; icon: LucideIcon; active: boolean; onClick: () => void; tone: number }) {
-  const tones = ["bg-ambar-tint", "bg-salvia-tint", "bg-areia-2", "bg-[#F6E3D3]", "bg-[#E6EEF0]", "bg-[#EFE8F3]"];
-  return (
-    <div className="flex flex-col items-center gap-1 text-center">
-      <button
-        type="button"
-        aria-pressed={active}
-        onClick={onClick}
-        className={cn(
-          "inclinar-3d flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center rounded-campo p-3 text-left active:scale-[.97] md:h-16 md:w-16",
-          active ? "bg-verde text-areia" : cn(tones[tone % tones.length], "text-verde hover:brightness-[.97]"),
-        )}
-      >
-        <Icon className={cn("size-6", active ? "text-ambar" : "text-mel")} strokeWidth={1.8} aria-hidden />
-      </button>
-      <span className="text-sm font-bold">{label}</span>
-    </div>
   );
 }
 

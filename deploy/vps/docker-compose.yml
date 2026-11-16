@@ -33,6 +33,8 @@ services:
       args:
         API_URL: http://api:8080
         STORAGE_PUBLIC_ORIGIN: ${PUBLIC_S3_URL}
+        # pré-visualização dos links (og:image absoluto)
+        SITE_URL: ${PUBLIC_WEB_URL}
         NEXT_PUBLIC_WHATSAPP_NUMBER: ${NEXT_PUBLIC_WHATSAPP_NUMBER:-}
     restart: unless-stopped
     depends_on:

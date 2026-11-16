@@ -70,7 +70,7 @@ function ContaInner() {
 
   return (
     <div className="mx-0 grid max-w-6xl gap-8 lg:-ml-12 lg:w-[calc(100%+3rem)] lg:grid-cols-[minmax(24rem,0.9fr)_minmax(34rem,1.1fr)] lg:items-start xl:grid-cols-[minmax(28rem,0.9fr)_minmax(40rem,1.1fr)]">
-      <section className="relative overflow-hidden rounded-sheet bg-verde-noite p-6 text-areia md:p-8">
+      <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde-noite p-6 text-areia md:p-8">
         <HexGlow />
         <div className="relative grid justify-items-center gap-5 text-center lg:justify-items-start lg:text-left">
           <HexTile tone="salvia" size={104} className="num">

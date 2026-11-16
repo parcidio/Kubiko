@@ -137,7 +137,7 @@ class DirectPaymentIntegrationTest {
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("pagas ao dono");
         var contract = contractService.get(renter.getId(), bookingId);
         assertThat(contract.version()).isEqualTo(ContractService.DIRECT_VERSION);
-        assertThat(contract.body()).contains("paga o total ao dono", "A caução fica com o dono", "36.200 Kz")
+        assertThat(contract.body()).contains("paga o total ao dono", "A caução fica com o dono", "36.200 Kz", "Taxa de serviço Beeznoo (8%)")
                 .doesNotContain("O pagamento é feito à Beeznoo");
 
         // o aviso de aceite leva ao contrato, não a um ecrã de pagamento

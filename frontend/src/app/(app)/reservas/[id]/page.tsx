@@ -1,5 +1,6 @@
 "use client";
 
+import { useServiceFeeRate } from "@/lib/fee";
 import { Suspense, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ChevronRight, ClipboardCheck, FileDown, FileText, Flag, HandCoins, MessageCircle, Receipt, ShieldCheck, type LucideIcon } from "lucide-react";
@@ -13,11 +14,12 @@ import { BackLink, Button, Card, Eyebrow, SectionTitle, Skeleton } from "@/compo
 import { ApiError, bookingApi, documentApi, paymentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { PAID_STATUSES, bookingCode, deadlineOf, firstName, nextStep, whatsappLink } from "@/lib/booking";
-import { daysBetween, formatRange, SERVICE_FEE_RATE } from "@/lib/format";
+import { daysBetween, formatRange } from "@/lib/format";
 import type { Booking, Payment } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
 function ReservaHub() {
+  const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
   const session = useRequireSession();
   const { id } = useParams<{ id: string }>();
   const isNew = useSearchParams().get("novo") === "1";
@@ -48,7 +50,7 @@ function ReservaHub() {
   const days = daysBetween(booking.startDate, booking.endDate);
   const pricePerDay = days ? Number(booking.totalPrice) / days : 0;
   const step = nextStep(booking, as);
-  const total = Math.round(Number(booking.totalPrice) * (1 + SERVICE_FEE_RATE) + Number(booking.depositAmount));
+  const total = Math.round(Number(booking.totalPrice) * (1 + feeRate) + Number(booking.depositAmount));
   const code = bookingCode(booking.id);
   const waText = `Olá Beeznoo! É sobre a reserva ${code}: ${booking.itemTitle}, ${formatRange(booking.startDate, booking.endDate)}.`;
 

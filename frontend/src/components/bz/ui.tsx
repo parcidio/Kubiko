@@ -125,7 +125,7 @@ const CALLOUT: Record<CalloutTone, string> = {
   warn: "bg-ambar-tint text-aviso-texto",
   ok: "bg-salvia-tint text-verde [&_svg]:text-verde-medio",
   erro: "bg-erro-tint text-erro",
-  dark: "bg-verde text-areia [&_svg]:text-ambar",
+  dark: "superficie-marca bg-verde text-areia [&_svg]:text-ambar",
 };
 
 /** Alerta em bloco com ícone, título, texto e ação. */

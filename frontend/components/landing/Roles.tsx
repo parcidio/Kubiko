@@ -1,3 +1,4 @@
+import { landingExample } from "@/lib/format";
 import { Clock } from "lucide-react";
 import { Hex3D } from "./Brand";
 import WaitlistLink from "./WaitlistLink";
@@ -6,7 +7,9 @@ import WaitlistLink from "./WaitlistLink";
  * Uma conta, dois papéis. Os cartões em 3D são ilustrações com um exemplo de valores (aria-hidden),
  * não reservas reais.
  */
-export default function LandingRoles() {
+// feeRate: taxa em vigor (PAYMENTS_SERVICE_FEE_RATE via API); o exemplo de preço recalcula-se com ela
+export default function LandingRoles({ feeRate }: { feeRate: number }) {
+  const ex = landingExample(feeRate);
   return (
     <section id="donos" className="lp-sec" aria-labelledby="lp-roles-title">
       <div className="lp-wrap">
@@ -44,8 +47,8 @@ export default function LandingRoles() {
                   <span>105.000 Kz</span>
                 </div>
                 <div className="lp-row">
-                  <span>Taxa de serviço (8%)</span>
-                  <span>8.400 Kz</span>
+                  <span>Taxa de serviço ({ex.rateLabel})</span>
+                  <span>{`${ex.fee.toLocaleString("de-DE")} Kz`}</span>
                 </div>
                 <div className="lp-row">
                   <span style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -56,7 +59,7 @@ export default function LandingRoles() {
                 <div className="lp-row lp-row--total">
                   <span style={{ fontWeight: 700, color: "#0E2A1F" }}>Pagas ao dono na entrega</span>
                   <span className="lp-sg" style={{ fontSize: 22, color: "#0E2A1F", whiteSpace: "nowrap" }}>
-                    218.400 Kz
+                    {`${ex.total.toLocaleString("de-DE")} Kz`}
                   </span>
                 </div>
               </div>
