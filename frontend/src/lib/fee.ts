@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { SERVICE_FEE_RATE } from "./format";
+export { formatFeeRate } from "./format";
 
 /**
  * Taxa de serviço (0.08 = 8%) vinda da API (GET /api/v1/config ← PAYMENTS_SERVICE_FEE_RATE).
@@ -37,9 +38,4 @@ export function useServiceFeeRate(): number {
     };
   }, []);
   return rate;
-}
-
-/** "8%" (sem casas decimais quando a taxa é redonda, "7,5%" quando não é). */
-export function formatFeeRate(rate: number) {
-  return `${(rate * 100).toLocaleString("pt-PT", { maximumFractionDigits: 1 })}%`;
 }

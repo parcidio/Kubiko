@@ -1,9 +1,10 @@
+import { formatFeeRate } from "@/lib/format";
 import { ChevronDown } from "lucide-react";
 
-const FAQ = [
+const faq = (rateLabel: string) => [
   {
     q: "Quanto custa alugar na Beeznoo?",
-    a: "Pagas o aluguer definido pelo dono e uma taxa de serviço de 8% sobre esse valor. Vês o total, com a caução à parte, antes de enviares o pedido.",
+    a: `Pagas o aluguer definido pelo dono e uma taxa de serviço de ${rateLabel} sobre esse valor. Vês o total, com a caução à parte, antes de enviares o pedido.`,
   },
   {
     q: "O que é a caução e quando a recebo de volta?",
@@ -24,7 +25,8 @@ const FAQ = [
 ];
 
 /** Perguntas frequentes: acordeão nativo (<details>/<summary>), acessível por teclado sem JS. */
-export default function LandingFaq() {
+export default function LandingFaq({ feeRate }: { feeRate: number }) {
+  const FAQ = faq(formatFeeRate(feeRate));
   return (
     <section id="faq" className="lp-sec" style={{ paddingTop: 40 }} aria-labelledby="lp-faq-title">
       <div className="lp-wrap lp-faq-grid">

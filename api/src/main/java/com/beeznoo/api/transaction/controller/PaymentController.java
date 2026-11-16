@@ -61,7 +61,7 @@ public class PaymentController {
             summary = "Gerar referência de pagamento",
             description = """
                     Emite uma referência (entidade + referência + montante) para uma reserva `ACCEPTED`.
-                    Montante = aluguer + taxa de serviço (8%) + caução.
+                    Montante = aluguer + taxa de serviço (`PAYMENTS_SERVICE_FEE_RATE`, 8% por omissão) + caução.
 
                     Idempotente: se já existir uma referência válida em aberto, devolve-a.
                     Se a anterior expirou, marca-a `EXPIRED` e emite uma nova.

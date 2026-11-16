@@ -1,3 +1,4 @@
+import { landingExample } from "@/lib/format";
 import { ArrowRight, BadgeCheck, Camera, Check, Clock, Search, Undo2 } from "lucide-react";
 import { Hex3D, HexGrid } from "./Brand";
 import { Countdown, HeroStage } from "./HeroClient";
@@ -9,7 +10,9 @@ const PERKS = ["Acesso antecipado à plataforma", "Aviso quando abrirmos na tua 
  * telemóvel e hexágonos 3D só em CSS. Sem formulário: a lista de espera tem secção própria (#lista).
  * O telemóvel é uma ilustração (aria-hidden) com um exemplo de preço, não um anúncio real.
  */
-export default function LandingHero() {
+// feeRate: taxa em vigor (PAYMENTS_SERVICE_FEE_RATE via API); o exemplo de preço recalcula-se com ela
+export default function LandingHero({ feeRate }: { feeRate: number }) {
+  const ex = landingExample(feeRate);
   return (
     <section id="topo" className="lp-hero" aria-labelledby="lp-hero-title">
       <div className="lp-hero__glow" aria-hidden="true" />
@@ -115,8 +118,8 @@ export default function LandingHero() {
                         <span>105.000 Kz</span>
                       </div>
                       <div>
-                        <span>Taxa de serviço (8%)</span>
-                        <span>8.400 Kz</span>
+                        <span>Taxa de serviço ({ex.rateLabel})</span>
+                        <span>{`${ex.fee.toLocaleString("de-DE")} Kz`}</span>
                       </div>
                       <div className="lp-pos">
                         <span>Caução reembolsável</span>
@@ -124,7 +127,7 @@ export default function LandingHero() {
                       </div>
                       <div className="lp-tot">
                         <span>Total</span>
-                        <span className="lp-sg">218.400 Kz</span>
+                        <span className="lp-sg">{`${ex.total.toLocaleString("de-DE")} Kz`}</span>
                       </div>
                     </div>
                   </div>
@@ -153,7 +156,7 @@ export default function LandingHero() {
               </div>
               <div style={{ fontWeight: 700, fontSize: 14, marginTop: 6 }}>Pagas ao dono na entrega · sáb, 10:00</div>
               <div className="lp-sg lp-num" style={{ fontSize: 20, marginTop: 2 }}>
-                218.400 Kz
+                {`${ex.total.toLocaleString("de-DE")} Kz`}
               </div>
             </div>
             <div className="lp-fcard lp-f3">
