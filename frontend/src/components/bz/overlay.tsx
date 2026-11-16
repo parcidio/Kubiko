@@ -35,7 +35,7 @@ export function Sheet({
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
       className={cn(
-        "app m-0 mt-auto max-h-[90dvh] w-full max-w-none overflow-hidden rounded-t-sheet bg-branco p-0 text-texto-corpo shadow-flutua open:animate-sheet",
+        "app m-0 mt-auto max-h-[90dvh] w-full max-w-none overflow-hidden rounded-t-sheet bg-branco p-0 text-texto-corpo shadow-sheet open:animate-sheet",
         "md:m-auto md:max-w-lg md:rounded-sheet md:open:animate-sobe",
         className,
       )}
@@ -86,6 +86,7 @@ export const toast = Object.assign((text: string) => push("info", text), {
 
 const ICON = { ok: CheckCircle2, erro: AlertCircle, info: Info };
 
+/** Pilha de toasts (verde, flutua com shadow-flutua). */
 export function Toaster() {
   const list = useSyncExternalStore(
     (cb) => {

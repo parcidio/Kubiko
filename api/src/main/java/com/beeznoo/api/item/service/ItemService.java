@@ -6,6 +6,7 @@ import com.beeznoo.api.booking.repository.BookingRepository;
 import com.beeznoo.api.item.dto.ItemDtos.*;
 import com.beeznoo.api.item.entity.Category;
 import com.beeznoo.api.item.entity.Item;
+import com.beeznoo.api.item.entity.ItemCondition;
 import com.beeznoo.api.item.entity.ItemStatus;
 import com.beeznoo.api.item.repository.CategoryRepository;
 import com.beeznoo.api.item.repository.ItemRepository;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.security.access.AccessDeniedException;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -107,11 +109,26 @@ public class ItemService {
         return listActive(categoryId, featured, order, null, null, pageable);
     }
 
-    // A ordem vem do enum, não do Pageable (o cliente não escolhe colunas para ordenar).
-    // startDate/endDate (as duas ou nenhuma): só equipamento livre nesse período [início, fim)
     @Transactional(readOnly = true)
     public Page<ItemSummaryResponse> listActive(UUID categoryId, boolean featured, ItemOrder order,
                                                 LocalDate startDate, LocalDate endDate, Pageable pageable) {
+        return listActive(categoryId, featured, order, startDate, endDate, null, null, null, null, pageable);
+    }
+
+    // A ordem vem do enum, não do Pageable (o cliente não escolhe colunas para ordenar).
+    // startDate/endDate (as duas ou nenhuma): só equipamento livre nesse período [início, fim)
+    // q (título), area (cidade/província), maxPrice (Kz/dia), condition: pesquisa no servidor (#17)
+    @Transactional(readOnly = true)
+    public Page<ItemSummaryResponse> listActive(UUID categoryId, boolean featured, ItemOrder order,
+                                                LocalDate startDate, LocalDate endDate,
+                                                String q, String area, BigDecimal maxPrice, ItemCondition condition,
+                                                Pageable pageable) {
+        if (q != null && q.length() > 100) throw new IllegalArgumentException("Pesquisa demasiado longa");
+        if (area != null && area.length() > 100) throw new IllegalArgumentException("Zona demasiado longa");
+        if (maxPrice != null && maxPrice.signum() < 0) throw new IllegalArgumentException("O preço máximo não pode ser negativo");
+        String qLike = like(q);
+        String areaLike = like(area);
+        String cond = condition == null ? null : condition.name();
         if ((startDate == null) != (endDate == null)) {
             throw new IllegalArgumentException("Indica as duas datas (início e fim) ou nenhuma");
         }
@@ -123,9 +140,12 @@ public class ItemService {
         }
         Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
         Page<Item> page = switch (order) {
-            case POPULAR -> itemRepository.findPublicPopular(categoryId, featured, startDate, endDate, unsorted);
-            case RATING -> itemRepository.findPublicByRating(categoryId, featured, startDate, endDate, unsorted);
-            case RECENT -> itemRepository.findPublicRecent(categoryId, featured, startDate, endDate, unsorted);
+            case POPULAR -> itemRepository.findPublicPopular(categoryId, featured, startDate, endDate,
+                    qLike, areaLike, maxPrice, cond, unsorted);
+            case RATING -> itemRepository.findPublicByRating(categoryId, featured, startDate, endDate,
+                    qLike, areaLike, maxPrice, cond, unsorted);
+            case RECENT -> itemRepository.findPublicRecent(categoryId, featured, startDate, endDate,
+                    qLike, areaLike, maxPrice, cond, unsorted);
         };
         return summaries(page);
     }
@@ -190,6 +210,28 @@ public class ItemService {
         }
         kycService.assertCanTransact(requesterId);
         item.activate();
+        return toResponse(item);
+    }
+
+    // Admin: tira do Explorar e bloqueia pedidos novos; o dono não o reativa (decisoes-produto.md 2026-11-15)
+    public ItemResponse suspend(UUID adminId, UUID itemId, String reason) {
+        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Indica o motivo da suspensão");
+        Item item = itemRepository.findActiveById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
+        if (item.getStatus() == ItemStatus.SUSPENDED) throw new IllegalStateException("Este equipamento já está suspenso");
+        item.setStatus(ItemStatus.SUSPENDED);
+        item.setFeaturedAt(null);
+        auditService.record(adminId, AuditAction.ITEM_SUSPENDED, AuditService.ITEM, itemId, reason.strip(), Map.of());
+        return toResponse(item);
+    }
+
+    public ItemResponse reinstate(UUID adminId, UUID itemId, String reason) {
+        Item item = itemRepository.findActiveById(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
+        if (item.getStatus() != ItemStatus.SUSPENDED) throw new IllegalStateException("Este equipamento não está suspenso");
+        item.setStatus(ItemStatus.ACTIVE);
+        auditService.record(adminId, AuditAction.ITEM_REINSTATED, AuditService.ITEM, itemId,
+                reason == null || reason.isBlank() ? null : reason.strip(), Map.of());
         return toResponse(item);
     }
 
@@ -292,4 +334,13 @@ public class ItemService {
                 ownerVerified
         );
     }
+
+    // "Sony a7" → "%sony a7%" (minúsculas; % e _ do utilizador são literais). Vazio → null (sem filtro)
+    static String like(String text) {
+        if (text == null || text.isBlank()) return null;
+        String t = text.strip().toLowerCase(java.util.Locale.ROOT)
+                .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        return "%" + t + "%";
+    }
+
 }

@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { CheckCircle2, ShieldCheck } from "lucide-react";
-import { HexIllustration } from "@/components/bz/brand";
+import { HandCoins, ShieldCheck } from "lucide-react";
 import { Checkbox, TextField } from "@/components/bz/form";
+import { HexTile } from "@/components/bz/hex";
 import { toast } from "@/components/bz/overlay";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
-import { Segmented } from "@/components/bz/tabs";
+import { SegmentedControl } from "@/components/bz/tabs";
 import { BackLink, Button, ButtonLink, Callout, Card, Kz, Skeleton } from "@/components/bz/ui";
 import { bookingApi, paymentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
@@ -42,8 +42,8 @@ export default function CaucaoPage() {
   if (!isOwner || b.status !== "RETURNED") {
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
-        <HexIllustration icon={CheckCircle2} tone="areia" size={150} />
-        <h1 className="font-titulo text-3xl font-extrabold text-verde">Nada a registar agora</h1>
+        <HexTile icon={HandCoins} tone="areia" size={72} />
+        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">Nada a registar agora</h1>
         <p className="text-cinza">
           {isOwner
             ? "A caução regista-se depois de a devolução ser confirmada pelas duas partes."
@@ -79,12 +79,15 @@ export default function CaucaoPage() {
       <BackLink href={`/reservas/${id}`}>Reserva {bookingCode(id)}</BackLink>
       <PageHeader title="Devolver a caução" subtitle={`${b.itemTitle} · ${firstName(b.renterName)}`} />
 
-      <Card className="grid gap-2 p-5">
-        <p className="text-sm text-cinza">Caução que recebeste na entrega</p>
-        <Kz value={deposit} className="text-3xl text-verde" />
+      <Card className="flex items-center gap-4 p-5">
+        <HexTile icon={HandCoins} tone="salvia-tint" size={48} />
+        <div className="grid gap-0.5">
+          <p className="text-sm text-cinza">Caução que recebeste na entrega</p>
+          <Kz value={deposit} className="text-[26px] text-verde" />
+        </div>
       </Card>
 
-      <Segmented
+      <SegmentedControl
         label="O que fizeste com a caução"
         value={mode}
         onChange={setMode}
@@ -95,7 +98,7 @@ export default function CaucaoPage() {
       />
 
       {mode === "partial" && (
-        <Card className="grid gap-4 p-5">
+        <Card className="grid animate-sobe gap-4 p-5">
           <TextField
             label="Valor retido (Kz)"
             value={withheld}

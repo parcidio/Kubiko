@@ -46,9 +46,9 @@ export function PhotoPicker({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.url} alt={`Foto ${i + 1}`} className="size-full object-cover" />
             {i === 0 ? (
-              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-[11px] font-bold tracking-wider text-ambar uppercase">Capa</span>
+              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">Capa</span>
             ) : (
-              <button type="button" onClick={() => onCover(p.id)} className="absolute bottom-1.5 left-1.5 rounded-full bg-branco/90 px-2 py-0.5 text-[11px] font-bold text-verde">
+              <button type="button" onClick={() => onCover(p.id)} className="absolute bottom-1.5 left-1.5 min-h-8 rounded-full bg-branco/90 px-2.5 text-xs font-bold text-verde">
                 Pôr capa
               </button>
             )}
@@ -56,15 +56,17 @@ export function PhotoPicker({
               type="button"
               onClick={() => onRemove(p.id)}
               aria-label={`Remover foto ${i + 1}`}
-              className="absolute top-1 right-1 flex size-8 items-center justify-center rounded-full bg-verde/80 text-areia"
+              className="absolute top-0 right-0 flex size-11 items-center justify-center text-areia"
             >
-              <X className="size-4" strokeWidth={2} />
+              <span className="flex size-8 items-center justify-center rounded-full bg-verde/80">
+                <X className="size-4" strokeWidth={2} aria-hidden />
+              </span>
             </button>
           </figure>
         ))}
         <label
           htmlFor={id}
-          className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-campo border-2 border-dashed border-borda-forte bg-branco text-center text-[13px] font-medium text-verde transition hover:border-verde has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-verde-medio/25"
+          className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-campo border-2 border-dashed border-borda-forte bg-branco text-center text-[13px] font-medium text-verde transition-colors duration-200 hover:border-verde has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-verde-medio/25"
         >
           <ImagePlus className="size-6 text-mel" strokeWidth={1.8} aria-hidden />
           Adicionar
@@ -88,15 +90,15 @@ export function CameraSlot({
     <label
       htmlFor={id}
       className={cn(
-        "relative flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-cartao text-center transition has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-ambar/40",
-        photo ? "bg-black" : "border-2 border-dashed border-white/25 bg-white/5 text-areia hover:border-ambar",
+        "relative flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-cartao text-center transition-colors duration-200 has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-ambar/40",
+        photo ? "bg-black" : "border-2 border-dashed border-white/25 bg-white/5 text-areia hover:border-salvia",
       )}
     >
       {photo ? (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={photo} alt={label} className="absolute inset-0 size-full object-cover" />
-          <span className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-full bg-verde-medio text-branco">
+          <span className="absolute top-2 right-2 flex size-7 animate-check-pop items-center justify-center rounded-full bg-salvia-tint text-verde-medio">
             <Check className="size-4" strokeWidth={3} aria-hidden />
           </span>
           <span className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-3 pt-6 pb-2 text-left text-[13px] font-bold text-branco">
@@ -107,8 +109,8 @@ export function CameraSlot({
       ) : (
         <>
           <Camera className="size-7 text-ambar" strokeWidth={1.6} aria-hidden />
-          <span className="text-sm font-bold">{label}</span>
-          <span className="px-3 text-[12px] text-areia/70">{hint}</span>
+          <span className="text-sm font-bold text-white">{label}</span>
+          <span className="px-3 text-[13px] leading-tight text-salvia-tint">{hint}</span>
         </>
       )}
       <input
@@ -149,7 +151,7 @@ export function SavedPhotoGrid({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.photUrl} alt={`Foto ${i + 1}`} className="size-full object-cover" />
             {i === 0 && (
-              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-[11px] font-bold tracking-wider text-ambar uppercase">Capa</span>
+              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">Capa</span>
             )}
             <button
               type="button"
@@ -168,7 +170,7 @@ export function SavedPhotoGrid({
           <label
             htmlFor={id}
             className={cn(
-              "flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-campo border-2 border-dashed border-borda-forte bg-branco text-center text-[13px] font-medium text-verde transition hover:border-verde has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-verde-medio/25",
+              "flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-campo border-2 border-dashed border-borda-forte bg-branco text-center text-[13px] font-medium text-verde transition-colors duration-200 hover:border-verde has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-verde-medio/25",
               busy && "pointer-events-none opacity-60",
             )}
           >

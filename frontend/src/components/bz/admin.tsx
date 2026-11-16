@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronRight, Clock, ImageOff, Inbox } from "lucide-react";
 import { TextArea } from "./form";
+import { HexTile } from "./hex";
 import { Sheet } from "./overlay";
 import { EmptyState, ErrorState, ListSkeleton } from "./states";
 import { Badge, Button, Card, type Tone } from "./ui";
@@ -18,7 +19,8 @@ export function AdminHeader({ title, text, action }: { title: string; text: stri
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="grid gap-1">
-        <h1 className="font-titulo text-[28px] font-bold tracking-tight text-verde md:text-[34px]">{title}</h1>
+        <p className="text-xs font-bold tracking-[0.12em] text-mel-texto uppercase">Equipa Beeznoo</p>
+        <h1 className="font-titulo text-[26px] leading-tight font-bold tracking-tight text-verde md:text-[32px]">{title}</h1>
         <p className="max-w-2xl text-cinza">{text}</p>
       </div>
       {action}
@@ -75,7 +77,7 @@ export function QueueRow({
       onClick={onSelect}
       aria-current={selected || undefined}
       className={cn(
-        "flex min-h-16 w-full items-center gap-3 border-b border-borda px-4 py-3 text-left transition last:border-0 hover:bg-areia focus-visible:bg-areia focus-visible:outline-none",
+        "flex min-h-16 w-full items-center gap-3 border-b border-borda px-4 py-3 text-left transition-colors duration-200 last:border-0 hover:bg-areia focus-visible:bg-areia focus-visible:outline-none",
         selected && "bg-salvia-tint hover:bg-salvia-tint",
       )}
     >
@@ -208,8 +210,8 @@ export function BookingEvidence({ bookingId }: { bookingId: string }) {
 function ChecklistPanel({ title, checklist }: { title: string; checklist?: Checklist }) {
   if (!checklist) {
     return (
-      <div className="grid min-h-32 place-items-center gap-1 rounded-cartao border border-dashed border-borda-forte p-4 text-center text-sm text-cinza">
-        <ImageOff className="size-5" strokeWidth={1.8} aria-hidden />
+      <div className="grid min-h-32 place-content-center justify-items-center gap-2 rounded-cartao border border-dashed border-borda-forte p-4 text-center text-sm text-cinza">
+        <HexTile icon={ImageOff} tone="areia" size={36} />
         {title}: sem registo
       </div>
     );
@@ -237,7 +239,7 @@ export function IncidentCard({ incident, action }: { incident: Incident; action?
   return (
     <section className={cn("grid gap-2 rounded-cartao border p-3", incident.status === "OPEN" ? "border-erro/40 bg-erro-tint/40" : "border-borda")}>
       <div className="flex flex-wrap items-center gap-2">
-        <AlertTriangle className="size-4 text-erro" strokeWidth={2} aria-hidden />
+        <HexTile icon={AlertTriangle} tone="erro" size={28} />
         <p className="font-bold text-verde">{INCIDENT_LABEL[incident.type]}</p>
         <Badge tone={incident.status === "OPEN" ? "erro" : "neutro"}>{incident.status === "OPEN" ? "Por resolver" : "Resolvido"}</Badge>
         <span className="ml-auto text-[13px] text-cinza">

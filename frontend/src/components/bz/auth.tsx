@@ -11,7 +11,7 @@ import type { UserRole } from "@/lib/types";
 export function AuthTitle({ title, subtitle }: { title: string; subtitle?: React.ReactNode }) {
   return (
     <div className="mb-6 grid gap-2">
-      <h1 className="font-titulo text-[30px] leading-[1.05] font-extrabold tracking-tight text-verde md:text-[38px]">{title}</h1>
+      <h1 className="font-titulo text-[30px] leading-[1.05] font-extrabold tracking-[-0.025em] text-verde md:text-[38px]">{title}</h1>
       {subtitle && <p className="text-[15px] text-cinza">{subtitle}</p>}
     </div>
   );

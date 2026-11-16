@@ -6,6 +6,7 @@ import { Star } from "lucide-react";
 import { TextArea } from "@/components/bz/form";
 import { toast } from "@/components/bz/overlay";
 import { PageHeader } from "@/components/bz/shell";
+import { SuccessCheck } from "@/components/bz/success";
 import { BackLink, Button } from "@/components/bz/ui";
 import { bookingApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
@@ -43,8 +44,14 @@ export default function AvaliarPage() {
     return (
       <div className="mx-auto grid max-w-md gap-5">
         <BackLink href={`/reservas/${id}`}>Reserva {bookingCode(id)}</BackLink>
-        <PageHeader title="Já avaliaste" subtitle={`Deste ${done.rating} de 5. Obrigado por ajudares os próximos.`} />
-        {done.comment && <p className="rounded-cartao bg-areia-2 p-4 text-verde">“{done.comment}”</p>}
+        <div className="grid justify-items-center gap-4 pt-4 text-center">
+          <SuccessCheck />
+          <div className="grid gap-1">
+            <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">Já avaliaste</h1>
+            <p className="text-cinza">Deste {done.rating} de 5. Obrigado por ajudares os próximos.</p>
+          </div>
+        </div>
+        {done.comment && <p className="rounded-cartao border border-borda bg-branco p-4 text-verde">“{done.comment}”</p>}
       </div>
     );
   }

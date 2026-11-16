@@ -51,9 +51,9 @@ Sprints semanais: segunda planning · terça–quinta execução · sexta demo, 
 ### Notas de backend
 - `spring.jpa.hibernate.ddl-auto: validate` — o schema vem **só** das migrações Flyway, nunca do Hibernate.
 - Neon: usar a connection string **pooled** e ligações Hikari de vida curta (o Neon fecha ligações inativas).
-- Pacotes Java organizados por domínio: `auth`, `profile`, `item`, `booking`, `contract`, `transaction`, `handover`, `deposit`, `kyc`, `claim`, `notification`, `audit`, `review`, `security`, `common`.
+- Pacotes Java organizados por domínio: `auth`, `profile`, `item`, `booking`, `contract`, `transaction`, `handover`, `deposit`, `kyc`, `claim`, `notification`, `audit`, `review`, `security`, `metrics`, `common`.
 - Usa branches do Neon para testar migrações antes de staging/produção.
-- **Migrações aplicadas: V1–V24.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V25).
+- **Migrações aplicadas: V1–V25.** Nunca editar nem renumerar uma migração já aplicada — cada mudança é uma nova (próxima: V26).
 - **Estados da reserva:** `PENDING_OWNER → ACCEPTED → ACTIVE (pago) → IN_PROGRESS (entregue) → RETURNED (devolvido) → COMPLETED`, mais `CANCELLED_RENTER`, `CANCELLED_OWNER`, `EXPIRED` (pedido sem resposta, `BookingExpiryScheduler`), `DISPUTED`. Recusar = o dono faz `cancel` a um pedido `PENDING_OWNER`. Datas ocupadas: `BookingStatus.OCCUPYING`.
 - **Pagamento direto ao dono** (`app.payments.mode=direct`, omissão — decisoes-produto.md 2026-11-15): paga-se ao dono na entrega; o dono confirma (`POST /bookings/{id}/payment-received`) → `ACTIVE`; a caução fica com ele e é ele que a regista no fim (`POST /bookings/{id}/deposit/decision`) → `COMPLETED`. A taxa de serviço é comissão a cobrar ao dono (Admin › Pagamentos). Sem ledger neste modo. O modo `reference` (Multicaixa) fica no código para a EMIS.
 - **"Verificado"** = KYC aprovado (`KycService.isVerified`). `profiles.is_verified` é o **telefone** confirmado — não confundir.
@@ -93,20 +93,46 @@ Implementado · revisto · testado · integrado · responsivo · sem erros crít
   autorização por recurso no serviço, DTO com `@Valid` e limites de tamanho, erros 4xx (nunca 500 por input do cliente),
   nada de segredos, tokens ou códigos em URLs ou logs, e ver se precisa de limite em `RateLimitFilter`.
 - Segredos sem valor por omissão: a API não arranca sem `JWT_SECRET` (≥ 32 bytes) nem `B2_*`.
-- Migrações aplicadas: V1–V24 (próxima: V25).
+- Migrações aplicadas: V1–V25 (próxima: V26).
 
-## 7. Design — "Identidade Verde v3"
+## 7. Design — "Identidade Verde v4 · Colmeia em movimento"
 
-Fonte de verdade: **`docs/DESIGN_SYSTEM.md`** (tokens, tipografia, componentes, movimento). Tokens em `frontend/src/app/globals.css`.
-Resumo do que não pode falhar:
+Fonte de verdade: **`docs/DESIGN_SYSTEM.md` (v4)**. Tokens em `frontend/src/app/globals.css`. Referência visual viva:
+canvas "Beeznoo — Nova landing page" (landing + ecrãs da app), no Claude Design.
+A v4 (2026-11-16) mantém a paleta, as fontes e o vocabulário da v3 e acrescenta **profundidade, movimento e 3D leve**,
+iguais na landing e na app. ⚑ Validar com o André (registo em `claude/decisoes-produto.md`, 2026-11-16).
 
-- Paleta areia / verde / âmbar. **Um botão âmbar por ecrã**, texto verde por cima (branco sobre âmbar é proibido). `mel` nunca em texto pequeno — usa `mel-texto`.
-- Bricolage Grotesque (`font-titulo`) em títulos, nomes de equipamento e montantes; DM Sans (`font-corpo`) no resto. Corpo ≥ 15px no telemóvel.
-- Raios 12 / 16 / 24px. Cartões com borda e sem sombra; sombra só no que flutua (sheets, barra de CTA, preço sobre foto).
-- Motivos de marca: colmeia (hexágonos), reserva como bilhete (`BookingTicket`), próximo passo sempre visível (`NextStepCard`).
-- Mobile-first a 360px, alvos ≥ 44px, ícones Lucide de traço, nada de emoji.
-- Explorar, Reservas, Pedidos, Equipamento e filas do Admin têm sempre **vazio**, **a carregar** (`role="status"`) e **erro** ("Tentar outra vez").
+O que não pode falhar:
+
+- **Paleta** areia / verde / âmbar (70/20/10). Fundos escuros `verde` (#0E2A1F) para hero, secções de confiança e
+  cabeçalhos; nesses fundos o texto de destaque é `salvia` (#8FC0A8), nunca âmbar.
+- **Um botão âmbar por ecrã**, texto verde por cima (branco sobre âmbar é proibido). O âmbar também pode aparecer em
+  elementos **decorativos** (hexágonos 3D, traço sob o título, contornos de foco) — nunca em texto.
+  `mel` nunca em texto pequeno — usa `mel-texto`.
+- **Tipografia:** Bricolage Grotesque 700/800 (`font-titulo`) em títulos, nomes de equipamento e montantes; DM Sans
+  (`font-corpo`) no resto. Corpo ≥ 15px no telemóvel. Números com `tabular-nums`.
+- **Forma:** raios 12 (botões, campos) / 16 (cartões) / 24px (painéis, sheets, blocos escuros); `pill` só em badges,
+  chips e avatar.
+- **Profundidade:** cartões com borda e sem sombra. Sombra só no que flutua: sheets, `StickyCTABar`, preço sobre
+  foto e cartões flutuantes de marketing.
+- **Logo:** hexágono âmbar (vértice para cima) com três faixas verdes horizontais + palavra `beeznoo` em Bricolage 800
+  minúsculas. Não rodar, esticar nem recolorir; área livre = ½ da altura do símbolo. Ficheiros em `frontend/public/png/`.
+- **Movimento** (tokens em `DESIGN_SYSTEM.md §6`): `--ease-out: cubic-bezier(.2,.8,.2,1)`, durações 200 / 350 / 600 ms.
+  Na app o movimento explica (aparecer, confirmar, avançar um passo); não decora. **Nada de animações infinitas em
+  listas**, nem parallax/inclinação 3D no telemóvel. Respeitar sempre `prefers-reduced-motion`.
+- **3D:** só CSS (`perspective`, `transform`, `preserve-3d`). Sem WebGL/three.js na app (peso e bateria num Android de
+  gama média). A landing pode usar mais (cena do telemóvel, hexágonos a rodar).
+- **Motivos de marca:** colmeia (hexágonos, `HexTile` para ícones), reserva como bilhete (`BookingTicket`), próximo
+  passo sempre visível (`NextStepCard`), `Timeline` de 6 passos: pedido → aceite → pago ao dono → entregue → devolvido →
+  caução devolvida.
+- **Imagens:** fotos de equipamento 4:3, WebP ≤ 120 KB no Explorar; sem foto → bloco `areia-2` com o ícone da
+  categoria. Nada de fotos de banco a fingir que são anúncios reais.
+- Mobile-first a 360px, alvos ≥ 44px, ícones Lucide de traço 1.8, nada de emoji.
+- Explorar, Reservas, Pedidos, Equipamento e filas do Admin têm sempre **vazio**, **a carregar** (`role="status"`) e
+  **erro** ("Tentar outra vez").
 - Ecrã sem endpoint mostra `BackendPending` — nunca finge que guardou.
+- **Pagamento direto ao dono** (2026-11-15) muda a copy: "Pagas ao dono na entrega", "O dono devolve-te a caução".
+  Nunca "a Beeznoo guarda o pagamento/a caução".
 
 ## 8. Vocabulário e copy
 
@@ -123,7 +149,8 @@ App mobile nativa, chat interno, IA/recomendações, mapas avançados, loyalty, 
 
 - `SPEC.md` — especificação funcional do MVP.
 - `claude/decisoes-produto.md` — registo de decisões (fonte de verdade).
-- `docs/DESIGN_SYSTEM.md`, `docs/ECRAS.md`, `docs/BACKEND_GAPS.md`, `docs/DB-MODEL.md` (schema atual), `docs/SEGURANCA.md` (OWASP), `docs/DEPLOY.md` (alojamento passo a passo), `docs/DEPLOY_VPS.md` (VPS/Coolify: tudo no mesmo servidor).
+- `docs/DESIGN_SYSTEM.md` (v4), `docs/ECRAS.md`, `docs/BACKEND_GAPS.md`, `docs/DB-MODEL.md` (schema atual), `docs/SEGURANCA.md` (OWASP), `docs/DEPLOY.md` (alojamento passo a passo), `docs/DEPLOY_VPS.md` (VPS/Coolify: tudo no mesmo servidor).
 - Swagger da API em local: `http://localhost:8081/swagger-ui.html`.
-- `Beeznoo — App v2.html` (raiz): exportação do Claude Design que serviu de ponto de partida (substituída pela v3).
+- `Beeznoo — App v2.html` (raiz): exportação do Claude Design que serviu de ponto de partida (substituída pela v3 e depois pela v4).
+- Canvas "Beeznoo — Nova landing page" (Claude Design): landing v4 e ecrãs da app; exportação em `docs/design/landing-v4.html`.
 - Roadmap de 24 semanas: `Kubiko_Roadmap_Startup.pdf`.

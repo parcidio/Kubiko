@@ -3,7 +3,7 @@ import { BadgeCheck, MapPin, Package, Repeat2, Sparkles, Star, type LucideIcon }
 import { categoryIcon, hexPath } from "./brand";
 import { Kz } from "./ui";
 import { initials } from "@/lib/booking";
-import { CONDITION_LABEL } from "@/lib/format";
+import { CONDITION_LABEL, daysBetween, formatKz, SERVICE_FEE_RATE } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ItemCondition, ItemSummary } from "@/lib/types";
 
@@ -43,15 +43,17 @@ export function ConditionMeter({ condition, className }: { condition: ItemCondit
   );
 }
 
+/** Selo "Verificado" (KYC aprovado): pill salvia-tint + check + texto (`compact` esconde o texto visualmente). */
 export function VerifiedBadge({ className, compact }: { className?: string; compact?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 rounded-full bg-salvia-tint px-2.5 py-1 text-[13px] font-bold text-verde-medio", className)}>
+    <span className={cn("inline-flex h-7 items-center gap-1 rounded-full bg-salvia-tint px-2.5 text-[13px] font-bold text-verde-medio", className)}>
       <BadgeCheck className="size-4" strokeWidth={2} aria-hidden />
       {compact ? <span className="sr-only">Verificado</span> : "Verificado"}
     </span>
   );
 }
 
+/** Avatar com iniciais (verde + âmbar). */
 export function Avatar({ name, size = "md", className }: { name?: string | null; size?: "sm" | "md" | "lg"; className?: string }) {
   return (
     <span
@@ -69,6 +71,7 @@ export function Avatar({ name, size = "md", className }: { name?: string | null;
   );
 }
 
+/** "Cidade, Província" ou "Luanda". */
 export function placeOf(item: { city?: string | null; province?: string | null }) {
   return [item.city, item.province].filter(Boolean).join(", ") || "Luanda";
 }
@@ -115,27 +118,33 @@ export function RatingInline({ average, count, className }: { average: number | 
   );
 }
 
-/** Cartão de equipamento: foto domina, preço flutua por cima, prova social por baixo. */
+/**
+ * Cartão de equipamento (v4): cartão branco com borda, foto 4:3, preço/dia a flutuar sobre a foto, nome em Bricolage,
+ * prova social, bairro e selo. No desktop levanta 4px no hover (`levantar`); no telemóvel fica plano.
+ * Com `dates` (pesquisa com datas no Explorar), mostra o total desses dias (aluguer + taxa; a caução vê-se no Detalhe).
+ */
 export function EquipmentCard({
-  item, href, icon, index = 0, className, showFeatured = true,
-}: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean }) {
+  item, href, icon, index = 0, className, showFeatured = true, dates,
+}: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean; dates?: { start: string; end: string } }) {
+  const days = dates ? daysBetween(dates.start, dates.end) : 0;
   const tag = item.featured && showFeatured
-    ? { label: "Em destaque", icon: Sparkles, cls: "bg-verde text-ambar" }
+    ? { label: "Em destaque", icon: Sparkles, cls: "bg-verde text-areia [&_svg]:text-ambar" }
     : null;
   return (
     <Link
       href={href}
       className={cn(
-        "group block animate-sobe rounded-cartao outline-none transition active:scale-[.98] focus-visible:ring-4 focus-visible:ring-verde-medio/30",
+        "group levantar block animate-sobe rounded-cartao border border-borda bg-branco p-2 outline-none active:scale-[.98] focus-visible:ring-4 focus-visible:ring-verde-medio/30",
         className,
       )}
       style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
     >
-      <div className="relative overflow-hidden rounded-cartao">
+      <div className="relative overflow-hidden rounded-campo">
         <ItemPhoto
           src={item.coverPhoto}
           alt={item.title}
           icon={icon ?? categoryIcon(item.categorySlug)}
+          rounded={false}
           imgClassName="transition duration-500 ease-out group-hover:scale-105"
         />
         {tag && (
@@ -149,8 +158,13 @@ export function EquipmentCard({
           <span className="text-xs text-cinza"> /dia</span>
         </span>
       </div>
-      <div className="grid gap-1 px-1 pt-2">
-        <h3 className="line-clamp-2 font-titulo text-base leading-snug font-bold text-verde group-hover:underline md:text-[17px]">{item.title}</h3>
+      <div className="grid gap-1 px-1 pt-2 pb-1">
+        <h3 className="line-clamp-2 font-titulo text-base leading-snug font-bold text-verde md:text-lg">{item.title}</h3>
+        {days > 0 && (
+          <p className="text-[13px] text-texto-corpo">
+            <b className="num text-verde">{formatKz(Number(item.pricePerDay) * days * (1 + SERVICE_FEE_RATE))}</b> · {days} {days === 1 ? "dia" : "dias"}
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <RatingInline average={item.ratingAverage} count={item.ratingCount} />
           {item.completedRentals > 0 && (
@@ -168,12 +182,17 @@ export function EquipmentCard({
           <span aria-hidden>·</span>
           <span className="truncate">{CONDITION_LABEL[item.condition] ?? item.condition}</span>
         </p>
+        {item.ownerVerified && (
+          <p className="flex items-center gap-1 text-[13px] font-medium text-verde-medio">
+            <BadgeCheck className="size-3.5 shrink-0" strokeWidth={2} aria-hidden /> Dono verificado
+          </p>
+        )}
       </div>
     </Link>
   );
 }
 
-/** Mosaico de categoria no Explorar. */
+/** Mosaico de categoria no Explorar (inclina em 3D no hover, só com rato). */
 export function CategoryTile({
   label, icon: Icon, active, onClick, tone,
 }: { label: string; icon: LucideIcon; active: boolean; onClick: () => void; tone: number }) {
@@ -185,7 +204,7 @@ export function CategoryTile({
         aria-pressed={active}
         onClick={onClick}
         className={cn(
-          "flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center rounded-sm p-3 text-left transition active:scale-[.97] md:h-16 md:w-16",
+          "inclinar-3d flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center rounded-campo p-3 text-left active:scale-[.97] md:h-16 md:w-16",
           active ? "bg-verde text-areia" : cn(tones[tone % tones.length], "text-verde hover:brightness-[.97]"),
         )}
       >
@@ -193,5 +212,30 @@ export function CategoryTile({
       </button>
       <span className="text-sm font-bold">{label}</span>
     </div>
+  );
+}
+
+/**
+ * CategoryChip (v4): pill com ícone para filtrar por categoria. Ativa = verde com texto areia e ícone âmbar;
+ * inativa = branco com contorno borda-forte e ícone mel. `aria-pressed`, alvo ≥ 44px.
+ */
+export function CategoryChip({
+  label, icon: Icon, active, count, className, ...rest
+}: { label: string; icon?: LucideIcon; active: boolean; count?: number } & Omit<React.ComponentProps<"button">, "children">) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      className={cn(
+        "inline-flex min-h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full border-[1.5px] px-4 text-[15px] font-medium whitespace-nowrap transition-colors duration-200 active:scale-[.97]",
+        active ? "border-verde bg-verde text-areia" : "border-borda-forte bg-branco text-verde hover:border-verde",
+        className,
+      )}
+      {...rest}
+    >
+      {Icon && <Icon className={cn("size-[18px] shrink-0", active ? "text-ambar" : "text-mel")} strokeWidth={1.8} aria-hidden />}
+      {label}
+      {count !== undefined && <span className={cn("num text-[13px]", active ? "text-salvia-tint" : "text-cinza")}>{count}</span>}
+    </button>
   );
 }

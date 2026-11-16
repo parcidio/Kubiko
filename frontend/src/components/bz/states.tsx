@@ -1,14 +1,17 @@
 import { CloudOff, Construction, RotateCw, type LucideIcon } from "lucide-react";
-import { HexIllustration } from "./brand";
+import { HexTile, type HexTone } from "./hex";
 import { Button, Skeleton } from "./ui";
 import { cn } from "@/lib/utils";
 
+const EMPTY_TONE: Record<"areia" | "ok" | "ambar", HexTone> = { areia: "areia", ok: "salvia-tint", ambar: "ambar-tint" };
+
+/** Estado vazio v4: hexágono areia-2 com ícone + título + frase + uma ação. */
 export function EmptyState({
   icon, title, text, action, tone = "areia", className,
 }: { icon: LucideIcon; title: string; text?: React.ReactNode; action?: React.ReactNode; tone?: "areia" | "ok" | "ambar"; className?: string }) {
   return (
     <div className={cn("flex animate-sobe flex-col items-center gap-3 px-6 py-12 text-center", className)}>
-      <HexIllustration icon={icon} tone={tone} />
+      <HexTile icon={icon} tone={EMPTY_TONE[tone]} size={72} />
       <h2 className="mt-2 font-titulo text-xl font-bold text-verde">{title}</h2>
       {text && <p className="max-w-sm text-cinza">{text}</p>}
       {action && <div className="mt-3">{action}</div>}
@@ -16,14 +19,15 @@ export function EmptyState({
   );
 }
 
+/** Estado de erro: hexágono erro + mensagem + "Tentar outra vez". */
 export function ErrorState({ message, onRetry, className }: { message: string; onRetry?: () => void; className?: string }) {
   return (
     <div role="alert" className={cn("flex flex-col items-center gap-3 px-6 py-12 text-center", className)}>
-      <HexIllustration icon={CloudOff} tone="erro" />
+      <HexTile icon={CloudOff} tone="erro" size={72} />
       <h2 className="mt-2 font-titulo text-xl font-bold text-verde">Não conseguimos carregar</h2>
       <p className="max-w-sm text-cinza">{message}</p>
       {onRetry && (
-        <Button variant="outline" onClick={onRetry} className="mt-3">
+        <Button variant="secondary" onClick={onRetry} className="mt-3">
           <RotateCw strokeWidth={1.8} /> Tentar outra vez
         </Button>
       )}
@@ -31,6 +35,7 @@ export function ErrorState({ message, onRetry, className }: { message: string; o
   );
 }
 
+/** Lista a carregar (linhas com foto), role="status". */
 export function ListSkeleton({ rows = 3, label = "A carregar" }: { rows?: number; label?: string }) {
   return (
     <div role="status" aria-label={label} className="grid gap-3">
@@ -48,6 +53,7 @@ export function ListSkeleton({ rows = 3, label = "A carregar" }: { rows?: number
   );
 }
 
+/** Grelha de equipamento a carregar (fotos 4:3), role="status". */
 export function GridSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div role="status" aria-label="A carregar equipamento" className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">

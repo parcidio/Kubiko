@@ -1,123 +1,222 @@
-# Beeznoo — Design system "Identidade Verde v3"
+# Design System — Identidade Verde v4 · "Colmeia em movimento"
 
-Substitui o antigo `DESIGIN_SYSTEM.md` (v1/v2, baseado em shadcn). Decisão: `claude/decisoes-produto.md` (2026-10-17).
-Código: `frontend/src/components/bz/` · Tokens: `frontend/src/app/globals.css` (bloco `@theme` "Identidade Verde v3").
-
-> **Ideia em 3 palavras:** quente, confiável, com ritmo.
-> A Beeznoo é uma app de rua: abre-se no telemóvel, ao sol, com rede fraca, para tratar de dinheiro e de equipamento caro.
-> O visual tem de transmitir **confiança** (verde profundo, números grandes e claros) e **energia** (âmbar, colmeia, movimento curto).
+**Versão:** 4.0 · **Data:** 2026-11-16 · **Estado:** ⚑ a validar pelo André (ver `claude/decisoes-produto.md`, 2026-11-16)
+**Substitui:** v3 (2026-10-17). Paleta, fontes, raios e vocabulário mantêm-se; a v4 acrescenta profundidade, movimento e
+3D leve, e leva a linguagem da nova landing a toda a app.
+**Referência visual:** canvas "Beeznoo — Nova landing page" no Claude Design (landing + ecrãs da app).
 
 ---
 
 ## 1. Princípios
 
-1. **Próximo passo sempre visível.** Cada reserva mostra um `NextStepCard`: o que falta, quem age e até quando.
-2. **A reserva é um bilhete.** O `BookingTicket` (verde escuro, recortes laterais, linha picotada, código `BZ-XXXXXX`) é a peça de identidade da app.
-3. **Números são heróis.** Preços, montantes e prazos em Bricolage 800, grandes, com `tabular-nums`.
-4. **Um botão âmbar por ecrã.** O resto é verde, contorno ou texto.
-5. **Colmeia como assinatura.** Hexágonos no padrão de fundo dos heróis, no `ConditionMeter`, nos nós da `Timeline` e nas ilustrações de estado vazio. Nunca como decoração gratuita em cima de conteúdo.
-6. **Mobile-first a 360px**, desktop a 1280px. Corpo ≥ 15px, alvos ≥ 44px, foco sempre visível.
-7. **Honestidade.** Ecrã sem backend mostra o aviso `BackendPending`; nunca finge que guardou.
+1. **Confiança primeiro, espetáculo depois.** Cada ecrã responde "porque é seguro avançar?" antes de impressionar.
+2. **Próximo passo sempre visível.** Em cada reserva há um `NextStepCard` no topo: o que falta, quem age, até quando.
+3. **Movimento que explica.** Na app, uma animação existe para mostrar que algo apareceu, mudou de estado ou avançou.
+   Na landing pode encantar — com moderação e sempre com `prefers-reduced-motion`.
+4. **Profundidade com significado.** O 3D marca o que é "objeto" (telemóvel, bilhete da reserva, hexágonos da marca).
+   Listas, formulários e texto ficam planos.
+5. **Feito para a rua.** Android de gama média, sol, rede fraca: contraste AA, alvos ≥ 44px, pouco peso.
 
 ## 2. Cor
 
-Proporção: 60% areia · 25% verde · 10% âmbar · 5% estados.
+Proporção: **70% areia · 20% verde · 10% âmbar**.
 
-| Token (Tailwind) | Hex | Uso |
-|---|---|---|
-| `ambar` | `#F0A22E` | Botão principal (texto **verde**), destaques sobre verde escuro |
-| `ambar-hover` | `#E08F17` | Hover/pressed |
-| `ambar-tint` | `#FDF0DC` | Prazos, esperas |
-| `aviso-texto` | `#7A4A0B` | Texto sobre `ambar-tint` |
-| `verde-noite` | `#081A13` | Fundo do herói, câmara da checklist |
-| `verde` | `#0E2A1F` | Títulos, texto forte, bilhete, cabeçalhos escuros |
-| `verde-medio` | `#1F5C42` | Positivo: aceite, pago, caução libertada |
-| `areia` | `#FAF6EF` | Fundo base |
-| `areia-2` | `#F3E9D8` | Callouts, placeholder de foto, chips inativos |
-| `branco` | `#FFFFFF` | Cartões, campos |
-| `mel` | `#B76E12` | Ícones decorativos (nunca texto pequeno) |
-| `mel-texto` | `#9A5C0E` | Links |
-| `salvia` / `salvia-tint` | `#8FC0A8` / `#E3F0E9` | Verificado, confiança |
-| `texto-corpo` | `#2C3A33` | Texto corrido |
-| `cinza` | `#5E6B64` | Metadados |
-| `borda` / `borda-forte` | `#E1E5DB` / `#B9C2B5` | Bordas de cartão / campos |
-| `erro` / `erro-tint` | `#B3261E` / `#FBEAE8` | Erros, recusar, reportar problema |
-| `skeleton` | `#ECE6DA` | Carregamento |
+| Token                | Hex                   | Uso                                                                           |
+| -------------------- | --------------------- | ----------------------------------------------------------------------------- |
+| `ambar`              | `#F0A22E`             | Botão principal (um por ecrã), hexágonos decorativos, foco                    |
+| `ambar-hover`        | `#E08F17`             | Hover/pressed do principal                                                    |
+| `ambar-tint`         | `#FDF0DC`             | Fundo de prazos e avisos                                                      |
+| `aviso-texto`        | `#7A4A0B`             | Texto sobre `ambar-tint`                                                      |
+| `verde`              | `#0E2A1F`             | Títulos, texto forte, **fundos escuros** (hero, confiança, rodapé, cabeçalho) |
+| `verde-medio`        | `#1F5C42`             | Estados positivos, bloco de CTA secundário                                    |
+| `areia`              | `#FAF6EF`             | Fundo base                                                                    |
+| `areia-2`            | `#F3E9D8`             | Secções alternadas, placeholder de foto, segmented control                    |
+| `branco`             | `#FFFFFF`             | Cartões, campos                                                               |
+| `mel`                | `#B76E12`             | Ícones decorativos (nunca texto pequeno)                                      |
+| `mel-texto`          | `#9A5C0E`             | Links, eyebrows sobre fundo claro                                             |
+| `salvia`             | `#8FC0A8`             | Selo, **texto de destaque sobre verde**, eyebrows sobre fundo escuro          |
+| `salvia-tint`        | `#E3F0E9`             | Fundo do selo "Verificado", badges positivos, texto corrido sobre verde       |
+| `texto-corpo`        | `#2C3A33`             | Texto corrido                                                                 |
+| `cinza`              | `#5E6B64`             | Metadados                                                                     |
+| `borda`              | `#E1E5DB`             | Bordas de cartões                                                             |
+| `borda-forte`        | `#B9C2B5`             | Campos, chips, botões secundários                                             |
+| `erro` / `erro-tint` | `#B3261E` / `#FBEAE8` | Erros, recusar, reportar problema                                             |
+| `skeleton`           | `#ECE6DA`             | Carregamento                                                                  |
 
-Regras de contraste: âmbar só com texto verde (7,2:1). Sobre `verde`/`verde-noite` usa `areia` (texto) e `ambar` (destaque, 7,5:1). `mel` falha AA em texto pequeno → usa `mel-texto`.
+**Regras**
+
+- Branco sobre âmbar é proibido (2,1:1). Âmbar leva sempre texto `verde` (7,2:1).
+- Sobre `verde`: títulos `#FFFFFF`, corpo `salvia-tint`, destaque `salvia`. Nunca âmbar em texto.
+- Pares de estado: prazo → `ambar-tint` + `aviso-texto` · positivo → `salvia-tint` + `verde-medio` · erro → `erro-tint`
+  - `erro` · neutro → `areia-2` + `verde`.
+- Estado nunca só por cor: ícone + texto.
 
 ## 3. Tipografia
 
-| Papel | Fonte | Tamanho mobile / desktop |
-|---|---|---|
-| Display (herói, montantes grandes) | Bricolage Grotesque 800, tracking −0.03em | 34 / 52 |
-| Título de ecrã | Bricolage 700 | 26 / 34 |
-| Título de cartão, nome de equipamento | Bricolage 700 | 18 |
-| Preço | Bricolage 800, `tabular-nums` | 22 (cartão) · 40 (resumo) |
-| Corpo | DM Sans 400 | 15 / 16 |
-| Label | DM Sans 500 | 14 |
-| Legenda | DM Sans 400 | 13 |
-| Etiqueta | DM Sans 700, maiúsculas, +0.1em | 12 |
+| Papel                          | Fonte                              | Desktop / Mobile                                       |
+| ------------------------------ | ---------------------------------- | ------------------------------------------------------ |
+| Display (hero)                 | Bricolage Grotesque 800            | 76 / 42, `line-height 1.02`, `letter-spacing -0.025em` |
+| Título de secção               | Bricolage 700                      | 52 / 34                                                |
+| Título de ecrã (app)           | Bricolage 700                      | 32 / 26                                                |
+| Título de cartão / equipamento | Bricolage 700                      | 18–20                                                  |
+| Preço / montante               | Bricolage 700, `tabular-nums`      | 22–26                                                  |
+| Corpo                          | DM Sans 400                        | 16 / **15 mínimo**                                     |
+| Label                          | DM Sans 500                        | 14                                                     |
+| Legenda                        | DM Sans 400                        | 13                                                     |
+| Eyebrow                        | DM Sans 700, maiúsculas, `+0.12em` | 12                                                     |
 
-Utilitários: `font-titulo` (Bricolage), `font-corpo` (DM Sans), `num` (tabular).
+## 4. Forma, espaço, profundidade
 
-## 4. Forma, profundidade e espaço
+- Raios: `radius-sm` **12px** (botões, campos, tiles) · `radius-md` **16px** (cartões) · `radius-lg` **24px**
+  (painéis, sheets, blocos escuros, cartão do formulário) · `pill` (badges, chips, avatar).
+- Espaçamento em múltiplos de 4 (4, 8, 12, 16, 24, 32, 48, 56, 120). Margem lateral 16px mobile / 48px desktop.
+  Secções da landing: 120px desktop / 80px mobile.
+- Cartões: borda `borda`, **sem sombra**.
+- Sombras (só elementos que flutuam):
+  - `shadow-float`: `0 24px 50px -18px rgba(0,0,0,.55)` — cartões flutuantes de marketing sobre verde.
+  - `shadow-bar`: `0 -8px 24px rgba(14,42,31,.12)` — `StickyCTABar`.
+  - `shadow-sheet`: `0 -12px 40px rgba(14,42,31,.18)` — sheets e `<dialog>`.
+- Alvos de toque ≥ 44px; botão principal 48px (52px no formulário final).
 
-- Raios: `rounded-campo` 12px (botões, campos, chips) · `rounded-cartao` 16px (cartões, fotos) · `rounded-sheet` 24px (sheets, herói) · `rounded-full` (badges, avatares).
-- Profundidade: cartões **com borda e sem sombra**. Sombra só no que flutua: `shadow-flutua` (sheets, preço sobre foto, toasts) e `shadow-cta` (barra fixa).
-- Espaço em múltiplos de 4. Margem lateral 16px (mobile) / 48px (desktop). Largura máx. de conteúdo 1152px; formulários 640px.
+## 5. Logo
 
-## 5. Movimento
+- Símbolo: **hexágono âmbar de vértice para cima com três faixas verdes horizontais** (as "camadas" da colmeia).
+  SVG de referência (512×512): polígono `256,34 450,147 450,371 256,478 62,371 62,147` em `#F0A22E`; faixas
+  `x=62 w=388 h=42` em `y=161 / 238 / 315`, cor `#0E2A1F`.
+- Palavra: `beeznoo` em minúsculas, Bricolage 800. Sobre verde: `#FAF6EF`; sobre areia: `#0E2A1F`.
+- Área livre = ½ da altura do símbolo. Tamanho mínimo: 24px de símbolo. Não rodar, esticar, recolorir nem pôr sombra.
+- Ficheiros: `frontend/public/png/beeznoo-icon-512.png` (+ exportar `beeznoo-icon.svg`).
 
-Curto e útil — nunca decorativo em loop.
+## 6. Movimento
 
-| Nome | Uso | Duração / easing |
-|---|---|---|
-| `animate-sobe` | Entrada de conteúdo e cartões | 280ms `cubic-bezier(.2,.8,.2,1)` |
-| `animate-sheet` | Abrir sheet de baixo | 320ms mesma curva |
-| `animate-pulso` | Ponto "ao vivo" no DeadlineChip urgente | 1.6s, só em urgente |
-| `animate-aparece` | Elementos que surgem no lugar (escala .96 → 1) | 320ms mesma curva |
-| `animate-estrela` | Estrela escolhida ao avaliar | 360ms com ressalto |
-| `skeleton-brilho` | Skeleton: brilho a passar em vez de piscar | 1.4s, só enquanto carrega |
-| Foto do cartão | `group-hover:scale-105` dentro da moldura | 500ms ease-out |
-| Toque | `active:scale-[.98]` em botões e cartões | 120ms |
+### Tokens
 
-Tudo desliga com `prefers-reduced-motion`.
+```css
+--ease-out: cubic-bezier(0.2, 0.8, 0.2, 1); /* entradas, hover */
+--ease-in-out: cubic-bezier(0.6, 0, 0.4, 1); /* progresso, trocas */
+--ease-pop: cubic-bezier(0.2, 1.4, 0.4, 1); /* confirmações (check) */
+--dur-fast: 200ms; /* hover, cor, foco */
+--dur-base: 350ms; /* cartões, separadores, sheets */
+--dur-slow: 600ms; /* entradas de secção, sucesso */
+```
 
-## 6. Componentes (`src/components/bz/`)
+### Padrões
 
-| Ficheiro | Componentes |
-|---|---|
-| `ui.tsx` | `Button`, `ButtonLink`, `IconButton`, `Badge`, `Callout`, `Card`, `Skeleton`, `Spinner`, `Kz`, `SectionTitle`, `BackLink` |
-| `form.tsx` | `Field`, `TextField`, `TextArea`, `SelectField`, `PhoneField`, `PasswordField`, `OtpField`, `MoneyField`, `Checkbox`, `RadioCards`, `ChipGroup`, `StepProgress`, `FormError` |
-| `overlay.tsx` | `Sheet` (`<dialog>` nativo: sheet no telemóvel, modal no desktop), `Toaster` + `toast()` |
-| `tabs.tsx` | `Segmented` (separadores com `role="tablist"`) |
-| `brand.tsx` | `Logo`, `HexPattern`, `HexIllustration`, `CategoryIcon` |
-| `shell.tsx` | `AppShell`, `TopBar`, `BottomNav`, `ModeSwitch`, `OfflineBanner`, `StickyCTA`, `PageHeader` |
-| `states.tsx` | `EmptyState`, `ErrorState`, `ListSkeleton`, `GridSkeleton`, `BackendPending` |
-| `equipment.tsx` | `ItemPhoto`, `EquipmentCard` (destaque, avaliação, nº de alugueres), `Stars`, `RatingInline`, `ConditionMeter`, `VerifiedBadge`, `Avatar`, `CategoryTile` |
-| `booking.tsx` | `BookingTicket`, `NextStepCard`, `DeadlineChip`, `Timeline`, `PriceSummary`, `BookingRow`, `RequestCard`, `bookingCode()` |
-| `photo.tsx` | `PhotoPicker`, `CameraGuide`, `CameraSlot`, `SavedPhotoGrid` (fotos já guardadas: adicionar/remover direto na API) |
-| `discover.tsx` | `Rail` (faixa horizontal, só aparece com itens), `TrustStrip`, `QuickSearches`, `PublishPromo`, `ReviewsSection` |
+| Padrão                | Onde                                                      | Como                                                                   |
+| --------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Linha a linha**     | Títulos do hero                                           | Cada linha sobe 105% → 0, 900ms, atraso 120ms entre linhas             |
+| **Traço desenhado**   | Palavra de destaque                                       | SVG `stroke-dashoffset` 520 → 0, 1,2s, âmbar                           |
+| **Aparecer ao rolar** | Secções da landing                                        | `animation-timeline: view()` com `@supports`; sem suporte fica visível |
+| **Levantar**          | Cartões clicáveis                                         | `translateY(-4px)` a `-6px`, borda escurece, 350ms                     |
+| **Inclinação 3D**     | Cartões de categoria, mockups                             | `rotateX(6deg) rotateY(-8deg)` no hover; **só com `(hover: hover)`**   |
+| **Hexágono a virar**  | `HexTile` em passos e confiança                           | `rotateY(180deg)` no hover, ícone contra-roda                          |
+| **Hexágonos 3D**      | Hero, blocos escuros (landing)                            | 5 camadas com `translateZ` e brilho decrescente, rotação 6–16s         |
+| **Faixa a deslizar**  | Marquee de equipamento                                    | `translateX(-50%)` 38s linear, pausa no hover                          |
+| **Timeline viva**     | Timeline de 6 passos                                      | Preenchimento `scaleX` + pontos acendem em sequência                   |
+| **Check de sucesso**  | Lista de espera, "Pedido enviado", "Pagamento confirmado" | Círculo `salvia-tint` com `--ease-pop`, 600ms                          |
+| **Skeleton**          | Listas a carregar                                         | Brilho 1,4s; `role="status"`                                           |
 
-### Estados obrigatórios
-Explorar, Reservas, Pedidos, Equipamentos e filas do Admin têm sempre: **vazio** (`EmptyState` + uma ação), **a carregar** (skeleton com a forma do conteúdo, `role="status"`) e **erro** (`ErrorState` com "Tentar outra vez").
+### Regras da app (não da landing)
 
-## 7. Vocabulário e copy
+- Nada de animação infinita em listas nem em ecrãs de trabalho (Explorar, Reservas, Pedidos, Admin).
+- Sem parallax nem inclinação por rato/giroscópio no telemóvel.
+- Uma animação contínua por ecrã no máximo (ex.: contagem de prazo).
+- Animar só `transform` e `opacity`.
+- `@media (prefers-reduced-motion: reduce)` desliga tudo, mostrando o estado final.
 
-- **Usa:** caução, proteção, reportar problema, verificado, em análise.
-- **Nunca:** seguro, apólice, sinistro, segurado, cobertura.
-- PT-PT, "tu". Kz com ponto nos milhares (`25.000 Kz`), datas curtas ("16 a 18 out"). Botões com verbo ("Pedir reserva", "Copiar referência", "Já paguei").
+## 7. 3D
 
-## 8. Ícones e imagem
+- Só CSS: `perspective` (1000–1400px), `transform-style: preserve-3d`, `translateZ`. Sem WebGL/three.js na app.
+- Objetos 3D da marca: **telemóvel** (landing), **bilhete da reserva** (`BookingTicket`, leve inclinação que endireita
+  ao tocar), **hexágonos** (decoração), **mockups** de valores na landing.
+- Espessura falsa: 2–5 camadas atrás com `translateZ(-3px…-14px)` e cor mais escura.
 
-Lucide (`lucide-react`), traço 1.8, 20–24px. Sem emoji. Fotos 4:3 com `rounded-cartao`; sem foto → `areia-2` + ícone da categoria.
+## 8. Componentes (em `frontend/src/components/bz/`)
 
-## Changelog
+Existentes da v3 mantêm-se. Novos ou alterados na v4:
 
-| Data | O quê | Porquê | Impacto no código |
-|---|---|---|---|
-| 2026-10-24 | Explorar com faixas (Em destaque, Mais alugados, Mais bem avaliados), faixa de confiança, pesquisas rápidas e convite a publicar; herói mais baixo e grelha mais compacta | O ecrã parecia vazio; prova social real ajuda a confiar num desconhecido | `discover.tsx`, `explorar/page.tsx` |
-| 2026-10-24 | Cartão de equipamento com etiqueta "Em destaque", estrelas e nº de alugueres ("Novo na Beeznoo" sem avaliações) | Mostrar dados reais da API (#21), nunca números inventados | `EquipmentCard`, `ItemSummary.categorySlug` para o ícone sem foto |
-| 2026-10-24 | Detalhe: galeria fixa no desktop, pontos e miniaturas, avaliações, "Mais em {categoria}", botão de destaque para admin | Menos espaço morto ao lado do resumo; avaliações onde se decide | `equipamento/[id]/page.tsx` |
-| 2026-10-24 | Skeleton com brilho; tokens `animate-aparece` e `animate-estrela`; utilitário `faixa` | Carregamento menos agressivo e movimento curto e útil | `globals.css`, `Skeleton` |
+| Componente         | O que é                                                                                                                                                                                  |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Button`           | `primary` (âmbar, texto verde) · `secondary` (contorno `borda-forte`) · `on-dark` (contorno areia) · `ghost` · `danger`. Raio 12, altura 48, ícone `ArrowRight` que desliza 4px no hover |
+| `AppHeader`        | Claro na app (areia + borda); **escuro translúcido** (`verde` 82% + blur 14px) na landing                                                                                                |
+| `HexTile`          | Ícone dentro de hexágono (`clip-path`), 40–56px. Fundo `verde` com ícone âmbar, ou `salvia` com ícone verde                                                                              |
+| `NextStepCard`     | `ambar-tint` + relógio + "Próximo passo" + ação e prazo; em positivo `salvia-tint`                                                                                                       |
+| `Timeline`         | 6 passos: pedido → aceite → pago ao dono → entregue → devolvido → caução devolvida                                                                                                       |
+| `BookingTicket`    | Cartão da reserva com recorte lateral (bilhete), código, datas e equipamento                                                                                                             |
+| `PriceSummary`     | Linhas: aluguer, taxa de serviço 8%, caução **reembolsável** (badge), total "Pagas ao dono na entrega"                                                                                   |
+| `SegmentedControl` | Fundo `areia-2`, raio 14, opção ativa `verde` com texto areia; `aria-pressed`                                                                                                            |
+| `DeadlineChip`     | Normal → urgente (< 3 h) → expirado, sempre ícone + texto                                                                                                                                |
+| `VerifiedBadge`    | Pill `salvia-tint` + check + "Verificado"                                                                                                                                                |
+| `EquipmentCard`    | Foto 4:3, nome Bricolage, bairro, selo, preço/dia; hover levanta (desktop)                                                                                                               |
+| `CategoryChip`     | Pill com ícone; ativa = `verde` + ícone âmbar                                                                                                                                            |
+| `StickyCTABar`     | Barra fixa no telemóvel com o único botão âmbar e `shadow-bar`                                                                                                                           |
+| `SuccessCheck`     | Círculo `salvia-tint` com check animado                                                                                                                                                  |
+| `EmptyState`       | Hexágono `areia-2` + ícone + frase + uma ação                                                                                                                                            |
+| `Footer` (landing) | Fundo `verde`, 3 colunas de links, redes em tiles 44px, palavra `beeznoo` gigante em contorno                                                                                            |
+
+## 9. Copy (resumo — regras completas no CLAUDE.md §8)
+
+- PT-PT com "tu". Botões com verbo: "Pedir reserva", "Confirmar que recebi", "Devolver caução".
+- Pagamento (2026-11-15): "Pagas ao dono na entrega", "Confere o equipamento antes de pagar", "Nunca pagues antes do
+  encontro", "O dono devolve-te a caução". **Nunca** "a Beeznoo guarda o pagamento/a caução".
+- Proibido: seguro, apólice, sinistro, segurado, cobertura.
+- Kz com ponto de milhares, sempre inteiros: `218.400 Kz`. Datas curtas: "23 a 25 out".
+
+## 10. Tokens para `globals.css` (Tailwind v4)
+
+```css
+@theme {
+  --color-ambar: #f0a22e;
+  --color-ambar-hover: #e08f17;
+  --color-ambar-tint: #fdf0dc;
+  --color-aviso-texto: #7a4a0b;
+  --color-verde: #0e2a1f;
+  --color-verde-medio: #1f5c42;
+  --color-areia: #faf6ef;
+  --color-areia-2: #f3e9d8;
+  --color-mel: #b76e12;
+  --color-mel-texto: #9a5c0e;
+  --color-salvia: #8fc0a8;
+  --color-salvia-tint: #e3f0e9;
+  --color-texto-corpo: #2c3a33;
+  --color-cinza: #5e6b64;
+  --color-borda: #e1e5db;
+  --color-borda-forte: #b9c2b5;
+  --color-erro: #b3261e;
+  --color-erro-tint: #fbeae8;
+  --color-skeleton: #ece6da;
+
+  --font-titulo: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-corpo: "DM Sans", system-ui, sans-serif;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+
+  --shadow-float: 0 24px 50px -18px rgb(0 0 0 / 0.55);
+  --shadow-bar: 0 -8px 24px rgb(14 42 31 / 0.12);
+  --shadow-sheet: 0 -12px 40px rgb(14 42 31 / 0.18);
+
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.6, 0, 0.4, 1);
+  --ease-pop: cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+```
+
+## 11. Changelog
+
+| Data       | Mudança                                                                                                                                            | Porquê                                                         | Impacto no código                                                            |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| 2026-11-16 | v4: movimento (tokens + padrões), 3D em CSS, `HexTile`, `SegmentedControl`, `SuccessCheck`, rodapé escuro, cabeçalho escuro translúcido na landing | Landing parecia amadora; pedido de motion, 3D e mais confiança | Novos tokens em `globals.css`; componentes novos em `bz/`; landing reescrita |
+| 2026-11-16 | Texto de destaque sobre verde passa a `salvia`                                                                                                     | Âmbar fica reservado ao botão principal                        | Trocar classes de destaque na landing                                        |
+| 2026-11-16 | Timeline: "pago" → "pago ao dono"; "caução libertada" → "caução devolvida"                                                                         | Pagamento direto ao dono (2026-11-15)                          | Labels da `Timeline`                                                         |
+| 2026-11-16 | Logo: hexágono com três faixas documentado como SVG                                                                                                | Faltava especificação vetorial                                 | Exportar `beeznoo-icon.svg`                                                  |

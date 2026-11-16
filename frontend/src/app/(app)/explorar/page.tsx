@@ -1,18 +1,18 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Flame, LayoutGrid, MapPin, PackageSearch, Search, Sparkles, SlidersHorizontal, Star, X } from "lucide-react";
+import { Flame, LayoutGrid, PackageSearch, Search, Sparkles, SlidersHorizontal, Star, X } from "lucide-react";
 import { HexGlow, categoryIcon } from "@/components/bz/brand";
 import { PublishPromo, QuickSearches, Rail, TrustStrip } from "@/components/bz/discover";
-import { CategoryTile, EquipmentCard } from "@/components/bz/equipment";
+import { CategoryChip, EquipmentCard } from "@/components/bz/equipment";
 import { Sheet } from "@/components/bz/overlay";
 import { EmptyState, ErrorState, GridSkeleton } from "@/components/bz/states";
 import { Button } from "@/components/bz/ui";
 import { catalogApi, totalPages } from "@/lib/api";
-import { formatRange } from "@/lib/format";
+import { addDaysIso, formatRange, todayIso } from "@/lib/format";
 import { useSession } from "@/lib/auth";
-import type { ItemSummary } from "@/lib/types";
+import type { ItemCondition, ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import BeeznoFilters, { type Filters } from "../../../../components/items/Filters";
 
@@ -35,8 +35,13 @@ function Explorar() {
   const [chosen, setChosen] = useState<string | undefined | null>(null);
   const setCategoryId = (id: string | undefined) => setChosen(id);
   const [query, setQuery] = useState("");
+  // a pesquisa vai ao servidor 300 ms depois de parar de escrever
+  const [searched, setSearched] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setSearched(query.trim()), 300);
+    return () => clearTimeout(t);
+  }, [query]);
   const [filters, setFilters] = useState<Filters>({ maxPrice: "" });
-  const [draft, setDraft] = useState<Filters>({ maxPrice: "" });
   const [sheet, setSheet] = useState(false);
 
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
@@ -44,8 +49,16 @@ function Explorar() {
   const categoryId = chosen === null ? fromUrl : chosen;
   // Datas filtram no servidor (só equipamento livre); o resto ainda filtra no cliente
   const dates = filters.dataInicio && filters.dataFim ? { startDate: filters.dataInicio, endDate: filters.dataFim } : {};
-  const listKey = `items:${categoryId ?? "all"}:${filters.dataInicio ?? ""}:${filters.dataFim ?? ""}`;
-  const first = useResource(listKey, () => catalogApi.items({ categoryId, page: 0, ...dates }));
+  // Tudo filtra no servidor (#17): resultados e contagem são os verdadeiros, com qualquer número de páginas
+  const search = {
+    ...dates,
+    text: searched || undefined,
+    area: filters.area || undefined,
+    maxPrice: filters.maxPrice === "" ? undefined : filters.maxPrice,
+    condition: filters.condition && filters.condition !== "ANY" ? (filters.condition as ItemCondition) : undefined,
+  };
+  const listKey = `items:${categoryId ?? "all"}:${JSON.stringify(search)}`;
+  const first = useResource(listKey, () => catalogApi.items({ categoryId, page: 0, ...search }));
   const [more, setMore] = useState<{ key: string; page: number; items: ItemSummary[] } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
@@ -58,24 +71,15 @@ function Explorar() {
   async function loadMore() {
     setLoadingMore(true);
     try {
-      const res = await catalogApi.items({ categoryId, page: page + 1, ...dates });
+      const res = await catalogApi.items({ categoryId, page: page + 1, ...search });
       setMore({ key: listKey, page: page + 1, items: [...(extra?.items ?? []), ...res.content] });
     } finally {
       setLoadingMore(false);
     }
   }
 
-  // A API filtra por categoria e datas (ver BACKEND_GAPS #17): texto, bairro, preço e estado filtram o que já veio.
-  const visible = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return items.filter(
-      (i) =>
-        (!q || i.title.toLowerCase().includes(q)) &&
-        (!filters.area || `${i.city ?? ""} ${i.province ?? ""}`.toLowerCase().includes(filters.area.toLowerCase())) &&
-        (filters.maxPrice === "" || Number(i.pricePerDay) <= filters.maxPrice) &&
-        (!filters.condition || filters.condition === "ANY" || i.condition === filters.condition),
-    );
-  }, [items, query, filters]);
+  const visible = items;
+  const total = first.data?.page?.totalElements ?? items.length;
 
   const activeFilters = [filters.area, filters.maxPrice !== "" ? 1 : null, filters.condition && filters.condition !== "ANY" ? 1 : null, filters.dataInicio ? 1 : null].filter(Boolean).length;
   const roots = categories.filter((c) => !c.parentId);
@@ -83,14 +87,16 @@ function Explorar() {
   const browsing = !query.trim() && activeFilters === 0;
 
   return (
-    <div className="grid gap-5 px-4 md:gap-7 md:px-12">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-4 md:gap-7 md:px-12">
       {/* Herói */}
-      <section className="hero-explore relative -mx-4 -mt-5 flex min-h-[calc(78svh-4rem)] items-center overflow-hidden bg-verde-noite px-4 pt-20 pb-10 text-areia md:-mx-12 md:-mt-8 md:min-h-[calc(78svh-5rem)] md:rounded-none md:px-12 md:py-16">
+      {/* No telemóvel o herói é compacto: o primeiro equipamento tem de aparecer cedo (revisão de UX 2026-11-15) */}
+      {/* O TopBar já não é fixo: o herói encosta ao cabeçalho (-mt anula o pt do <main>), sem compensar a altura dele */}
+      <section className="hero-explore relative -mx-4 -mt-5 flex items-center overflow-hidden rounded-b-sheet bg-verde-noite px-4 pt-6 pb-6 text-areia md:-mx-12 md:-mt-8 md:min-h-[min(60svh,560px)] md:rounded-none md:px-12 md:py-14">
         <HexGlow />
-        <div className="relative grid gap-4 md:max-w-2xl ">
-          <p className="text-sm font-medium text-salvia">{session ? "Bem-vindo de volta" : "Luanda · fotografia, vídeo e eventos"}</p>
-          <h1 className="font-titulo text-[34px] leading-[1] font-extrabold tracking-tight md:text-[52px]">
-            Do que precisas <span className="text-ambar">hoje?</span>
+        <div className="relative grid w-full gap-4 md:max-w-2xl">
+          <p className="text-xs font-bold tracking-[0.12em] text-salvia uppercase">{session ? "Bem-vindo de volta" : "Luanda · fotografia, vídeo e eventos"}</p>
+          <h1 className="font-titulo text-[34px] leading-[1.02] font-extrabold tracking-[-0.025em] text-white md:text-[56px]">
+            Do que precisas <span className="text-salvia">hoje?</span>
           </h1>
           <div className="flex gap-2">
             <label className="relative flex-1">
@@ -101,44 +107,70 @@ function Explorar() {
                 placeholder="Câmara, lente, coluna, projetor…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="h-14 w-full rounded-full bg-branco pr-4 pl-12 text-[15px] text-verde outline-none placeholder:text-cinza focus:ring-4 focus:ring-ambar/40"
+                className="h-14 w-full rounded-campo border-[1.5px] border-transparent bg-branco pr-4 pl-12 text-[15px] text-verde outline-none transition placeholder:text-cinza focus:border-salvia focus:ring-4 focus:ring-salvia/40"
               />
             </label>
             <button
               type="button"
-              onClick={() => {
-                setDraft(filters);
-                setSheet(true);
-              }}
+              onClick={() => setSheet(true)}
               aria-label={`Filtros${activeFilters ? ` (${activeFilters} ativos)` : ""}`}
-              className="relative flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-full bg-ambar text-verde transition active:scale-95 md:hidden"
+              className="relative flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-campo bg-branco text-verde transition-transform duration-200 active:scale-95 md:hidden"
             >
-              <SlidersHorizontal className="size-5" strokeWidth={2} aria-hidden />
+              <SlidersHorizontal className="size-5" strokeWidth={1.8} aria-hidden />
               {activeFilters > 0 && (
-                <span className="num absolute -top-1 -right-1 flex size-6 items-center justify-center rounded-full bg-areia text-xs font-bold text-verde">{activeFilters}</span>
+                <span className="num absolute -top-1.5 -right-1.5 flex size-6 items-center justify-center rounded-full border-2 border-verde-noite bg-salvia text-xs font-bold text-verde">{activeFilters}</span>
               )}
             </button>
           </div>
+          {/* "Quando?" — quem aluga sabe as datas primeiro; a API devolve só o equipamento livre nesses dias */}
+          <fieldset className="grid grid-cols-2 gap-2">
+            <legend className="sr-only">Quando precisas?</legend>
+            <label className="grid gap-1">
+              <span className="text-[13px] font-medium text-salvia-tint">Levanto</span>
+              <input
+                type="date"
+                min={todayIso()}
+                value={filters.dataInicio ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) return setFilters({ ...filters, dataInicio: undefined, dataFim: undefined });
+                  setFilters({ ...filters, dataInicio: v, dataFim: filters.dataFim && filters.dataFim > v ? filters.dataFim : addDaysIso(v, 1) });
+                }}
+                className="h-12 w-full rounded-campo border-[1.5px] border-transparent bg-branco px-4 text-[15px] text-verde outline-none transition focus:border-salvia focus:ring-4 focus:ring-salvia/40"
+              />
+            </label>
+            <label className="grid gap-1">
+              <span className="text-[13px] font-medium text-salvia-tint">Devolvo</span>
+              <input
+                type="date"
+                min={filters.dataInicio ? addDaysIso(filters.dataInicio, 1) : todayIso(1)}
+                value={filters.dataFim ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (!v) return setFilters({ ...filters, dataInicio: undefined, dataFim: undefined });
+                  setFilters({ ...filters, dataFim: v, dataInicio: filters.dataInicio && filters.dataInicio < v ? filters.dataInicio : addDaysIso(v, -1) });
+                }}
+                className="h-12 w-full rounded-campo border-[1.5px] border-transparent bg-branco px-4 text-[15px] text-verde outline-none transition focus:border-salvia focus:ring-4 focus:ring-salvia/40"
+              />
+            </label>
+          </fieldset>
           <QuickSearches active={query} onPick={setQuery} />
         </div>
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-start lg:gap-8">
-        <BeeznoFilters value={filters}
-          onChange={setFilters}
-          categories={roots}
-          categoryId={categoryId}
-          onCategoryChange={setCategoryId}/>
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[21rem_minmax(0,1fr)] lg:items-start lg:gap-8">
+        <BeeznoFilters value={filters} onChange={setFilters} categories={roots} categoryId={categoryId} onCategoryChange={setCategoryId} />
 
-        <div className="grid gap-5 md:gap-7">
-          <TrustStrip />
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-5 md:gap-7">
+          {/* No telemóvel a faixa de confiança passa para depois dos resultados */}
+          <div className="hidden md:block"><TrustStrip /></div>
 
-          {/* Categorias em mosaico */}
-          <section aria-label="Categorias" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:gap-8 md:px-0">
-        <CategoryTile label="Tudo" icon={LayoutGrid} active={!categoryId} onClick={() => setCategoryId(undefined)} tone={2} />
-        {roots.map((c, i) => (
-          <CategoryTile key={c.id} label={c.name} icon={categoryIcon(c.slug)} active={c.id === categoryId} onClick={() => setCategoryId(c.id)} tone={i} />
-        ))}
+          {/* Categorias em pills (v4): ativa = verde com ícone âmbar */}
+          <section aria-label="Categorias" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
+            <CategoryChip label="Tudo" icon={LayoutGrid} active={!categoryId} onClick={() => setCategoryId(undefined)} />
+            {roots.map((c) => (
+              <CategoryChip key={c.id} label={c.name} icon={categoryIcon(c.slug)} active={c.id === categoryId} onClick={() => setCategoryId(c.id)} />
+            ))}
           </section>
 
           {activeFilters > 0 && (
@@ -181,11 +213,11 @@ function Explorar() {
           )}
 
           <section aria-label="Equipamento" className="grid gap-4">
-        <div className="flex items-end justify-between">
-          <h2 className="font-titulo text-xl font-bold text-verde">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="font-titulo text-[19px] font-bold tracking-tight text-verde md:text-2xl">
             {query.trim() ? `Resultados para "${query.trim()}"` : categoryId ? categories.find((c) => c.id === categoryId)?.name : "Todo o equipamento"}
           </h2>
-          {state === "ready" && <span className="num text-[13px] text-cinza">{visible.length} resultados</span>}
+          {state === "ready" && <span className="num text-[13px] text-cinza">{total} {total === 1 ? "resultado" : "resultados"}</span>}
         </div>
 
         {state === "loading" && <GridSkeleton />}
@@ -211,10 +243,15 @@ function Explorar() {
         )}
         {state === "ready" && visible.length > 0 && (
           <>
-            <ul className="grid grid-cols-2 gap-x-3 gap-y-5 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-5">
+            <ul className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-5">
               {visible.map((item, i) => (
                 <li key={item.id}>
-                  <EquipmentCard item={item} href={`/equipamento/${item.id}`} index={i} />
+                  <EquipmentCard
+                    item={item}
+                    href={filters.dataInicio && filters.dataFim ? `/equipamento/${item.id}?de=${filters.dataInicio}&ate=${filters.dataFim}` : `/equipamento/${item.id}`}
+                    dates={filters.dataInicio && filters.dataFim ? { start: filters.dataInicio, end: filters.dataFim } : undefined}
+                    index={i}
+                  />
                 </li>
               ))}
             </ul>
@@ -227,82 +264,23 @@ function Explorar() {
         )}
           </section>
 
+          <div className="md:hidden"><TrustStrip /></div>
           {browsing && state === "ready" && <PublishPromo />}
         </div>
       </div>
 
-  {/*
-  
-      <Sheet
-        open={sheet}
-        onClose={() => setSheet(false)}
-        title="Filtros"
-        footer={
-          <div className="flex gap-3">
-            <Button variant="ghost" onClick={() => setDraft({ maxPrice: "" })}>
-              Limpar
-            </Button>
-            <Button
-              variant="dark"
-              block
-              onClick={() => {
-                setFilters(draft);
-                setSheet(false);
-              }}
-            >
-              Aplicar filtros
-            </Button>
-          </div>
-        }
-      >
-        <div className="grid gap-6 pt-2">
-          <div className="grid gap-3">
-            <p className="flex items-center gap-2 text-sm font-medium text-verde">
-              <MapPin className="size-4 text-mel" strokeWidth={1.8} aria-hidden /> Bairro
-            </p>
-            <ChipGroup
-              label="Bairro"
-              value={draft.area}
-              onChange={(v) => setDraft({ ...draft, area: draft.area === v ? undefined : v })}
-              options={LUANDA_AREAS.map((a) => ({ value: a, label: a }))}
-            />
-          </div>
-          <MoneyField label="Preço máximo por dia" value={draft.maxPrice} onChange={(v) => setDraft({ ...draft, maxPrice: v })} hint="Deixa vazio para ver todos os preços." />
-          <div className="grid gap-3">
-            <p className="text-sm font-medium text-verde">Estado do equipamento</p>
-            <ChipGroup<ItemCondition | "ANY">
-              label="Estado"
-              value={draft.condition ?? "ANY"}
-              onChange={(v) => setDraft({ ...draft, condition: v })}
-              options={[
-                { value: "ANY", label: "Qualquer" },
-                { value: "NEW", label: "Novo" },
-                { value: "LIKE_NEW", label: "Como novo" },
-              ]}
-            />
-          </div>
-          <p className="text-[13px] text-cinza">Filtro por datas disponíveis chega quando a API tiver disponibilidade.</p>
-        </div>
-      </Sheet>
-      */}
       <Sheet open={sheet} onClose={() => setSheet(false)} title="Filtros">
-      <BeeznoFilters 
-        mobile
-        value={filters}
-        onChange={setFilters}
-        categories={roots}
-        categoryId={categoryId}
-        onCategoryChange={setCategoryId}/>
-</Sheet>
+        <BeeznoFilters mobile value={filters} onChange={setFilters} categories={roots} categoryId={categoryId} onCategoryChange={setCategoryId} />
+      </Sheet>
     </div>
   );
 }
 
 function FilterTag({ children, onClear }: { children: React.ReactNode; onClear: () => void }) {
   return (
-    <span className="inline-flex h-9 items-center gap-1 rounded-full bg-verde pr-1 pl-3 font-medium text-areia">
+    <span className="inline-flex min-h-9 items-center gap-1 rounded-full bg-areia-2 pr-1 pl-3 text-[13px] font-medium text-verde">
       {children}
-      <button type="button" onClick={onClear} aria-label={`Remover filtro ${children}`} className="flex size-7 items-center justify-center rounded-full hover:bg-white/10">
+      <button type="button" onClick={onClear} aria-label={`Remover filtro ${children}`} className="-my-1 flex size-9 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-skeleton">
         <X className="size-4" strokeWidth={2} />
       </button>
     </span>

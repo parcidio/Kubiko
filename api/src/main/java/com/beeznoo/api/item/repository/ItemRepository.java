@@ -24,13 +24,20 @@ public interface ItemRepository extends JpaRepository<Item, UUID> {
 
     Page<Item> findByOwnerIdAndStatusNot(UUID ownerId, ItemStatus status, Pageable pageable);
 
-    // Lista pública. featured=true → só destaques; ordem fixa no servidor (o cliente não escolhe colunas)
+    // Pesquisa (#17): q no título e area na cidade/província chegam em minúsculas, entre %, com os curingas escapados
+    // (ItemService.like); maxPrice em Kz/dia; condition = nome do ItemCondition; null = sem esse filtro.
+    // Lista pública: só ativos de donos não suspensos (V25). featured=true → só destaques; ordem fixa no servidor (o cliente não escolhe colunas)
     // Datas (opcional, as duas ou nenhuma): só itens livres em [startDate, endDate) — sem reserva a ocupar
     // (BookingStatus.OCCUPYING) nem bloqueio do dono (dias inclusivos). Ver decisoes-produto.md 2026-11-11 (#8)
     String PUBLIC_FILTER = """
-            FROM Item i WHERE i.status = 'ACTIVE'
+            FROM Item i WHERE i.status = 'ACTIVE' AND i.owner.suspendedAt IS NULL
               AND (:categoryId IS NULL OR i.category.id = :categoryId)
               AND (:featured = false OR i.featuredAt IS NOT NULL)
+              AND (CAST(:q AS String) IS NULL OR LOWER(i.title) LIKE CAST(:q AS String) ESCAPE '\\')
+              AND (CAST(:area AS String) IS NULL
+                   OR LOWER(CONCAT(COALESCE(i.city, ''), ' ', COALESCE(i.province, ''))) LIKE CAST(:area AS String) ESCAPE '\\')
+              AND (CAST(:maxPrice AS BigDecimal) IS NULL OR i.pricePerDay <= :maxPrice)
+              AND (CAST(:condition AS String) IS NULL OR CAST(i.condition AS String) = :condition)
               AND (CAST(:startDate AS LocalDate) IS NULL OR (
                     NOT EXISTS (SELECT 1 FROM Booking b WHERE b.item = i
                                 AND b.status IN ('ACCEPTED', 'ACTIVE', 'IN_PROGRESS', 'RETURNED', 'DISPUTED')
@@ -41,18 +48,21 @@ public interface ItemRepository extends JpaRepository<Item, UUID> {
 
     @Query(value = "SELECT i " + PUBLIC_FILTER + " ORDER BY i.featuredAt DESC NULLS LAST, i.createdAt DESC",
             countQuery = "SELECT COUNT(i) " + PUBLIC_FILTER)
-    Page<Item> findPublicRecent(UUID categoryId, boolean featured, LocalDate startDate, LocalDate endDate, Pageable pageable);
+    Page<Item> findPublicRecent(UUID categoryId, boolean featured, LocalDate startDate, LocalDate endDate,
+                               String q, String area, java.math.BigDecimal maxPrice, String condition, Pageable pageable);
 
     @Query(value = "SELECT i " + PUBLIC_FILTER + """
              ORDER BY (SELECT COUNT(b) FROM Booking b WHERE b.item = i AND b.status = 'COMPLETED') DESC, i.createdAt DESC
             """, countQuery = "SELECT COUNT(i) " + PUBLIC_FILTER)
-    Page<Item> findPublicPopular(UUID categoryId, boolean featured, LocalDate startDate, LocalDate endDate, Pageable pageable);
+    Page<Item> findPublicPopular(UUID categoryId, boolean featured, LocalDate startDate, LocalDate endDate,
+                               String q, String area, java.math.BigDecimal maxPrice, String condition, Pageable pageable);
 
     @Query(value = "SELECT i " + PUBLIC_FILTER + """
              ORDER BY (SELECT AVG(r.rating) FROM Review r WHERE r.item = i) DESC NULLS LAST,
                       (SELECT COUNT(r) FROM Review r WHERE r.item = i) DESC, i.createdAt DESC
             """, countQuery = "SELECT COUNT(i) " + PUBLIC_FILTER)
-    Page<Item> findPublicByRating(UUID categoryId, boolean featured, LocalDate startDate, LocalDate endDate, Pageable pageable);
+    Page<Item> findPublicByRating(UUID categoryId, boolean featured, LocalDate startDate, LocalDate endDate,
+                               String q, String area, java.math.BigDecimal maxPrice, String condition, Pageable pageable);
 
     @Query("SELECT i FROM Item i WHERE i.id = :id AND i.status <> 'DELETED'")
     Optional<Item> findActiveById(UUID id);

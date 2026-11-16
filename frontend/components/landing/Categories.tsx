@@ -1,150 +1,197 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRef, useState, type KeyboardEvent } from "react";
+import Link from "next/link";
 import {
-  Camera, Video, Mic, Calendar, Wrench, Cpu, Sofa, Car, Plus,
+  ArrowRight,
+  Armchair,
+  Camera,
+  Car,
+  Cpu,
+  LayoutGrid,
+  Lightbulb,
+  Mic,
+  Projector,
+  Speaker,
+  Tent,
+  Video,
+  Wrench,
+  type LucideIcon,
 } from "lucide-react";
+import { Hex3D } from "./Brand";
 
-const ease = [0.25, 0.1, 0.25, 1] as const;
+type Item = { name: string; use: string; icon: LucideIcon; soon?: boolean };
+type Cat = {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  kicker: string;
+  title: string;
+  text: string;
+  /** Categoria real no Explorar (slug de V2__items_categories.sql); sem slug = ainda não existe. */
+  explore?: { href: string; label: string };
+  items: Item[];
+};
 
-const items = [
-  { label: "Fotografia",  icon: Camera   },
-  { label: "Vídeo",       icon: Video    },
-  { label: "Áudio",       icon: Mic      },
-  { label: "Eventos",     icon: Calendar },
-  { label: "Ferramentas", icon: Wrench   },
-  { label: "Eletrónica",  icon: Cpu      },
-  { label: "Mobiliário",  icon: Sofa     },
-  { label: "Veículos",    icon: Car      },
-  { label: "Todas",       icon: Plus     },
+// Exemplos do tipo de equipamento de cada categoria (não são anúncios reais: sem preço nem dono).
+const CATS: Cat[] = [
+  {
+    key: "foto",
+    label: "Foto e vídeo",
+    icon: Camera,
+    kicker: "Foto e vídeo",
+    title: "Grava como um profissional, sem comprar como um.",
+    text: "Câmaras, estabilizadores e luz de estúdio para casamentos, videoclipes e conteúdo para redes.",
+    explore: { href: "/explorar?categoria=fotografia", label: "Ver foto e vídeo" },
+    items: [
+      { name: "Sony A7 III", use: "Casamentos e retratos", icon: Camera },
+      { name: "Canon EOS R6", use: "Foto e vídeo 4K", icon: Camera },
+      { name: "DJI Ronin RS3", use: "Planos estáveis em movimento", icon: Video },
+      { name: "Godox AD600", use: "Flash de estúdio portátil", icon: Lightbulb },
+    ],
+  },
+  {
+    key: "audio",
+    label: "Áudio",
+    icon: Mic,
+    kicker: "Áudio",
+    title: "Som limpo para gravar, falar ou fazer festa.",
+    text: "Microfones sem fio para entrevistas e podcasts, colunas para o fim de semana.",
+    explore: { href: "/explorar?categoria=audio", label: "Ver áudio" },
+    items: [
+      { name: "Rode Wireless GO II", use: "Entrevistas e reels", icon: Mic },
+      { name: "JBL PartyBox", use: "Festas e aniversários", icon: Speaker },
+      { name: "Microfone de mão", use: "Conferências e cultos", icon: Mic },
+      { name: "Coluna amplificada", use: "Eventos ao ar livre", icon: Speaker },
+    ],
+  },
+  {
+    key: "eventos",
+    label: "Eventos",
+    icon: Projector,
+    kicker: "Eventos",
+    title: "Tudo para o teu evento, só pelo fim de semana.",
+    text: "Projeção, luz e som para casamentos, aniversários e apresentações.",
+    explore: { href: "/explorar?categoria=eventos", label: "Ver eventos" },
+    items: [
+      { name: "Projetor Epson", use: "Apresentações e cinema em casa", icon: Projector },
+      { name: "Kit de iluminação", use: "Pista e decoração", icon: Lightbulb },
+      { name: "Tendas", use: "Festas no quintal", icon: Tent, soon: true },
+      { name: "Cadeiras e mesas", use: "Receções", icon: Armchair, soon: true },
+    ],
+  },
+  {
+    key: "mais",
+    label: "Mais categorias",
+    icon: LayoutGrid,
+    kicker: "A seguir",
+    title: "Do berbequim à carrinha.",
+    text: "Começamos por foto, vídeo, áudio e eventos. Diz-nos na lista de espera o que procuras e abrimos primeiro as categorias mais pedidas.",
+    items: [
+      { name: "Ferramentas", use: "Obras e reparações em casa", icon: Wrench, soon: true },
+      { name: "Eletrónica", use: "Consolas, ecrãs, portáteis", icon: Cpu, soon: true },
+      { name: "Mobiliário", use: "Eventos e escritórios", icon: Armchair, soon: true },
+      { name: "Veículos", use: "Carrinhas e transporte", icon: Car, soon: true },
+    ],
+  },
 ];
 
-function CategoryItem({
-  label,
-  icon: Icon,
-  onClick,
-}: {
-  label: string;
-  icon: React.ElementType;
-  onClick: () => void;
-}) {
-  return (
-    <motion.div
-      className="flex shrink-0 snap-start flex-col items-center gap-2"
-      variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-      whileHover={{ scale: 1.02 }}
-      transition={{ duration: 0.2 }}
-    >
-      <button
-        onClick={onClick}
-        className="flex h-14 w-14 cursor-pointer items-center justify-center rounded-lg border border-border-bg bg-card text-card-foreground shadow-card transition-opacity hover:opacity-90 sm:h-16 sm:w-16"
-      >
-        <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
-      </button>
-      <span className="text-xs text-muted-foreground">{label}</span>
-    </motion.div>
-  );
-}
+/** Categorias em separadores acessíveis (setas, Home/End). Cada separador abre o Explorar filtrado. */
+export default function LandingCategories() {
+  const [active, setActive] = useState(0);
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const cur = CATS[active];
 
-export default function BeeznoCategories() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const router    = useRouter();
-
-  const handleCategoryClick = (label: string) => {
-    if (label === "Todas") {
-      router.push("/explorar");
-    } else {
-      router.push(`/explorar?categoria=${encodeURIComponent(label)}`);
-    }
-  };
-
-  const handleScroll = () => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const children = Array.from(el.children) as HTMLElement[];
-    let closest = 0;
-    let minDist  = Infinity;
-    children.forEach((child, i) => {
-      const dist = Math.abs(child.offsetLeft - el.scrollLeft);
-      if (dist < minDist) { minDist = dist; closest = i; }
-    });
-    setActiveIndex(closest);
-  };
-
-  const scrollToItem = (index: number) => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const child = el.children[index] as HTMLElement;
-    el.scrollTo({ left: child.offsetLeft, behavior: "smooth" });
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
+    const last = CATS.length - 1;
+    const next =
+      e.key === "ArrowRight" ? (active === last ? 0 : active + 1)
+      : e.key === "ArrowLeft" ? (active === 0 ? last : active - 1)
+      : e.key === "Home" ? 0
+      : e.key === "End" ? last
+      : null;
+    if (next === null) return;
+    e.preventDefault();
+    setActive(next);
+    tabs.current[next]?.focus();
   };
 
   return (
-    <motion.section
-      id="categories"
-      className="bg-background px-6 py-10 sm:px-8"
-      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }} transition={{ duration: 0.7, ease }}
-    >
-      <div className="mx-auto max-w-6xl">
-
-        <div className="flex flex-col gap-4">
-          <h1 className="uppercase tracking-widest text-xs font-sans font-bold text-shield">O que vais encontrar</h1>
-          <h1 className="mb-8 font-display text-3xl font-extrabold sm:text-4xl">
-            Do berbequim à betoneira.
-          </h1>
+    <section id="categorias" className="lp-sec" aria-labelledby="lp-cat-title">
+      <div className="lp-wrap">
+        <div className="lp-rv">
+          <div className="lp-eyebrow">O que vais encontrar</div>
+          <h2 id="lp-cat-title" className="lp-sg lp-h2">
+            Do casamento ao videoclipe.
+            <br />O equipamento certo, quando precisas.
+          </h2>
         </div>
 
-        {/* Desktop */}
-        <motion.div
-          className="hidden lg:flex lg:flex-wrap lg:justify-center lg:gap-8"
-          variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
-          initial="hidden" whileInView="visible" viewport={{ once: true }}
-        >
-          {items.map(({ label, icon }) => (
-            <CategoryItem
-              key={label} label={label} icon={icon}
-              onClick={() => handleCategoryClick(label)}
-            />
-          ))}
-        </motion.div>
-
-        {/* Mobile / Tablet */}
-        <div className="relative lg:hidden">
-          <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-10 sm:w-14" />
-          <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-10 sm:w-14" />
-
-          <motion.div
-            ref={scrollRef}
-            onScroll={handleScroll}
-            className="flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory sm:gap-6"
-            variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
-            initial="hidden" whileInView="visible" viewport={{ once: true }}
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {items.map(({ label, icon }) => (
-              <CategoryItem
-                key={label} label={label} icon={icon}
-                onClick={() => handleCategoryClick(label)}
-              />
-            ))}
-          </motion.div>
-
-          <div className="mt-6 flex justify-center gap-2">
-            {items.map((_, i) => (
+        <div className="lp-tabs lp-rv" role="tablist" aria-label="Categorias" onKeyDown={onKey}>
+          {CATS.map((c, i) => {
+            const Icon = c.icon;
+            const selected = i === active;
+            return (
               <button
-                key={i}
-                onClick={() => scrollToItem(i)}
-                className={`h-2 rounded-full transition-opacity hover:opacity-90 ${
-                  i === activeIndex ? "w-6 bg-primary" : "w-2 bg-border-bg"
-                }`}
-              />
-            ))}
+                key={c.key}
+                ref={(el) => {
+                  tabs.current[i] = el;
+                }}
+                type="button"
+                role="tab"
+                id={`lp-tab-${c.key}`}
+                aria-selected={selected}
+                aria-controls="lp-cat-panel"
+                tabIndex={selected ? 0 : -1}
+                className="lp-tab"
+                onClick={() => setActive(i)}
+              >
+                <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
+                {c.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div id="lp-cat-panel" className="lp-cat-panel lp-rv" role="tabpanel" aria-labelledby={`lp-tab-${cur.key}`}>
+          <div className="lp-cat-intro">
+            <Hex3D tone="a" size={120} duration={16} style={{ right: -30, top: -20, opacity: 0.9 }} />
+            <div style={{ position: "relative" }}>
+              <div className="lp-eyebrow lp-eyebrow--dark">{cur.kicker}</div>
+              <h3 className="lp-sg">{cur.title}</h3>
+              <p>{cur.text}</p>
+            </div>
+            {cur.explore ? (
+              <Link href={cur.explore.href} className="lp-btn lp-btn--o">
+                {cur.explore.label}
+                <ArrowRight className="lp-btn__arr" size={20} strokeWidth={1.8} aria-hidden="true" />
+              </Link>
+            ) : (
+              <a href="#lista" className="lp-btn lp-btn--o">
+                Diz-nos o que procuras
+              </a>
+            )}
           </div>
+          {/* key: ao trocar de separador os cartões voltam a entrar */}
+          <ul className="lp-cat-items" key={cur.key}>
+            {cur.items.map((it) => {
+              const Icon = it.icon;
+              return (
+                <li className="lp-item" key={it.name}>
+                  <div className="lp-ph">
+                    <Icon size={56} strokeWidth={1.4} aria-hidden="true" />
+                  </div>
+                  <div className="lp-item__row">
+                    <span className="lp-sg lp-item__name">{it.name}</span>
+                    {it.soon && <span className="lp-soon">Em breve</span>}
+                  </div>
+                  <div className="lp-item__use">{it.use}</div>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

@@ -25,5 +25,10 @@ public enum AuditAction {
     PAYMENT_RECEIVED,           // o dono confirmou que recebeu o pagamento na entrega
     COMMISSION_SETTLED,         // a equipa recebeu do dono as comissões em aberto
     DEPOSIT_RETURNED_BY_OWNER,  // o dono devolveu a caução toda
-    DEPOSIT_WITHHELD_BY_OWNER   // o dono reteve parte ou toda a caução
+    DEPOSIT_WITHHELD_BY_OWNER,  // o dono reteve parte ou toda a caução
+    // Ações de admin (decisoes-produto.md 2026-11-15)
+    ITEM_SUSPENDED,
+    ITEM_REINSTATED,
+    ACCOUNT_SUSPENDED,
+    ACCOUNT_REINSTATED
 }

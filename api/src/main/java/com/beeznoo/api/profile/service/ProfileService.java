@@ -27,7 +27,7 @@ public class ProfileService {
 
     @Transactional(readOnly = true)
     public MeResponse getMe(UUID profileId) {
-        return MeResponse.from(findProfile(profileId), kycService.getMyStatus(profileId).status());
+        return MeResponse.from(findProfile(profileId), kycService.getMyStatus(profileId).status(), kycService.canTransact(profileId));
     }
 
     @Transactional
@@ -54,7 +54,7 @@ public class ProfileService {
         if (request.province() != null) profile.setProvince(blankToNull(request.province()));
         if (request.city() != null) profile.setCity(blankToNull(request.city()));
 
-        return MeResponse.from(profile, kycService.getMyStatus(profileId).status());
+        return MeResponse.from(profile, kycService.getMyStatus(profileId).status(), kycService.canTransact(profileId));
     }
 
     private Profile findProfile(UUID profileId) {

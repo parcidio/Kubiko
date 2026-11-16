@@ -73,14 +73,14 @@ export default function ChecklistPage() {
 
   return (
     <Dark>
-      <div className="[&_a]:text-ambar">
+      <div className="[&_a]:text-salvia">
         <BackLink href={`/reservas/${id}`}>Reserva {bookingCode(id)}</BackLink>
       </div>
       <div className="grid gap-2">
-        <h1 className="font-titulo text-[30px] leading-tight font-extrabold">
+        <h1 className="font-titulo text-[26px] leading-tight font-bold text-white md:text-[32px]">
           {phase ? `Checklist de ${LABEL[phase].noun}` : "Entrega e devolução"}
         </h1>
-        <p className="text-areia/75">
+        <p className="text-[15px] text-salvia-tint">
           {phase
             ? `Um de vocês fotografa e descreve o estado; ${firstName(other)} confirma. As fotos são a prova do estado do equipamento.`
             : "Registo das fotos e notas da entrega e da devolução desta reserva."}
@@ -98,7 +98,7 @@ export default function ChecklistPage() {
 
       {history.length > 0 && (
         <div className="grid gap-4">
-          {phase && <h2 className="font-titulo text-xl font-bold">Já registado</h2>}
+          {phase && <h2 className="font-titulo text-xl font-bold text-white">Já registado</h2>}
           {history.map((c) => (
             <ChecklistView key={c.id} checklist={c} />
           ))}
@@ -158,8 +158,11 @@ function CaptureForm({ bookingId, type, onDone }: { bookingId: string; type: Che
             <Sun className="size-4 text-ambar" strokeWidth={1.8} aria-hidden /> Procura boa luz, sem flash
           </span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-ambar transition-all" style={{ width: `${(done / ANGLES.length) * 100}%` }} />
+        <div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Fotos tiradas" aria-valuemin={0} aria-valuemax={ANGLES.length} aria-valuenow={done}>
+          <div
+            className="h-full origin-left rounded-full bg-salvia transition-transform duration-350 ease-out"
+            style={{ transform: `scaleX(${done / ANGLES.length})` }}
+          />
         </div>
       </div>
 
@@ -241,9 +244,9 @@ function Review({ bookingId, checklist, onDone }: { bookingId: string; checklist
 function ChecklistView({ checklist }: { checklist: Checklist }) {
   const noun = LABEL[checklist.type].noun;
   return (
-    <section className="grid gap-3 rounded-cartao bg-white/5 p-4" aria-label={`Checklist de ${noun}`}>
+    <section className="grid animate-sobe gap-3 rounded-cartao border border-white/10 bg-white/5 p-4" aria-label={`Checklist de ${noun}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-titulo text-lg font-bold capitalize">{noun}</h3>
+        <h3 className="font-titulo text-lg font-bold text-white capitalize">{noun}</h3>
         {checklist.confirmed ? (
           <span className="flex items-center gap-1.5 text-sm text-salvia">
             <CheckCircle2 className="size-4" strokeWidth={2} aria-hidden /> Confirmada {checklist.confirmedAt && `em ${formatDateTime(checklist.confirmedAt)}`}

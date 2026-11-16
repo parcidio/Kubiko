@@ -6,8 +6,8 @@ import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export const inputClass = cn(
-  "h-12 w-full rounded-sm border border-borda-forte bg-branco px-4 text-[15px] text-verde outline-none transition",
-  "placeholder:text-cinza focus:border-verde focus:ring-4 focus:ring-verde-medio/15",
+  "h-12 w-full rounded-campo border-[1.5px] border-borda-forte bg-branco px-4 text-[15px] text-verde outline-none transition",
+  "placeholder:text-cinza focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint",
   "aria-invalid:border-2 aria-invalid:border-erro disabled:bg-areia-2 disabled:text-cinza",
 );
 
@@ -24,7 +24,7 @@ export function toFormErrors(err: unknown): FormErrors {
 export function FormError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <div role="alert" className="flex gap-3 rounded-sm bg-erro-tint p-4 text-sm text-erro">
+    <div role="alert" className="flex gap-3 rounded-campo bg-erro-tint p-4 text-sm text-erro">
       <AlertCircle className="size-5 shrink-0" strokeWidth={1.8} aria-hidden />
       <p>{message}</p>
     </div>
@@ -131,7 +131,7 @@ function AffixInput({
   return (
     <div
       className={cn(
-        "flex h-12 overflow-hidden rounded-sm border border-borda-forte bg-branco transition focus-within:border-verde focus-within:ring-4 focus-within:ring-verde-medio/15",
+        "flex h-12 overflow-hidden rounded-campo border-[1.5px] border-borda-forte bg-branco transition focus-within:border-verde-medio focus-within:ring-[3px] focus-within:ring-salvia-tint",
         error && "border-2 border-erro",
       )}
     >
@@ -358,7 +358,7 @@ export function ChipGroup<T extends string>({
             aria-pressed={on}
             onClick={() => onChange(v)}
             className={cn(
-              "inline-flex h-8 shrink-0 items-center gap-2 rounded-full border px-6 text-sm font-medium whitespace-nowrap transition active:scale-[.97]",
+              "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border-[1.5px] px-4 text-sm font-medium whitespace-nowrap transition-colors duration-200 active:scale-[.97]",
               on ? "border-verde bg-verde text-areia" : "border-borda-forte bg-branco text-verde hover:border-verde",
             )}
           >

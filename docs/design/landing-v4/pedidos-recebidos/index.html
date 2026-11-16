@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-PT"><head>
+<meta charset="utf-8">
+<title>Pedidos recebidos</title>
+<script src="3901681a-7e96-430a-b3f8-ee5e67256760"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>/* vietnamese */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGHInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGGInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("4b3eae7b-be42-46da-8332-8af737c50d27") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGHInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGGInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("4b3eae7b-be42-46da-8332-8af737c50d27") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGHInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGGInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("4b3eae7b-be42-46da-8332-8af737c50d27") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("2ae3a0d8-caea-44fc-8715-fba46dfdad79") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("2ae3a0d8-caea-44fc-8715-fba46dfdad79") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("2ae3a0d8-caea-44fc-8715-fba46dfdad79") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+body{margin:0;background:#FAF6EF}
+a{color:#9A5C0E}a:hover{color:#7A4A0B}
+*{box-sizing:border-box}
+.app{font-family:'DM Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;color:#2C3A33}
+.sg{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;letter-spacing:-0.02em;color:#0E2A1F}
+:focus-visible{outline:3px solid #F0A22E;outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 16px;border-radius:12px;font:700 15px 'DM Sans',sans-serif;text-decoration:none;border:0;cursor:pointer;transition:transform .2s}
+.btn:active{transform:scale(.97)}
+.btn-s{background:#FFFFFF;color:#0E2A1F;border:1.5px solid #B9C2B5}
+.btn-d{background:#0E2A1F;color:#FAF6EF}.btn-d:hover{background:#1F5C42}
+.mode{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:5px;background:#0E2A1F;border-radius:14px}
+.mode a{min-height:44px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;font-weight:500;font-size:14px;color:#E3F0E9;text-decoration:none}
+.mode a.on{background:#FAF6EF;color:#0E2A1F;font-weight:700}
+.cnt{min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:#F0A22E;color:#0E2A1F;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.tabs{display:flex;gap:20px;border-bottom:1px solid #E1E5DB}
+.tabs a{min-height:44px;display:flex;align-items:center;text-decoration:none;color:#5E6B64;font-weight:500;border-bottom:2px solid transparent}
+.tabs a.on{color:#0E2A1F;font-weight:700;border-color:#0E2A1F}
+.rq{background:#FFFFFF;border:1px solid #E1E5DB;border-radius:16px;padding:14px;animation:in .5s cubic-bezier(.2,.8,.2,1) both}
+.rq:nth-child(2){animation-delay:.08s}
+@keyframes in{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.res{display:flex;align-items:center;gap:8px;padding:12px;border-radius:12px;font-weight:700;animation:pop .45s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes pop{from{transform:scale(.9);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+<main class="app" style="width: 390px; height: 844px; overflow: hidden; background: #FAF6EF; display: flex; flex-direction: column">
+  <div style="padding: 18px 16px 0">
+    <nav class="mode" aria-label="Modo">
+      <a href="App-Explorar.dc.html">A alugar</a>
+      <a href="#" class="on" aria-current="page">Os meus equipamentos <span class="cnt">{{pending}}</span></a>
+    </nav>
+    <h1 class="sg" style="font-size: 26px; margin: 18px 0 6px">Pedidos recebidos</h1>
+    <nav class="tabs" aria-label="Filtrar pedidos">
+      <a href="#" class="on" aria-current="page">Novos</a><a href="#">Aceites</a><a href="#">Histórico</a>
+    </nav>
+  </div>
+  <div style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+    <sc-for list="{{reqs}}" as="r" hint-placeholder-count="2">
+      <article class="rq">
+        <div style="display: flex; justify-content: space-between; gap: 10px; align-items: flex-start">
+          <div style="display: flex; gap: 10px; align-items: center">
+            <span style="width: 40px; height: 40px; border-radius: 50%; background: #E3F0E9; color: #1F5C42; font-weight: 700; display: flex; align-items: center; justify-content: center">{{r.ini}}</span>
+            <div>
+              <div style="font-weight: 700; color: #0E2A1F">{{r.who}}</div>
+              <div style="font-size: 13px; color: #5E6B64; display: flex; gap: 6px; align-items: center">{{r.area}} · <span style="color: #1F5C42; font-weight: 700">Verificada</span></div>
+            </div>
+          </div>
+          <sc-if value="{{r.urgent}}" hint-placeholder-val="{{ false }}"><span class="chip" style="background: #FBEAE8; color: #B3261E"><svg width="13" height="13" sc-camel-view-box="0 0 24 24" fill="none" stroke="#B3261E" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path></svg>{{r.deadline}}</span></sc-if>
+          <sc-if value="{{r.normal}}" hint-placeholder-val="{{ true }}"><span class="chip" style="background: #FDF0DC; color: #7A4A0B"><svg width="13" height="13" sc-camel-view-box="0 0 24 24" fill="none" stroke="#7A4A0B" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>{{r.deadline}}</span></sc-if>
+        </div>
+        <div class="sg" style="font-size: 18px; margin-top: 12px">{{r.item}}</div>
+        <div style="font-size: 14px; color: #5E6B64">{{r.dates}}</div>
+        <p style="margin: 8px 0 0; font-size: 14px; font-style: italic">“{{r.msg}}”</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: #E3F0E9">
+          <span style="font-weight: 500; color: #1F5C42">Recebes</span><span class="sg" style="font-size: 20px">{{r.get}}</span>
+        </div>
+        <sc-if value="{{r.open}}" hint-placeholder-val="{{ true }}">
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px">
+            <button type="button" class="btn btn-s" sc-camel-on-click="{{r.decline}}">Recusar</button>
+            <button type="button" class="btn btn-d" sc-camel-on-click="{{r.accept}}">Aceitar pedido</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{r.isAccepted}}" hint-placeholder-val="{{ false }}">
+          <div class="res" role="status" style="margin-top: 12px; background: #E3F0E9; color: #1F5C42"><svg width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#1F5C42" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>Aceite · datas bloqueadas e contrato enviado</div>
+        </sc-if>
+        <sc-if value="{{r.isDeclined}}" hint-placeholder-val="{{ false }}">
+          <div class="res" role="status" style="margin-top: 12px; background: #F3E9D8; color: #0E2A1F">Recusado · avisámos a {{r.first}}</div>
+        </sc-if>
+      </article>
+    </sc-for>
+  </div>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844}}">
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { st: { a: 'open', b: 'open' } }; }
+  renderVals() {
+    const base = [
+      { id: 'a', ini: 'AM', who: 'Ana Mbuta', first: 'Ana', area: 'Kilamba', item: 'Sony A7 III', dates: '23 a 25 out · levanta em Talatona', msg: 'Olá Edson, é para um casamento no sábado.', get: '105.000 Kz', deadline: 'Responde até 18:30', urgent: false },
+      { id: 'b', ini: 'JC', who: 'Joana Cassoma', first: 'Joana', area: 'Miramar', item: 'DJI Ronin RS3', dates: '28 a 29 out · entrega em Miramar', msg: 'Preciso para um videoclipe, posso ir buscar.', get: '40.000 Kz', deadline: 'Expira em 2 h 10 min', urgent: true }
+    ];
+    const st = this.state.st;
+    const set = (id, v) => this.setState({ st: Object.assign({}, st, { [id]: v }) });
+    return {
+      pending: Object.values(st).filter((v) => v === 'open').length,
+      reqs: base.map((r) => Object.assign({}, r, {
+        normal: !r.urgent,
+        open: st[r.id] === 'open', isAccepted: st[r.id] === 'ok', isDeclined: st[r.id] === 'no',
+        accept: () => set(r.id, 'ok'), decline: () => set(r.id, 'no')
+      }))
+    };
+  }
+}
+</script>
+
+
+</body></html>

@@ -149,6 +149,8 @@ export interface Me {
   phoneVerified: boolean;
   identityVerified: boolean;
   kycStatus: string | null;
+  /** Pode publicar e pedir reserva já (KYC aprovado, ou o servidor não o exige). Avisar antes de começar um pedido. */
+  canTransact: boolean;
   createdAt: string;
 }
 
@@ -263,6 +265,30 @@ export interface AdminPayment {
   confirmedAt: string | null;
   commissionSettledAt: string | null;
   createdAt: string;
+}
+/** Admin › Utilizadores (decisoes-produto.md 2026-11-15 — ações de admin). */
+export interface AdminUserSummary {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  role: UserRole;
+  phoneVerified: boolean;
+  /** estado da verificação mais recente; null = nunca submeteu */
+  kycStatus: KycStatus | null;
+  createdAt: string;
+  suspendedAt: string | null;
+  suspensionReason: string | null;
+  items: number;
+  bookingsAsRenter: number;
+  bookingsAsOwner: number;
+}
+
+export interface AdminUserDetail {
+  user: AdminUserSummary;
+  city: string | null;
+  items: { id: string; title: string; status: "ACTIVE" | "INACTIVE" | "SUSPENDED"; pricePerDay: number; featured: boolean }[];
+  recentBookings: { id: string; itemTitle: string; side: "RENTER" | "OWNER"; status: BookingStatus; startDate: string; endDate: string; createdAt: string }[];
 }
 
 export interface AuditLog {
@@ -416,4 +442,15 @@ export interface LedgerEntry {
   balanceAfter: number;
   description: string | null;
   createdAt: string;
+}
+
+/** GET /admin/metrics — painel de métricas (decisoes-produto.md 2026-11-15). Kz inteiros; meses YYYY-MM no fuso de Luanda. */
+export interface AdminMetrics {
+  generatedAt: string;
+  northStar: { completedThisMonth: number; completedLastMonth: number };
+  months: { month: string; completed: number; paid: number; rentalValue: number; serviceFee: number }[];
+  funnel30d: { requested: number; accepted: number; paid: number; completed: number; lost: number; pending: number };
+  commissions: { earnedThisMonth: number; pendingTotal: number; pendingOwners: number };
+  kyc: { pending: number; avgDecisionHours: number | null; decided30d: number };
+  marketplace: { users: number; newUsers30d: number; verifiedUsers: number; activeItems: number; ownersWithItems: number };
 }

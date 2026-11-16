@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-PT"><head>
+<meta charset="utf-8">
+<title>Pedir reserva</title>
+<script src="2eb38280-93e4-41b9-85f2-56801e62b96d"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>/* vietnamese */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGHInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGGInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("674833b8-5af2-4d6b-abda-adbcac9ff10b") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGHInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGGInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("674833b8-5af2-4d6b-abda-adbcac9ff10b") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGHInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGGInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("674833b8-5af2-4d6b-abda-adbcac9ff10b") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("c7738aeb-16d4-41e3-a62c-7a404b5df4d7") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("c7738aeb-16d4-41e3-a62c-7a404b5df4d7") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("c7738aeb-16d4-41e3-a62c-7a404b5df4d7") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+body{margin:0;background:#FAF6EF}
+a{color:#9A5C0E}a:hover{color:#7A4A0B}
+*{box-sizing:border-box}
+.app{font-family:'DM Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;color:#2C3A33}
+.sg{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;letter-spacing:-0.02em;color:#0E2A1F}
+:focus-visible{outline:3px solid #F0A22E;outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:12px;font:700 16px 'DM Sans',sans-serif;text-decoration:none;border:0;cursor:pointer;transition:transform .2s}
+.btn:active{transform:scale(.97)}
+.btn-p{background:#F0A22E;color:#0E2A1F}.btn-p:hover{background:#E08F17;color:#0E2A1F}
+.btn-s{background:#FFFFFF;color:#0E2A1F;border:1.5px solid #B9C2B5}
+.lbl{display:block;font-size:14px;font-weight:500;color:#0E2A1F;margin-bottom:6px}
+.inp{width:100%;min-height:48px;padding:0 12px;border:1.5px solid #B9C2B5;border-radius:12px;background:#FFFFFF;font:400 15px 'DM Sans',sans-serif;color:#0E2A1F}
+.inp:focus{outline:none;border-color:#1F5C42;box-shadow:0 0 0 3px #E3F0E9}
+.rc{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:16px;border:1.5px solid #E1E5DB;background:#FFFFFF;cursor:pointer;transition:border-color .25s,background .25s}
+.rc.on{border-color:#0E2A1F;background:#FAF6EF}
+.dot{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid #B9C2B5;margin-top:1px;display:flex;align-items:center;justify-content:center}
+.rc.on .dot{border-color:#0E2A1F}.rc.on .dot::after{content:"";width:10px;height:10px;border-radius:50%;background:#0E2A1F}
+.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;font-size:14px}
+.ok{width:88px;height:88px;border-radius:50%;background:#E3F0E9;display:flex;align-items:center;justify-content:center;animation:pop .6s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+.fade{animation:fade .6s .15s cubic-bezier(.2,.8,.2,1) both}
+@keyframes fade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+<main class="app" style="width: 390px; height: 844px; overflow: hidden; background: #FAF6EF; display: flex; flex-direction: column">
+<sc-if value="{{form}}" hint-placeholder-val="{{ true }}">
+  <header style="display: flex; align-items: center; gap: 8px; padding: 14px 12px 10px; border-bottom: 1px solid #E1E5DB; background: #FAF6EF">
+    <a href="App-Detalhe.dc.html" aria-label="Voltar" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px"><svg width="22" height="22" sc-camel-view-box="0 0 24 24" fill="none" stroke="#0E2A1F" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a>
+    <div>
+      <h1 class="sg" style="font-size: 19px; margin: 0">Pedir reserva</h1>
+      <div style="font-size: 13px; color: #5E6B64">Sony A7 III · Edson Manuel</div>
+    </div>
+  </header>
+  <form sc-camel-on-submit="{{send}}" style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
+    <div style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 18px">
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+        <div><label class="lbl" for="d1">Levantas</label><input class="inp" id="d1" type="date" value="2026-10-23"></div>
+        <div><label class="lbl" for="d2">Devolves</label><input class="inp" id="d2" type="date" value="2026-10-25"></div>
+      </div>
+      <div>
+        <span class="lbl" id="l-ent">Entrega</span>
+        <div role="radiogroup" aria-labelledby="l-ent" style="display: flex; flex-direction: column; gap: 8px">
+          <button type="button" role="radio" aria-checked="{{e1}}" class="rc {{c1}}" sc-camel-on-click="{{pick1}}" style="text-align: left; font: inherit"><span class="dot"></span><span><span style="display: block; font-weight: 700; color: #0E2A1F">Levanto no dono</span><span style="font-size: 13px; color: #5E6B64">Talatona — combinam a hora pelo WhatsApp</span></span></button>
+          <button type="button" role="radio" aria-checked="{{e2}}" class="rc {{c2}}" sc-camel-on-click="{{pick2}}" style="text-align: left; font: inherit"><span class="dot"></span><span><span style="display: block; font-weight: 700; color: #0E2A1F">O dono entrega-me</span><span style="font-size: 13px; color: #5E6B64">Morada e eventual custo combinados com o dono</span></span></button>
+        </div>
+      </div>
+      <div>
+        <label class="lbl" for="msg">Mensagem ao dono <span style="color: #5E6B64; font-weight: 400">(opcional)</span></label>
+        <textarea class="inp" id="msg" rows="3" style="padding: 12px; min-height: 84px; resize: none">Olá Edson, é para um casamento no sábado em Talatona.</textarea>
+      </div>
+      <div style="background: #FFFFFF; border: 1px solid #E1E5DB; border-radius: 16px; padding: 12px 16px">
+        <div class="row" style="border-bottom: 1px solid #E1E5DB"><span>3 diárias × 35.000 Kz</span><span>105.000 Kz</span></div>
+        <div class="row" style="border-bottom: 1px solid #E1E5DB"><span>Taxa de serviço (8%)</span><span>8.400 Kz</span></div>
+        <div class="row" style="border-bottom: 1px solid #E1E5DB"><span>Caução reembolsável</span><span>105.000 Kz</span></div>
+        <div class="row" style="padding-top: 10px"><span style="font-weight: 700; color: #0E2A1F">Pagas ao dono na entrega</span><span class="sg" style="font-size: 19px">218.400 Kz</span></div>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 16px; background: #FDF0DC; color: #7A4A0B; font-size: 14px">
+        <svg style="flex: none" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#7A4A0B" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>O dono tem 24 horas para aceitar. Até lá não pagas nada.
+      </div>
+      <label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: #2C3A33; min-height: 44px">
+        <input type="checkbox" required="required" style="width: 22px; height: 22px; accent-color: #0E2A1F; margin: 0; flex: none">
+        <span>Li e aceito as <a href="#">regras de aluguer</a>: datas, caução e devolução no estado em que recebi.</span>
+      </label>
+    </div>
+    <div style="padding: 12px 16px 18px; background: #FFFFFF; box-shadow: 0 -8px 24px rgba(14,42,31,.12)">
+      <button type="submit" class="btn btn-p" style="width: 100%">Enviar pedido</button>
+    </div>
+  </form>
+</sc-if>
+<sc-if value="{{done}}" hint-placeholder-val="{{ false }}">
+  <div role="status" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; gap: 14px">
+    <div class="ok"><svg width="40" height="40" sc-camel-view-box="0 0 24 24" fill="none" stroke="#1F5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></div>
+    <h1 class="sg fade" style="font-size: 28px; margin: 8px 0 0">Pedido enviado!</h1>
+    <p class="fade" style="margin: 0; max-width: 300px">O Edson tem até <strong>amanhã às 00:20</strong> para responder. Avisamos-te por notificação e email.</p>
+    <div class="fade" style="width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 18px">
+      <a href="App-Reserva.dc.html" class="btn btn-s" style="width: 100%">Ver a reserva</a>
+      <button type="button" class="btn" style="background: transparent; color: #0E2A1F; width: 100%" sc-camel-on-click="{{back}}">Voltar ao pedido</button>
+    </div>
+  </div>
+</sc-if>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844}}">
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { ent: 1, sent: false }; }
+  renderVals() {
+    const e = this.state.ent;
+    return {
+      form: !this.state.sent, done: this.state.sent,
+      e1: e === 1, e2: e === 2, c1: e === 1 ? 'on' : '', c2: e === 2 ? 'on' : '',
+      pick1: () => this.setState({ ent: 1 }), pick2: () => this.setState({ ent: 2 }),
+      send: (ev) => { ev.preventDefault(); this.setState({ sent: true }); },
+      back: () => this.setState({ sent: false })
+    };
+  }
+}
+</script>
+
+
+</body></html>

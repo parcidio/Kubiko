@@ -173,8 +173,8 @@ export default function GerirEquipamentoPage() {
         </StickyCTA>
       )}
 
-      <Card className="grid gap-2 p-4">
-        <p className="font-bold text-verde">Zona de cuidado</p>
+      <Card className="grid gap-3 p-4 md:p-5">
+        <h2 className="font-titulo text-lg font-bold text-verde">Zona de cuidado</h2>
         <div className="flex flex-wrap gap-2">
           {item.data.status === "ACTIVE" && (
             <Button variant="outline" size="sm" onClick={pause}>
@@ -300,7 +300,7 @@ function DatesManager({ itemId }: { itemId: string }) {
       </Card>
 
       <Card className="grid gap-3 p-4">
-        <p className="font-bold text-verde">Bloqueios ativos</p>
+        <h2 className="font-titulo text-lg font-bold text-verde">Bloqueios ativos</h2>
         {blocks.data.length === 0 ? (
           <p className="text-sm text-cinza">Sem datas bloqueadas. Quem procura vê o equipamento livre fora das reservas.</p>
         ) : (

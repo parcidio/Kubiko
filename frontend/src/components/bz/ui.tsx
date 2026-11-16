@@ -1,18 +1,23 @@
 import Link from "next/link";
-import { ArrowLeft, type LucideIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ── Botões ────────────────────────────────────────────────────────────────
-// primary = âmbar (um por ecrã) · dark = verde · outline = secundário · ghost · danger · soft (areia-2)
-type Variant = "primary" | "dark" | "outline" | "ghost" | "danger" | "soft" | "light";
+// ── Botões (DESIGN_SYSTEM v4 §8) ──────────────────────────────────────────
+// v4: primary = âmbar com texto verde (um por ecrã) · secondary = contorno borda-forte · on-dark = contorno areia
+// (fundos verdes) · ghost · danger. Variantes v3 mantidas: dark (verde cheio) · outline (= secondary) · soft · light.
+type Variant = "primary" | "secondary" | "on-dark" | "dark" | "outline" | "ghost" | "danger" | "soft" | "light";
 type Size = "md" | "sm" | "lg";
 
+const SECONDARY = "border-[1.5px] border-borda-forte bg-branco text-verde hover:border-verde";
+
 const VARIANT: Record<Variant, string> = {
-  primary: "bg-chart-2 text-verde hover:bg-ambar-hover",
+  primary: "bg-ambar text-sobre-ambar hover:bg-ambar-hover",
+  secondary: SECONDARY,
+  outline: SECONDARY,
+  "on-dark": "border-[1.5px] border-areia/45 bg-transparent text-areia hover:border-areia hover:bg-areia/5",
   dark: "bg-verde text-areia hover:bg-verde-medio",
-  outline: "border border-border-bg bg-branco text-verde hover:bg-areia-2",
-  ghost: "text-verde hover:bg-areia-2",
-  danger: "border border-erro bg-branco text-erro hover:bg-erro-tint",
+  ghost: "bg-transparent text-verde hover:bg-areia-2",
+  danger: "border-[1.5px] border-erro bg-branco text-erro hover:bg-erro-tint",
   soft: "bg-areia-2 text-verde hover:bg-skeleton",
   light: "bg-areia text-verde hover:bg-branco",
 };
@@ -20,36 +25,52 @@ const VARIANT: Record<Variant, string> = {
 const SIZE: Record<Size, string> = {
   sm: "min-h-11 px-4 text-sm",
   md: "min-h-12 px-5 text-[15px]",
-  lg: "min-h-14 px-6 text-base",
+  lg: "min-h-[52px] px-6 text-base",
 };
 
+/** Classes de botão para <a>/<Link> que não usam <Button>/<ButtonLink>. */
 export function buttonClass(variant: Variant = "primary", size: Size = "md", block = false) {
   return cn(
-    "inline-flex select-none items-center justify-center gap-2 rounded-sm font-bold whitespace-nowrap cursor-pointer transition",
-    "active:scale-[.98] disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0",
+    "group/btn inline-flex select-none items-center justify-center gap-2 rounded-campo font-bold whitespace-nowrap cursor-pointer",
+    "transition-[background-color,border-color,color,transform] duration-200 ease-out",
+    "active:scale-[.98] disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0",
     VARIANT[variant],
     SIZE[size],
     block && "w-full",
   );
 }
 
-type ButtonProps = React.ComponentProps<"button"> & { variant?: Variant; size?: Size; block?: boolean; loading?: boolean };
+/** Seta que desliza 4px no hover do botão (prop `arrow`). */
+function ButtonArrow() {
+  return <ArrowRight className="seta-desliza" strokeWidth={1.8} aria-hidden />;
+}
 
-export function Button({ variant, size, block, loading, className, children, disabled, type = "button", ...rest }: ButtonProps) {
+type ButtonProps = React.ComponentProps<"button"> & { variant?: Variant; size?: Size; block?: boolean; loading?: boolean; arrow?: boolean };
+
+/** Botão v4: raio 12, altura 48 (lg = 52, formulário final); `arrow` acrescenta ArrowRight no fim. */
+export function Button({ variant, size, block, loading, arrow, className, children, disabled, type = "button", ...rest }: ButtonProps) {
   return (
     <button type={type} className={cn(buttonClass(variant, size, block), className)} disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
       {loading && <Spinner />}
       {children}
+      {arrow && !loading && <ButtonArrow />}
     </button>
   );
 }
 
-type ButtonLinkProps = React.ComponentProps<typeof Link> & { variant?: Variant; size?: Size; block?: boolean };
+type ButtonLinkProps = React.ComponentProps<typeof Link> & { variant?: Variant; size?: Size; block?: boolean; arrow?: boolean };
 
-export function ButtonLink({ variant, size, block, className, ...rest }: ButtonLinkProps) {
-  return <Link className={cn(buttonClass(variant, size, block), className)} {...rest} />;
+/** Link com aspeto de botão (mesmas variantes do Button). */
+export function ButtonLink({ variant, size, block, arrow, className, children, ...rest }: ButtonLinkProps) {
+  return (
+    <Link className={cn(buttonClass(variant, size, block), className)} {...rest}>
+      {children}
+      {arrow && <ButtonArrow />}
+    </Link>
+  );
 }
 
+/** Botão só com ícone, 44px, com aria-label obrigatório. */
 export function IconButton({ label, icon: Icon, className, ...rest }: React.ComponentProps<"button"> & { label: string; icon: LucideIcon }) {
   return (
     <button
@@ -64,6 +85,7 @@ export function IconButton({ label, icon: Icon, className, ...rest }: React.Comp
   );
 }
 
+/** Roda de carregamento (decorativa; o estado vai em aria-busy). */
 export function Spinner({ className }: { className?: string }) {
   return (
     <span
@@ -85,6 +107,7 @@ const TONE: Record<Tone, string> = {
   escuro: "bg-verde text-areia",
 };
 
+/** Pill de estado: ícone + texto em maiúsculas, tons em pares do DS. */
 export function Badge({ tone = "neutro", icon: Icon, children, className }: { tone?: Tone; icon?: LucideIcon; children: React.ReactNode; className?: string }) {
   return (
     <span className={cn("inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-bold tracking-[0.08em] whitespace-nowrap uppercase", TONE[tone], className)}>
@@ -105,6 +128,7 @@ const CALLOUT: Record<CalloutTone, string> = {
   dark: "bg-verde text-areia [&_svg]:text-ambar",
 };
 
+/** Alerta em bloco com ícone, título, texto e ação. */
 export function Callout({
   tone = "info", icon: Icon, title, children, action, className, role,
 }: { tone?: CalloutTone; icon?: LucideIcon; title?: string; children?: React.ReactNode; action?: React.ReactNode; className?: string; role?: string }) {
@@ -121,14 +145,17 @@ export function Callout({
 }
 
 // ── Cartões e estrutura ───────────────────────────────────────────────────
+/** Cartão: fundo branco, borda, raio 16, sem sombra. */
 export function Card({ className, ...rest }: React.ComponentProps<"div">) {
   return <div className={cn("rounded-cartao border border-borda bg-branco", className)} {...rest} />;
 }
 
+/** Bloco de carregamento com brilho (o pai leva role="status"). */
 export function Skeleton({ className, ...rest }: React.ComponentProps<"div">) {
   return <div className={cn("skeleton-brilho rounded-campo", className)} {...rest} />;
 }
 
+/** Título de secção (Bricolage) com ação opcional à direita. */
 export function SectionTitle({ children, action, className }: { children: React.ReactNode; action?: React.ReactNode; className?: string }) {
   return (
     <div className={cn("flex items-end justify-between gap-3", className)}>
@@ -138,8 +165,9 @@ export function SectionTitle({ children, action, className }: { children: React.
   );
 }
 
+/** Sobretítulo em maiúsculas (DM Sans 700, 12px). */
 export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <p className={cn("text-xs font-bold tracking-[0.1em] text-cinza uppercase", className)}>{children}</p>;
+  return <p className={cn("text-xs font-bold tracking-[0.12em] text-mel-texto uppercase", className)}>{children}</p>;
 }
 
 /** Montante em Kz com número em destaque: <Kz value={25000} /> → 25.000 Kz */
@@ -153,6 +181,7 @@ export function Kz({ value, className, unitClassName }: { value: number | null |
   );
 }
 
+/** Link "voltar" com seta. */
 export function BackLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link href={href} className="inline-flex min-h-11 items-center gap-1.5 text-sm font-medium text-mel-texto hover:underline">

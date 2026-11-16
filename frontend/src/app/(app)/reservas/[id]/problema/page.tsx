@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import { AlertTriangle, HelpCircle, MessageCircle, PackageX, ShieldAlert, Wrench } from "lucide-react";
-import { HexIllustration } from "@/components/bz/brand";
 import { FormError, RadioCards, TextArea, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { toast } from "@/components/bz/overlay";
 import { PhotoPicker, useLocalPhotos } from "@/components/bz/photo";
 import { PageHeader } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
+import { SuccessCheck } from "@/components/bz/success";
 import { BackLink, Button, ButtonLink, Callout, Skeleton, buttonClass } from "@/components/bz/ui";
 import { bookingApi, incidentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
@@ -58,8 +58,8 @@ export default function ProblemaPage() {
     const wa = whatsappLink(`Reportei um problema na reserva ${code} (${b.itemTitle}): ${KIND_LABEL[kind]}.`);
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
-        <HexIllustration icon={ShieldAlert} tone="ambar" size={150} />
-        <h1 className="font-titulo text-3xl font-extrabold text-verde">Problema reportado</h1>
+        <SuccessCheck />
+        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">Problema reportado</h1>
         <p className="text-cinza">A descrição e as fotos chegaram à equipa. A reserva fica em análise e a caução só é decidida depois disto. Falamos contigo se precisarmos de mais.</p>
         <ButtonLink href={`/reservas/${b.id}`} block size="lg">
           Voltar à reserva

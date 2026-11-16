@@ -30,10 +30,12 @@ public class MeDtos {
             boolean phoneVerified,
             boolean identityVerified,
             String kycStatus,
+            // pode publicar e pedir reserva já: KYC aprovado, ou o servidor não o exige (app.kyc.required=false)
+            boolean canTransact,
             BigDecimal ratingAvg,
             OffsetDateTime createdAt
     ) {
-        public static MeResponse from(Profile p, String kycStatus) {
+        public static MeResponse from(Profile p, String kycStatus, boolean canTransact) {
             return new MeResponse(
                     p.getId(),
                     p.getFullName(),
@@ -49,6 +51,7 @@ public class MeDtos {
                     p.isVerified(),
                     "APPROVED".equals(kycStatus),
                     kycStatus,
+                    canTransact,
                     p.getRatingAvg(),
                     p.getCreatedAt()
             );

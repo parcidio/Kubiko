@@ -1,6 +1,7 @@
 package com.beeznoo.api.item.controller;
 
 import com.beeznoo.api.item.dto.ItemDtos.FeatureItemRequest;
+import com.beeznoo.api.item.dto.ItemDtos.ModerateItemRequest;
 import com.beeznoo.api.item.dto.ItemDtos.ItemResponse;
 import com.beeznoo.api.item.service.ItemService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,6 +47,27 @@ public class AdminItemController {
     public ResponseEntity<ItemResponse> setFeatured(@AuthenticationPrincipal UUID adminId, @PathVariable UUID id,
                                                     @Valid @RequestBody FeatureItemRequest request) {
         return ResponseEntity.ok(itemService.setFeatured(adminId, id, request.featured()));
+    }
+
+    @Operation(summary = "Suspender equipamento", description = """
+            Sai do Explorar, perde o destaque e deixa de aceitar pedidos; o dono não o pode reativar. As reservas já em
+            curso não mudam. Corpo `{ "reason": "..." }` obrigatório (fica na auditoria, `ITEM_SUSPENDED`).
+            409 se já estiver suspenso. Apenas ADMIN.
+            """)
+    @PatchMapping("/{id}/suspend")
+    public ResponseEntity<ItemResponse> suspend(@AuthenticationPrincipal UUID adminId, @PathVariable UUID id,
+                                                @Valid @RequestBody ModerateItemRequest request) {
+        return ResponseEntity.ok(itemService.suspend(adminId, id, request.reason()));
+    }
+
+    @Operation(summary = "Reativar equipamento suspenso", description = """
+            Volta a `ACTIVE`. Motivo opcional `{ "reason": "..." }` (auditoria `ITEM_REINSTATED`). 409 se não estiver
+            suspenso. Apenas ADMIN.
+            """)
+    @PatchMapping("/{id}/reinstate")
+    public ResponseEntity<ItemResponse> reinstate(@AuthenticationPrincipal UUID adminId, @PathVariable UUID id,
+                                                  @Valid @RequestBody(required = false) ModerateItemRequest request) {
+        return ResponseEntity.ok(itemService.reinstate(adminId, id, request == null ? null : request.reason()));
     }
 
     record ErrorResponse(String error) {}

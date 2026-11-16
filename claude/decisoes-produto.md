@@ -574,3 +574,90 @@ tem um gateway próprio de WhatsApp, Losambo (`https://message.beeznoo.ao/v1`, a
 **A confirmar com quem gere o Losambo:** o corpo do `/otp/verify` não está na documentação pública. Enviamos
 `{ "id", "to", "code" }` e aceitamos como válido um 2xx sem `valid`/`verified` a `false`. Testar em staging com a chave
 TST antes de produção.
+
+---
+
+## 2026-11-15 — Painel de métricas do admin (North Star)
+
+**Contexto.** A visão geral do admin só mostra as quatro filas. Para saber se o MVP está a funcionar, a equipa precisa de
+ver a North Star (alugueres pagos e concluídos por mês) e o que a trava, sem correr SQL à mão.
+
+**Hipótese.** Se a equipa vir todas as semanas os alugueres concluídos, o funil de pedidos e o tempo de KYC, descobre
+mais cedo onde se perdem os alugueres (dono não responde, KYC lento, pedidos que expiram) e age sobre isso.
+**Para quem:** equipa Beeznoo (ADMIN). **Sucesso:** a demo de sexta usa este ecrã em vez de consultas à base de dados.
+
+**Decisões (pedidas pela equipa nesta data — ⚑ validar com o André):**
+
+1. **Um endpoint só de leitura**, `GET /api/v1/admin/metrics` (ADMIN), calculado na hora com SQL agregado. Sem tabelas
+   novas nem jobs: com o volume do MVP a consulta custa milissegundos. Se crescer, passa a vista materializada.
+2. **Meses no fuso de Luanda** (`Africa/Luanda`), últimos 6 meses incluindo o atual, meses sem dados a zero.
+3. **Concluído** = reserva `COMPLETED`, contada no mês da última alteração (`bookings.updated_at`; a reserva não muda
+   depois de concluída). **Pago** = pagamento `CONFIRMED`, no mês de `confirmed_at`. **Valor alugado** = soma do aluguer
+   (`rental_amount`), sem taxa nem caução. **Comissão** = `service_fee` dos pagamentos confirmados.
+4. **Funil dos últimos 30 dias**, por data do pedido, a partir do estado atual de cada reserva: pedidos → aceites (passou
+   de `PENDING_OWNER` para um estado de aluguer) → pagos (tem pagamento confirmado) → concluídos; perdidos =
+   recusados/cancelados/expirados. Um pedido cancelado depois de aceite conta como perdido, não como aceite — aproximação
+   aceitável sem histórico de estados.
+5. **KYC:** pendentes (`PENDING`, `IN_REVIEW`, `INFO_REQUESTED`) e tempo médio de decisão (submissão → `reviewed_at`) das
+   decisões dos últimos 30 dias.
+6. **Gráficos sem biblioteca** (SVG próprio em `src/components/bz/`), seguindo a regra de não juntar bibliotecas de UI.
+## 2026-11-15 — Ações de admin: utilizadores, suspensões e pagamento na reserva
+
+**Contexto.** No teste de staging a equipa não tinha como encontrar uma pessoa, afastar quem não cumpre (o contrato v2
+diz que "a Beeznoo pode suspender a conta") nem ver o pagamento a partir do detalhe de uma reserva (falha anotada em
+`BACKEND_GAPS.md`). Hoje isto exigia SQL no servidor.
+
+**Hipótese.** Com estas ações no portal, a equipa resolve problemas de confiança (equipamento enganador, dono ou
+arrendatário que não cumpre) no próprio dia, sem acesso à base de dados. **Para quem:** equipa Beeznoo (ADMIN).
+**Sucesso:** nenhuma operação do dia a dia precisa de SQL; cada suspensão fica na auditoria com motivo.
+
+**Decisões (pedidas pela equipa nesta data — ⚑ validar com o André):**
+
+1. **Pesquisar utilizadores** (`GET /admin/users?q=`): por nome, telefone ou email; mostra papel, telefone confirmado,
+   estado do KYC, suspensão e contagens. Ficha (`GET /admin/users/{id}`) com o equipamento e as últimas reservas.
+   Ver a ficha não fica na auditoria (não abre documentos); abrir documentos de KYC continua a ficar.
+2. **Suspender equipamento** (`PATCH /admin/items/{id}/suspend`, motivo obrigatório): passa a `SUSPENDED`, perde o
+   destaque, sai do Explorar e não aceita pedidos. **Reativar** (`/reinstate`) volta a `ACTIVE`. O dono não reativa um
+   item suspenso (já era assim). Auditoria `ITEM_SUSPENDED` / `ITEM_REINSTATED`.
+3. **Suspender conta** (`POST /admin/users/{id}/suspend`, motivo obrigatório; migração V25 `profiles.suspended_at`,
+   `suspension_reason`, `suspended_by`): sessões revogadas e não volta a entrar (login, refresh, Google e 2FA de admin
+   recusados com "A tua conta está suspensa"). O token de acesso já emitido vale no máximo 15 min. O equipamento da conta
+   sai do Explorar e não recebe pedidos, sem mudar o estado de cada item (reativar a conta devolve tudo como estava).
+   Contas ADMIN não se suspendem por aqui. Auditoria `ACCOUNT_SUSPENDED` / `ACCOUNT_REINSTATED`.
+4. **Reservas em curso** de uma conta ou item suspenso **não são canceladas automaticamente**: a equipa decide caso a
+   caso (manual antes de automatizar). Não há notificação automática da suspensão: a equipa avisa a pessoa.
+5. **Pagamento no detalhe da reserva:** `GET /bookings/{id}/payments/current` passa a aceitar ADMIN (como o
+   comprovativo já aceitava).
+
+---
+
+## 2026-11-16 — Identidade Verde v4 ("Colmeia em movimento") na landing e na app
+
+**Contexto.** A landing (beeznoo.ao) parecia amadora: plana, formulário longo logo no topo, pouco movimento. Foi
+redesenhada no Claude Design com motion, 3D leve e melhor UX, e o pedido é levar a mesma linguagem a toda a app.
+
+**Hipótese.** Uma landing com proposta mais clara (como funciona, confiança, valores visíveis) e uma app com a mesma
+linguagem aumentam a passagem visita → registo → primeiro pedido de reserva.
+**Utilizador-alvo:** visitante que ainda não confia em alugar a um desconhecido; arrendatário/dono novo.
+**Critério de sucesso:** taxa de inscrição na lista/registo por visita à landing ≥ 2× a da versão anterior nas
+primeiras 4 semanas; sem queda de desempenho (LCP < 2,5 s num Android de gama média em 4G).
+
+**Decisões (pedidas pela equipa nesta data — ⚑ validar com o André):**
+
+1. **`docs/DESIGN_SYSTEM.md` passa à v4.** Paleta, fontes (Bricolage Grotesque + DM Sans), raios 12/16/24 e vocabulário
+   mantêm-se. Acrescenta tokens de movimento, regras de 3D em CSS e componentes `HexTile`, `SegmentedControl`,
+   `SuccessCheck`, `BookingTicket` com inclinação, rodapé escuro.
+2. **Movimento com limites na app:** nada de animações infinitas em listas, sem parallax no telemóvel, só
+   `transform`/`opacity`, `prefers-reduced-motion` sempre respeitado. A landing pode usar mais.
+3. **Sem WebGL/three.js** — o 3D é CSS (peso e bateria).
+4. **Copy alinhada com o pagamento direto ao dono** (2026-11-15): "Pagas ao dono na entrega", "O dono devolve-te a
+   caução", Timeline "pago ao dono" / "caução devolvida".
+5. **Landing:** botões "Entrar" e "Criar conta" no cabeçalho; formulário da lista de espera sai do hero para uma
+   secção própria; novas secções (categorias, como funciona com timeline, dois papéis, confiança, perguntas, rodapé).
+
+**Em aberto.**
+
+- Fotos reais de equipamento para a landing e para os anúncios de exemplo (próprias ou de banco com licença).
+- Número de WhatsApp da equipa nos links (`NEXT_PUBLIC_WHATSAPP_NUMBER`).
+- Se a lista de espera continua depois do lançamento ou é substituída por "Criar conta".
+- Prazo de verificação "até 2 dias úteis" (⚑ 2026-11-15) — confirmar antes de o publicar na landing.

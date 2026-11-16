@@ -1,161 +1,104 @@
-"use client";
+import Link from "next/link";
+import { ArrowUp, Mail, MessageCircle } from "lucide-react";
+import { whatsappLink } from "@/lib/booking";
+import { BeeznooMark, Hex3D } from "./Brand";
 
-import { motion } from "framer-motion";
-import Image from "next/image";
-import { ArrowRight } from "lucide-react";
+const WHATSAPP = whatsappLink("Olá! Tenho interesse em saber mais sobre a Beeznoo.");
+const INSTAGRAM = "https://www.instagram.com/beeznoo.ao";
+const EMAIL = "equipa@beeznoo.ao";
 
-const ease = [0.25, 0.1, 0.25, 1] as const;
-
-const NUMERO = "244932300335";
-
-function abrirWhatsapp() {
-  const texto = encodeURIComponent("Olá! Tenho interesse em saber mais sobre o Beeznoo.");
-  window.open(`https://wa.me/${NUMERO}?text=${texto}`, "_blank");
-}
-
-function HexBg() {
-
-  const s = 52;
-  const h = s * 0.866;
-
-  const hexWidth = s * 0.72 * 2;
-  const rowSpacing = h * 1.5;
-
-  const rows = [
-    {
-      y: 0,
-      xs: Array.from({ length: 13 }, (_, i) => i * hexWidth),
-    },
-    {
-      y: rowSpacing,
-      xs: Array.from({ length: 13 }, (_, i) => i * hexWidth + hexWidth / 2),
-    },
-    {
-      y: rowSpacing * 2,
-      xs: Array.from({ length: 13 }, (_, i) => i * hexWidth),
-    },
-  ];
-
-  const hexPath = (cx: number, cy: number) =>
-  [
-    [cx, cy - h],
-    [cx + s * 0.72, cy - h * 0.5],
-    [cx + s * 0.72, cy + h * 0.5],
-    [cx, cy + h],
-    [cx - s * 0.72, cy + h * 0.5],
-    [cx - s * 0.72, cy - h * 0.5],
-  ]
-    .map(([x, y]) => `${x},${y}`)
-    .join(" ");
-
+/** Ícone de traço do Instagram (o lucide-react 1.x deixou de ter ícones de marcas). */
+function InstagramIcon() {
   return (
-    <svg
-      className="absolute inset-0 h-full w-full"
-      viewBox="0 0 960 250"
-      fill="none"
-      preserveAspectRatio="xMidYMid slice"
-      aria-hidden="true"
-    >
-      {rows.flatMap(({ y, xs }) =>
-        xs.map((x, i) => (
-          <polygon
-            key={`${y}-${i}`}
-            points={hexPath(x, y)}
-            stroke="#FFC72C"
-            strokeWidth="1"
-            fill="none"
-            opacity="0.08"
-          />
-        ))
-      )}
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+      <path d="M17.5 6.5h.01" />
     </svg>
   );
 }
-export default function BeeznoFooter() {
+
+/** CTA final (WhatsApp) + rodapé escuro: 3 colunas de links, redes em tiles 44px, palavra gigante em contorno. */
+export default function LandingFooter() {
   return (
-    <motion.footer
-      initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }} transition={{ duration: 0.7, ease }}
-    >
-
-      {/* ── CTA section ── */}
-      <div className="relative overflow-hidden bg-primary px-6 py-20 text-center sm:px-8">
-        <HexBg />
-
-        {/* Hex icon */}
-        <div className="relative z-10 mb-6 flex justify-center">
-          <svg viewBox="0 0 40 40" className="h-10 w-10" fill="none">
-            <path
-              d="M20 3 L35 11.5 V28.5 L20 37 L5 28.5 V11.5 Z"
-              stroke="#FFC72C" strokeWidth="1.5" fill="none"
-            />
-            <path
-              d="M20 11 L28 15.5 V24.5 L20 29 L12 24.5 V15.5 Z"
-              stroke="#FFC72C" strokeWidth="1" fill="none" opacity="0.5"
-            />
-          </svg>
-        </div>
-
-        {/* Headline */}
-        <h2 className="relative z-10 mx-auto max-w-2xl text-[2rem] font-bold leading-tight text-shield-foreground sm:text-4xl lg:text-5xl">
-          Sê dos primeiros a entrar para o{" "}
-          <span className="text-warning">Beeznoo</span>
-          <span className="text-shield-foreground">.</span>
-        </h2>
-
-        {/* Descrição */}
-        <p className="relative z-10 mx-auto mt-4 max-w-md text-sm leading-relaxed text-shield-soft sm:text-base">
-          A lista de espera está aberta. Inscreve-te e avisamos-te no dia do lançamento.
-        </p>
-
-        {/* CTAs */}
-        <div className="relative z-10 mt-8 flex flex-wrap items-center justify-center gap-4">
-          <button
-            onClick={abrirWhatsapp}
-            className="flex cursor-pointer items-center gap-2 rounded-full border-2 border-primary-foreground px-6 py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-foreground/60 hover:bg-primary-foreground/5"
-          >
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden="true">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.149-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-              <path d="M20.52 3.449A11.82 11.82 0 0 0 12.04 0C5.495 0 .16 5.335.157 11.882c0 2.096.547 4.142 1.588 5.946L.057 24l6.304-1.654a11.88 11.88 0 0 0 5.674 1.447h.005c6.542 0 11.88-5.335 11.883-11.882a11.82 11.82 0 0 0-3.403-8.462zM12.04 21.785h-.004a9.86 9.86 0 0 1-5.031-1.378l-.361-.214-3.741.982.999-3.648-.235-.374a9.87 9.87 0 0 1-1.509-5.27c.002-5.45 4.437-9.884 9.89-9.884a9.83 9.83 0 0 1 7.008 2.906 9.83 9.83 0 0 1 2.903 7.01c-.003 5.45-4.438 9.87-9.919 9.87z" />
-            </svg>
-            Falar no WhatsApp
-          </button>
-
-          <a
-            href="#explore"
-            className="flex cursor-pointer items-center gap-2 rounded-full bg-warning px-6 py-3 text-sm font-bold text-primary transition-all duration-200 hover:-translate-y-0.5 hover:bg-warning/90 hover:shadow-lg"
-          >
-            Entrar na lista de espera
-            <ArrowRight className="h-4 w-4" />
-          </a>
-        </div>
-      </div>
-
-      {/* ── Barra inferior ── */}
-      <div className="bg-primary/90">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-5 sm:flex-row sm:px-8">
-
-          {/* Esquerda: logo + tagline */}
-          <div className="flex items-center gap-3">
-            <Image src="/png/beeznoo-icon-512.png" alt="logo" width={24} height={24} />
-            <span className="font-bold text-shield-foreground">beeznoo</span>
-            <span className="hidden text-xs text-shield-foreground/60 sm:block">
-               Marketplace de aluguer de equipamentos · Angola
-            </span>
-          </div>
-
-          {/* Direita: links + copyright */}
-          <div className="flex items-center gap-5 text-sm font-light text-shield-foreground">
-            <a href="https://www.instagram.com/beeznoo.ao?stkn=b2t1dzE0MnZla2R4" target="_blank" className="transition-colors hover:text-primary-foreground">
-              Instagram
+    <>
+      <section className="lp-cta" aria-labelledby="lp-cta-title">
+        <div className="lp-wrap">
+          <div className="lp-cta__box lp-rv">
+            <Hex3D tone="a" size={90} duration={11} className="lp-hide-sm" style={{ right: "34%", top: -26, opacity: 0.9 }} />
+            <Hex3D tone="d" size={46} duration={8} className="lp-hide-sm" style={{ right: "28%", bottom: 18 }} />
+            <div className="lp-cta__text">
+              <h2 id="lp-cta-title" className="lp-sg">
+                Tens dúvidas ou uma empresa com equipamento?
+              </h2>
+              <p>Fala connosco no WhatsApp: respondemos a particulares, empresas e parceiros.</p>
+            </div>
+            <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn--o">
+              <MessageCircle size={20} strokeWidth={1.8} aria-hidden="true" />
+              Falar no WhatsApp
             </a>
-            <a href="mailto:equipa@beeznoo.ao" className="transition-colors hover:text-primary-foreground">
-              equipa@beeznoo.ao
-            </a>
-            <span className="text-shield-foreground/50">© 2026 Beeznoo</span>
           </div>
         </div>
-      </div>
-    </motion.footer>
+      </section>
+
+      <footer className="lp-foot">
+        <div className="lp-wrap">
+          <div className="lp-foot-grid">
+            <div className="lp-foot-brand">
+              <a href="#topo" className="lp-brand" aria-label="Beeznoo, voltar ao início">
+                <BeeznooMark size={40} />
+                <span className="lp-sg lp-brand__word" aria-hidden="true">
+                  beeznoo
+                </span>
+              </a>
+              <p className="lp-sg lp-foot-tag">Por que comprar quando podes alugar?</p>
+              <p className="lp-foot-desc">Marketplace de aluguer de equipamento entre pessoas e empresas, em Luanda.</p>
+              <div className="lp-socials">
+                <a href={INSTAGRAM} target="_blank" rel="noopener noreferrer" className="lp-soc" aria-label="Instagram da Beeznoo">
+                  <InstagramIcon />
+                </a>
+                <a href={WHATSAPP} target="_blank" rel="noopener noreferrer" className="lp-soc" aria-label="WhatsApp da Beeznoo">
+                  <MessageCircle size={20} strokeWidth={1.8} aria-hidden="true" />
+                </a>
+                <a href={`mailto:${EMAIL}`} className="lp-soc" aria-label="Enviar email à equipa Beeznoo">
+                  <Mail size={20} strokeWidth={1.8} aria-hidden="true" />
+                </a>
+              </div>
+            </div>
+            <nav aria-label="Plataforma" className="lp-fcol">
+              <h3>Plataforma</h3>
+              <Link href="/explorar">Explorar equipamento</Link>
+              <Link href="/publicar">Publicar equipamento</Link>
+              <a href="#como">Como funciona</a>
+              <Link href="/registar">Criar conta</Link>
+            </nav>
+            <nav aria-label="Ajuda" className="lp-fcol">
+              <h3>Ajuda</h3>
+              <a href="#faq">Perguntas frequentes</a>
+              <a href="#confianca">Caução e verificação</a>
+              <a href={WHATSAPP} target="_blank" rel="noopener noreferrer">
+                Falar no WhatsApp
+              </a>
+              <a href={`mailto:${EMAIL}`}>{EMAIL}</a>
+            </nav>
+            <nav aria-label="Legal" className="lp-fcol">
+              <h3>Legal</h3>
+              <Link href="/privacidade">Política de Privacidade</Link>
+            </nav>
+          </div>
+          <div className="lp-wordmark" aria-hidden="true">
+            beeznoo
+          </div>
+          <div className="lp-foot-bottom">
+            <span>© 2026 Beeznoo · Feito em Luanda, Angola</span>
+            <a href="#topo" className="lp-totop">
+              Voltar ao topo
+              <ArrowUp size={20} strokeWidth={1.8} aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+      </footer>
+    </>
   );
 }

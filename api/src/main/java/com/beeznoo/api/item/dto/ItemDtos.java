@@ -91,6 +91,9 @@ public class ItemDtos {
 
     public record FeatureItemRequest(boolean featured) {}
 
+    /** Suspender (motivo obrigatório) ou reativar (motivo opcional) equipamento — admin, fica na auditoria. */
+    public record ModerateItemRequest(@jakarta.validation.constraints.Size(max = 500) String reason) {}
+
     /** Ordem da lista pública: recent (por omissão), popular (reservas concluídas), rating (média de avaliações). */
     public enum ItemOrder { RECENT, POPULAR, RATING }
 }

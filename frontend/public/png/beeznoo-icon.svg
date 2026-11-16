@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Beeznoo">
+  <title>Beeznoo</title>
+  <defs>
+    <clipPath id="bz-hex"><polygon points="256,34 450,147 450,371 256,478 62,371 62,147"/></clipPath>
+  </defs>
+  <polygon points="256,34 450,147 450,371 256,478 62,371 62,147" fill="#F0A22E"/>
+  <g clip-path="url(#bz-hex)" fill="#0E2A1F">
+    <rect x="62" y="161" width="388" height="42"/>
+    <rect x="62" y="238" width="388" height="42"/>
+    <rect x="62" y="315" width="388" height="42"/>
+  </g>
+</svg>

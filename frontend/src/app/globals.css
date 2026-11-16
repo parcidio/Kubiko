@@ -200,7 +200,7 @@
 @utility num {
   font-variant-numeric: tabular-nums;
 }
-/* ── Identidade Verde v3 — ecrãs da app (docs/DESIGN_SYSTEM.md). A landing usa as variáveis acima. ── */
+/* ── Identidade Verde v3/v4 — ecrãs da app (docs/DESIGN_SYSTEM.md). A landing usa as variáveis acima. ── */
 /* Fontes da app: --bz-display / --bz-sans são definidas no <html> a partir do next/font (layout.tsx) */
 @theme inline {
   --font-titulo: var(--bz-display), ui-sans-serif, system-ui, sans-serif;
@@ -235,11 +235,33 @@
   --radius-sheet:  24px;
 
   --shadow-flutua: 0 16px 40px -16px rgba(8, 26, 19, .35);
-  --shadow-cta:    0 -8px 24px rgba(14, 42, 31, .12);
+
+  /* v4 (DESIGN_SYSTEM §4/§6/§10) — sombras só no que flutua; tokens de movimento */
+  --color-sobre-ambar: #0E2A1F; /* texto por cima do âmbar: verde nos dois temas */
+  --shadow-float: 0 24px 50px -18px rgb(0 0 0 / 0.55);
+  --shadow-bar:   0 -8px 24px rgb(14 42 31 / 0.12);
+  --shadow-sheet: 0 -12px 40px rgb(14 42 31 / 0.18);
+  --ease-out:    cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.6, 0, 0.4, 1);
+  --ease-pop:    cubic-bezier(0.2, 1.4, 0.4, 1);
+  --dur-fast: 200ms;
+  --dur-base: 350ms;
+  --dur-slow: 600ms;
+
+  --animate-check-pop: check-pop 600ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  --animate-check-in:  check-in 350ms cubic-bezier(0.2, 1.4, 0.4, 1) 250ms both;
+
+  @keyframes check-pop {
+    from { opacity: 0; transform: scale(.3); }
+    to   { opacity: 1; transform: none; }
+  }
+  @keyframes check-in {
+    from { opacity: 0; transform: scale(.4) rotate(-12deg); }
+    to   { opacity: 1; transform: none; }
+  }
 
   --animate-sobe:  sobe 280ms cubic-bezier(.2, .8, .2, 1) both;
   --animate-sheet: sheet 320ms cubic-bezier(.2, .8, .2, 1) both;
-  --animate-pulso: pulso 1.6s ease-in-out infinite;
   --animate-aparece: aparece 320ms cubic-bezier(.2, .8, .2, 1) both;
   --animate-brilho:  brilho 1.4s ease-in-out infinite;
   --animate-estrela: estrela 360ms cubic-bezier(.3, 1.6, .5, 1) both;
@@ -264,10 +286,6 @@
     0%   { transform: scale(.6); }
     60%  { transform: scale(1.18); }
     100% { transform: none; }
-  }
-  @keyframes pulso {
-    0%, 100% { opacity: 1; }
-    50%      { opacity: .35; }
   }
 }
 
@@ -294,6 +312,7 @@
   --color-erro:         #F08A83;
   --color-erro-tint:    #3A211F;
   --color-skeleton:     #153526;
+  --color-sobre-ambar:  #0E2A1F;
 }
 
 .dark .app {
@@ -308,6 +327,18 @@
   background-color: #123A28;
   background-image: linear-gradient(135deg, rgba(20, 72, 48, 0.9), rgba(8, 26, 19, 0.92));
 }
+
+/* Blocos escuros da marca: mesmos tokens nos dois temas (títulos brancos, corpo salvia-tint, destaque salvia) */
+.dark :is(.hero-explore, .superficie-marca) {
+  --color-verde: #0E2A1F; --color-verde-medio: #1F5C42; --color-areia: #FAF6EF; --color-areia-2: #F3E9D8;
+  --color-branco: #FFFFFF; --color-salvia: #8FC0A8; --color-salvia-tint: #E3F0E9; --color-ambar: #F0A22E;
+  --color-ambar-hover: #E08F17; --color-ambar-tint: #FDF0DC; --color-aviso-texto: #7A4A0B; --color-mel: #B76E12;
+  --color-mel-texto: #9A5C0E; --color-texto-corpo: #2C3A33; --color-cinza: #5E6B64; --color-borda: #E1E5DB;
+  --color-borda-forte: #B9C2B5; --color-erro: #B3261E; --color-erro-tint: #FBEAE8; --color-skeleton: #ECE6DA;
+}
+
+/* Cor do fundo da página, resolvida no .app (para os recortes do bilhete) */
+.app { --fundo-pagina: var(--color-areia); }
 
 @utility app {
   background-color: var(--color-areia);
@@ -349,6 +380,91 @@
   :where(.app) :focus-visible { outline: 3px solid var(--color-verde-medio); outline-offset: 2px; }
 }
 
+/* Transição entre ecrãs (PageTransition em components/bz/motion.tsx): sai a desvanecer, entra a subir 8px */
+::view-transition-old(.pagina) { animation: 120ms ease-in both vt-sai; }
+::view-transition-new(.pagina) { animation: 280ms cubic-bezier(.2, .8, .2, 1) 60ms both vt-entra; }
+::view-transition-group(.pagina) { animation-duration: 280ms; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+@keyframes vt-sai { to { opacity: 0; } }
+@keyframes vt-entra { from { opacity: 0; translate: 0 8px; } }
+
+/* Listas e grelhas que entram em cascata: cada filho sobe 40ms depois do anterior (até ao 8.º; o resto entra junto) */
+@utility entra-cascata {
+  & > * { animation: var(--animate-sobe); }
+  & > :nth-child(2) { animation-delay: 40ms; }
+  & > :nth-child(3) { animation-delay: 80ms; }
+  & > :nth-child(4) { animation-delay: 120ms; }
+  & > :nth-child(5) { animation-delay: 160ms; }
+  & > :nth-child(6) { animation-delay: 200ms; }
+  & > :nth-child(7) { animation-delay: 240ms; }
+  & > :nth-child(n + 8) { animation-delay: 280ms; }
+}
+
+/* ── v4 · Movimento (DESIGN_SYSTEM §6/§7). Só transform e opacity. Hover/3D só com rato e sem reduced-motion. ── */
+
+/* Levantar: cartões clicáveis sobem 4px e a borda escurece (desktop). Usa `translate` (e não `transform`)
+   para compor com animações de entrada como animate-sobe, que fixam o transform no fim. */
+@utility levantar {
+  transition: translate var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), scale var(--dur-fast) var(--ease-out);
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    &:hover { translate: 0 -4px; border-color: var(--color-borda-forte); }
+  }
+}
+
+/* Inclinação 3D no hover (cartões de categoria, mockups) — nunca no telemóvel */
+@utility inclinar-3d {
+  transition: transform var(--dur-base) var(--ease-out);
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    &:hover { transform: perspective(1000px) rotateX(6deg) rotateY(-8deg); }
+  }
+}
+
+/* Bilhete da reserva: leve inclinação em repouso que endireita ao passar/tocar (só com rato) */
+@utility bilhete-3d {
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    transform: perspective(1000px) rotateX(6deg) rotateZ(-1.2deg);
+    transform-origin: 50% 100%;
+    transition: transform var(--dur-base) var(--ease-out);
+    &:hover, &:focus-within, &:active { transform: none; }
+  }
+}
+
+/* Hexágono a virar: o tile roda 180° no hover (dele ou de um .group antepassado) e o ícone contra-roda */
+@utility hex-vira {
+  transition: transform 500ms var(--ease-out);
+  & > * { transition: transform 500ms var(--ease-out); }
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    &:hover, :where(.group):hover & { transform: rotateY(180deg); }
+    &:hover > *, :where(.group):hover & > * { transform: rotateY(180deg); }
+  }
+}
+
+/* Timeline viva: a linha preenche (scaleX na horizontal, scaleY na vertical) e os pontos acendem em sequência.
+   Cada ponto/segmento recebe --i (índice) para o atraso. Corre uma vez (nada de infinito na app). */
+@utility timeline-fill-x {
+  transform-origin: left center;
+  animation: tl-fill-x var(--dur-slow) var(--ease-in-out) calc(var(--i, 0) * 120ms) both;
+}
+@utility timeline-fill-y {
+  transform-origin: center top;
+  animation: tl-fill-y var(--dur-slow) var(--ease-in-out) calc(var(--i, 0) * 120ms) both;
+}
+@utility timeline-acende {
+  animation: tl-acende var(--dur-base) var(--ease-pop) calc(var(--i, 0) * 120ms) both;
+}
+@keyframes tl-fill-x { from { transform: scaleX(0); } to { transform: none; } }
+@keyframes tl-fill-y { from { transform: scaleY(0); } to { transform: none; } }
+@keyframes tl-acende { from { opacity: .35; transform: scale(.6); } to { opacity: 1; transform: none; } }
+
+/* Seta dos botões: desliza 4px no hover do botão (Button com arrow) */
+@utility seta-desliza {
+  transition: transform var(--dur-fast) var(--ease-out);
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    :where(.group\/btn):hover & { transform: translateX(4px); }
+  }
+}
+
+/* Reduced motion: desliga animações e transições e mostra logo o estado final (sem atrasos). */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+  *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }

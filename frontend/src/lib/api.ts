@@ -1,6 +1,6 @@
 import { readSession, toSession, writeSession } from "./session";
 import type {
-  Account, AdminPayment, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType,
+  Account, AdminMetrics, AdminPayment, AdminUserDetail, AdminUserSummary, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType,
   CommissionDue, Contract, Deposit, DirectChannel, Incident, IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, KycAccountType, KycDetail,
   KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
 } from "./types";
@@ -175,9 +175,17 @@ export const catalogApi = {
   categories: () => request<Category[]>("/categories"),
   // order: RECENT (destaques primeiro) · POPULAR (mais alugados) · RATING (mais bem avaliados)
   // startDate + endDate (as duas): só equipamento livre nesse período (o dia de devolução é exclusivo)
-  items: (p: { categoryId?: string; page?: number; size?: number; featured?: boolean; order?: ItemOrder; startDate?: string; endDate?: string }) => {
+  items: (p: {
+    categoryId?: string; page?: number; size?: number; featured?: boolean; order?: ItemOrder; startDate?: string; endDate?: string;
+    // pesquisa no servidor (#17): título, cidade/província, Kz por dia, estado
+    text?: string; area?: string; maxPrice?: number; condition?: ItemCondition;
+  }) => {
     const q = new URLSearchParams({ page: String(p.page ?? 0), size: String(p.size ?? 20) });
     if (p.categoryId) q.set("categoryId", p.categoryId);
+    if (p.text?.trim()) q.set("q", p.text.trim());
+    if (p.area?.trim()) q.set("area", p.area.trim());
+    if (p.maxPrice !== undefined) q.set("maxPrice", String(p.maxPrice));
+    if (p.condition) q.set("condition", p.condition);
     if (p.startDate && p.endDate) {
       q.set("startDate", p.startDate);
       q.set("endDate", p.endDate);
@@ -255,6 +263,8 @@ export const walletApi = {
 
 /** Ações de admin que já existem (sem listagens — ver docs/BACKEND_GAPS.md). */
 export const adminApi = {
+  // Painel: North Star, funil, comissões, KYC (só leitura)
+  metrics: () => request<AdminMetrics>("/admin/metrics"),
   // Motivo fica em audit_logs
   // Pagamento direto: confirmar em nome do dono (motivo e meio obrigatórios)
   confirmPayment: (bookingId: string, reason: string, channel: DirectChannel) =>
@@ -294,6 +304,14 @@ export const adminApi = {
     if (f.severity) q.set("severity", f.severity);
     return request<Page<SecurityEvent>>(`/admin/security-events?${q}`);
   },
+  // Utilizadores: pesquisa por nome, email ou telefone; suspensão com motivo (auditoria)
+  users: (q: string, suspended = false, page = 0, size = 20) =>
+    request<Page<AdminUserSummary>>(`/admin/users?${new URLSearchParams({ q, suspended: String(suspended), page: String(page), size: String(size) })}`),
+  user: (id: string) => request<AdminUserDetail>(`/admin/users/${id}`),
+  suspendUser: (id: string, reason: string) => post<AdminUserSummary>(`/admin/users/${id}/suspend`, { reason }),
+  reinstateUser: (id: string, reason?: string) => post<AdminUserSummary>(`/admin/users/${id}/reinstate`, { reason }),
+  suspendItem: (id: string, reason: string) => patch<Item>(`/admin/items/${id}/suspend`, { reason }),
+  reinstateItem: (id: string, reason?: string) => patch<Item>(`/admin/items/${id}/reinstate`, { reason }),
 };
 
 /** Contrato da reserva: o arrendatário aceita antes de gerar a referência de pagamento. */

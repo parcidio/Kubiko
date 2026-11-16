@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { BadgeCheck, ShieldCheck, Ticket } from "lucide-react";
 import { HexGlow, Logo } from "@/components/bz/brand";
-import { Firefly } from "@/components/bz/firefly";
+import { HEX_CLIP, HexTile } from "@/components/bz/hex";
 
 const PROMISES = [
   { icon: BadgeCheck, text: "Donos e arrendatários verificados" },
@@ -13,6 +13,27 @@ const PROMISES = [
 ];
 
 const EASE = "cubic-bezier(0.77, 0, 0.18, 1)";
+
+/**
+ * Hexágono 3D da marca (v4 §7): camadas recuadas com translateZ e brilho decrescente dão espessura.
+ * Estático de propósito (na app nada roda sem fim); decorativo.
+ */
+function HexStack({ size, tone, className }: { size: number; tone: "ambar" | "salvia"; className?: string }) {
+  const bg = tone === "ambar" ? "bg-ambar" : "bg-salvia";
+  return (
+    <div aria-hidden className={`pointer-events-none absolute [perspective:900px] ${className ?? ""}`}>
+      <div className="relative [transform-style:preserve-3d] [transform:rotateX(18deg)_rotateY(-30deg)]" style={{ width: size, height: Math.round(size * 1.1547) }}>
+        {[0, 1, 2, 3].map((n) => (
+          <span
+            key={n}
+            className={`absolute inset-0 ${bg}`}
+            style={{ clipPath: HEX_CLIP, transform: `translateZ(${-n * 3}px)`, filter: n ? `brightness(${[1, 0.8, 0.68, 0.9][n]})` : undefined }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -49,23 +70,25 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         }`}
       >
         <HexGlow />
+        <HexStack size={74} tone="ambar" className="top-4 right-5 origin-top-right scale-[.7] md:top-24 md:right-16 md:scale-100" />
+        <HexStack size={34} tone="salvia" className="top-52 right-44 hidden md:block" />
         <div className="relative">
           <Logo dark href="/" />
         </div>
         <div className="relative mt-8 grid gap-4 md:mt-0">
-          <p className="font-titulo text-[34px] leading-[1] font-extrabold tracking-tight md:text-[56px]">
-            Por que comprar quando podes <span className="text-primary-foreground">alugar?</span>
+          <p className="max-w-[16ch] font-titulo text-[34px] leading-[1.02] font-extrabold tracking-[-0.025em] text-white md:text-[56px]">
+            Por que comprar quando podes <span className="text-salvia">alugar?</span>
           </p>
           <ul className="hidden gap-3 md:grid">
             {PROMISES.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-areia/85">
-                <Icon className="size-5 text-primary-foreground" strokeWidth={1.8} aria-hidden />
+              <li key={text} className="group flex items-center gap-3 text-salvia-tint">
+                <HexTile icon={Icon} tone="salvia" size={40} flip />
                 {text}
               </li>
             ))}
           </ul>
         </div>
-        <p className="relative hidden text-[13px] text-areia/60 md:block">Equipamento de fotografia, vídeo e eventos em Luanda.</p>
+        <p className="relative hidden text-[13px] text-salvia-tint/80 md:block">Equipamento de fotografia, vídeo e eventos em Luanda.</p>
       </aside>
 
       {/* Só esta área faz scroll; a margem reserva o espaço do painel fixo */}

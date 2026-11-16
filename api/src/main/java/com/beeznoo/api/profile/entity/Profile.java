@@ -68,6 +68,20 @@ public class Profile {
     @Column(name = "rating_avg", precision = 3, scale = 2)
     private BigDecimal ratingAvg;
 
+    // Suspensão pela equipa (V25): não entra e o equipamento sai do Explorar
+    @Column(name = "suspended_at")
+    private OffsetDateTime suspendedAt;
+
+    @Column(name = "suspension_reason")
+    private String suspensionReason;
+
+    @Column(name = "suspended_by")
+    private UUID suspendedBy;
+
+    public boolean isSuspended() {
+        return suspendedAt != null;
+    }
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

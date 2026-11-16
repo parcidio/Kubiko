@@ -53,15 +53,15 @@ export function MonthCalendar({
           aria-label="Mês anterior"
           disabled={atCurrentMonth}
           onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
-          className="flex size-11 items-center justify-center rounded-full hover:bg-areia-2 disabled:opacity-30"
+          className="flex size-11 cursor-pointer items-center justify-center rounded-campo text-verde transition-colors duration-200 hover:bg-areia-2 disabled:cursor-default disabled:opacity-30"
         >
-          <ChevronLeft className="size-5" strokeWidth={1.8} />
+          <ChevronLeft className="size-5" strokeWidth={1.8} aria-hidden />
         </button>
-        <p className="font-titulo font-bold text-verde" aria-live="polite">
+        <p className="font-titulo text-[17px] font-bold tracking-tight text-verde" aria-live="polite">
           {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
         </p>
-        <button type="button" aria-label="Mês seguinte" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="flex size-11 items-center justify-center rounded-full hover:bg-areia-2">
-          <ChevronRight className="size-5" strokeWidth={1.8} />
+        <button type="button" aria-label="Mês seguinte" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="flex size-11 cursor-pointer items-center justify-center rounded-campo text-verde transition-colors duration-200 hover:bg-areia-2">
+          <ChevronRight className="size-5" strokeWidth={1.8} aria-hidden />
         </button>
       </div>
       <div className="grid grid-cols-7 gap-1 text-center">
@@ -86,14 +86,14 @@ export function MonthCalendar({
                 : selected ? ", selecionado" : isReturnDay(day) ? ", devolução" : ""
           }`;
           const cls = cn(
-            "num flex h-11 items-center justify-center rounded-campo text-sm transition",
+            "num flex h-11 items-center justify-center rounded-campo font-titulo text-[15px] transition-colors duration-200",
             past && "text-borda-forte",
             !past && state === "BOOKED" && "bg-areia-2 text-cinza line-through",
             !past && state === "BLOCKED" && (mode === "owner" ? cn(STRIPES, "font-bold text-areia") : "bg-areia-2 text-cinza line-through"),
             selected && !state && "bg-verde font-bold text-areia",
             conflict && "bg-erro font-bold text-branco no-underline",
             isReturnDay(day) && !state && "font-bold text-verde ring-2 ring-verde ring-inset",
-            interactive && !selected && "text-verde hover:bg-areia-2",
+            interactive && !selected && "cursor-pointer text-verde hover:bg-areia-2",
             !interactive && !past && !state && !selected && !isReturnDay(day) && "text-verde",
             day === todayIso && !selected && !state && !isReturnDay(day) && "ring-2 ring-ambar",
           );

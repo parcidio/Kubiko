@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { CheckCircle2, FileDown, Flag, HandCoins, ScrollText, ShieldCheck } from "lucide-react";
+import { CheckCircle2, FileDown, Flag, HandCoins, Receipt, ScrollText, ShieldCheck } from "lucide-react";
 import { AdminHeader, BookingEvidence, BookingStatusBadge, ConfirmWithReason } from "@/components/bz/admin";
 import { Timeline } from "@/components/bz/booking";
 import { VerifiedBadge } from "@/components/bz/equipment";
 import { toast } from "@/components/bz/overlay";
 import { ErrorState, ListSkeleton } from "@/components/bz/states";
 import { BackLink, Button, ButtonLink, Card, Kz, Skeleton } from "@/components/bz/ui";
-import { ApiError, adminApi, bookingApi, documentApi } from "@/lib/api";
+import { ApiError, adminApi, bookingApi, documentApi, paymentApi } from "@/lib/api";
 import { bookingCode } from "@/lib/booking";
 import { daysBetween, formatDateTime, formatRange } from "@/lib/format";
-import { CHANNEL_LABEL, type AuditLog, type Booking, type DirectChannel, type Page } from "@/lib/types";
+import { CHANNEL_LABEL, type AuditLog, type Booking, type DirectChannel, type Page, type Payment } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
 const HAS_CONTRACT = ["ACCEPTED", "ACTIVE", "IN_PROGRESS", "RETURNED", "COMPLETED", "DISPUTED"];
@@ -159,6 +159,7 @@ export default function AdminReserva() {
               </div>
             )}
           </Card>
+          <PaymentCard bookingId={b.id} status={b.status} onViewed={audit.reload} />
           <Card className="p-5">
             <BookingEvidence bookingId={b.id} />
           </Card>
@@ -213,14 +214,76 @@ const AUDIT_SHORT: Record<string, string> = {
   DEPOSIT_RELEASED: "Caução libertada",
   DEPOSIT_WITHHELD: "Caução retida",
   BOOKING_COMPLETED: "Reserva concluída",
+  PAYMENT_RECEIVED: "Dono confirmou o pagamento",
+  DEPOSIT_RETURNED_BY_OWNER: "Dono devolveu a caução",
+  DEPOSIT_WITHHELD_BY_OWNER: "Dono reteve parte da caução",
 };
+
+/** Pagamento da reserva (o admin passou a poder ver: decisoes-produto.md 2026-11-15) e o comprovativo em PDF. */
+function PaymentCard({ bookingId, status, onViewed }: { bookingId: string; status: Booking["status"]; onViewed: () => void }) {
+  const pay = useResource<Payment | undefined>(`admin:payment:${bookingId}:${status}`, () => paymentApi.current(bookingId));
+  const [downloading, setDownloading] = useState(false);
+  const p = pay.data;
+
+  async function receipt(id: string) {
+    setDownloading(true);
+    try {
+      await documentApi.receipt(id); // fica na auditoria (RECEIPT_VIEWED)
+      onViewed();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Não foi possível descarregar.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <Card className="grid gap-3 p-5">
+      <h2 className="font-titulo text-lg font-bold text-verde">Pagamento</h2>
+      {pay.error ? (
+        <ErrorState message={pay.error} onRetry={pay.reload} className="py-4" />
+      ) : pay.loading ? (
+        <Skeleton role="status" aria-label="A carregar pagamento" className="h-16 rounded-campo" />
+      ) : !p ? (
+        <p className="text-sm text-cinza">Ainda sem pagamento. Paga-se ao dono na entrega, depois de aceite o contrato.</p>
+      ) : (
+        <div className="grid gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div>
+              <p className="text-[13px] text-cinza">Estado</p>
+              <p className="font-bold text-verde">{p.status === "CONFIRMED" ? "Pago" : p.status === "AWAITING_PAYMENT" ? "Por pagar" : p.status}</p>
+            </div>
+            <div>
+              <p className="text-[13px] text-cinza">Total</p>
+              <Kz value={p.amount} className="font-bold text-verde" />
+            </div>
+            <div>
+              <p className="text-[13px] text-cinza">Taxa de serviço</p>
+              <Kz value={p.serviceFee} className="font-bold text-verde" />
+            </div>
+            <div>
+              <p className="text-[13px] text-cinza">Meio</p>
+              <p className="font-bold text-verde">{p.channel ? CHANNEL_LABEL[p.channel] : p.method === "DIRECT" ? "Ao dono" : p.method}</p>
+            </div>
+          </div>
+          {p.confirmedAt && <p className="text-sm text-cinza">Confirmado a {formatDateTime(p.confirmedAt)}{p.receiptNumber ? ` · ${p.receiptNumber}` : ""}</p>}
+          {p.status === "CONFIRMED" && (
+            <Button variant="outline" size="sm" className="justify-self-start" loading={downloading} onClick={() => receipt(p.id)}>
+              <Receipt strokeWidth={1.8} /> Comprovativo (PDF)
+            </Button>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
 
 function Party({ label, name, verified, id }: { label: string; name: string; verified: boolean; id: string }) {
   return (
     <div className="min-w-0">
       <p className="text-[13px] text-cinza">{label}</p>
       <p className="flex flex-wrap items-center gap-2">
-        <Link href={`/admin/auditoria?actorId=${id}&actorName=${encodeURIComponent(name)}`} className="truncate font-bold text-verde hover:underline">
+        <Link href={`/admin/utilizadores/${id}`} className="truncate font-bold text-verde hover:underline">
           {name}
         </Link>
         {verified ? <VerifiedBadge compact /> : <span className="text-[13px] text-cinza">sem KYC aprovado</span>}
