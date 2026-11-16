@@ -15,6 +15,8 @@ services:
       args:
         API_URL: http://api:8080
         STORAGE_PUBLIC_ORIGIN: ${PUBLIC_S3_URL}
+        # pré-visualização dos links (og:image absoluto)
+        SITE_URL: ${PUBLIC_WEB_URL}
         NEXT_PUBLIC_WHATSAPP_NUMBER: ${NEXT_PUBLIC_WHATSAPP_NUMBER:-244939351150}
     restart: unless-stopped
     depends_on:
@@ -75,6 +77,8 @@ services:
       # produto
       KYC_REQUIRED: ${KYC_REQUIRED:-true}
       PAYMENTS_MODE: ${PAYMENTS_MODE:-direct}
+      # taxa de serviço sobre o aluguer (0.08 = 8%); o frontend lê-a de GET /api/v1/config
+      PAYMENTS_SERVICE_FEE_RATE: ${PAYMENTS_SERVICE_FEE_RATE:-0.08}
       COMPANY_LEGAL_NAME: ${COMPANY_LEGAL_NAME:-Beeznoo}
       COMPANY_NIF: ${COMPANY_NIF:-}
       COMPANY_ADDRESS: ${COMPANY_ADDRESS:-Luanda, Angola}

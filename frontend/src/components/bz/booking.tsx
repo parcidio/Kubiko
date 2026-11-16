@@ -1,5 +1,6 @@
 "use client";
 
+import { formatFeeRate, useServiceFeeRate } from "@/lib/fee";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AlertTriangle, Check, ChevronRight, Clock, Hourglass, ShieldCheck, Users, X } from "lucide-react";
@@ -7,7 +8,7 @@ import { Avatar, ItemPhoto } from "./equipment";
 import { SuccessCheck } from "./success";
 import { Badge, ButtonLink, Kz } from "./ui";
 import { BOOKING_LABEL, TIMELINE_STEPS, bookingCode, stepsDone, type NextStep } from "@/lib/booking";
-import { SERVICE_FEE_RATE, daysBetween, formatDateTime, formatDay, formatDuration, formatKz, formatRange } from "@/lib/format";
+import { daysBetween, formatDateTime, formatDay, formatDuration, formatKz, formatRange } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Booking } from "@/lib/types";
 
@@ -231,12 +232,13 @@ function TimelineDot({ isDone, isNow, isProblem, index }: { isDone: boolean; isN
 }
 
 // ── PriceSummary: aluguer + taxa 8% + caução separada ─────────────────────
-/** Resumo de preço (v4): aluguer, taxa 8%, caução com badge "reembolsável", total "Pagas ao dono na entrega". `as="owner"` mostra o que o dono recebe. */
+/** Resumo de preço (v4): aluguer, taxa de serviço (PAYMENTS_SERVICE_FEE_RATE), caução com badge "reembolsável", total "Pagas ao dono na entrega". `as="owner"` mostra o que o dono recebe. */
 export function PriceSummary({
   pricePerDay, days, deposit, as = "renter", serviceFee,
 }: { pricePerDay: number; days: number; deposit: number; as?: "renter" | "owner"; serviceFee?: number }) {
+  const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
   const rental = Math.round(pricePerDay * days);
-  const fee = serviceFee ?? Math.round(rental * SERVICE_FEE_RATE);
+  const fee = serviceFee ?? Math.round(rental * feeRate);
   // Pagamento direto (2026-11-15): o arrendatário paga tudo ao dono na entrega; o dono entrega a taxa à Beeznoo
   if (as === "owner") {
     return (
@@ -259,7 +261,7 @@ export function PriceSummary({
   return (
     <div className="grid text-[15px]">
       <Row label={`${days} ${days === 1 ? "dia" : "dias"} × ${formatKz(pricePerDay)}`} value={formatKz(rental)} divided />
-      <Row label="Taxa de serviço (8%)" value={formatKz(fee)} divided />
+      <Row label={`Taxa de serviço (${formatFeeRate(feeRate)})`} value={formatKz(fee)} divided />
       <Row
         label={
           <span className="flex flex-wrap items-center gap-2">

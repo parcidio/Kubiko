@@ -1,9 +1,12 @@
+"use client";
+
 import Link from "next/link";
+import { useServiceFeeRate } from "@/lib/fee";
 import { BadgeCheck, MapPin, Package, Repeat2, Sparkles, Star, type LucideIcon } from "lucide-react";
 import { categoryIcon, hexPath } from "./brand";
 import { Kz } from "./ui";
 import { initials } from "@/lib/booking";
-import { CONDITION_LABEL, daysBetween, formatKz, SERVICE_FEE_RATE } from "@/lib/format";
+import { CONDITION_LABEL, daysBetween, formatKz } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { ItemCondition, ItemSummary } from "@/lib/types";
 
@@ -126,6 +129,7 @@ export function RatingInline({ average, count, className }: { average: number | 
 export function EquipmentCard({
   item, href, icon, index = 0, className, showFeatured = true, dates,
 }: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean; dates?: { start: string; end: string } }) {
+  const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
   const days = dates ? daysBetween(dates.start, dates.end) : 0;
   const tag = item.featured && showFeatured
     ? { label: "Em destaque", icon: Sparkles, cls: "bg-verde text-areia [&_svg]:text-ambar" }
@@ -162,7 +166,7 @@ export function EquipmentCard({
         <h3 className="line-clamp-2 font-titulo text-base leading-snug font-bold text-verde md:text-lg">{item.title}</h3>
         {days > 0 && (
           <p className="text-[13px] text-texto-corpo">
-            <b className="num text-verde">{formatKz(Number(item.pricePerDay) * days * (1 + SERVICE_FEE_RATE))}</b> · {days} {days === 1 ? "dia" : "dias"}
+            <b className="num text-verde">{formatKz(Number(item.pricePerDay) * days * (1 + feeRate))}</b> · {days} {days === 1 ? "dia" : "dias"}
           </p>
         )}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">

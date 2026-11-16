@@ -149,7 +149,8 @@ function AffixInput({
 }
 
 /** Telefone angolano: prefixo +244 fixo, 9 dígitos. */
-export function PhoneField({ label = "Telefone", value, onChange, error, hint, className }: Partial<Common> & Pick<Common, "value" | "onChange">) {
+// autoComplete="username" no registo: o gestor de passwords grava o telefone como utilizador (o login aceita-o)
+export function PhoneField({ label = "Telefone", value, onChange, error, hint, className, autoComplete = "tel-national" }: Partial<Common> & Pick<Common, "value" | "onChange"> & { autoComplete?: string }) {
   const id = useId();
   return (
     <Field id={id} label={label} hint={hint} error={error} className={className}>
@@ -158,7 +159,7 @@ export function PhoneField({ label = "Telefone", value, onChange, error, hint, c
         prefix="+244"
         type="tel"
         inputMode="numeric"
-        autoComplete="tel-national"
+        autoComplete={autoComplete}
         placeholder="923 456 789"
         maxLength={11}
         value={value}
@@ -204,6 +205,7 @@ export function PasswordField({
         <input
           id={id}
           type={visible ? "text" : "password"}
+          name="password"
           autoComplete={autoComplete}
           className={cn(inputClass, "pr-12")}
           value={value}

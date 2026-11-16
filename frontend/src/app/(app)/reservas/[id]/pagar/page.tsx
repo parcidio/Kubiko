@@ -1,5 +1,6 @@
 "use client";
 
+import { formatFeeRate, useServiceFeeRate } from "@/lib/fee";
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Banknote, FileText, HandCoins, Landmark, ShieldAlert, ShieldCheck, Smartphone, Wallet, type LucideIcon } from "lucide-react";
@@ -14,7 +15,7 @@ import { BackLink, Button, ButtonLink, Callout, Card, Eyebrow, Kz, Skeleton } fr
 import { ApiError, bookingApi, contractApi, paymentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { PAID_STATUSES, bookingCode, firstName } from "@/lib/booking";
-import { daysBetween, formatDay, SERVICE_FEE_RATE } from "@/lib/format";
+import { daysBetween, formatDay } from "@/lib/format";
 import { CHANNEL_LABEL, type Booking, type Contract, type DirectChannel } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
@@ -29,6 +30,7 @@ const CHANNELS: { value: DirectChannel; icon: LucideIcon }[] = [
  * Arrendatário: quanto e como pagar, e as regras. Dono: confirmar que recebeu → reserva paga + comprovativo.
  */
 export default function PagarPage() {
+  const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
   const session = useRequireSession();
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
@@ -52,7 +54,7 @@ export default function PagarPage() {
   const as = b.ownerId === session.profileId ? "owner" : "renter";
   const days = daysBetween(b.startDate, b.endDate);
   const rental = Number(b.totalPrice);
-  const fee = Math.round(rental * SERVICE_FEE_RATE);
+  const fee = Math.round(rental * feeRate);
   const deposit = Number(b.depositAmount);
   const total = rental + fee + deposit;
 
@@ -111,7 +113,7 @@ export default function PagarPage() {
         ]
       : [
           [`Aluguer · ${days} ${days === 1 ? "dia" : "dias"}`, rental],
-          [`Taxa de serviço (${Math.round(SERVICE_FEE_RATE * 100)}%)`, fee],
+          [`Taxa de serviço (${formatFeeRate(feeRate)})`, fee],
           ...(deposit > 0 ? ([["Caução reembolsável", deposit]] as [string, number][]) : []),
         ];
 
