@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AdminMfaStep, AuthTitle, Divider, GoogleButton } from "@/components/bz/auth";
 import { FormError, PasswordField, PhoneField, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
-import { Segmented } from "@/components/bz/tabs";
+import { SegmentedControl } from "@/components/bz/tabs";
 import { Button } from "@/components/bz/ui";
 import { authApi } from "@/lib/api";
 import { safeNext, signIn } from "@/lib/auth";
@@ -61,7 +61,7 @@ function LoginForm() {
     <>
       <AuthTitle title="Olá outra vez" subtitle="Entra para pedir reservas, pagar e acompanhar tudo num sítio." />
       <form onSubmit={submit} className="grid gap-5" noValidate>
-        <Segmented
+        <SegmentedControl
           label="Entrar com"
           value={mode}
           onChange={setMode}

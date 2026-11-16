@@ -8,7 +8,7 @@ import { CameraSlot } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
 import { SuccessCheck } from "@/components/bz/success";
-import { Segmented } from "@/components/bz/tabs";
+import { SegmentedControl } from "@/components/bz/tabs";
 import { BackLink, Button, ButtonLink, Callout, Card, Skeleton } from "@/components/bz/ui";
 import { kycApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
@@ -128,7 +128,7 @@ export default function VerificacaoPage() {
       </Callout>
 
       {k.status !== "INFO_REQUESTED" && (
-        <Segmented
+        <SegmentedControl
           label="Tipo de conta"
           value={kind}
           onChange={setKind}

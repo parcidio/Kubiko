@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export const inputClass = cn(
-  "h-12 w-full rounded-campo border-[1.5px] border-borda-forte bg-branco px-4 text-[15px] text-verde outline-none transition",
+  "h-12 w-full rounded-campo border-[1.5px] border-borda-forte bg-branco px-4 text-base text-verde outline-none transition", // 16px: sem zoom do iOS ao focar
   "placeholder:text-cinza focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint",
   "aria-invalid:border-2 aria-invalid:border-erro disabled:bg-areia-2 disabled:text-cinza",
 );
@@ -138,7 +138,7 @@ function AffixInput({
       {prefix && <span className="flex items-center bg-areia-2 px-4 font-bold text-verde">{prefix}</span>}
       <input
         id={id}
-        className="num min-w-0 flex-1 bg-transparent px-4 text-[15px] text-verde outline-none placeholder:text-cinza"
+        className="num min-w-0 flex-1 bg-transparent px-4 text-base text-verde outline-none placeholder:text-cinza"
         aria-invalid={!!error || undefined}
         aria-describedby={describedBy(id, error, hint)}
         {...rest}

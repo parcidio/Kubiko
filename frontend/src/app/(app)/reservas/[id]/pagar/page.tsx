@@ -116,7 +116,7 @@ export default function PagarPage() {
         ];
 
   const hero = (
-    <section className="relative animate-sobe overflow-hidden rounded-sheet bg-verde p-5 text-areia md:p-6">
+    <section className="superficie-marca relative animate-sobe overflow-hidden rounded-sheet bg-verde p-5 text-areia md:p-6">
       <div className="hex-bg absolute inset-0 opacity-60" aria-hidden />
       <div className="relative grid gap-1">
         <Eyebrow className="text-salvia">{as === "owner" ? `Recebes de ${firstName(b.renterName)}, na entrega` : `Pagas a ${firstName(b.ownerName)}, na entrega`}</Eyebrow>
@@ -162,7 +162,7 @@ export default function PagarPage() {
 
             <Card className="grid gap-4 p-5">
               <div className="grid gap-2">
-                <h2 id="como-recebeste" className="font-titulo text-lg font-bold text-verde">Como recebeste?</h2>
+                <h2 className="font-titulo text-lg font-bold text-verde">Como recebeste?</h2>
                 <SegmentedControl
                   label="Como recebeste?"
                   value={channel as DirectChannel}

@@ -54,7 +54,7 @@ export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" 
   const other = as === "renter" ? { role: "Dono", name: booking.ownerName } : { role: "Arrendatário", name: booking.renterName };
   return (
     <div className="animate-sobe">
-    <article className="bilhete-3d relative overflow-hidden rounded-sheet bg-verde text-areia" aria-label={`Reserva ${bookingCode(booking.id)}`}>
+    <article className="superficie-marca bilhete-3d relative overflow-hidden rounded-sheet bg-verde text-areia" aria-label={`Reserva ${bookingCode(booking.id)}`}>
       <div className="hex-bg absolute inset-0 opacity-70" aria-hidden />
       <div className="relative flex gap-4 p-5">
         <ItemPhoto src={booking.itemCoverPhoto} alt={booking.itemTitle} className="w-24 shrink-0 rounded-campo bg-white/10 text-salvia" />
@@ -66,8 +66,8 @@ export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" 
       </div>
       {/* picotado com recortes laterais */}
       <div className="relative h-6" aria-hidden>
-        <span className="absolute top-1/2 -left-3 size-6 -translate-y-1/2 rounded-full bg-areia" />
-        <span className="absolute top-1/2 -right-3 size-6 -translate-y-1/2 rounded-full bg-areia" />
+        <span className="absolute top-1/2 -left-3 size-6 -translate-y-1/2 rounded-full bg-(--fundo-pagina)" />
+        <span className="absolute top-1/2 -right-3 size-6 -translate-y-1/2 rounded-full bg-(--fundo-pagina)" />
         <span className="absolute inset-x-5 top-1/2 border-t-2 border-dashed border-salvia/35" />
       </div>
       <dl className="relative grid grid-cols-3 gap-3 px-5 pt-1 pb-5">
@@ -84,7 +84,7 @@ export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" 
           <dd className="num font-titulo text-lg font-bold">{days}</dd>
         </div>
         <div className="col-span-3 flex items-center gap-3 border-t border-white/10 pt-3">
-          <Avatar name={other.name} size="sm" className="bg-ambar text-verde" />
+          <Avatar name={other.name} size="sm" className="bg-salvia text-verde" />
           <div className="min-w-0">
             <dt className="text-[11px] font-bold tracking-[0.12em] text-salvia uppercase">{other.role}</dt>
             <dd className="truncate font-medium">{other.name}</dd>
@@ -128,7 +128,7 @@ export function NextStepCard({ step, deadline, amount, positive }: { step: NextS
         <div className="flex flex-wrap items-center justify-between gap-3">
           {amount !== undefined && <Kz value={amount} className="text-2xl text-verde md:text-3xl" />}
           {step.cta && (
-            <ButtonLink href={step.cta.href} variant={mine ? "primary" : "secondary"} block={amount === undefined} className={cn(amount !== undefined && "ml-auto")}>
+            <ButtonLink href={step.cta.href} variant={mine || positive ? "primary" : "secondary"} block={amount === undefined} className={cn(amount !== undefined && "ml-auto")}>
               {step.cta.label}
             </ButtonLink>
           )}
@@ -164,11 +164,12 @@ export function Timeline({ booking, orientation = "vertical" }: { booking: Booki
     const n = steps.length;
     const progress = n > 1 ? Math.min(done, n - 1) / (n - 1) : 0;
     return (
-      <div>
-        <ol className="relative grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
-          <span aria-hidden className="absolute top-[13px] h-[3px] overflow-hidden rounded-full bg-borda" style={{ left: `${50 / n}%`, right: `${50 / n}%` }}>
-            <span className="timeline-fill-x absolute inset-y-0 left-0 bg-salvia" style={{ width: `${progress * 100}%` }} />
-          </span>
+      <div className="relative">
+        {/* linha de progresso fora do <ol> (só <li> podem ser filhos de uma lista) */}
+        <span aria-hidden className="absolute top-[13px] h-[3px] overflow-hidden rounded-full bg-borda" style={{ left: `${50 / n}%`, right: `${50 / n}%` }}>
+          <span className="timeline-fill-x absolute inset-y-0 left-0 bg-salvia" style={{ width: `${progress * 100}%` }} />
+        </span>
+        <ol className="grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
           {steps.map((s, i) => (
             <li key={TIMELINE_STEPS[i]} className="relative flex flex-col items-center gap-2 px-1 text-center" aria-current={s.isNow ? "step" : undefined}>
               <TimelineDot {...s} index={i} />
@@ -263,7 +264,7 @@ export function PriceSummary({
         label={
           <span className="flex flex-wrap items-center gap-2">
             Caução
-            <Badge tone="ok" icon={ShieldCheck} className="h-6 px-2 text-[11px]">Reembolsável</Badge>
+            <Badge tone="ok" icon={ShieldCheck} className="h-6 px-2 text-xs">Reembolsável</Badge>
           </span>
         }
         value={formatKz(deposit)}

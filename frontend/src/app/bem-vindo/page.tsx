@@ -36,7 +36,7 @@ function Onboarding() {
   const last = i === SLIDES.length - 1;
 
   return (
-    <div className="app relative flex min-h-dvh flex-col overflow-hidden bg-verde-noite text-areia">
+    <div className="app superficie-marca relative flex min-h-dvh flex-col overflow-hidden bg-verde-noite text-areia">
       <HexGlow />
       <header className="relative mx-auto flex w-full max-w-md items-center justify-between px-4 pt-5">
         <Logo dark href="/explorar" />
