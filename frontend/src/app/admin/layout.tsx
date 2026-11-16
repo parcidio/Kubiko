@@ -41,7 +41,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="app min-h-dvh md:grid md:grid-cols-[248px_minmax(0,1fr)]">
-      <aside className="sticky top-0 z-30 bg-verde text-areia md:h-dvh">
+      <aside className="superficie-marca sticky top-0 z-30 bg-verde text-areia md:h-dvh">
         <div className="flex h-16 items-center gap-3 px-4 md:px-6">
           <Logo dark href="/admin" />
           <span className="rounded-full bg-salvia px-2.5 py-0.5 text-xs font-bold tracking-[0.08em] text-verde uppercase">Equipa</span>

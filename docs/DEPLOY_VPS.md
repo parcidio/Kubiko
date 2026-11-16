@@ -358,5 +358,14 @@ Mapa completo de controlos em `docs/SEGURANCA.md`.
 - As variáveis do compose aparecem no separador **Environment Variables**; os valores são os da [§3](#3-configurar-o-env).
 - Garage e backups: `deploy/coolify/setup-garage.sh` e `deploy/coolify/backup.sh`. Os avisos da [§8](#8-backups)
   aplicam-se igualmente.
+- **Backup no Coolify** — o script precisa do UUID do recurso (`RESOURCE`, o que aparece nos nomes dos contentores,
+  ex. `postgres-<uuid>-…`), para nunca copiar a base de dados de outro ambiente. Instalar uma vez, como root:
+  ```bash
+  install -m 700 deploy/coolify/backup.sh /opt/beeznoo-backups/backup.sh
+  RESOURCE=<uuid> /opt/beeznoo-backups/backup.sh          # testa já (o Garage pára uns segundos)
+  (crontab -l 2>/dev/null; echo "0 3 * * * RESOURCE=<uuid> /opt/beeznoo-backups/backup.sh >> /var/log/beeznoo-backup.log 2>&1") | crontab -
+  ```
+  As cópias ficam em `/opt/beeznoo-backups/<uuid>/` (só root, 14 dias). Continua a faltar a cópia encriptada fora do
+  servidor (§8).
 
 Passo a passo com capturas: PDF `docs/Beeznoo - Guia da plataforma e instalacao (Contabo + Coolify).pdf`, secção 11.

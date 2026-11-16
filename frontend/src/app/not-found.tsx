@@ -5,7 +5,7 @@ import { ButtonLink } from "@/components/bz/ui";
 
 export default function NotFound() {
   return (
-    <div className="app relative flex min-h-dvh flex-col items-center justify-center gap-5 overflow-hidden bg-verde-noite px-4 text-center text-areia">
+    <div className="app superficie-marca relative flex min-h-dvh flex-col items-center justify-center gap-5 overflow-hidden bg-verde-noite px-4 text-center text-areia">
       <HexGlow />
       <div className="relative grid animate-sobe justify-items-center gap-5">
         <Logo dark href="/" />

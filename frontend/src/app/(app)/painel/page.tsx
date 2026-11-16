@@ -46,7 +46,7 @@ export default function PainelPage() {
             <ModeSwitch dark className="md:hidden" />
           </div>
           <div className="grid gap-3 md:max-w-xl">
-            <div className="relative grid min-h-64 gap-8 overflow-hidden rounded-sheet border border-white/15 bg-linear-to-br from-verde-medio via-verde to-verde-noite p-6 text-areia shadow-flutua md:min-h-72 md:p-8">
+            <div className="superficie-marca relative grid min-h-64 gap-8 overflow-hidden rounded-sheet border border-white/15 bg-linear-to-br from-verde-medio via-verde to-verde-noite p-6 text-areia shadow-flutua md:min-h-72 md:p-8">
               <div className="absolute -top-20 -right-16 size-56 rounded-full bg-ambar/15 blur-3xl" aria-hidden />
               <div className="relative flex items-start justify-between">
                 <div className="grid gap-1">

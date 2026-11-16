@@ -65,12 +65,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="app min-h-dvh">
       {/* Herói: faixa no telemóvel; no desktop fica fixo e troca de lado */}
       <aside
-        className={`relative overflow-hidden bg-verde-noite px-4 pt-5 pb-14 text-areia md:fixed md:inset-y-0 md:left-0 md:z-10 md:flex md:w-[45.4545%] md:flex-col md:justify-between md:px-12 md:py-10 md:transition-transform md:duration-700 md:ease-[cubic-bezier(0.77,0,0.18,1)] md:will-change-transform ${
+        className={`superficie-marca relative overflow-hidden bg-verde-noite px-4 pt-5 pb-14 text-areia md:fixed md:inset-y-0 md:left-0 md:z-10 md:flex md:w-[45.4545%] md:flex-col md:justify-between md:px-12 md:py-10 md:transition-transform md:duration-700 md:ease-[cubic-bezier(0.77,0,0.18,1)] md:will-change-transform ${
           isRegister ? "md:translate-x-[120%]" : "md:translate-x-0"
         }`}
       >
         <HexGlow />
-        <HexStack size={74} tone="ambar" className="top-4 right-5 origin-top-right scale-[.7] md:top-24 md:right-16 md:scale-100" />
+        <HexStack size={74} tone="ambar" className="top-4 right-5 origin-top-right scale-[.7] md:top-6 md:right-8 md:scale-90" />
         <HexStack size={34} tone="salvia" className="top-52 right-44 hidden md:block" />
         <div className="relative">
           <Logo dark href="/" />

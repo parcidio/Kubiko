@@ -1,5 +1,6 @@
 "use client";
 
+import { useServiceFeeRate } from "@/lib/fee";
 import { useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -19,13 +20,14 @@ import { adminApi, catalogApi, profileApi } from "@/lib/api";
 import { useSession } from "@/lib/auth";
 import { whatsappLink } from "@/lib/booking";
 import { firstConflict, unavailableDays } from "@/lib/availability";
-import { addDaysIso, daysBetween, formatDay, formatRange, SERVICE_FEE_RATE, todayIso } from "@/lib/format";
+import { addDaysIso, daysBetween, formatDay, formatRange, todayIso } from "@/lib/format";
 import { canRent } from "@/lib/mode";
 import { cn } from "@/lib/utils";
 import { useResource } from "@/lib/use-resource";
 import type { Availability, Item, Me } from "@/lib/types";
 
 export default function EquipamentoPage() {
+  const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
   const { id } = useParams<{ id: string }>();
   const session = useSession();
   const { data: item, error, reload, setData } = useResource<Item>(`item:${id}`, () => catalogApi.item(id));
@@ -69,7 +71,7 @@ export default function EquipamentoPage() {
   const reserveHref = `/equipamento/${id}/reservar?de=${start}&ate=${end}`;
   const isOwn = session?.profileId === item.ownerId;
   const needsKyc = !!session && canRent(session.role) && !isOwn && me.data?.canTransact === false;
-  const rentalTotal = days > 0 ? Math.round(Number(item.pricePerDay) * days * (1 + SERVICE_FEE_RATE)) : 0;
+  const rentalTotal = days > 0 ? Math.round(Number(item.pricePerDay) * days * (1 + feeRate)) : 0;
   // O botão diz porque não dá para pedir, em vez de ficar só cinzento
   const ctaBlocked = !available ? "Indisponível" : conflict ? "Escolhe outras datas" : days < 1 ? "Escolhe as datas" : null;
   const waText = `Olá Beeznoo! Tenho uma pergunta sobre "${item.title}" (${formatRange(start, end)}).`;

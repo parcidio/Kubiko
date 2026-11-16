@@ -156,7 +156,7 @@ export function QuickSearches({ onPick, active }: { onPick: (q: string) => void;
 
 export function PublishPromo() {
   return (
-    <section className="relative overflow-hidden rounded-sheet bg-verde p-6 text-areia md:flex md:items-center md:justify-between md:gap-8 md:p-8">
+    <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde p-6 text-areia md:flex md:items-center md:justify-between md:gap-8 md:p-8">
       <HexGlow />
       <div className="relative grid gap-1.5 md:max-w-lg">
         <p className="text-xs font-bold tracking-[0.1em] text-salvia uppercase">Para donos</p>

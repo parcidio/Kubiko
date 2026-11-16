@@ -112,7 +112,7 @@ export default function ChecklistPage() {
 // Ecrã escuro, como uma câmara: melhor contraste ao fotografar
 function Dark({ children }: { children: React.ReactNode }) {
   return (
-    <div className="-mx-4 -mt-5 min-h-[calc(100dvh-4rem)] bg-verde-noite px-4 pt-5 pb-28 text-areia md:mx-0 md:mt-0 md:rounded-sheet md:p-8">
+    <div className="superficie-marca -mx-4 -mt-5 min-h-[calc(100dvh-4rem)] bg-verde-noite px-4 pt-5 pb-28 text-areia md:mx-0 md:mt-0 md:rounded-sheet md:p-8">
       <div className="mx-auto grid max-w-3xl gap-6">{children}</div>
     </div>
   );

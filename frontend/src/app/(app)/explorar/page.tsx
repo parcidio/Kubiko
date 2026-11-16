@@ -270,7 +270,7 @@ function Explorar() {
       </div>
 
       <Sheet open={sheet} onClose={() => setSheet(false)} title="Filtros">
-        <BeeznoFilters mobile value={filters} onChange={setFilters} categories={roots} categoryId={categoryId} onCategoryChange={setCategoryId} />
+        <BeeznoFilters mobile onApplied={() => setSheet(false)} value={filters} onChange={setFilters} categories={roots} categoryId={categoryId} onCategoryChange={setCategoryId} />
       </Sheet>
     </div>
   );

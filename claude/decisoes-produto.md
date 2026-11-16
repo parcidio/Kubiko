@@ -661,3 +661,18 @@ primeiras 4 semanas; sem queda de desempenho (LCP < 2,5 s num Android de gama m�
 - Número de WhatsApp da equipa nos links (`NEXT_PUBLIC_WHATSAPP_NUMBER`).
 - Se a lista de espera continua depois do lançamento ou é substituída por "Criar conta".
 - Prazo de verificação "até 2 dias úteis" (⚑ 2026-11-15) — confirmar antes de o publicar na landing.
+
+---
+
+## 2026-11-16 — Taxa de serviço configurável e pré-visualização dos links
+
+**Taxa de serviço.** O backend já lia `PAYMENTS_SERVICE_FEE_RATE` (`app.payments.service-fee-rate`, omissão 0.08), mas o
+frontend tinha 8% fixo: mudar a variável fazia a API cobrar uma taxa e o ecrã mostrar outra. Agora há uma só fonte:
+`GET /api/v1/config` (público, cache 5 min) devolve `serviceFeeRate`, e o frontend lê-a (`lib/fee.ts`, com 8% enquanto
+não chega). A variável passa no `deploy/coolify/docker-compose.yml`. Mudar a taxa só afeta pagamentos novos (o
+pagamento guarda a taxa calculada). A landing mostra um exemplo ilustrativo com "8%" fixo (mockup de marketing).
+
+**Pré-visualização dos links (WhatsApp, Facebook, LinkedIn, X).** Metadados Open Graph em todo o site (`SITE_URL` no
+build para os endereços absolutos) e duas imagens geradas no servidor com `next/og`: a da marca (título da landing) e
+uma por equipamento (foto, nome, preço por dia, bairro, selo de dono verificado), em JPEG < 100 KB para o WhatsApp a
+mostrar. Sem dados pessoais além do que a página pública do equipamento já mostra.

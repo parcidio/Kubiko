@@ -11,7 +11,10 @@ WORKDIR /app
 ARG API_URL=http://api:8080
 ARG STORAGE_PUBLIC_ORIGIN=
 ARG NEXT_PUBLIC_WHATSAPP_NUMBER=
+# URL público do site (pré-visualização dos links no WhatsApp: og:image com endereço absoluto)
+ARG SITE_URL=https://beeznoo.ao
 ENV API_URL=$API_URL \
+    SITE_URL=$SITE_URL \
     STORAGE_PUBLIC_ORIGIN=$STORAGE_PUBLIC_ORIGIN \
     NEXT_PUBLIC_WHATSAPP_NUMBER=$NEXT_PUBLIC_WHATSAPP_NUMBER \
     NEXT_OUTPUT=standalone \
@@ -22,6 +25,10 @@ RUN npm run build
 
 FROM node:22-alpine AS run
 WORKDIR /app
+# API_URL e SITE_URL também em execução: a imagem de partilha de cada equipamento lê a API no servidor
+ARG API_URL=http://api:8080
+ARG SITE_URL=https://beeznoo.ao
+ENV API_URL=$API_URL SITE_URL=$SITE_URL
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 RUN addgroup -S next && adduser -S next -G next
 COPY --from=build --chown=next:next /app/.next/standalone ./

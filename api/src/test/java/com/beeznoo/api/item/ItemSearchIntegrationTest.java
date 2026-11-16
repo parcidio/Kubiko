@@ -106,6 +106,9 @@ class ItemSearchIntegrationTest {
         mvc.perform(get("/api/v1/items?maxPrice=-1")).andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/items?q=" + "x".repeat(101))).andExpect(status().isBadRequest());
         mvc.perform(get("/api/v1/items?q=sony&area=talatona&maxPrice=6000&condition=LIKE_NEW")).andExpect(status().isOk());
+        // taxa de serviço pública (PAYMENTS_SERVICE_FEE_RATE), sem sessão
+        mvc.perform(get("/api/v1/config")).andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.serviceFeeRate").value(0.08));
     }
 
     @Test
