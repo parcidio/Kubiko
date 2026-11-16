@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CheckCircle2, Clock, FileDown, FileText } from "lucide-react";
 import { Checkbox } from "@/components/bz/form";
+import { HexTile } from "@/components/bz/hex";
 import { toast } from "@/components/bz/overlay";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { EmptyState, ErrorState } from "@/components/bz/states";
@@ -138,12 +139,8 @@ export default function ContratoPage() {
 
 function Acceptance({ who, at }: { who: string; at: string | null }) {
   return (
-    <p className="flex items-start gap-3">
-      {at ? (
-        <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-verde-medio" strokeWidth={1.8} aria-hidden />
-      ) : (
-        <Clock className="mt-0.5 size-5 shrink-0 text-mel-texto" strokeWidth={1.8} aria-hidden />
-      )}
+    <p className="flex items-center gap-3">
+      <HexTile icon={at ? CheckCircle2 : Clock} tone={at ? "salvia-tint" : "ambar-tint"} size={36} />
       <span>
         <span className="font-bold text-verde">{who}</span>
         <span className="block text-[13px] text-cinza">{at ? `Aceitou em ${formatDateTime(at)}` : "Ainda não aceitou"}</span>

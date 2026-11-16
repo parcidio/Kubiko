@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-PT"><head>
+<meta charset="utf-8">
+<title>Pagamento na entrega</title>
+<script src="263a4dd9-180c-4257-9496-55c3567ed46b"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>/* vietnamese */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGHInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGGInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 600;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("baf080ca-6198-4db7-b130-9141f0dddfd8") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGHInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGGInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 700;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("baf080ca-6198-4db7-b130-9141f0dddfd8") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGHInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/bricolagegrotesque/v9/3y9K6as8bTXq_nANBjzKo3IeZx8z6up5BeSl9D4dj_x9PpZBMlGGInHWVyNJtvI.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  font-style: normal;
+  font-weight: 800;
+  font-stretch: 100%;
+  font-display: swap;
+  src: url("baf080ca-6198-4db7-b130-9141f0dddfd8") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("306f7b5b-cfe2-4ed9-9497-a84493c5d9ad") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("306f7b5b-cfe2-4ed9-9497-a84493c5d9ad") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZ2IHTWEBlwu8Q.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'DM Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("306f7b5b-cfe2-4ed9-9497-a84493c5d9ad") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>
+body{margin:0;background:#FAF6EF}
+a{color:#9A5C0E}a:hover{color:#7A4A0B}
+*{box-sizing:border-box}
+.app{font-family:'DM Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;color:#2C3A33}
+.sg{font-family:'Bricolage Grotesque',system-ui,sans-serif;font-weight:700;letter-spacing:-0.02em;color:#0E2A1F}
+:focus-visible{outline:3px solid #F0A22E;outline-offset:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 20px;border-radius:12px;font:700 16px 'DM Sans',sans-serif;text-decoration:none;border:0;cursor:pointer;transition:transform .2s}
+.btn:active{transform:scale(.97)}
+.btn-p{background:#F0A22E;color:#0E2A1F}.btn-p:hover{background:#E08F17;color:#0E2A1F}
+.btn-s{background:#FFFFFF;color:#0E2A1F;border:1.5px solid #B9C2B5}
+.seg{display:grid;gap:6px;padding:5px;background:#F3E9D8;border-radius:14px}
+.seg button{min-height:44px;border:0;border-radius:10px;background:transparent;font:500 14px 'DM Sans',sans-serif;color:#0E2A1F;cursor:pointer;transition:background .25s,color .25s}
+.seg button.on{background:#0E2A1F;color:#FAF6EF}
+.hero{border-radius:24px;background:#0E2A1F;color:#FAF6EF;padding:20px;position:relative;overflow:hidden}
+.row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;font-size:14px;color:#E3F0E9}
+.step{display:flex;gap:12px;align-items:flex-start}
+.hexn{flex:none;width:34px;height:39px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:#0E2A1F;color:#F0A22E;display:flex;align-items:center;justify-content:center;font:700 15px 'Bricolage Grotesque',sans-serif}
+.swap{animation:swap .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes swap{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.ok{width:84px;height:84px;border-radius:50%;background:#E3F0E9;display:flex;align-items:center;justify-content:center;animation:pop .6s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes pop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+<main class="app" style="width: 390px; height: 844px; overflow: hidden; background: #FAF6EF; display: flex; flex-direction: column">
+  <header style="display: flex; align-items: center; gap: 8px; padding: 14px 12px 6px">
+    <a href="App-Reserva.dc.html" aria-label="Voltar à reserva" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px"><svg width="22" height="22" sc-camel-view-box="0 0 24 24" fill="none" stroke="#0E2A1F" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></a>
+    <h1 class="sg" style="font-size: 19px; margin: 0">Pagamento na entrega</h1>
+  </header>
+  <div style="padding: 0 16px 8px">
+    <div class="seg" role="group" aria-label="Ver como" style="grid-template-columns: repeat(2, minmax(0, 1fr))">
+      <button type="button" class="{{cR}}" aria-pressed="{{isR}}" sc-camel-on-click="{{asR}}">Vista do arrendatário</button>
+      <button type="button" class="{{cO}}" aria-pressed="{{isO}}" sc-camel-on-click="{{asO}}">Vista do dono</button>
+    </div>
+  </div>
+
+  <sc-if value="{{isR}}" hint-placeholder-val="{{ true }}">
+    <div class="swap" style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
+      <div style="flex: 1; overflow-y: auto; padding: 8px 16px 20px; display: flex; flex-direction: column; gap: 18px">
+        <div class="hero">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #8FC0A8">Pagas ao Edson, na entrega</div>
+          <div class="sg" style="font-size: 38px; color: #FFFFFF; margin-top: 4px">218.400 Kz</div>
+          <div style="border-top: 1px solid rgba(143,192,168,.25); margin-top: 12px; padding-top: 8px">
+            <div class="row"><span>Aluguer · 3 dias</span><span>105.000 Kz</span></div>
+            <div class="row"><span>Taxa de serviço (8%)</span><span>8.400 Kz</span></div>
+            <div class="row"><span>Caução reembolsável</span><span>105.000 Kz</span></div>
+          </div>
+        </div>
+        <div>
+          <h2 class="sg" style="font-size: 18px; margin: 0 0 12px">Como corre, no sábado</h2>
+          <div style="display: flex; flex-direction: column; gap: 14px">
+            <div class="step"><span class="hexn">1</span><div><div style="font-weight: 700; color: #0E2A1F">Encontra-te com o Edson</div><div style="font-size: 14px">Talatona, sáb 23 out às 10:00.</div></div></div>
+            <div class="step"><span class="hexn">2</span><div><div style="font-weight: 700; color: #0E2A1F">Confere e fotografa</div><div style="font-size: 14px">Fazes o checklist de entrega na app, com fotos de cada ângulo.</div></div></div>
+            <div class="step"><span class="hexn">3</span><div><div style="font-weight: 700; color: #0E2A1F">Paga ao Edson</div><div style="font-size: 14px">Numerário, transferência ou Multicaixa Express. Ele confirma na app e recebes o comprovativo.</div></div></div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; padding: 12px 14px; border-radius: 16px; background: #FBEAE8; color: #B3261E; font-size: 14px">
+          <svg style="flex: none; margin-top: 2px" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#B3261E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4M12 17h.01"></path></svg>
+          <span>Nunca pagues antes do encontro, nem a outra pessoa que não seja o Edson.</span>
+        </div>
+      </div>
+      <div style="padding: 12px 16px 18px; background: #FFFFFF; box-shadow: 0 -8px 24px rgba(14,42,31,.12)">
+        <a href="#" class="btn btn-p" style="width: 100%">Começar checklist de entrega</a>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ownerForm}}" hint-placeholder-val="{{ false }}">
+    <div class="swap" style="flex: 1; display: flex; flex-direction: column; overflow: hidden">
+      <div style="flex: 1; overflow-y: auto; padding: 8px 16px 20px; display: flex; flex-direction: column; gap: 18px">
+        <div class="hero">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #8FC0A8">A Ana entrega-te</div>
+          <div class="sg" style="font-size: 38px; color: #FFFFFF; margin-top: 4px">218.400 Kz</div>
+          <div style="border-top: 1px solid rgba(143,192,168,.25); margin-top: 12px; padding-top: 8px">
+            <div class="row"><span>Recebes (aluguer)</span><span>105.000 Kz</span></div>
+            <div class="row"><span>Caução — devolves no fim</span><span>105.000 Kz</span></div>
+            <div class="row"><span>Taxa de serviço — entregas à Beeznoo</span><span>8.400 Kz</span></div>
+          </div>
+        </div>
+        <div>
+          <span id="l-meio" style="display: block; font-size: 14px; font-weight: 500; color: #0E2A1F; margin-bottom: 6px">Como recebeste?</span>
+          <div class="seg" role="group" aria-labelledby="l-meio" style="grid-template-columns: repeat(3, minmax(0, 1fr))">
+            <button type="button" class="{{m1}}" aria-pressed="{{p1}}" sc-camel-on-click="{{s1}}">Numerário</button>
+            <button type="button" class="{{m2}}" aria-pressed="{{p2}}" sc-camel-on-click="{{s2}}">Transferência</button>
+            <button type="button" class="{{m3}}" aria-pressed="{{p3}}" sc-camel-on-click="{{s3}}">Multicaixa Express</button>
+          </div>
+        </div>
+        <div style="display: flex; gap: 10px; padding: 12px 14px; border-radius: 16px; background: #F3E9D8; font-size: 14px; color: #0E2A1F">
+          <svg style="flex: none; margin-top: 2px" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="#0E2A1F" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4M12 8h.01"></path></svg>
+          <span>A Beeznoo não recebe este dinheiro. Entregas a taxa de serviço (8.400 Kz) à equipa até 7 dias depois — vês o que deves na Carteira.</span>
+        </div>
+      </div>
+      <div style="padding: 12px 16px 18px; background: #FFFFFF; box-shadow: 0 -8px 24px rgba(14,42,31,.12)">
+        <button type="button" class="btn btn-p" style="width: 100%" sc-camel-on-click="{{confirm}}">Confirmar que recebi 218.400 Kz</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ownerDone}}" hint-placeholder-val="{{ false }}">
+    <div role="status" style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; gap: 12px">
+      <div class="ok"><svg width="38" height="38" sc-camel-view-box="0 0 24 24" fill="none" stroke="#1F5C42" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></div>
+      <h2 class="sg" style="font-size: 26px; margin: 6px 0 0">Pagamento confirmado</h2>
+      <p style="margin: 0; max-width: 290px">Enviámos o comprovativo <strong>CP 2026/000014</strong> à Ana. A reserva passou a <strong>Paga</strong>.</p>
+      <button type="button" class="btn btn-s" style="margin-top: 14px" sc-camel-on-click="{{undo}}">Voltar</button>
+    </div>
+  </sc-if>
+</main>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844}}">
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { view: 'r', meio: 1, done: false }; }
+  renderVals() {
+    const r = this.state.view === 'r', m = this.state.meio;
+    return {
+      isR: r, isO: !r, cR: r ? 'on' : '', cO: r ? '' : 'on',
+      asR: () => this.setState({ view: 'r' }), asO: () => this.setState({ view: 'o' }),
+      ownerForm: !r && !this.state.done, ownerDone: !r && this.state.done,
+      m1: m === 1 ? 'on' : '', m2: m === 2 ? 'on' : '', m3: m === 3 ? 'on' : '',
+      p1: m === 1, p2: m === 2, p3: m === 3,
+      s1: () => this.setState({ meio: 1 }), s2: () => this.setState({ meio: 2 }), s3: () => this.setState({ meio: 3 }),
+      confirm: () => this.setState({ done: true }), undo: () => this.setState({ done: false })
+    };
+  }
+}
+</script>
+
+
+</body></html>

@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Clock, Home, MapPin, Truck } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock, Home, MapPin, Truck } from "lucide-react";
 import { PriceSummary } from "@/components/bz/booking";
 import { MonthCalendar } from "@/components/bz/calendar";
 import { ItemPhoto } from "@/components/bz/equipment";
@@ -106,17 +106,17 @@ function Reservar() {
   return (
     <div className="mx-auto grid max-w-2xl gap-6">
       {step > 1 ? (
-        <button type="button" onClick={() => setStep(step - 1)} className="inline-flex min-h-11 items-center gap-1.5 justify-self-start text-sm font-medium text-mel-texto hover:underline">
+        <button type="button" onClick={() => setStep(step - 1)} className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 justify-self-start text-sm font-medium text-mel-texto hover:underline">
           <ArrowLeft className="size-4" strokeWidth={1.8} aria-hidden /> Passo anterior
         </button>
       ) : (
         <BackLink href={`/equipamento/${id}`}>Voltar ao equipamento</BackLink>
       )}
 
-      <Card className="flex items-center gap-3 p-3">
+      <Card className="flex items-center gap-3 p-2.5">
         <ItemPhoto src={item.photos[0]?.photUrl} alt={item.title} className="w-20 shrink-0 rounded-campo" />
         <div className="min-w-0">
-          <p className="truncate font-titulo font-bold text-verde">{item.title}</p>
+          <p className="truncate font-titulo text-[17px] font-bold tracking-tight text-verde">{item.title}</p>
           <p className="text-sm text-cinza">
             <Kz value={item.pricePerDay} className="text-sm" /> /dia · {item.ownerName}
           </p>
@@ -140,7 +140,7 @@ function Reservar() {
 
           {step === 1 && (
             <section className="grid animate-sobe gap-4">
-              <h1 className="font-titulo text-[28px] leading-tight font-bold text-verde">Para que dias?</h1>
+              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">Para que dias?</h1>
               <div className="grid grid-cols-2 gap-3">
                 <TextField label="Levantas" type="date" min={todayIso()} value={start} onChange={(v) => { setStart(v); if (v >= end) setEnd(addDaysIso(v, 1)); }} error={errors.fields.startDate} />
                 <TextField label="Devolves" type="date" min={addDaysIso(start, 1)} value={end} onChange={setEnd} error={errors.fields.endDate} />
@@ -153,8 +153,9 @@ function Reservar() {
               {conflict ? (
                 <Callout tone="warn">Já está ocupado a {formatDay(conflict)}. O dia de devolução pode coincidir com o início de outro aluguer, mas nenhum dia de uso pode.</Callout>
               ) : days > 0 && (
-                <p className="rounded-cartao bg-areia-2 p-4 text-verde">
-                  <strong>{formatRange(start, end)}</strong> · {days} {days === 1 ? "dia" : "dias"}
+                <p className="flex items-center gap-2.5 rounded-cartao bg-areia-2 p-4 text-verde">
+                  <CalendarDays className="size-5 shrink-0 text-mel" strokeWidth={1.8} aria-hidden />
+                  <span><strong className="font-titulo">{formatRange(start, end)}</strong> · <span className="num">{days} {days === 1 ? "dia" : "dias"}</span></span>
                 </p>
               )}
             </section>
@@ -162,7 +163,7 @@ function Reservar() {
 
           {step === 2 && (
             <section className="grid animate-sobe gap-4">
-              <h1 className="font-titulo text-[28px] leading-tight font-bold text-verde">Como recebes o equipamento?</h1>
+              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">Como recebes o equipamento?</h1>
               <RadioCards<Handover>
                 legend="Entrega e recolha"
                 name="handover"
@@ -183,7 +184,7 @@ function Reservar() {
 
           {step === 3 && (
             <section className="grid animate-sobe gap-4">
-              <h1 className="font-titulo text-[28px] leading-tight font-bold text-verde">Diz ao dono para que é</h1>
+              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">Diz ao dono para que é</h1>
               <TextArea
                 label="Mensagem (opcional)"
                 value={message}
@@ -197,10 +198,13 @@ function Reservar() {
 
           {step === 4 && (
             <section className="grid animate-sobe gap-4">
-              <h1 className="font-titulo text-[28px] leading-tight font-bold text-verde">Rever e enviar</h1>
+              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">Rever e enviar</h1>
               <Card className="grid gap-4 p-4">
-                <p className="font-bold text-verde">
-                  {formatRange(start, end)} · {handover === "pickup" ? "levantas no dono" : `entrega em ${area}`} às {time}
+                <p className="flex items-start gap-2.5 font-bold text-verde">
+                  <CalendarDays className="mt-0.5 size-5 shrink-0 text-mel" strokeWidth={1.8} aria-hidden />
+                  <span>
+                    {formatRange(start, end)} · {handover === "pickup" ? "levantas no dono" : `entrega em ${area}`} às {time}
+                  </span>
                 </p>
                 <PriceSummary pricePerDay={Number(item.pricePerDay)} days={days} deposit={Number(item.depositAmount ?? 0)} />
               </Card>
@@ -214,7 +218,7 @@ function Reservar() {
 
           <StickyCTA>
             {step < STEPS.length ? (
-              <Button block size="lg" variant="dark" onClick={next}>
+              <Button block size="lg" arrow onClick={next}>
                 Continuar
               </Button>
             ) : (

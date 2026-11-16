@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle, BadgeCheck, Banknote, Bell, CheckCheck, ChevronRight, ClipboardCheck, Clock, Inbox, ShieldAlert, ShieldCheck, Ticket, type LucideIcon,
 } from "lucide-react";
+import { HexTile } from "@/components/bz/hex";
 import { toast } from "@/components/bz/overlay";
 import { PageHeader } from "@/components/bz/shell";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/bz/states";
@@ -114,11 +115,9 @@ export default function AtividadePage() {
                   <button
                     type="button"
                     onClick={() => open(n)}
-                    className={cn("flex w-full gap-3 px-4 py-4 text-left transition hover:bg-areia focus-visible:bg-areia focus-visible:outline-none", isUnread && "bg-ambar-tint/50")}
+                    className={cn("flex w-full gap-3 px-4 py-4 text-left transition-colors duration-200 hover:bg-areia focus-visible:bg-areia focus-visible:outline-none", isUnread && "bg-ambar-tint/50")}
                   >
-                    <span className={cn("mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full", isUnread ? "bg-verde text-ambar" : "bg-areia-2 text-cinza")}>
-                      <Icon className="size-5" strokeWidth={1.8} aria-hidden />
-                    </span>
+                    <HexTile icon={Icon} tone={isUnread ? "verde" : "areia"} size={40} className="mt-0.5" />
                     <span className="grid min-w-0 flex-1 gap-1">
                       <span className="flex items-start gap-2">
                         <span className={cn("flex-1 text-[15px]", isUnread ? "font-bold text-verde" : "font-medium text-texto-corpo")}>{n.title}</span>

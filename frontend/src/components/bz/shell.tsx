@@ -108,29 +108,14 @@ export function ModeSwitch({ dark, className }: { dark?: boolean; className?: st
   );
 }
 
+/** AppHeader da app (v4): sempre claro — areia translúcida + borda, fixo no topo ao rolar. */
 export function TopBar() {
   const pathname = usePathname();
   const { nav, mode, session } = useNav();
-  const hasHeroNav = pathname.startsWith("/explorar") || pathname.startsWith("/painel");
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    if (!hasHeroNav) return;
-    const update = () => setScrolled(window.scrollY > 24);
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
-  }, [hasHeroNav]);
-
-  const overlay = hasHeroNav && !scrolled;
   return (
-    <header className={cn(
-      "z-40 border-b transition-colors duration-300",
-      hasHeroNav ? "fixed inset-x-0 top-0" : "sticky top-0",
-      overlay ? "border-transparent bg-transparent" : "border-borda/70 bg-areia/90 backdrop-blur-md",
-    )}>
+    <header className="sticky top-0 z-40 border-b border-borda bg-areia/95 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 md:px-12">
-        <Logo dark={overlay} href={session && mode === "owner" ? "/painel" : "/explorar"} />
+        <Logo href={session && mode === "owner" ? "/painel" : "/explorar"} />
         <nav className="ml-6 hidden items-center gap-1 md:flex" aria-label="Principal">
           {nav.map(({ href, label }) => (
             <Link
@@ -139,9 +124,7 @@ export function TopBar() {
               aria-current={isActive(pathname, href) ? "page" : undefined}
                 className={cn(
                 "rounded-full px-4 py-2 text-[15px] font-medium transition",
-                isActive(pathname, href)
-                  ? overlay ? "bg-ambar text-verde" : "bg-verde text-areia"
-                  : overlay ? "text-areia/85 hover:bg-white/10" : "text-texto-corpo hover:bg-areia-2",
+                isActive(pathname, href) ? "bg-verde text-areia" : "text-texto-corpo hover:bg-areia-2",
               )}
             >
               {label}
@@ -149,8 +132,8 @@ export function TopBar() {
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <ModeSwitch dark={overlay} className="hidden md:grid" />
-          {session && <NotificationBell dark={overlay} active={isActive(pathname, "/atividade")} />}
+          <ModeSwitch className="hidden md:grid" />
+          {session && <NotificationBell dark={false} active={isActive(pathname, "/atividade")} />}
           {session && isAdmin(session.role) && (
             <ButtonLink href="/admin" variant="soft" size="sm" className="hidden md:inline-flex">
               <ShieldCheck strokeWidth={1.8} /> Admin
@@ -172,6 +155,7 @@ export function TopBar() {
   );
 }
 
+/** Barra de navegação inferior (telemóvel). */
 export function BottomNav() {
   const pathname = usePathname();
   const { nav, mode, session } = useNav();
@@ -217,6 +201,7 @@ export function BottomNav() {
   );
 }
 
+/** Aviso de "sem ligação". */
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false);
   useEffect(() => {
@@ -238,6 +223,7 @@ export function OfflineBanner() {
   );
 }
 
+/** Estrutura da app: cabeçalho, conteúdo com transição e barra inferior. */
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isFullBleed = pathname.startsWith("/explorar") || pathname.startsWith("/painel");
@@ -260,16 +246,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Barra fixa do CTA no telemóvel (por cima da BottomNav); no desktop fica no fluxo normal. */
+/** StickyCTABar: barra fixa com o único botão âmbar no telemóvel (por cima da BottomNav, `shadow-bar`); no desktop fica no fluxo. */
 export function StickyCTA({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
   return (
-    <div className="fixed inset-x-0 bottom-[68px] z-30 flex items-center gap-3 border-t border-borda bg-branco px-4 py-3 shadow-cta md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+    <div className="fixed inset-x-0 bottom-[68px] z-30 flex items-center gap-3 border-t border-borda bg-branco px-4 py-3 shadow-bar md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:shadow-none">
       {aside && <div className="min-w-0 flex-1 md:hidden">{aside}</div>}
       <div className={cn(aside ? "shrink-0 md:w-full" : "w-full")}>{children}</div>
     </div>
   );
 }
 
+/** Título de ecrã (Bricolage 26/32) com subtítulo, ação e "voltar". */
 export function PageHeader({
   title, subtitle, action, back,
 }: { title: string; subtitle?: React.ReactNode; action?: React.ReactNode; back?: React.ReactNode }) {
@@ -278,7 +265,7 @@ export function PageHeader({
       {back}
       <div className="flex items-end justify-between gap-4">
         <div className="grid gap-1">
-          <h1 className="font-titulo text-[28px] leading-tight font-bold tracking-tight text-verde md:text-[36px]">{title}</h1>
+          <h1 className="font-titulo text-[26px] leading-tight font-bold tracking-tight text-verde md:text-[32px]">{title}</h1>
           {subtitle && <p className="text-cinza">{subtitle}</p>}
         </div>
         {action}

@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { ChevronRight, ClipboardCheck, FileDown, FileText, Flag, HandCoins, MessageCircle, Receipt, ShieldCheck, type LucideIcon } from "lucide-react";
 import { BookingTicket, NextStepCard, PriceSummary, SuccessBurst, Timeline } from "@/components/bz/booking";
+import { HexTile } from "@/components/bz/hex";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { RequestActions } from "@/components/bz/requests";
 import { TextArea } from "@/components/bz/form";
@@ -113,12 +114,17 @@ function ReservaHub() {
 
       <div className="grid gap-5 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:items-start">
         <div className="grid gap-5">
+          <NextStepCard
+            step={step}
+            deadline={deadlineOf(booking, payment.data)}
+            amount={needsPayment ? (payment.data?.amount ?? total) : undefined}
+            positive={booking.status === "COMPLETED"}
+          />
           <BookingTicket booking={booking} as={as} />
-          <NextStepCard step={step} deadline={deadlineOf(booking, payment.data)} amount={needsPayment ? (payment.data?.amount ?? total) : undefined} />
           {as === "owner" && booking.status === "PENDING_OWNER" && <RequestActions booking={booking} onDone={setBooking} />}
 
           {(booking.renterMessage || booking.ownerNote) && (
-            <Card className="grid gap-4 p-4">
+            <Card className="grid gap-4 p-4 md:p-5">
               {booking.renterMessage && (
                 <div>
                   <Eyebrow>Mensagem de {firstName(booking.renterName)}</Eyebrow>
@@ -144,16 +150,16 @@ function ReservaHub() {
             <SectionTitle className="mb-4">Valores</SectionTitle>
             <PriceSummary pricePerDay={pricePerDay} days={days} deposit={Number(booking.depositAmount)} as={as} />
           </Card>
-          <Card className="overflow-hidden">
+          <Card aria-label="Ações" role="group" className="overflow-hidden">
             {actions
               .filter((a) => a.show)
               .map(({ icon: Icon, label, href, external, onClick, danger }) => {
-                const cls = `flex min-h-14 w-full items-center gap-3 border-b border-borda px-4 text-left font-medium last:border-0 hover:bg-areia ${danger ? "text-erro" : "text-verde"}`;
+                const cls = `group flex min-h-14 w-full items-center gap-3 border-b border-borda px-4 py-2 text-left font-medium transition-colors duration-200 last:border-0 hover:bg-areia ${danger ? "text-erro" : "text-verde"}`;
                 const inner = (
                   <>
-                    <Icon className={`size-5 ${danger ? "" : "text-mel"}`} strokeWidth={1.8} aria-hidden />
+                    <HexTile icon={Icon} tone={danger ? "erro" : "areia"} size={34} />
                     <span className="flex-1">{label}</span>
-                    <ChevronRight className="size-5 text-cinza" strokeWidth={1.8} aria-hidden />
+                    <ChevronRight className="size-5 text-cinza transition-transform duration-200 group-hover:translate-x-1" strokeWidth={1.8} aria-hidden />
                   </>
                 );
                 return href ? (

@@ -86,11 +86,11 @@ export default function EquipamentosPage() {
             const st = STATUS[item.status] ?? { label: item.status, tone: "neutro" as Tone };
             return (
               <li key={item.id}>
-                <Card className="grid animate-sobe gap-3 p-3" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
-                  <Link href={`/equipamentos/${item.id}`} className="flex gap-3">
+                <Card className="levantar grid animate-sobe gap-3 p-3" style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}>
+                  <Link href={`/equipamentos/${item.id}`} className="flex gap-3 rounded-campo">
                     <ItemPhoto src={item.coverPhoto} alt={item.title} className="w-24 shrink-0 rounded-campo" />
                     <div className="grid min-w-0 content-start gap-1">
-                      <p className="line-clamp-2 font-titulo font-bold text-verde">{item.title}</p>
+                      <p className="line-clamp-2 font-titulo text-lg leading-tight font-bold text-verde">{item.title}</p>
                       <p className="text-[13px] text-cinza">{CONDITION_LABEL[item.condition]} · {item.city ?? "Luanda"}</p>
                       <p className="text-verde">
                         <Kz value={item.pricePerDay} className="text-lg" />

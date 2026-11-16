@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Banknote, CheckCircle2, Flag, Package, ScrollText, ShieldCheck, Timer, Users, Wallet, type LucideIcon } from "lucide-react";
 import { AdminHeader } from "@/components/bz/admin";
+import { HexTile } from "@/components/bz/hex";
 import { BarChart, Funnel, monthLabel, StatTile } from "@/components/bz/charts";
 import { ErrorState } from "@/components/bz/states";
 import { Card, Skeleton } from "@/components/bz/ui";
@@ -31,11 +32,9 @@ export default function AdminHome() {
           <QueueCard key={q.href} {...q} />
         ))}
       </div>
-      <Link href="/admin/auditoria" className="group">
-        <Card className="flex items-center gap-4 p-5 transition group-hover:border-verde group-active:scale-[.98]">
-          <span className="flex size-11 items-center justify-center rounded-full bg-areia-2 text-mel">
-            <ScrollText className="size-5" strokeWidth={1.8} aria-hidden />
-          </span>
+      <Link href="/admin/auditoria" className="group rounded-cartao">
+        <Card className="levantar flex items-center gap-4 p-5">
+          <HexTile icon={ScrollText} tone="areia" size={44} />
           <div className="flex-1">
             <p className="font-bold text-verde">Auditoria e segurança</p>
             <p className="text-sm text-cinza">Quem fez o quê e quando; logins, 2FA e sessões suspeitas.</p>
@@ -50,16 +49,14 @@ export default function AdminHome() {
 function QueueCard({ href, title, text, icon: Icon, count }: (typeof QUEUES)[number]) {
   const n = useResource<number>(`admin:count:${href}`, count);
   return (
-    <Link href={href} className="group">
-      <Card className="grid gap-4 p-5 transition group-hover:border-verde group-active:scale-[.98]">
+    <Link href={href} className="group rounded-cartao">
+      <Card className="levantar grid h-full gap-4 p-5">
         <div className="flex items-center justify-between">
-          <span className="flex size-11 items-center justify-center rounded-full bg-verde text-ambar">
-            <Icon className="size-5" strokeWidth={1.8} aria-hidden />
-          </span>
+          <HexTile icon={Icon} tone="verde" size={44} flip />
           <ArrowRight className="size-5 text-cinza transition group-hover:translate-x-1 group-hover:text-verde" strokeWidth={1.8} aria-hidden />
         </div>
         <div>
-          <p className="num font-titulo text-4xl font-extrabold text-verde" aria-live="polite">
+          <p className="num font-titulo text-4xl leading-none font-bold text-verde" aria-live="polite">
             {n.data !== undefined ? n.data : n.error ? <span title={n.error}>—</span> : <span role="status" aria-label="A carregar" className="text-borda-forte">·</span>}
           </p>
           <p className="font-bold text-verde">{title}</p>
@@ -154,7 +151,7 @@ function Metrics() {
           />
         </div>
       </div>
-      <p className="text-xs text-cinza">Atualizado {formatDateTime(m.data.generatedAt)}. Meses no fuso de Luanda.</p>
+      <p className="text-[13px] text-cinza">Atualizado {formatDateTime(m.data.generatedAt)}. Meses no fuso de Luanda.</p>
     </section>
   );
 }

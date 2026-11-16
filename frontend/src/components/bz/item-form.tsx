@@ -76,7 +76,7 @@ type Props = { draft: ItemDraft; set: (patch: Partial<ItemDraft>) => void; error
 
 export function DetailsFields({ draft, set, errors, categories = [] }: Props) {
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-5 rounded-cartao border border-borda bg-branco p-4 md:p-5">
       <TextField label="Nome do equipamento" value={draft.title} onChange={(title) => set({ title })} error={errors.title} placeholder="Ex.: Sony A7 III com lente 28-70mm" maxLength={200} />
       <div className="grid gap-2">
         <p className="text-sm font-medium text-verde">Categoria</p>
@@ -111,7 +111,7 @@ export function PriceFields({ draft, set, errors }: Omit<Props, "categories">) {
   const discount = Number(draft.weeklyDiscount);
   const suggestion = suggestedDeposit(Number(draft.declaredValue || 0), Number(price));
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-5 rounded-cartao border border-borda bg-branco p-4 md:p-5">
       <MoneyField label="Preço por dia" value={draft.pricePerDay} onChange={(pricePerDay) => set({ pricePerDay })} error={errors.pricePerDay} />
       <div className="grid gap-2">
         <p className="text-sm font-medium text-verde">Desconto para uma semana</p>
@@ -123,7 +123,7 @@ export function PriceFields({ draft, set, errors }: Omit<Props, "categories">) {
         />
         {price > 0 && (
           <p className="text-[13px] text-cinza">
-            7 dias = <strong className="text-verde">{formatKz(price * 7 * (1 - discount / 100))}</strong>
+            7 dias = <strong className="num text-verde">{formatKz(price * 7 * (1 - discount / 100))}</strong>
             {discount > 0 && " (ainda não é aplicado pela API)"}
           </p>
         )}

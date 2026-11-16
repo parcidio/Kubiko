@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, CheckCircle2, ChevronRight, HandCoins, Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { HexGlow } from "@/components/bz/brand";
+import { HexTile } from "@/components/bz/hex";
 import { PageHeader } from "@/components/bz/shell";
 import { EmptyState, ErrorState, ListSkeleton } from "@/components/bz/states";
 import { Badge, Callout, Card, Kz, Skeleton } from "@/components/bz/ui";
@@ -42,19 +43,19 @@ export default function CarteiraPage() {
       <section className="relative overflow-hidden rounded-sheet bg-verde-noite p-5 text-areia md:p-8">
         <HexGlow />
         <div className="relative grid gap-4 md:grid-cols-2">
-          <div className="grid gap-1 rounded-cartao border border-white/10 bg-white/8 p-4">
-            <p className="flex items-center gap-2 text-sm font-bold">
-              <HandCoins className="size-4 text-ambar" strokeWidth={1.8} aria-hidden /> Taxa por entregar
+          <div className="grid gap-1 rounded-cartao border border-white/10 bg-white/5 p-4">
+            <p className="flex items-center gap-2.5 text-sm font-bold text-white">
+              <HexTile icon={HandCoins} tone="salvia" size={32} /> Taxa por entregar
             </p>
-            {data.loading ? <Skeleton className="h-9 w-40 bg-white/10" /> : <Kz value={due} className="text-[34px] leading-none text-ambar" />}
-            <p className="text-xs text-areia/70">{due > 0 ? "A equipa Beeznoo contacta-te para combinar a entrega." : "Não deves nada à Beeznoo."}</p>
+            {data.loading ? <Skeleton className="h-9 w-40 bg-white/10" /> : <Kz value={due} className="mt-1 text-[34px] leading-none text-white" />}
+            <p className="text-[13px] text-salvia-tint">{due > 0 ? "A equipa Beeznoo contacta-te para combinar a entrega." : "Não deves nada à Beeznoo."}</p>
           </div>
-          <div className="grid gap-1 rounded-cartao border border-white/10 bg-white/8 p-4">
-            <p className="flex items-center gap-2 text-sm font-bold">
-              <Wallet className="size-4 text-ambar" strokeWidth={1.8} aria-hidden /> Alugueres recebidos
+          <div className="grid gap-1 rounded-cartao border border-white/10 bg-white/5 p-4">
+            <p className="flex items-center gap-2.5 text-sm font-bold text-white">
+              <HexTile icon={Wallet} tone="salvia" size={32} /> Alugueres recebidos
             </p>
-            {data.loading ? <Skeleton className="h-9 w-40 bg-white/10" /> : <Kz value={received} className="text-[34px] leading-none" />}
-            <p className="text-xs text-areia/70">O que ficou para ti: o aluguer, sem a taxa de serviço nem as cauções (que devolves).</p>
+            {data.loading ? <Skeleton className="h-9 w-40 bg-white/10" /> : <Kz value={received} className="mt-1 text-[34px] leading-none text-white" />}
+            <p className="text-[13px] text-salvia-tint">O que ficou para ti: o aluguer, sem a taxa de serviço nem as cauções (que devolves).</p>
           </div>
         </div>
       </section>
@@ -75,9 +76,9 @@ export default function CarteiraPage() {
           <ul>
             {lines.map((l) => (
               <li key={l.paymentId} className="border-b border-borda last:border-0">
-                <Link href={`/reservas/${l.bookingId}`} className="flex items-center gap-3 px-4 py-3 hover:bg-areia">
+                <Link href={`/reservas/${l.bookingId}`} className="group flex items-center gap-3 px-4 py-3 transition-colors duration-200 hover:bg-areia">
                   <div className="grid min-w-0 flex-1 gap-0.5">
-                    <p className="truncate font-medium text-verde">{l.itemTitle}</p>
+                    <p className="truncate font-titulo font-bold text-verde">{l.itemTitle}</p>
                     <p className="truncate text-[13px] text-cinza">
                       {formatDateTime(l.confirmedAt)}
                       {l.channel ? ` · ${CHANNEL_LABEL[l.channel]}` : ""}
@@ -97,7 +98,7 @@ export default function CarteiraPage() {
                   <span className="num font-titulo font-bold whitespace-nowrap text-verde">
                     {Math.round(Number(l.amountReceived)).toLocaleString("de-DE")} Kz
                   </span>
-                  <ChevronRight className="size-5 shrink-0 text-cinza" strokeWidth={1.8} aria-hidden />
+                  <ChevronRight className="size-5 shrink-0 text-cinza transition-transform duration-200 group-hover:translate-x-1" strokeWidth={1.8} aria-hidden />
                 </Link>
               </li>
             ))}

@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { AlertTriangle, BadgeCheck, Building2, Clock, ScanFace, UserRound } from "lucide-react";
-import { HexIllustration } from "@/components/bz/brand";
+import { HexTile } from "@/components/bz/hex";
 import { toast } from "@/components/bz/overlay";
 import { CameraSlot } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
+import { SuccessCheck } from "@/components/bz/success";
 import { Segmented } from "@/components/bz/tabs";
 import { BackLink, Button, ButtonLink, Callout, Card, Skeleton } from "@/components/bz/ui";
 import { kycApi } from "@/lib/api";
@@ -20,6 +21,14 @@ type Slot = "biFront" | "biBack" | "selfie" | "nifDocument" | "businessDocument"
 const REQUIRED: Record<KycAccountType, Slot[]> = {
   INDIVIDUAL: ["biFront", "biBack", "selfie"],
   BUSINESS: ["nifDocument", "businessDocument"],
+};
+/** Para dizer o que falta debaixo do botão, em vez de o deixar só cinzento. */
+const SLOT_LABEL: Record<Slot, string> = {
+  biFront: "o BI (frente)",
+  biBack: "o BI (verso)",
+  selfie: "a selfie com o BI",
+  nifDocument: "o documento do NIF",
+  businessDocument: "a certidão ou alvará",
 };
 
 /** A verificação é manual (decisoes-produto.md 2026-11-15) — dizê-lo antes e depois do envio. */
@@ -45,7 +54,7 @@ export default function VerificacaoPage() {
 
   if (k.status === "APPROVED") {
     return (
-      <Result icon={BadgeCheck} tone="ok" title="Identidade verificada">
+      <Result tone="ok" title="Identidade verificada">
         Já podes pedir reservas e publicar equipamento. O selo &quot;Verificado&quot; aparece no teu perfil.
       </Result>
     );
@@ -53,7 +62,8 @@ export default function VerificacaoPage() {
 
   if (k.status === "PENDING" || k.status === "IN_REVIEW") {
     return (
-      <Result icon={Clock} tone="ambar" title={k.status === "IN_REVIEW" ? "A equipa está a verificar" : "Em análise"}>
+      // Acabou de enviar (PENDING) = sucesso; IN_REVIEW = a equipa já está a ver (prazo, não sucesso)
+      <Result tone={k.status === "IN_REVIEW" ? "ambar" : "ok"} title={k.status === "IN_REVIEW" ? "A equipa está a verificar" : "Em análise"}>
         {DELAY} Avisamos-te na app e por email quando houver decisão.
         {k.submittedAt && <span className="mt-2 block text-[13px]">Enviado a {formatDateTime(k.submittedAt)}.</span>}
       </Result>
@@ -70,6 +80,7 @@ export default function VerificacaoPage() {
   };
   const type = k.status === "INFO_REQUESTED" && k.accountType ? k.accountType : kind;
   const ready = REQUIRED[type].every((s) => files[s]);
+  const missing = REQUIRED[type].filter((s) => !files[s]).map((s) => SLOT_LABEL[s]);
 
   async function submit() {
     setSending(true);
@@ -92,7 +103,10 @@ export default function VerificacaoPage() {
   return (
     <div className="mx-auto grid max-w-2xl gap-5 pb-24">
       <BackLink href="/conta">Voltar à conta</BackLink>
-      <PageHeader title="Verifica a tua identidade" subtitle="Obrigatório antes de pedir uma reserva ou publicar. Enviar leva 2 minutos." />
+      <div className="grid justify-items-start gap-4">
+        <HexTile icon={BadgeCheck} tone="salvia" size={64} flip className="animate-sobe" />
+        <PageHeader title="Verifica a tua identidade" subtitle="Obrigatório antes de pedir uma reserva ou publicar. Enviar leva 2 minutos." />
+      </div>
 
       {k.status === "REJECTED" && (
         <Callout tone="erro" icon={AlertTriangle} title="A verificação anterior foi recusada">
@@ -157,21 +171,26 @@ export default function VerificacaoPage() {
       </Card>
 
       <StickyCTA>
-        <Button size="lg" block disabled={!ready} loading={sending} onClick={submit}>
+        <Button size="lg" block disabled={!ready} loading={sending} onClick={submit} aria-describedby={ready ? undefined : "kyc-falta"}>
           Enviar para verificação
         </Button>
+        {!ready && (
+          <p id="kyc-falta" className="mt-1.5 text-center text-[13px] text-cinza">
+            {missing.length > 1 ? "Faltam" : "Falta"} {missing.join(", ").replace(/, ([^,]*)$/, " e $1")}
+          </p>
+        )}
       </StickyCTA>
     </div>
   );
 }
 
-function Result({ icon, tone, title, children }: { icon: typeof Clock; tone: "ok" | "ambar"; title: string; children: React.ReactNode }) {
+function Result({ tone, title, children }: { tone: "ok" | "ambar"; title: string; children: React.ReactNode }) {
   return (
     <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
-      <HexIllustration icon={icon} tone={tone} size={150} />
-      <h1 className="font-titulo text-3xl font-extrabold text-verde">{title}</h1>
-      <p className="text-cinza">{children}</p>
-      <ButtonLink href="/explorar" variant="dark">
+      {tone === "ok" ? <SuccessCheck /> : <HexTile icon={Clock} tone="ambar-tint" size={88} />}
+      <h1 className="animate-sobe font-titulo text-[28px] leading-tight font-bold tracking-[-0.02em] text-verde [animation-delay:150ms]">{title}</h1>
+      <p className="animate-sobe text-texto-corpo [animation-delay:200ms]">{children}</p>
+      <ButtonLink href="/explorar" variant="dark" arrow className="mt-2">
         Explorar equipamento
       </ButtonLink>
     </div>

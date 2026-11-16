@@ -628,3 +628,36 @@ arrendatário que não cumpre) no próprio dia, sem acesso à base de dados. **P
    caso (manual antes de automatizar). Não há notificação automática da suspensão: a equipa avisa a pessoa.
 5. **Pagamento no detalhe da reserva:** `GET /bookings/{id}/payments/current` passa a aceitar ADMIN (como o
    comprovativo já aceitava).
+
+---
+
+## 2026-11-16 — Identidade Verde v4 ("Colmeia em movimento") na landing e na app
+
+**Contexto.** A landing (beeznoo.ao) parecia amadora: plana, formulário longo logo no topo, pouco movimento. Foi
+redesenhada no Claude Design com motion, 3D leve e melhor UX, e o pedido é levar a mesma linguagem a toda a app.
+
+**Hipótese.** Uma landing com proposta mais clara (como funciona, confiança, valores visíveis) e uma app com a mesma
+linguagem aumentam a passagem visita → registo → primeiro pedido de reserva.
+**Utilizador-alvo:** visitante que ainda não confia em alugar a um desconhecido; arrendatário/dono novo.
+**Critério de sucesso:** taxa de inscrição na lista/registo por visita à landing ≥ 2× a da versão anterior nas
+primeiras 4 semanas; sem queda de desempenho (LCP < 2,5 s num Android de gama média em 4G).
+
+**Decisões (pedidas pela equipa nesta data — ⚑ validar com o André):**
+
+1. **`docs/DESIGN_SYSTEM.md` passa à v4.** Paleta, fontes (Bricolage Grotesque + DM Sans), raios 12/16/24 e vocabulário
+   mantêm-se. Acrescenta tokens de movimento, regras de 3D em CSS e componentes `HexTile`, `SegmentedControl`,
+   `SuccessCheck`, `BookingTicket` com inclinação, rodapé escuro.
+2. **Movimento com limites na app:** nada de animações infinitas em listas, sem parallax no telemóvel, só
+   `transform`/`opacity`, `prefers-reduced-motion` sempre respeitado. A landing pode usar mais.
+3. **Sem WebGL/three.js** — o 3D é CSS (peso e bateria).
+4. **Copy alinhada com o pagamento direto ao dono** (2026-11-15): "Pagas ao dono na entrega", "O dono devolve-te a
+   caução", Timeline "pago ao dono" / "caução devolvida".
+5. **Landing:** botões "Entrar" e "Criar conta" no cabeçalho; formulário da lista de espera sai do hero para uma
+   secção própria; novas secções (categorias, como funciona com timeline, dois papéis, confiança, perguntas, rodapé).
+
+**Em aberto.**
+
+- Fotos reais de equipamento para a landing e para os anúncios de exemplo (próprias ou de banco com licença).
+- Número de WhatsApp da equipa nos links (`NEXT_PUBLIC_WHATSAPP_NUMBER`).
+- Se a lista de espera continua depois do lançamento ou é substituída por "Criar conta".
+- Prazo de verificação "até 2 dias úteis" (⚑ 2026-11-15) — confirmar antes de o publicar na landing.

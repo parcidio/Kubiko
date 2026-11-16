@@ -2,13 +2,15 @@
 
 import { useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { CalendarDays, ChevronRight, Clock, LayoutGrid, MapPin, MessageCircle, Repeat2, ShieldCheck, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, LayoutGrid, MapPin, MessageCircle, Repeat2, ShieldCheck, Sparkles } from "lucide-react";
 import { categoryIcon } from "@/components/bz/brand";
 import { PriceSummary } from "@/components/bz/booking";
 import { MonthCalendar } from "@/components/bz/calendar";
 import { Rail, ReviewsSection } from "@/components/bz/discover";
 import { Avatar, ConditionMeter, ItemPhoto, Stars, VerifiedBadge, formatRating, placeOf } from "@/components/bz/equipment";
 import { TextField } from "@/components/bz/form";
+import { HexTile } from "@/components/bz/hex";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
@@ -86,39 +88,47 @@ export default function EquipamentoPage() {
   }
 
   return (
-    <div className="grid gap-5 md:gap-8">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5 md:gap-8">
       <div className="hidden md:block">
         <BackLink href="/explorar">Explorar</BackLink>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-10">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-5 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-10">
         {/* Galeria: deslizar no telemóvel */}
         <div className="-mx-4 -mt-5 grid content-start gap-3 md:sticky md:top-24 md:mx-0 md:mt-0 md:self-start">
           <div className="relative">
             <div
               ref={gallery}
-              className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] md:rounded-sheet"
+              className="flex snap-x snap-mandatory overflow-x-auto bg-areia-2 [scrollbar-width:none] md:rounded-sheet"
               onScroll={(e) => setPhoto(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
             >
               {(photos.length ? photos : [null]).map((p, i) => (
                 <ItemPhoto key={p?.id ?? i} src={p?.photUrl} alt={`${item.title} — foto ${i + 1}`} icon={Icon} rounded={false} className="w-full shrink-0 snap-center" />
               ))}
             </div>
+            {/* Voltar a flutuar sobre a foto (no desktop há o BackLink por cima) */}
+            <Link
+              href="/explorar"
+              aria-label="Voltar a explorar"
+              className="absolute top-4 left-4 flex size-11 items-center justify-center rounded-campo bg-branco/90 text-verde shadow-float backdrop-blur transition-transform duration-200 active:scale-95 md:hidden"
+            >
+              <ChevronLeft className="size-5" strokeWidth={1.8} aria-hidden />
+            </Link>
             {photos.length > 1 && (
               <>
-                <span className="num absolute top-4 right-4 rounded-full bg-verde/80 px-3 py-1 text-[13px] font-bold text-areia backdrop-blur">
+                <span className="num absolute right-4 bottom-4 rounded-full bg-verde/75 px-3 py-1 text-[13px] font-bold text-areia backdrop-blur">
                   {photo + 1} / {photos.length}
                 </span>
-                <span aria-hidden className="absolute inset-x-0 bottom-3 flex justify-center gap-1.5">
+                <span aria-hidden className="absolute inset-x-0 bottom-5 flex justify-center gap-1.5">
                   {photos.map((p, i) => (
-                    <span key={p.id} className={cn("h-1.5 rounded-full bg-branco transition-all", i === photo ? "w-5" : "w-1.5 opacity-60")} />
+                    <span key={p.id} className={cn("h-1.5 w-5 origin-center rounded-full bg-branco transition-[transform,opacity] duration-350 ease-out", i === photo ? "scale-x-100" : "scale-x-[.3] opacity-60")} />
                   ))}
                 </span>
               </>
             )}
             {item.featured && (
-              <span className="absolute top-4 left-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-verde px-3 text-[13px] font-bold text-ambar md:top-4 md:left-4">
-                <Sparkles className="size-4" strokeWidth={2} aria-hidden /> Em destaque
+              <span className="absolute top-4 right-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-verde px-3 text-[13px] font-bold text-areia md:right-auto md:left-4 [&_svg]:text-ambar">
+                <Sparkles className="size-4" strokeWidth={1.8} aria-hidden /> Em destaque
               </span>
             )}
           </div>
@@ -131,7 +141,7 @@ export default function EquipamentoPage() {
                   aria-label={`Ver foto ${i + 1}`}
                   aria-current={i === photo}
                   onClick={() => gallery.current?.scrollTo({ left: i * gallery.current.clientWidth, behavior: "smooth" })}
-                  className={cn("w-20 overflow-hidden rounded-campo border-2 transition", i === photo ? "border-verde" : "border-transparent opacity-70 hover:opacity-100")}
+                  className={cn("w-20 cursor-pointer overflow-hidden rounded-campo border-2 transition-[border-color,opacity] duration-200", i === photo ? "border-verde" : "border-transparent opacity-70 hover:opacity-100")}
                 >
                   <ItemPhoto src={p.photUrl} alt="" icon={Icon} rounded={false} />
                 </button>
@@ -140,13 +150,14 @@ export default function EquipamentoPage() {
           )}
         </div>
 
+        {/* Sem animação neste wrapper: um transform num antepassado prende o position:fixed do StickyCTA */}
         <div className="grid content-start gap-5">
-          <div className="grid gap-3">
+          <div className="grid animate-sobe gap-3">
             <div className="flex flex-wrap items-center gap-2">
               {item.category && <Badge tone="analise" icon={Icon}>{item.category.name}</Badge>}
               {!available && <Badge tone="neutro">Indisponível</Badge>}
             </div>
-            <h1 className="font-titulo text-[30px] leading-[1.05] font-extrabold tracking-tight text-verde md:text-[40px]">{item.title}</h1>
+            <h1 className="font-titulo text-[28px] leading-[1.05] font-bold tracking-[-0.02em] text-verde md:text-[40px]">{item.title}</h1>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-cinza">
               {item.ratingAverage && item.ratingCount > 0 ? (
                 <a href="#avaliacoes" className="inline-flex min-h-11 items-center gap-1.5 hover:underline md:min-h-0">
@@ -168,8 +179,8 @@ export default function EquipamentoPage() {
               </span>
             </div>
             <div className="flex items-baseline gap-1 text-verde">
-              <Kz value={item.pricePerDay} className="text-4xl" />
-              <span className="text-cinza">/dia</span>
+              <Kz value={item.pricePerDay} className="text-[32px] md:text-4xl" />
+              <span className="text-cinza">por dia</span>
             </div>
             <ConditionMeter condition={item.condition} />
           </div>
@@ -191,9 +202,9 @@ export default function EquipamentoPage() {
 
           {/* Datas + preço */}
           <Card className="grid gap-4 p-4">
-            <p className="flex items-center gap-2 font-bold text-verde">
-              <CalendarDays className="size-5 text-mel" strokeWidth={1.8} aria-hidden /> Quando precisas?
-            </p>
+            <h2 className="flex items-center gap-3 font-titulo text-lg font-bold tracking-tight text-verde">
+              <HexTile icon={CalendarDays} tone="ambar-tint" size={40} /> Quando precisas?
+            </h2>
             <div className="grid grid-cols-2 gap-3">
               <TextField label="Levantas" type="date" min={todayIso()} value={start} onChange={(v) => { setStart(v); if (v >= end) setEnd(addDaysIso(v, 1)); }} />
               <TextField label="Devolves" type="date" min={start} value={end} onChange={setEnd} />
@@ -216,7 +227,13 @@ export default function EquipamentoPage() {
                 Já está ocupado a {formatDay(conflict)}. Escolhe outras datas.
               </p>
             ) : days > 0 ? (
-              <PriceSummary pricePerDay={Number(item.pricePerDay)} days={days} deposit={deposit} />
+              <>
+                <PriceSummary pricePerDay={Number(item.pricePerDay)} days={days} deposit={deposit} />
+                <p className="flex gap-2.5 rounded-cartao bg-salvia-tint p-3 text-sm text-verde">
+                  <ShieldCheck className="mt-0.5 size-[18px] shrink-0 text-verde-medio" strokeWidth={1.8} aria-hidden />
+                  Não pagas nada agora. Conferes o equipamento na entrega e só depois pagas ao dono.
+                </p>
+              </>
             ) : (
               <p className="text-sm text-erro">A devolução tem de ser pelo menos um dia depois.</p>
             )}
@@ -226,19 +243,19 @@ export default function EquipamentoPage() {
           <button
             type="button"
             onClick={() => setDepositInfo(true)}
-            className="flex items-center gap-3 rounded-cartao bg-salvia-tint p-4 text-left text-verde transition hover:brightness-[.98]"
+            className="group flex cursor-pointer items-center gap-3 rounded-cartao border border-borda bg-branco p-4 text-left text-verde transition-[border-color] duration-200 hover:border-borda-forte"
           >
-            <ShieldCheck className="size-6 shrink-0 text-verde-medio" strokeWidth={1.8} aria-hidden />
+            <HexTile icon={ShieldCheck} tone="salvia" size={44} flip />
             <span className="flex-1">
               <span className="block font-bold">Proteção Beeznoo</span>
               <span className="text-sm">Contrato, caução e fotos na entrega. Como funciona?</span>
             </span>
-            <ChevronRight className="size-5" strokeWidth={1.8} aria-hidden />
+            <ChevronRight className="size-5 text-cinza transition-transform duration-200 ease-out group-hover:translate-x-1" strokeWidth={1.8} aria-hidden />
           </button>
 
           {item.description && (
             <section className="grid gap-2">
-              <h2 className="font-titulo text-lg font-bold text-verde">Sobre o equipamento</h2>
+              <h2 className="font-titulo text-lg font-bold tracking-tight text-verde">Sobre o equipamento</h2>
               <p className="whitespace-pre-line text-texto-corpo">{item.description}</p>
             </section>
           )}
@@ -280,7 +297,7 @@ export default function EquipamentoPage() {
             }
           >
             <div className="flex gap-2">
-              <a href={whatsappLink(waText)} target="_blank" rel="noreferrer" aria-label="Falar no WhatsApp" className={cn(buttonClass("outline"), "px-3.5 md:px-5")}>
+              <a href={whatsappLink(waText)} target="_blank" rel="noreferrer" aria-label={`Falar no WhatsApp sobre ${item.title}`} className={cn(buttonClass("secondary"), "w-12 px-0 md:w-auto md:px-5")}>
                 <MessageCircle strokeWidth={1.8} />
                 <span className="hidden md:inline">WhatsApp</span>
               </a>
@@ -298,7 +315,7 @@ export default function EquipamentoPage() {
         </div>
       </div>
 
-      <div className="grid gap-8 border-t border-borda pt-6 md:pt-8">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 border-t border-borda pt-6 md:pt-8">
         <ReviewsSection itemId={id} average={item.ratingAverage} count={item.ratingCount} rentals={item.completedRentals} />
         {item.category && (
           <Rail
@@ -331,7 +348,7 @@ function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; depos
       <ol className="grid gap-4">
         {steps.map((s, i) => (
           <li key={s.t} className="flex gap-3">
-            <span className="num flex size-8 shrink-0 items-center justify-center rounded-full bg-verde font-titulo font-bold text-ambar">{i + 1}</span>
+            <HexTile tone="salvia" size={40} className="num text-verde">{i + 1}</HexTile>
             <div>
               <p className="font-bold text-verde">{s.t}</p>
               <p className="text-sm text-cinza">{s.d}</p>

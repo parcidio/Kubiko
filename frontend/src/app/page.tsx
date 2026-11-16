@@ -1,28 +1,31 @@
-import BeeznoCategories from "../../components/landing/Categories";
-import BeeznoFooter from "../../components/landing/Footer";
-import BeeznoHero from "../../components/landing/Hero";
-import BeeznoHighlights from "../../components/landing/Highlights";
-import BeeznoHowItWorks from "../../components/landing/HowWorks";
-import BeeznoNavbar from "../../components/landing/Navbar";
-import BeeznoSecuring from "../../components/landing/Securing";
-import BeeznoUseCases from "../../components/landing/UseCases";
-import BeeznoWaitlist from "../../components/landing/Waitlist";
+import "../../components/landing/landing.css";
+import LandingCategories from "../../components/landing/Categories";
+import LandingFaq from "../../components/landing/Faq";
+import LandingFooter from "../../components/landing/Footer";
+import LandingHeader from "../../components/landing/Header";
+import LandingHero from "../../components/landing/Hero";
+import LandingHowItWorks from "../../components/landing/HowItWorks";
+import LandingMarquee from "../../components/landing/Marquee";
+import LandingRoles from "../../components/landing/Roles";
+import LandingTrust from "../../components/landing/Trust";
+import LandingWaitlist from "../../components/landing/Waitlist";
 
+/** Landing beeznoo.ao — Identidade Verde v4 (docs/DESIGN_SYSTEM.md, decisão 2026-11-16). */
 export default function Home() {
   return (
-    // pt-[65px] compensa a navbar fixa
-    <div className="pt-16.25">
+    <div className="lp">
+      <LandingHeader />
       <main>
-        <BeeznoNavbar />
-        <BeeznoHero />
-        <BeeznoCategories />
-        <BeeznoUseCases />
-        <BeeznoHowItWorks />
-        <BeeznoHighlights />
-        <BeeznoSecuring />
-        <BeeznoWaitlist />
-        <BeeznoFooter />
+        <LandingHero />
+        <LandingMarquee />
+        <LandingCategories />
+        <LandingHowItWorks />
+        <LandingRoles />
+        <LandingTrust />
+        <LandingWaitlist />
+        <LandingFaq />
       </main>
+      <LandingFooter />
     </div>
   );
 }

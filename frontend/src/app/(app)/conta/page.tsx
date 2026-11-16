@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { BadgeCheck, CheckCircle2, ChevronRight, CircleHelp, Clock, LogOut, Mail, Moon, Package, Phone, ShieldCheck, Sun, Ticket, Wallet, type LucideIcon } from "lucide-react";
 import { HexGlow } from "@/components/bz/brand";
 import { FormError, OtpField, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
+import { HexTile } from "@/components/bz/hex";
 import { toast } from "@/components/bz/overlay";
 import { ModeSwitch } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
@@ -72,20 +73,20 @@ function ContaInner() {
       <section className="relative overflow-hidden rounded-sheet bg-verde-noite p-6 text-areia md:p-8">
         <HexGlow />
         <div className="relative grid justify-items-center gap-5 text-center lg:justify-items-start lg:text-left">
-          <span className="flex size-28 items-center justify-center rounded-full border-4 border-ambar/70 bg-verde font-titulo text-4xl font-extrabold text-ambar shadow-flutua md:size-32" aria-hidden>
+          <HexTile tone="salvia" size={104} className="num">
             {me.data ? initials(me.data.fullName) : ROLE_LABEL[session.role].charAt(0)}
-          </span>
+          </HexTile>
           <div className="grid w-full gap-4">
             <div>
               <Eyebrow className="text-salvia">{ROLE_LABEL[session.role]}</Eyebrow>
               {me.data ? (
-                <p className="mt-1 font-titulo text-3xl font-extrabold">{me.data.fullName}</p>
+                <p className="mt-1 font-titulo text-[26px] leading-tight font-bold text-white md:text-[32px]">{me.data.fullName}</p>
               ) : (
                 <Skeleton className="mt-2 h-8 w-48 bg-white/10" />
               )}
             </div>
             {me.data && (
-              <ul className="grid gap-2 rounded-cartao bg-white/10 p-4 text-left text-sm">
+              <ul className="grid gap-2 rounded-cartao border border-white/10 bg-white/5 p-4 text-left text-sm text-salvia-tint">
                 <Status icon={Phone} label={me.data.phone} ok={me.data.phoneVerified} okText="confirmado" noText="por confirmar" />
                 {me.data.email && <Status icon={Mail} label={me.data.email} ok={me.data.emailVerified} okText="verificado" noText="por verificar" />}
                 <Status icon={BadgeCheck} label="Identidade" ok={me.data.identityVerified} okText="verificada" noText={me.data.kycStatus === "PENDING" || me.data.kycStatus === "IN_REVIEW" ? "em análise" : me.data.kycStatus === "REJECTED" ? "recusada" : me.data.kycStatus === "INFO_REQUESTED" ? "falta informação" : "por verificar"} />
@@ -125,11 +126,11 @@ function ContaInner() {
                   href={href}
                   target={external ? "_blank" : undefined}
                   rel={external ? "noreferrer" : undefined}
-                  className="flex min-h-14 items-center gap-3 border-b border-borda px-4 font-medium text-verde last:border-0 hover:bg-areia"
+                  className="group flex min-h-14 items-center gap-3 border-b border-borda px-4 py-2 font-medium text-verde transition-colors duration-200 last:border-0 hover:bg-areia"
                 >
-                  <Icon className="size-5 text-mel" strokeWidth={1.8} aria-hidden />
+                  <HexTile icon={Icon} tone="areia" size={34} />
                   <span className="flex-1">{label}</span>
-                  <ChevronRight className="size-5 text-cinza" strokeWidth={1.8} aria-hidden />
+                  <ChevronRight className="size-5 text-cinza transition-transform duration-200 group-hover:translate-x-1" strokeWidth={1.8} aria-hidden />
                 </Link>
               ))}
           </Card>
@@ -156,7 +157,7 @@ function ContaInner() {
                   window.localStorage.setItem("beeznoo.theme", darkMode ? "light" : "dark");
                   window.dispatchEvent(new Event("beeznoo:theme"));
                 }}
-                className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full p-1 transition-colors ${darkMode ? "bg-primary" : "bg-borda"}`}
+                className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full p-1 transition-colors ${darkMode ? "bg-verde-medio" : "bg-borda-forte"}`}
               >
                 <span className={`block size-5 rounded-full bg-branco shadow transition-transform ${darkMode ? "translate-x-5" : "translate-x-0"}`} />
               </button>
@@ -192,7 +193,7 @@ function Status({ icon: Icon, label, ok, okText, noText }: { icon: LucideIcon; l
     <li className="flex items-center gap-2">
       <Icon className="size-4 shrink-0 text-salvia" strokeWidth={1.8} aria-hidden />
       <span className="min-w-0 flex-1 truncate">{label}</span>
-      <span className={`flex shrink-0 items-center gap-1 text-xs font-bold ${ok ? "text-salvia" : "text-ambar"}`}>
+      <span className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${ok ? "bg-salvia/15 text-salvia" : "bg-white/10 text-salvia-tint"}`}>
         {ok ? <CheckCircle2 className="size-3.5" aria-hidden /> : <Clock className="size-3.5" aria-hidden />}
         {ok ? okText : noText}
       </span>

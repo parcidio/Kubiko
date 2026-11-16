@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, CheckCircle2 } from "lucide-react";
-import { HexIllustration, categoryIcon } from "@/components/bz/brand";
+import { ArrowLeft, Camera } from "lucide-react";
+import { categoryIcon } from "@/components/bz/brand";
 import { EquipmentCard } from "@/components/bz/equipment";
 import { FormError, StepProgress, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { DetailsFields, EMPTY_DRAFT, PriceFields, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
 import { toast } from "@/components/bz/overlay";
 import { PhotoPicker, useLocalPhotos } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
+import { SuccessCheck } from "@/components/bz/success";
 import { Button, ButtonLink, Callout } from "@/components/bz/ui";
 import { catalogApi, ownerItemApi } from "@/lib/api";
 import { DRAFT_KEY_PREFIX, useRequireSession } from "@/lib/auth";
@@ -124,8 +125,8 @@ function PublicarForm({ profileId }: { profileId: string }) {
   if (published) {
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
-        <HexIllustration icon={CheckCircle2} tone="ok" size={160} />
-        <h1 className="font-titulo text-3xl font-extrabold text-verde">Está publicado!</h1>
+        <SuccessCheck />
+        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">Está publicado!</h1>
         <p className="text-cinza">{published.title} já aparece em Explorar. Avisamos-te quando chegar o primeiro pedido.</p>
         <div className="grid w-full gap-2">
           <ButtonLink href={`/equipamento/${published.id}`} block>

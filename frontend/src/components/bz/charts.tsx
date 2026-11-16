@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { TrendingDown, TrendingUp, Minus, type LucideIcon } from "lucide-react";
+import { HexTile } from "./hex";
 import { Card } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -37,12 +38,12 @@ export function StatTile({
 }) {
   const DeltaIcon = !delta ? null : delta.value > 0 ? TrendingUp : delta.value < 0 ? TrendingDown : Minus;
   return (
-    <Card className={cn("grid content-start gap-2 p-5", accent && "border-verde")}>
-      <div className="flex items-center justify-between gap-3">
+    <Card className={cn("grid content-start gap-2 p-5", accent && "border-verde bg-salvia-tint/40")}>
+      <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-cinza">{label}</p>
-        {Icon && <Icon className="size-5 text-mel" strokeWidth={1.8} aria-hidden />}
+        {Icon && <HexTile icon={Icon} tone={accent ? "verde" : "areia"} size={36} />}
       </div>
-      <p className={cn("num font-titulo font-extrabold text-verde", accent ? "text-5xl" : "text-3xl")}>{value}</p>
+      <p className={cn("num font-titulo leading-none font-bold tracking-tight text-verde", accent ? "text-5xl" : "text-3xl")}>{value}</p>
       {delta && DeltaIcon && (
         <p className="flex items-center gap-1.5 text-sm text-texto-corpo">
           <DeltaIcon className="size-4 text-cinza" strokeWidth={2} aria-hidden />
@@ -160,7 +161,7 @@ export function BarChart({
                     )}
                     <span
                       className={cn(
-                        "block w-full max-w-12 rounded-t-[4px] bg-verde-medio transition-[height,opacity] duration-500 ease-out motion-reduce:transition-none",
+                        "block w-full max-w-12 rounded-t-[4px] bg-verde-medio transition-opacity duration-200 ease-out motion-reduce:transition-none",
                         b.note && "opacity-70",
                         active !== null && !on && "opacity-50",
                       )}
@@ -224,7 +225,7 @@ export function Funnel({
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-areia-2" aria-hidden>
                 <div
-                  className="h-full rounded-full bg-verde-medio transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                  className="h-full rounded-full bg-verde-medio"
                   style={{ width: `${base === 0 ? 0 : Math.max((s.value / base) * 100, s.value > 0 ? 2 : 0)}%` }}
                 />
               </div>

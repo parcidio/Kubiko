@@ -1,8 +1,9 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ArrowRight, BadgeCheck, Camera, ChevronLeft, ChevronRight, MessageSquareText, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Camera, ChevronLeft, ChevronRight, MessageSquareText, ShieldCheck, type LucideIcon } from "lucide-react";
 import { HexGlow } from "./brand";
+import { HexTile } from "./hex";
 import { Avatar, EquipmentCard, Stars, formatRating } from "./equipment";
 import { ButtonLink, Skeleton, Button } from "./ui";
 import { catalogApi } from "@/lib/api";
@@ -40,11 +41,9 @@ export function Rail({
     <section aria-label={title} className="grid animate-sobe gap-3">
       <div className="flex items-end justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ambar-tint text-mel">
-            <Icon className="size-5" strokeWidth={1.8} aria-hidden />
-          </span>
+          <HexTile icon={Icon} tone="ambar-tint" size={40} />
           <div>
-            <h2 className="font-titulo text-lg leading-tight font-bold text-verde md:text-xl">{title}</h2>
+            <h2 className="font-titulo text-lg leading-tight font-bold tracking-tight text-verde md:text-xl">{title}</h2>
             {subtitle && <p className="text-[13px] text-cinza">{subtitle}</p>}
           </div>
         </div>
@@ -72,7 +71,7 @@ function ArrowButton({ label, icon: Icon, onClick }: { label: string; icon: Luci
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex size-11 items-center justify-center rounded-full border border-borda bg-branco text-verde transition hover:border-verde active:scale-95"
+      className="flex size-11 cursor-pointer items-center justify-center rounded-campo border-[1.5px] border-borda-forte bg-branco text-verde transition-[border-color,transform] duration-200 hover:border-verde active:scale-95"
     >
       <Icon className="size-5" strokeWidth={1.8} aria-hidden />
     </button>
@@ -110,12 +109,10 @@ export function TrustStrip({ className }: { className?: string }) {
       {TRUST.map(({ icon: Icon, title, text }, i) => (
         <li
           key={title}
-          className="flex w-[78vw] max-w-[300px] shrink-0 animate-sobe items-center gap-3 rounded-cartao border border-borda bg-branco p-3 md:w-auto md:max-w-none"
+          className="group flex w-[78vw] max-w-[300px] shrink-0 animate-sobe items-center gap-3 rounded-cartao border border-borda bg-branco p-3 md:w-auto md:max-w-none"
           style={{ animationDelay: `${i * 60}ms` }}
         >
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-salvia-tint text-verde-medio">
-            <Icon className="size-5" strokeWidth={1.8} aria-hidden />
-          </span>
+          <HexTile icon={Icon} tone="salvia-tint" size={44} flip />
           <span className="min-w-0">
             <span className="block text-sm font-bold text-verde">{title}</span>
             <span className="block text-[13px] leading-tight text-cinza">{text}</span>
@@ -142,8 +139,9 @@ export function QuickSearches({ onPick, active }: { onPick: (q: string) => void;
             aria-pressed={on}
             onClick={() => onPick(on ? "" : q)}
             className={cn(
-              "h-11 shrink-0 rounded-full cursor-pointer border px-4 text-sm font-medium transition active:scale-95",
-              on ? "border-ambar bg-ambar/15 text-ambar" : "border-white/15 bg-white/5 text-areia hover:bg-white/10",
+              "h-11 shrink-0 cursor-pointer rounded-full border-[1.5px] px-4 text-sm font-medium transition-[background-color,border-color,color,transform] duration-200 active:scale-95",
+              // ativa = areia com texto verde (âmbar fica só para o botão principal)
+              on ? "border-areia bg-areia text-verde" : "border-white/20 bg-white/5 text-areia hover:border-white/40 hover:bg-white/10",
             )}
           >
             {q}
@@ -158,17 +156,17 @@ export function QuickSearches({ onPick, active }: { onPick: (q: string) => void;
 
 export function PublishPromo() {
   return (
-    <section className="relative overflow-hidden rounded-sheet bg-verde p-5 text-areia md:flex md:items-center md:justify-between md:gap-8 md:p-8">
+    <section className="relative overflow-hidden rounded-sheet bg-verde p-6 text-areia md:flex md:items-center md:justify-between md:gap-8 md:p-8">
       <HexGlow />
       <div className="relative grid gap-1.5 md:max-w-lg">
         <p className="text-xs font-bold tracking-[0.1em] text-salvia uppercase">Para donos</p>
         <h2 className="font-titulo text-2xl leading-tight font-extrabold tracking-tight md:text-3xl">
-          Tens equipamento parado? <span className="text-ambar">Põe-no a render.</span>
+          <span className="text-white">Tens equipamento parado?</span> <span className="text-salvia">Põe-no a render.</span>
         </h2>
-        <p className="text-sm text-areia/80">Publicas com fotos e preço, aceitas só os pedidos que quiseres e recebes por cada aluguer.</p>
+        <p className="text-[15px] text-salvia-tint">Publicas com fotos e preço, aceitas só os pedidos que quiseres e recebes por cada aluguer.</p>
       </div>
-      <ButtonLink href="/publicar" variant="light" className="relative mt-4 md:mt-0">
-        Publicar equipamento <ArrowRight strokeWidth={1.8} />
+      <ButtonLink href="/publicar" variant="light" arrow className="relative mt-4 md:mt-0">
+        Publicar equipamento
       </ButtonLink>
     </section>
   );

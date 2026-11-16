@@ -44,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="sticky top-0 z-30 bg-verde text-areia md:h-dvh">
         <div className="flex h-16 items-center gap-3 px-4 md:px-6">
           <Logo dark href="/admin" />
-          <span className="rounded-full bg-ambar px-2 py-0.5 text-[11px] font-bold tracking-wider text-verde uppercase">Equipa</span>
+          <span className="rounded-full bg-salvia px-2.5 py-0.5 text-xs font-bold tracking-[0.08em] text-verde uppercase">Equipa</span>
         </div>
         <nav aria-label="Admin" className="flex gap-1 overflow-x-auto px-2 pb-2 [scrollbar-width:none] md:grid md:gap-1 md:px-3">
           {ADMIN_NAV.map(({ href, label, icon: Icon }) => {
@@ -55,11 +55,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-11 shrink-0 items-center gap-3 rounded-campo px-3 text-sm font-medium whitespace-nowrap transition",
-                  active ? "bg-areia text-verde" : "text-areia/80 hover:bg-white/10 hover:text-areia",
+                  "flex min-h-11 shrink-0 items-center gap-3 rounded-campo px-3 text-sm font-medium whitespace-nowrap transition-colors duration-200",
+                  active ? "bg-areia font-bold text-verde" : "text-salvia-tint hover:bg-white/10 hover:text-white",
                 )}
               >
-                <Icon className={cn("size-5", active ? "text-mel" : "text-ambar")} strokeWidth={1.8} aria-hidden />
+                <Icon className={cn("size-5", active ? "text-verde-medio" : "text-salvia")} strokeWidth={1.8} aria-hidden />
                 {label}
               </Link>
             );
@@ -85,9 +85,9 @@ function SignOutButton() {
         await signOut();
         router.replace("/entrar");
       }}
-      className="flex min-h-11 shrink-0 cursor-pointer items-center gap-3 rounded-campo px-3 text-sm font-medium whitespace-nowrap text-areia/80 transition hover:bg-white/10 hover:text-areia disabled:opacity-60 md:mt-4 md:border-t md:border-white/10 md:pt-4"
+      className="flex min-h-11 shrink-0 cursor-pointer items-center gap-3 rounded-campo px-3 text-sm font-medium whitespace-nowrap text-salvia-tint transition-colors duration-200 hover:bg-white/10 hover:text-white disabled:opacity-60 md:mt-4 md:border-t md:border-white/10 md:pt-4"
     >
-      <LogOut className="size-5 text-ambar" strokeWidth={1.8} aria-hidden />
+      <LogOut className="size-5 text-salvia" strokeWidth={1.8} aria-hidden />
       {busy ? "A sair…" : "Sair"}
     </button>
   );

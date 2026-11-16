@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ArrowUpRight, CreditCard, Inbox, Package, Plus, Radio, Ticket } from "lucide-react";
+import { HexTile } from "@/components/bz/hex";
 import { HexGlow } from "@/components/bz/brand";
 import { BookingRow } from "@/components/bz/booking";
 import { RequestCard } from "@/components/bz/requests";
@@ -37,7 +38,7 @@ export default function PainelPage() {
 
   return (
     <div className="grid gap-8 px-4 md:gap-7 md:px-12">
-      <section className="hero-explore relative -mx-4 -mt-5 flex min-h-[calc(78svh-4rem)] items-center overflow-hidden bg-verde-noite px-4 pt-20 pb-10 text-areia md:-mx-12 md:-mt-8 md:min-h-[calc(78svh-5rem)] md:rounded-none md:px-12 md:py-16">
+      <section className="hero-explore relative -mx-4 -mt-5 flex items-center overflow-hidden rounded-b-sheet bg-verde-noite px-4 pt-8 pb-8 text-areia md:-mx-12 md:-mt-8 md:min-h-[min(64svh,600px)] md:rounded-none md:px-12 md:py-14">
         <HexGlow />
         <div className="relative grid gap-6">
           <div className="flex items-center justify-between gap-3">
@@ -49,8 +50,8 @@ export default function PainelPage() {
               <div className="absolute -top-20 -right-16 size-56 rounded-full bg-ambar/15 blur-3xl" aria-hidden />
               <div className="relative flex items-start justify-between">
                 <div className="grid gap-1">
-                  <p className="text-xs font-bold tracking-[0.16em] text-areia/65 uppercase">Carteira</p>
-                  <p className="font-titulo text-lg font-bold">Recebes na entrega</p>
+                  <p className="text-xs font-bold tracking-[0.12em] text-salvia uppercase">Carteira</p>
+                  <p className="font-titulo text-lg font-bold text-white">Recebes na entrega</p>
                 </div>
                 <CreditCard className="size-7 text-ambar" strokeWidth={1.6} aria-hidden />
               </div>
@@ -63,17 +64,17 @@ export default function PainelPage() {
               <div className="relative grid gap-1">
                 <div className="flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-[10px] tracking-[0.14em] text-areia/55 uppercase">Taxa por entregar à Beeznoo</p>
-                    {commissions.loading ? <Skeleton className="mt-1 h-8 w-40 bg-white/10" /> : <Kz value={commissions.data?.due ?? 0} className="text-3xl leading-none text-ambar" />}
+                    <p className="text-xs tracking-[0.08em] text-salvia-tint uppercase">Taxa por entregar à Beeznoo</p>
+                    {commissions.loading ? <Skeleton className="mt-1 h-8 w-40 bg-white/10" /> : <Kz value={commissions.data?.due ?? 0} className="mt-1 block text-3xl leading-none text-white" />}
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-areia/55 uppercase">Pagamentos</p>
-                    <p className="num text-sm font-bold">{commissions.data?.lines.length ?? 0}</p>
+                    <p className="text-xs text-salvia-tint uppercase">Pagamentos</p>
+                    <p className="num text-sm font-bold text-white">{commissions.data?.lines.length ?? 0}</p>
                   </div>
                 </div>
               </div>
             </div>
-            <Link href="/carteira" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-areia hover:underline">
+            <Link href="/carteira" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-salvia hover:underline">
               Ver carteira <ArrowUpRight className="size-4" strokeWidth={2} aria-hidden />
             </Link>
           </div>
@@ -83,10 +84,14 @@ export default function PainelPage() {
               { label: "Alugueres ativos", value: upcoming.length, href: "/pedidos", icon: Ticket },
               { label: "Equipamentos ativos", value: activeItems, href: "/equipamentos", icon: Package },
             ].map(({ label, value, href, icon: Icon }) => (
-              <Link key={label} href={href} className="grid gap-2 rounded-cartao bg-white/8 p-3 transition hover:bg-white/12">
-                <Icon className="size-5 text-ambar" strokeWidth={1.8} aria-hidden />
-                <dd className="num font-titulo text-3xl font-extrabold">{received.loading ? "–" : value}</dd>
-                <dt className="text-[13px] leading-tight text-areia/75">{label}</dt>
+              <Link
+                key={label}
+                href={href}
+                className="group grid gap-2 rounded-cartao border border-white/10 bg-white/5 p-3 transition-colors duration-200 hover:border-salvia/40 hover:bg-white/10"
+              >
+                <HexTile icon={Icon} tone="salvia" size={34} flip />
+                <dd className="num font-titulo text-[26px] leading-none font-bold text-white md:text-3xl">{received.loading ? "–" : value}</dd>
+                <dt className="text-[13px] leading-tight text-salvia-tint">{label}</dt>
               </Link>
             ))}
           </dl>
@@ -94,7 +99,7 @@ export default function PainelPage() {
       </section>
 
       <section className="grid gap-4">
-        <SectionTitle action={pending.length > 0 ? <Link href="/pedidos" className="text-sm font-bold text-mel-texto">Ver todos</Link> : null}>
+        <SectionTitle action={pending.length > 0 ? <Link href="/pedidos" className="inline-flex min-h-11 items-center text-sm font-bold text-mel-texto hover:underline">Ver todos</Link> : null}>
           Responde a estes pedidos
         </SectionTitle>
         {received.error ? (

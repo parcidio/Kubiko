@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Banknote, Bookmark, Calendar, ChevronDown, MapPin, Star } from "lucide-react";
-import { ChipGroup } from "@/components/bz/form";
+import { ChipGroup, inputClass } from "@/components/bz/form";
+import { Button } from "@/components/bz/ui";
+import { cn } from "@/lib/utils";
 import { LUANDA_AREAS, addDaysIso, formatRange, todayIso } from "@/lib/format";
 import type { ItemCondition } from "@/lib/types";
 
@@ -24,8 +26,8 @@ type CategoryOption = { id: string; name: string };
 
 const CONDITION_LABEL: Partial<Record<ItemCondition, string>> = { NEW: "Novo", LIKE_NEW: "Como novo" };
 
-const inputCls =
-  "w-full rounded-lg border border-border-bg bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-shield disabled:cursor-not-allowed disabled:opacity-60";
+// Campos v4 (raio 12, contorno borda-forte, foco verde-médio): os mesmos do resto da app
+const inputCls = cn(inputClass, "disabled:cursor-not-allowed");
 
 function buildChips(f: Filters, categoryName?: string): string[] {
   const chips: string[] = [];
@@ -129,23 +131,12 @@ export default function BeeznoFilters({
       ? [{
           key: "categoria", icon: Bookmark, label: "Categoria",
           content: (
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  aria-pressed={draftCat === cat.id}
-                  onClick={() => setDraftCat(draftCat === cat.id ? undefined : cat.id)}
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all duration-150 ${
-                    draftCat === cat.id
-                      ? "border-shield bg-shield-soft text-shield"
-                      : "border-border-bg bg-background text-muted-foreground hover:border-shield hover:text-shield"
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
+            <ChipGroup
+              label="Categoria"
+              value={draftCat}
+              onChange={(v) => setDraftCat(draftCat === v ? undefined : v)}
+              options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
+            />
           ),
         }]
       : []),
@@ -167,7 +158,7 @@ export default function BeeznoFilters({
       key: "datas", icon: Calendar, label: "Datas de disponibilidade",
       content: (
         <div className="flex flex-col gap-3">
-          <label className="grid gap-1 text-xs text-muted-foreground">
+          <label className="grid gap-1.5 text-sm font-medium text-verde">
             Levantas
             <input
               type="date"
@@ -180,7 +171,7 @@ export default function BeeznoFilters({
               className={inputCls}
             />
           </label>
-          <label className="grid gap-1 text-xs text-muted-foreground">
+          <label className="grid gap-1.5 text-sm font-medium text-verde">
             Devolves
             <input
               type="date"
@@ -191,27 +182,27 @@ export default function BeeznoFilters({
               className={inputCls}
             />
           </label>
-          <p className="text-xs text-muted-foreground">Mostra só o equipamento livre nesses dias.</p>
+          <p className="text-[13px] text-cinza">Mostra só o equipamento livre nesses dias.</p>
         </div>
       ),
     },
   ];
 
   const content = (
-    <div className="max-h-[calc(100dvh-5rem)] overflow-y-auto overscroll-contain rounded-sm border border-border-bg bg-card">
+    <div className={cn("overflow-y-auto overscroll-contain", !mobile && "max-h-[calc(100dvh-6rem)] rounded-cartao border border-borda bg-branco")}>
       {!mobile && (
-        <div className="flex justify-center border-b border-border-bg px-6 py-1.5">
-          <h2 className="font-light text-card-foreground">Filtros</h2>
+        <div className="border-b border-borda px-5 py-4">
+          <h2 className="font-titulo text-lg font-bold tracking-tight text-verde">Filtros</h2>
         </div>
       )}
 
-      <div className="flex flex-col gap-4 p-5">
+      <div className={cn("flex flex-col gap-4", !mobile && "p-5")}>
         {/* Preferências aplicadas */}
-        <div className="rounded-xl bg-accent px-5 py-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-accent-foreground">As tuas preferências</h3>
+        <div className="rounded-cartao bg-areia-2 px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="text-sm font-bold text-verde">As tuas preferências</h3>
             {savedChips.length > 0 && (
-              <button onClick={handleClear} className="text-xs cursor-pointer text-accent-foreground/60 transition-colors hover:text-accent-foreground">
+              <button type="button" onClick={handleClear} className="-my-2 min-h-11 cursor-pointer text-sm font-medium text-mel-texto hover:underline">
                 Limpar todos
               </button>
             )}
@@ -219,58 +210,48 @@ export default function BeeznoFilters({
           {savedChips.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {savedChips.map((chip) => (
-                <span key={chip} className="rounded-full bg-chart-5 px-2.5 py-1 text-xs font-semibold text-foreground">
+                <span key={chip} className="inline-flex min-h-8 items-center rounded-full bg-branco px-3 text-[13px] font-medium text-verde">
                   {chip}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="mt-2 text-xs text-accent-foreground/60">Nenhuma preferência guardada ainda.</p>
+            <p className="mt-1 text-[13px] text-cinza">Ainda sem filtros. Escolhe abaixo.</p>
           )}
         </div>
 
         {/* Editar preferências */}
-        <div className="rounded-lg bg-background px-5 py-4">
-          <h3 className="font-bold text-foreground">Editar preferências</h3>
-
+        <div>
           {sections.map(({ key, icon: Icon, label, content: body }) => (
-            <div key={key} className="border-b border-border-bg last:border-0">
+            <div key={key} className="border-b border-borda last:border-0">
               <button
                 type="button"
                 onClick={() => toggle(key)}
                 aria-expanded={open === key}
-                className={`flex w-full cursor-pointer items-center justify-between py-4 ${mobile ? "py-3" : ""}`}
+                className="flex min-h-12 w-full cursor-pointer items-center justify-between gap-3 py-3 text-left"
               >
-                <div className="flex items-center gap-2">
-                  <Icon className={`text-muted-foreground ${mobile ? "h-5 w-5" : "h-4 w-4"}`} />
-                  <span className={`font-semibold text-foreground ${mobile ? "text-base" : "text-sm"}`}>{label}</span>
-                </div>
-                <ChevronDown className={`shrink-0 text-muted-foreground transition-transform duration-200 ${open === key ? "rotate-180" : ""} ${mobile ? "h-5 w-5" : "h-4 w-4"}`} />
+                <span className="flex items-center gap-2.5">
+                  <Icon className="size-5 text-mel" strokeWidth={1.8} aria-hidden />
+                  <span className="text-[15px] font-bold text-verde">{label}</span>
+                </span>
+                <ChevronDown
+                  className={cn("size-5 shrink-0 text-cinza transition-transform duration-200 ease-out", open === key && "rotate-180")}
+                  strokeWidth={1.8}
+                  aria-hidden
+                />
               </button>
-              <div className={`transition-all duration-300 ease-out ${open === key ? "max-h-96 overflow-y-auto px-1 pb-4 opacity-100" : "max-h-0 overflow-hidden opacity-0"}`}>
-                {body}
-              </div>
+              {open === key && <div className="animate-sobe px-0.5 pb-4">{body}</div>}
             </div>
           ))}
 
           <div className="mt-5 flex flex-col gap-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              className="group relative w-full cursor-pointer overflow-hidden rounded-lg bg-primary px-5 py-2.5 font-semibold text-card transition-shadow duration-300 hover:shadow-lift"
-            >
-              <span className="absolute inset-0 -translate-x-full skew-x-[-20deg] bg-linear-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out group-hover:translate-x-full" />
-              <span className={`relative ${mobile ? "text-base" : "text-sm"}`}>Guardar</span>
-            </button>
-
+            <Button variant="dark" block onClick={handleSave}>
+              Guardar
+            </Button>
             {!(isEmpty(draft, draftCat) && isEmpty(applied, categoryId)) && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="w-full cursor-pointer rounded-lg border border-border py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:border-destructive hover:text-destructive"
-              >
+              <Button variant="ghost" block onClick={handleClear}>
                 Limpar todos os filtros
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -281,7 +262,7 @@ export default function BeeznoFilters({
   if (!mobile) {
     // Fixo à esquerda; no telemóvel a página continua a usar o Sheet
     return (
-      <aside className="sticky top-20 hidden w-84 shrink-0 self-start lg:block">
+      <aside aria-label="Filtros" className="sticky top-20 hidden w-84 shrink-0 self-start lg:block">
         {content}
       </aside>
     );
