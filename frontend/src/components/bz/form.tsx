@@ -317,7 +317,7 @@ export function RadioCards<T extends string>({
           >
             <input type="radio" name={name} value={v} checked={value === v} onChange={() => onChange(v)} className="sr-only" />
             {Icon && (
-              <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", value === v ? "bg-verde text-ambar" : "bg-areia-2 text-mel")}>
+              <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-full", value === v ? "bg-verde-solido text-ambar" : "bg-areia-2 text-mel")}>
                 <Icon className="size-5" strokeWidth={1.8} aria-hidden />
               </span>
             )}

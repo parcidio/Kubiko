@@ -19,4 +19,11 @@ public class ServiceFees {
     public BigDecimal of(BigDecimal rental) {
         return rental.multiply(properties.serviceFeeRate()).setScale(0, RoundingMode.HALF_UP).setScale(2);
     }
+
+    /** "8%" / "10%" / "7,5%" — a taxa em vigor, para textos (contrato). Vírgula decimal (PT). */
+    public String rateLabel() {
+        BigDecimal pct = properties.serviceFeeRate().multiply(BigDecimal.valueOf(100)).stripTrailingZeros();
+        if (pct.scale() < 0) pct = pct.setScale(0);
+        return pct.toPlainString().replace('.', ',') + "%";
+    }
 }

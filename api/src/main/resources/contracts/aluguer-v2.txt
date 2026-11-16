@@ -16,7 +16,7 @@ De {{startDate}} a {{endDate}} ({{days}} dias).
 
 4. Valores
 Aluguer: {{rentalAmount}}
-Taxa de serviço Beeznoo (8%): {{serviceFee}}
+Taxa de serviço Beeznoo ({{serviceFeeRate}}): {{serviceFee}}
 Caução reembolsável: {{depositAmount}}
 Total a pagar pelo arrendatário: {{totalAmount}}
 

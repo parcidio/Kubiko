@@ -84,7 +84,8 @@ export function RequestCard({ booking, onChange, index = 0 }: { booking: Booking
   const days = daysBetween(booking.startDate, booking.endDate);
   const deadline = deadlineOf(booking);
   return (
-    <Card className="grid animate-sobe gap-3 p-4" style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}>
+    // minmax(0,1fr): sem isto a coluna da grelha cresce com o conteúdo e o cartão transborda a 360px
+    <Card className="grid animate-sobe grid-cols-[minmax(0,1fr)] gap-3 p-4" style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}>
       {/* flex-wrap: a 360px o prazo ("Urgente · Faltam…") passa para a linha seguinte em vez de esmagar o nome */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-1 basis-44 items-center gap-3">

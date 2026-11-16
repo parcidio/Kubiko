@@ -69,11 +69,14 @@ function ContaInner() {
   ];
 
   return (
-    <div className="mx-0 grid max-w-6xl gap-8 lg:-ml-12 lg:w-[calc(100%+3rem)] lg:grid-cols-[minmax(24rem,0.9fr)_minmax(34rem,1.1fr)] lg:items-start xl:grid-cols-[minmax(28rem,0.9fr)_minmax(40rem,1.1fr)]">
-      <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde-noite p-6 text-areia md:p-8">
+    <div className="mx-0 grid max-w-6xl gap-6 md:gap-8 lg:-ml-12 lg:w-[calc(100%+3rem)] lg:grid-cols-[minmax(24rem,0.9fr)_minmax(34rem,1.1fr)] lg:items-start xl:grid-cols-[minmax(28rem,0.9fr)_minmax(40rem,1.1fr)]">
+      <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde-noite p-5 text-areia md:p-8">
         <HexGlow />
-        <div className="relative grid justify-items-center gap-5 text-center lg:justify-items-start lg:text-left">
-          <HexTile tone="salvia" size={104} className="num">
+        <div className="relative grid justify-items-center gap-4 text-center md:gap-5 lg:justify-items-start lg:text-left">
+          <HexTile tone="salvia" size={80} className="num md:hidden">
+            {me.data ? initials(me.data.fullName) : ROLE_LABEL[session.role].charAt(0)}
+          </HexTile>
+          <HexTile tone="salvia" size={104} className="num hidden md:inline-flex">
             {me.data ? initials(me.data.fullName) : ROLE_LABEL[session.role].charAt(0)}
           </HexTile>
           <div className="grid w-full gap-4">
@@ -86,7 +89,7 @@ function ContaInner() {
               )}
             </div>
             {me.data && (
-              <ul className="grid gap-2 rounded-cartao border border-white/10 bg-white/5 p-4 text-left text-sm text-salvia-tint">
+              <ul className="grid gap-2.5 rounded-cartao border border-white/10 bg-white/5 p-3.5 text-left md:gap-2 md:p-4 text-sm text-salvia-tint">
                 <Status icon={Phone} label={me.data.phone} ok={me.data.phoneVerified} okText="confirmado" noText="por confirmar" />
                 {me.data.email && <Status icon={Mail} label={me.data.email} ok={me.data.emailVerified} okText="verificado" noText="por verificar" />}
                 <Status icon={BadgeCheck} label="Identidade" ok={me.data.identityVerified} okText="verificada" noText={me.data.kycStatus === "PENDING" || me.data.kycStatus === "IN_REVIEW" ? "em análise" : me.data.kycStatus === "REJECTED" ? "recusada" : me.data.kycStatus === "INFO_REQUESTED" ? "falta informação" : "por verificar"} />
@@ -96,7 +99,7 @@ function ContaInner() {
         </div>
       </section>
 
-      <div className="grid gap-7">
+      <div className="grid gap-6 md:gap-7">
         {googleResult && (
           <Callout tone={googleResult.tone} title={googleResult.title}>
             {googleResult.text}
@@ -115,7 +118,7 @@ function ContaInner() {
           </>
         )}
 
-        <section className="grid gap-4">
+        <section className="grid gap-3 md:gap-4">
           <h2 className="font-titulo text-xl font-bold text-verde">Sobre a minha conta</h2>
           <Card className="overflow-hidden">
             {links
@@ -136,15 +139,15 @@ function ContaInner() {
           </Card>
         </section>
 
-        <section className="grid gap-4">
+        <section className="grid gap-3 md:gap-4">
           <h2 className="font-titulo text-xl font-bold text-verde">Aparência</h2>
           <Card className="grid gap-4 p-4">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div><p className="font-bold text-verde">Modo de utilização</p><p className="text-sm text-cinza">Escolhe como usas a Beeznoo.</p></div>
-              <ModeSwitch />
+              <ModeSwitch className="w-full sm:w-auto" />
             </div>
             <div className="flex items-center justify-between gap-4 border-t border-borda pt-4">
-              <div className="flex items-center gap-3">
+              <div className="flex min-w-0 items-center gap-3">
                 {darkMode ? <Moon className="size-5 text-mel" aria-hidden /> : <Sun className="size-5 text-mel" aria-hidden />}
                 <div><p className="font-bold text-verde">Tema escuro</p><p className="text-sm text-cinza">Altera o contraste da aplicação.</p></div>
               </div>
@@ -224,7 +227,7 @@ function ProfileForm({ me, onSaved }: { me: Me; onSaved: (me: Me) => void }) {
   }
 
   return (
-    <section className="grid gap-4">
+    <section className="grid gap-3 md:gap-4">
       <h2 className="font-titulo text-xl font-bold text-verde">Dados pessoais</h2>
       <Card className="grid gap-4 p-4">
         <TextField label="Nome" value={fullName} onChange={setFullName} error={errors.fields.fullName} autoComplete="name" />
@@ -240,7 +243,7 @@ function ProfileForm({ me, onSaved }: { me: Me; onSaved: (me: Me) => void }) {
         <TextField label="Bairro ou cidade" value={city} onChange={setCity} error={errors.fields.city} placeholder="Ex.: Talatona" />
         <p className="text-[13px] text-cinza">O telefone ({me.phone}) muda-se só com a equipa, porque é com ele que entras.</p>
         <FormError message={errors.form} />
-        <Button variant="dark" disabled={!dirty || !fullName.trim()} loading={busy} onClick={save} className="justify-self-start">
+        <Button variant="dark" disabled={!dirty || !fullName.trim()} loading={busy} onClick={save} className="w-full sm:w-auto sm:justify-self-start">
           Guardar
         </Button>
       </Card>
@@ -283,7 +286,7 @@ function EmailVerification({ me, onVerified }: { me: Me; onVerified: (me: Me) =>
   }
 
   return (
-    <section className="grid gap-4">
+    <section className="grid gap-3 md:gap-4">
       <h2 className="font-titulo text-xl font-bold text-verde">Verificar email</h2>
       <Card className="grid gap-4 p-4">
         <p className="text-texto-corpo">
@@ -304,7 +307,7 @@ function EmailVerification({ me, onVerified }: { me: Me; onVerified: (me: Me) =>
         ) : (
           <>
             {error && <Callout tone="warn">{error}</Callout>}
-            <Button variant="outline" loading={busy} onClick={send} className="justify-self-start">
+            <Button variant="outline" loading={busy} onClick={send} className="w-full sm:w-auto sm:justify-self-start">
               <Mail strokeWidth={1.8} /> Enviar código para {me.email}
             </Button>
           </>
@@ -328,7 +331,7 @@ function GoogleSection({ me }: { me: Me }) {
   }
 
   return (
-    <section className="grid gap-4">
+    <section className="grid gap-3 md:gap-4">
       <h2 className="font-titulo text-xl font-bold text-verde">Entrar com Google</h2>
       <Card className="grid gap-3 p-4">
         {me.googleLinked ? (
@@ -341,7 +344,7 @@ function GoogleSection({ me }: { me: Me }) {
             <p className="text-texto-corpo">
               Associa a tua conta Google para entrares com um toque. Vais ao Google confirmar e voltas aqui.
             </p>
-            <Button variant="outline" loading={busy} onClick={link} className="justify-self-start">
+            <Button variant="outline" loading={busy} onClick={link} className="w-full sm:w-auto sm:justify-self-start">
               Associar conta Google
             </Button>
           </>

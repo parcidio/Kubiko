@@ -144,6 +144,8 @@ public class ContractService {
                 Map.entry("days", Long.toString(ChronoUnit.DAYS.between(b.getStartDate(), b.getEndDate()))),
                 Map.entry("rentalAmount", Formats.kz(rental)),
                 Map.entry("serviceFee", Formats.kz(fee)),
+                // a taxa em vigor (PAYMENTS_SERVICE_FEE_RATE), a mesma usada no valor acima — nunca escrita no modelo
+                Map.entry("serviceFeeRate", serviceFees.rateLabel()),
                 Map.entry("depositAmount", Formats.kz(deposit)),
                 Map.entry("totalAmount", Formats.kz(rental.add(fee).add(deposit)))
         );

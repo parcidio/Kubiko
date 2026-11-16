@@ -39,6 +39,19 @@ export function todayIso(offsetDays = 0) {
 
 export const SERVICE_FEE_RATE = 0.08;
 
+/** "8%" (sem casas decimais quando a taxa é redonda, "7,5%" quando não é). */
+export function formatFeeRate(rate: number) {
+  return `${(rate * 100).toLocaleString("pt-PT", { maximumFractionDigits: 1 })}%`;
+}
+
+/** Exemplo de preço da landing (3 diárias × 35.000 Kz + taxa + caução de 105.000 Kz), com a taxa em vigor. */
+export function landingExample(rate: number) {
+  const rental = 3 * 35_000;
+  const fee = Math.round(rental * rate);
+  const deposit = 105_000;
+  return { rental, fee, deposit, total: rental + fee + deposit, rateLabel: formatFeeRate(rate) };
+}
+
 export const CONDITION_LABEL: Record<ItemCondition, string> = {
   NEW: "Novo",
   LIKE_NEW: "Como novo",

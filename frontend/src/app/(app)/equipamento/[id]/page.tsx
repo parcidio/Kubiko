@@ -51,7 +51,7 @@ export default function EquipamentoPage() {
   if (!item) {
     return (
       <div role="status" aria-label="A carregar" className="grid gap-4 md:grid-cols-2 md:gap-10">
-        <Skeleton className="aspect-[4/3] rounded-cartao" />
+        <Skeleton className="aspect-4/3 rounded-cartao" />
         <div className="grid content-start gap-3">
           <Skeleton className="h-9 w-3/4" />
           <Skeleton className="h-4 w-1/3" />
@@ -101,7 +101,7 @@ export default function EquipamentoPage() {
           <div className="relative">
             <div
               ref={gallery}
-              className="flex snap-x snap-mandatory overflow-x-auto bg-areia-2 [scrollbar-width:none] md:rounded-sheet"
+              className="flex snap-x snap-mandatory overflow-x-auto bg-areia-2 scrollbar-none md:rounded-sheet"
               onScroll={(e) => setPhoto(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
             >
               {(photos.length ? photos : [null]).map((p, i) => (
@@ -232,7 +232,7 @@ export default function EquipamentoPage() {
               <>
                 <PriceSummary pricePerDay={Number(item.pricePerDay)} days={days} deposit={deposit} />
                 <p className="flex gap-2.5 rounded-cartao bg-salvia-tint p-3 text-sm text-verde">
-                  <ShieldCheck className="mt-0.5 size-[18px] shrink-0 text-verde-medio" strokeWidth={1.8} aria-hidden />
+                  <ShieldCheck className="mt-0.5 size-4.5 shrink-0 text-verde-medio" strokeWidth={1.8} aria-hidden />
                   Não pagas nada agora. Conferes o equipamento na entrega e só depois pagas ao dono.
                 </p>
               </>
