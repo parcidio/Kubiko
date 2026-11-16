@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 // ── Data de abertura (hora de Luanda). Depois desta data a contagem desaparece. ──
-const LAUNCH_DATE = new Date("2026-11-17T00:00:00+01:00");
+const LAUNCH_DATE = new Date("2026-11-17T13:00:00+01:00");
 
 type Left = { d: string; h: string; m: string; s: string } | null;
 

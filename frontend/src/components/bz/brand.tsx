@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Aperture, Camera, Lightbulb, Mic, Package, PartyPopper, Video, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Logótipo horizontal (imagem SVG em public/svg; símbolo vetorial v4 em public/png/beeznoo-icon.svg). */
+/**
+ * Logótipo horizontal (imagem SVG em public/svg; símbolo vetorial v4 em public/png/beeznoo-icon.svg).
+ * `dark` = sobre fundo escuro (sempre branco). Sem `dark`: tinta no tema claro, branco no tema escuro.
+ */
 export function Logo({ dark, href = "/explorar", className }: { dark?: boolean; href?: string; className?: string }) {
   return (
     <Link href={href} aria-label="Beeznoo — início" className={cn("inline-flex shrink-0 items-center", className)}>
@@ -10,8 +13,12 @@ export function Logo({ dark, href = "/explorar", className }: { dark?: boolean; 
       <img
         src={dark ? "/svg/beeznoo-lockup-horizontal-branco.svg" : "/svg/beeznoo-lockup-horizontal-tinta.svg"}
         alt="Beeznoo"
-        className="h-7 w-auto"
+        className={cn("h-7 w-auto", !dark && "dark:hidden")}
       />
+      {!dark && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src="/svg/beeznoo-lockup-horizontal-branco.svg" alt="" aria-hidden className="hidden h-7 w-auto dark:block" />
+      )}
     </Link>
   );
 }
