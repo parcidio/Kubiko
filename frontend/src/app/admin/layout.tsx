@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { BadgeCheck, Banknote, Flag, LayoutDashboard, LogOut, ScrollText, ShieldCheck, Users, type LucideIcon } from "lucide-react";
+import { BadgeCheck, Banknote, Flag, LayoutDashboard, LogOut, Map as MapIcon, MapPinned, MessageSquareText, ScrollText, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/bz/brand";
 import { PageTransition } from "@/components/bz/motion";
 import { ErrorState } from "@/components/bz/states";
@@ -19,6 +19,9 @@ const ADMIN_NAV: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/admin/caucoes", label: "Cauções", icon: ShieldCheck },
   { href: "/admin/problemas", label: "Problemas", icon: Flag },
   { href: "/admin/utilizadores", label: "Utilizadores", icon: Users },
+  { href: "/admin/mensagens", label: "Mensagens", icon: MessageSquareText },
+  { href: "/admin/zonas", label: "Zonas", icon: MapPinned },
+  { href: "/admin/mapa", label: "Mapa", icon: MapIcon },
   { href: "/admin/auditoria", label: "Auditoria", icon: ScrollText },
 ];
 

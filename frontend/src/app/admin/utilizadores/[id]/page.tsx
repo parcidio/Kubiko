@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Ban, CalendarDays, Mail, MapPin, Package, Phone, RotateCcw, ScrollText } from "lucide-react";
+import { Ban, CalendarDays, Mail, MapPin, Package, Phone, RotateCcw, ScrollText, ShieldCheck, ShieldMinus } from "lucide-react";
 import { AdminHeader, BookingStatusBadge, ConfirmWithReason } from "@/components/bz/admin";
 import { ITEM_STATUS, KycBadge, RoleLabel } from "@/components/bz/admin-users";
+import { RoleChangeSheet, type RoleTarget } from "@/components/bz/admin-role";
 import { toast } from "@/components/bz/overlay";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Badge, Button, ButtonLink, Card, InfoRow, Kz, Skeleton } from "@/components/bz/ui";
 import { adminApi } from "@/lib/api";
+import { useSession } from "@/lib/auth";
 import { formatDateTime, formatRange } from "@/lib/format";
 import type { AdminUserDetail } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
@@ -22,6 +24,8 @@ export default function UtilizadorPage() {
   const detail = useResource<AdminUserDetail>(`admin:user:${id}`, () => adminApi.user(id));
   const [accountAction, setAccountAction] = useState<"suspend" | "reinstate" | null>(null);
   const [itemAction, setItemAction] = useState<ItemAction>(null);
+  const [roleTarget, setRoleTarget] = useState<RoleTarget | null>(null);
+  const me = useSession()?.profileId;
 
   if (detail.error) {
     const notFound = detail.error.includes("não encontrad");
@@ -39,15 +43,27 @@ export default function UtilizadorPage() {
         title={u.fullName}
         text={`Registo a ${formatDateTime(u.createdAt)}`}
         action={
-          isTeam ? undefined : u.suspendedAt ? (
-            <Button variant="outline" size="sm" onClick={() => setAccountAction("reinstate")}>
-              <RotateCcw strokeWidth={1.8} /> Reativar conta
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" className="text-erro" onClick={() => setAccountAction("suspend")}>
-              <Ban strokeWidth={1.8} /> Suspender conta
-            </Button>
-          )
+          <div className="flex flex-wrap gap-2">
+            {u.id !== me && (isTeam || !u.suspendedAt) && (
+              <Button
+                variant="outline"
+                size="sm"
+                className={isTeam ? "text-erro" : undefined}
+                onClick={() => setRoleTarget({ id: u.id, fullName: u.fullName, makeAdmin: !isTeam })}
+              >
+                {isTeam ? <ShieldMinus strokeWidth={1.8} /> : <ShieldCheck strokeWidth={1.8} />} {isTeam ? "Retirar admin" : "Tornar admin"}
+              </Button>
+            )}
+            {isTeam ? null : u.suspendedAt ? (
+              <Button variant="outline" size="sm" onClick={() => setAccountAction("reinstate")}>
+                <RotateCcw strokeWidth={1.8} /> Reativar conta
+              </Button>
+            ) : (
+              <Button variant="outline" size="sm" className="text-erro" onClick={() => setAccountAction("suspend")}>
+                <Ban strokeWidth={1.8} /> Suspender conta
+              </Button>
+            )}
+          </div>
         }
       />
 
@@ -144,6 +160,8 @@ export default function UtilizadorPage() {
           </Card>
         </div>
       </div>
+
+      <RoleChangeSheet target={roleTarget} onClose={() => setRoleTarget(null)} onDone={detail.reload} />
 
       <ConfirmWithReason
         open={accountAction === "suspend"}
