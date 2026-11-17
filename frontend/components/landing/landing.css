@@ -493,6 +493,7 @@ select.lp-inp { cursor: pointer; }
 }
 @media (max-width: 400px) {
   .lp-nav .lp-brand__word { display: none; }
+  .lp-lang-hdr { display: none; }
   .lp-btn--l { padding: 0 10px; }
   .lp-btn--n { padding: 0 14px; }
   .lp-seg button { font-size: 14px; }

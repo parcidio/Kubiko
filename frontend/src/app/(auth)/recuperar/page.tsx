@@ -9,6 +9,7 @@ import { toast } from "@/components/bz/overlay";
 import { Button } from "@/components/bz/ui";
 import { authApi } from "@/lib/api";
 import { isValidPhone, normalizePhone } from "@/lib/format";
+import { useT } from "@/lib/i18n/client";
 
 export default function RecuperarPage() {
   const router = useRouter();
@@ -19,10 +20,13 @@ export default function RecuperarPage() {
   const [confirm, setConfirm] = useState("");
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [loading, setLoading] = useState(false);
+  const dict = useT();
+  const a = dict.auth;
+  const t = a.recover;
 
   async function submitPhone(e: React.FormEvent) {
     e.preventDefault();
-    if (!isValidPhone(phone)) return setErrors({ fields: { phone: "Escreve os 9 dígitos do teu número." } });
+    if (!isValidPhone(phone)) return setErrors({ fields: { phone: a.phoneDigits } });
     setLoading(true);
     setErrors({ fields: {} });
     try {
@@ -38,16 +42,16 @@ export default function RecuperarPage() {
   async function submitReset(e: React.FormEvent) {
     e.preventDefault();
     const fields: Record<string, string> = {};
-    if (code.length !== 6) fields.code = "O código tem 6 dígitos.";
-    if (password.length < 8) fields.newPassword = "A password tem de ter pelo menos 8 caracteres.";
-    if (confirm !== password) fields.confirm = "As passwords não coincidem.";
+    if (code.length !== 6) fields.code = a.codeLength;
+    if (password.length < 8) fields.newPassword = a.passwordMin;
+    if (confirm !== password) fields.confirm = t.mismatch;
     if (Object.keys(fields).length) return setErrors({ fields });
 
     setLoading(true);
     setErrors({ fields: {} });
     try {
       await authApi.confirmReset({ phone: normalizePhone(phone), code, newPassword: password });
-      toast.success("Password alterada. Já podes entrar.");
+      toast.success(t.changed);
       router.replace("/entrar");
     } catch (err) {
       setErrors(toFormErrors(err));
@@ -60,22 +64,22 @@ export default function RecuperarPage() {
     return (
       <>
         <AuthTitle
-          title="Nova password"
-          subtitle={<>Se <strong className="num text-verde">{normalizePhone(phone)}</strong> tiver conta, recebes um código no WhatsApp.</>}
+          title={t.resetTitle}
+          subtitle={<>{t.resetBefore}<strong className="num text-verde">{normalizePhone(phone)}</strong>{t.resetAfter}</>}
         />
         <form onSubmit={submitReset} className="grid gap-5" noValidate>
           <OtpField value={code} onChange={setCode} error={errors.fields.code} />
-          <PasswordField label="Nova password" autoComplete="new-password" hint="Pelo menos 8 caracteres." value={password} onChange={setPassword} error={errors.fields.newPassword} />
-          <PasswordField label="Repete a nova password" autoComplete="new-password" value={confirm} onChange={setConfirm} error={errors.fields.confirm} />
+          <PasswordField label={t.newPassword} autoComplete="new-password" hint={a.passwordHint} value={password} onChange={setPassword} error={errors.fields.newPassword} />
+          <PasswordField label={t.repeat} autoComplete="new-password" value={confirm} onChange={setConfirm} error={errors.fields.confirm} />
           <FormError message={errors.form} />
           <Button type="submit" loading={loading} block size="lg">
-            {loading ? "A guardar…" : "Guardar nova password"}
+            {loading ? t.saving : t.save}
           </Button>
           <div className="flex justify-end">
             <ResendCode
               onResend={async () => {
                 await authApi.requestReset({ phone: normalizePhone(phone) }).catch(() => undefined);
-                toast.success("Se o número tiver conta, enviámos um novo código.");
+                toast.success(t.resent);
               }}
             />
           </div>
@@ -86,18 +90,18 @@ export default function RecuperarPage() {
 
   return (
     <>
-      <AuthTitle title="Recuperar acesso" subtitle="Escreve o número da tua conta. Enviamos-te um código por WhatsApp." />
+      <AuthTitle title={t.title} subtitle={t.subtitle} />
       <form onSubmit={submitPhone} className="grid gap-5" noValidate>
         <PhoneField value={phone} onChange={setPhone} error={errors.fields.phone} />
         <FormError message={errors.form} />
         <Button type="submit" loading={loading} block size="lg">
-          {loading ? "A enviar…" : "Enviar código"}
+          {loading ? dict.common.sending : t.submit}
         </Button>
       </form>
       <p className="mt-8 text-center text-[15px] text-cinza">
-        Lembraste-te?{" "}
+        {t.remembered}{" "}
         <Link href="/entrar" className="font-bold text-mel-texto hover:underline">
-          Voltar a entrar
+          {t.backToLogin}
         </Link>
       </p>
     </>

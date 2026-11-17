@@ -1,47 +1,23 @@
 import { Check, ClipboardCheck, FileText, Search, Wallet } from "lucide-react";
+import { getT } from "@/lib/i18n/server";
 
-const STEPS = [
-  {
-    n: "01",
-    icon: Search,
-    title: "Encontra e pede",
-    text: "Escolhe o equipamento e as datas, vê o valor final e envia o pedido ao dono.",
-  },
-  {
-    n: "02",
-    icon: FileText,
-    title: "O dono responde em 24 h",
-    text: "Se aceitar, recebes o contrato com as datas, os valores e a caução reembolsável, tudo por escrito antes do encontro.",
-  },
-  {
-    n: "03",
-    icon: Wallet,
-    title: "Conferes e pagas na entrega",
-    text: "Primeiro vês o equipamento, depois pagas ao dono: numerário, transferência ou Multicaixa Express. Recebes o comprovativo na app.",
-  },
-  {
-    n: "04",
-    icon: ClipboardCheck,
-    title: "Fotos na entrega e na devolução",
-    text: "Checklist com fotos dos dois lados. Correu tudo bem? O dono devolve-te a caução.",
-  },
-];
-
-const TIMELINE = ["Pedido", "Aceite", "Pago ao dono", "Entregue", "Devolvido", "Caução devolvida"];
+const STEP_ICONS = [Search, FileText, Wallet, ClipboardCheck];
 
 /** Como funciona: 4 passos + timeline viva dos 6 estados da reserva. */
-export default function LandingHowItWorks() {
+export default async function LandingHowItWorks() {
+  const t = (await getT()).landing.how;
+  const STEPS = t.steps.map((s, i) => ({ ...s, n: `0${i + 1}`, icon: STEP_ICONS[i] }));
   return (
     <section id="como" className="lp-sec lp-sec--sand" aria-labelledby="lp-como-title">
       <div className="lp-wrap">
         <div className="lp-head-split lp-rv">
           <div>
-            <div className="lp-eyebrow">Como funciona</div>
+            <div className="lp-eyebrow">{t.eyebrow}</div>
             <h2 id="lp-como-title" className="lp-sg lp-h2">
-              Alugar em quatro passos.
+              {t.title}
             </h2>
           </div>
-          <p className="lp-lead">Sabes sempre o que falta, quem tem de agir e até quando.</p>
+          <p className="lp-lead">{t.lead}</p>
         </div>
 
         <ol className="lp-steps">
@@ -66,20 +42,20 @@ export default function LandingHowItWorks() {
 
         <div className="lp-tl lp-rv">
           <div className="lp-tl__head">
-            <h3 className="lp-sg lp-tl__title">Cada reserva, do pedido à caução</h3>
-            <span className="lp-tl__sub">Acompanhas tudo num só ecrã</span>
+            <h3 className="lp-sg lp-tl__title">{t.timelineTitle}</h3>
+            <span className="lp-tl__sub">{t.timelineSub}</span>
           </div>
           <div className="lp-tl__track">
             <div className="lp-tl__line" aria-hidden="true">
               <div className="lp-tl__fill" />
             </div>
             <ol className="lp-tl__row">
-              {TIMELINE.map((t) => (
-                <li className="lp-tl__s" key={t}>
+              {t.timeline.map((step) => (
+                <li className="lp-tl__s" key={step}>
                   <span className="lp-tl__d" aria-hidden="true">
                     <Check size={14} strokeWidth={3} />
                   </span>
-                  {t}
+                  {step}
                 </li>
               ))}
             </ol>

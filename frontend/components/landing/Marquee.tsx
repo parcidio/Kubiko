@@ -1,3 +1,6 @@
+import { fmt } from "@/lib/i18n";
+import { getT } from "@/lib/i18n/server";
+
 const ITEMS = [
   "Sony A7 III",
   "DJI Ronin RS3",
@@ -18,10 +21,11 @@ function Hex() {
 }
 
 /** Faixa a deslizar com exemplos de equipamento (translateX(-50%), 38s, pausa no hover). */
-export default function LandingMarquee() {
+export default async function LandingMarquee() {
+  const t = (await getT()).landing.marquee;
   return (
     <div className="lp-marquee">
-      <p className="lp-sr">Exemplos de equipamento: {ITEMS.join(", ")}.</p>
+      <p className="lp-sr">{fmt(t.sr, { list: ITEMS.join(", ") })}</p>
       {/* A lista vai duplicada para o laço ser contínuo; o leitor de ecrã lê a frase acima. */}
       <ul className="lp-marquee__track" aria-hidden="true">
         {[...ITEMS, ...ITEMS].map((name, i) => (

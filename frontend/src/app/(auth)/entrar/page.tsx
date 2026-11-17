@@ -9,6 +9,7 @@ import { Button } from "@/components/bz/ui";
 import { authApi } from "@/lib/api";
 import { safeNext, signIn } from "@/lib/auth";
 import { isValidPhone, normalizePhone } from "@/lib/format";
+import { useT } from "@/lib/i18n/client";
 import { readSession } from "@/lib/session";
 
 function LoginForm() {
@@ -21,6 +22,8 @@ function LoginForm() {
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [loading, setLoading] = useState(false);
   const [mfa, setMfa] = useState<{ token: string; hint?: string | null } | null>(null);
+  const a = useT().auth;
+  const t = a.login;
 
   function goHome() {
     // Sem ?next, cada papel começa no seu ecrã
@@ -34,10 +37,10 @@ function LoginForm() {
     const fields: Record<string, string> = {};
     const id = identifier.trim();
     const isEmail = id.includes("@");
-    if (!id) fields.identifier = "Escreve o teu telefone ou email.";
-    else if (isEmail && !/^\S+@\S+\.\S+$/.test(id)) fields.identifier = "Escreve um email válido.";
-    else if (!isEmail && !isValidPhone(id)) fields.identifier = "Escreve os 9 dígitos do teu número (ou o teu email).";
-    if (!password) fields.password = "Escreve a tua password.";
+    if (!id) fields.identifier = t.errEmpty;
+    else if (isEmail && !/^\S+@\S+\.\S+$/.test(id)) fields.identifier = t.errEmail;
+    else if (!isEmail && !isValidPhone(id)) fields.identifier = t.errPhone;
+    if (!password) fields.password = t.errPassword;
     if (Object.keys(fields).length) return setErrors({ fields });
 
     setLoading(true);
@@ -61,10 +64,10 @@ function LoginForm() {
 
   return (
     <>
-      <AuthTitle title="Olá outra vez" subtitle="Entra para pedir reservas, pagar e acompanhar tudo num sítio." />
+      <AuthTitle title={t.title} subtitle={t.subtitle} />
       <form onSubmit={submit} className="grid gap-5" noValidate>
         <TextField
-          label="Telefone ou email"
+          label={t.identifier}
           name="username"
           type="text"
           inputMode="email"
@@ -72,7 +75,7 @@ function LoginForm() {
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
-          placeholder="923 456 789 ou nome@email.com"
+          placeholder={t.identifierPh}
           value={identifier}
           onChange={setIdentifier}
           error={errors.fields.identifier}
@@ -80,20 +83,20 @@ function LoginForm() {
         <div className="grid gap-1">
           <PasswordField value={password} onChange={setPassword} error={errors.fields.password} />
           <Link href="/recuperar" className="flex min-h-11 items-center justify-self-end text-sm font-medium text-mel-texto hover:underline">
-            Esqueceste a password?
+            {t.forgot}
           </Link>
         </div>
         <FormError message={errors.form} />
         <Button type="submit" loading={loading} block size="lg">
-          {loading ? "A entrar…" : "Entrar"}
+          {loading ? a.signingIn : t.submit}
         </Button>
         <Divider />
         <GoogleButton />
       </form>
       <p className="mt-8 text-center text-[15px] text-cinza">
-        Ainda não tens conta?{" "}
+        {t.noAccount}{" "}
         <Link href={`/registar${nextParam ? `?next=${encodeURIComponent(nextParam)}` : ""}`} className="font-bold text-mel-texto hover:underline">
-          Criar conta
+          {t.signUp}
         </Link>
       </p>
     </>

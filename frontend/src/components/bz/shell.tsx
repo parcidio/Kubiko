@@ -11,36 +11,42 @@ import { Logo } from "./brand";
 import { ButtonLink } from "./ui";
 import { useSession } from "@/lib/auth";
 import { canOwn, canRent, isAdmin, setMode, useMode, type Mode } from "@/lib/mode";
+import { fmt, type Dict } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 import { useUnreadCount } from "@/lib/notifications";
+import { LangSwitch } from "./lang-switch";
 import { cn } from "@/lib/utils";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
+type NavKey = keyof Dict["nav"];
 
-const RENTER_NAV: NavItem[] = [
-  { href: "/explorar", label: "Explorar", icon: Compass },
-  { href: "/reservas", label: "Reservas", icon: Ticket },
-  { href: "/atividade", label: "Atividade", icon: Bell },
-  { href: "/conta", label: "Conta", icon: CircleUserRound },
+const RENTER_NAV: [string, NavKey, LucideIcon][] = [
+  ["/explorar", "explore", Compass],
+  ["/reservas", "bookings", Ticket],
+  ["/atividade", "activity", Bell],
+  ["/conta", "account", CircleUserRound],
 ];
 
-const OWNER_NAV: NavItem[] = [
-  { href: "/painel", label: "Painel", icon: LayoutDashboard },
-  { href: "/pedidos", label: "Pedidos", icon: Inbox },
-  { href: "/equipamentos", label: "Equipamento", icon: Package },
-  { href: "/conta", label: "Conta", icon: CircleUserRound },
+const OWNER_NAV: [string, NavKey, LucideIcon][] = [
+  ["/painel", "dashboard", LayoutDashboard],
+  ["/pedidos", "requests", Inbox],
+  ["/equipamentos", "equipment", Package],
+  ["/conta", "account", CircleUserRound],
 ];
 
-const GUEST_NAV: NavItem[] = [
-  { href: "/explorar", label: "Explorar", icon: Compass },
-  { href: "/reservas", label: "Reservas", icon: Ticket },
-  { href: "/entrar", label: "Entrar", icon: LogIn },
+const GUEST_NAV: [string, NavKey, LucideIcon][] = [
+  ["/explorar", "explore", Compass],
+  ["/reservas", "bookings", Ticket],
+  ["/entrar", "signIn", LogIn],
 ];
 
 function useNav() {
   const session = useSession();
   const mode = useMode(session?.role);
-  if (!session) return { nav: GUEST_NAV, mode, session };
-  return { nav: mode === "owner" ? OWNER_NAV : RENTER_NAV, mode, session };
+  const t = useT().nav;
+  const list = !session ? GUEST_NAV : mode === "owner" ? OWNER_NAV : RENTER_NAV;
+  const nav: NavItem[] = list.map(([href, key, icon]) => ({ href, label: t[key], icon }));
+  return { nav, mode, session };
 }
 
 // ─── Cabeçalho por cima do herói ──────────────────────────────────────────────
@@ -76,10 +82,11 @@ function UnreadBadge({ className }: { className?: string }) {
 /** Sino no topo, em todos os modos (o modo dono não tem "Atividade" na barra de baixo). */
 function NotificationBell({ dark, active }: { dark: boolean; active: boolean }) {
   const unread = useUnreadCount();
+  const t = useT().nav;
   return (
     <Link
       href="/atividade"
-      aria-label={unread > 0 ? `Notificações, ${unread} por ler` : "Notificações"}
+      aria-label={unread > 0 ? fmt(t.notificationsUnread, { n: unread }) : t.notifications}
       aria-current={active ? "page" : undefined}
       className={cn(
         "relative flex size-11 items-center justify-center rounded-full transition",
@@ -98,13 +105,14 @@ export function ModeSwitch({ dark, className }: { dark?: boolean; className?: st
   const session = useSession();
   const mode = useMode(session?.role);
   const router = useRouter();
+  const t = useT().nav;
   if (!session || !(canRent(session.role) && canOwn(session.role))) return null;
   const go = (m: Mode) => {
     setMode(m);
     router.push(m === "owner" ? "/painel" : "/explorar");
   };
   return (
-    <div role="group" aria-label="Modo" className={cn("grid grid-cols-2 gap-1 rounded-full p-1", dark ? "bg-white/10" : "bg-areia-2", className)}>
+    <div role="group" aria-label={t.mode} className={cn("grid grid-cols-2 gap-1 rounded-full p-1", dark ? "bg-white/10" : "bg-areia-2", className)}>
       {(["renter", "owner"] as const).map((m) => (
         <button
           key={m}
@@ -116,7 +124,7 @@ export function ModeSwitch({ dark, className }: { dark?: boolean; className?: st
             mode === m ? (dark ? "bg-ambar text-sobre-ambar" : "bg-verde text-areia") : dark ? "text-areia/80" : "text-verde",
           )}
         >
-          {m === "renter" ? "A alugar" : "Sou dono"}
+          {m === "renter" ? t.renting : t.owner}
         </button>
       ))}
     </div>
@@ -131,6 +139,8 @@ export function TopBar() {
   const pathname = usePathname();
   const { nav, mode, session } = useNav();
   const scrolled = useScrolled();
+  const dict = useT();
+  const t = dict.nav;
   const dark = HERO_ROUTES.includes(pathname) && !scrolled;
   return (
     <header
@@ -142,8 +152,8 @@ export function TopBar() {
       )}
     >
       <div className="mx-auto flex h-full max-w-6xl items-center gap-4 px-4 md:px-12">
-        <Logo dark={dark} href={session && mode === "owner" ? "/painel" : "/explorar"} />
-        <nav className="ml-6 hidden items-center gap-1 md:flex" aria-label="Principal">
+        <Logo dark={dark} href={session && mode === "owner" ? "/painel" : "/explorar"} label={dict.common.homeLabel} />
+        <nav className="ml-6 hidden items-center gap-1 md:flex" aria-label={t.main}>
           {nav.map(({ href, label }) => (
             <Link
               key={href}
@@ -163,20 +173,22 @@ export function TopBar() {
         {/* relative: a partir de 1440px o Publicar sai para a margem (absolute), e o seletor fica no mesmo sítio nos dois modos */}
         <div className="relative ml-auto flex items-center gap-2">
           <ModeSwitch dark={dark} className="hidden md:grid" />
+          {/* No telemóvel o seletor de língua vive em Conta (e no cabeçalho só para visitantes) */}
+          <LangSwitch dark={dark} className={session ? "hidden md:inline-flex" : undefined} />
           {session && <NotificationBell dark={dark} active={isActive(pathname, "/atividade")} />}
           {session && isAdmin(session.role) && (
             <ButtonLink href="/admin" variant={dark ? "on-dark" : "soft"} size="sm" className="hidden md:inline-flex">
-              <ShieldCheck strokeWidth={1.8} /> Admin
+              <ShieldCheck strokeWidth={1.8} /> {t.admin}
             </ButtonLink>
           )}
           {session && mode === "owner" && (
             <ButtonLink href="/publicar" variant={dark ? "light" : "dark"} size="sm" className="hidden whitespace-nowrap md:inline-flex min-[1440px]:absolute min-[1440px]:left-full min-[1440px]:ml-4">
-              <Plus strokeWidth={2} /> Publicar
+              <Plus strokeWidth={2} /> {t.publish}
             </ButtonLink>
           )}
           {session === null && (
             <ButtonLink href={`/entrar?next=${encodeURIComponent(pathname)}`} variant={dark ? "on-dark" : "outline"} size="sm">
-              Entrar
+              {t.signIn}
             </ButtonLink>
           )}
         </div>
@@ -189,11 +201,12 @@ export function TopBar() {
 export function BottomNav() {
   const pathname = usePathname();
   const { nav, mode, session } = useNav();
+  const t = useT().nav;
   const withPublish = !!session && mode === "owner";
   const items: (NavItem | "publish")[] = withPublish ? [nav[0], nav[1], "publish", nav[2], nav[3]] : nav;
   return (
     <nav
-      aria-label="Principal"
+      aria-label={t.main}
       className={cn(
         "fixed inset-x-0 bottom-0 z-40 grid h-[68px] border-t border-borda bg-branco/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden",
         items.length === 5 ? "grid-cols-5" : items.length === 4 ? "grid-cols-4" : "grid-cols-3",
@@ -202,7 +215,7 @@ export function BottomNav() {
       {items.map((item) => {
         if (item === "publish") {
           return (
-            <Link key="publish" href="/publicar" aria-label="Publicar equipamento" className="flex items-center justify-center">
+            <Link key="publish" href="/publicar" aria-label={t.publishLabel} className="flex items-center justify-center">
               <span className="-mt-7 flex size-14 items-center justify-center bg-verde-solido text-ambar shadow-flutua transition active:scale-95 [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
                 <Plus className="size-6" strokeWidth={2.4} aria-hidden />
               </span>
@@ -234,6 +247,7 @@ export function BottomNav() {
 /** Aviso de "sem ligação". */
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false);
+  const t = useT().nav;
   useEffect(() => {
     const update = () => setOffline(!navigator.onLine);
     update();
@@ -248,7 +262,7 @@ export function OfflineBanner() {
   return (
     <div role="status" className="sticky top-16 z-30 flex items-center justify-center gap-2 bg-verde px-4 py-2 text-[13px] text-areia">
       <WifiOff className="size-4 text-ambar" strokeWidth={1.8} aria-hidden />
-      Sem ligação. Vamos tentar outra vez quando a rede voltar.
+      {t.offline}
     </div>
   );
 }

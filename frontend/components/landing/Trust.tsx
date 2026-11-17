@@ -1,45 +1,26 @@
 import { BadgeCheck, FileText, ShieldCheck, Wallet } from "lucide-react";
+import { getT } from "@/lib/i18n/server";
 import { HexGrid } from "./Brand";
 
-const TRUST = [
-  {
-    icon: BadgeCheck,
-    title: "Perfis verificados",
-    text: "O selo Verificado quer dizer que a pessoa confirmou a identidade: BI e selfie, ou NIF para empresas. Vês o selo antes de pedir.",
-  },
-  {
-    icon: Wallet,
-    title: "Pagas só na entrega",
-    text: "Nada se paga antes do encontro. Conferes o equipamento, pagas ao dono e recebes o comprovativo na app.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Caução reembolsável",
-    text: "Entregas a caução ao dono e ele devolve-ta depois da devolução. Se retiver uma parte e não concordares, tens 7 dias para contestar e a nossa equipa medeia.",
-  },
-  {
-    icon: FileText,
-    title: "Contrato em cada reserva",
-    text: "Datas, preço, caução e condições por escrito, para os dois lados.",
-  },
-];
+const TRUST_ICONS = [BadgeCheck, Wallet, ShieldCheck, FileText];
 
 /** Confiança: bloco escuro com 4 garantias (HexTile salvia que vira no hover). */
-export default function LandingTrust() {
+export default async function LandingTrust() {
+  const tr = (await getT()).landing.trust;
+  const TRUST = tr.items.map((it, i) => ({ ...it, icon: TRUST_ICONS[i] }));
   return (
     <section id="confianca" className="lp-sec lp-sec--dark" aria-labelledby="lp-trust-title">
       <HexGrid id="lp-hx-trust" faint />
       <div className="lp-wrap" style={{ position: "relative" }}>
         <div className="lp-rv" style={{ maxWidth: 760 }}>
-          <div className="lp-eyebrow lp-eyebrow--dark">Confiança em primeiro lugar</div>
+          <div className="lp-eyebrow lp-eyebrow--dark">{tr.eyebrow}</div>
           <h2 id="lp-trust-title" className="lp-sg lp-h2">
-            Alugar a um desconhecido,
+            {tr.title1}
             <br />
-            sem desconfiança.
+            {tr.title2}
           </h2>
           <p className="lp-lead">
-            Cada aluguer tem regras claras para os dois lados, e fica tudo registado na app: contrato, fotos, pagamento e
-            caução.
+            {tr.lead}
           </p>
         </div>
         <ul className="lp-trust-grid">

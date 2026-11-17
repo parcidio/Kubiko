@@ -1,7 +1,10 @@
 import { CloudOff, Construction, RotateCw, type LucideIcon } from "lucide-react";
 import { HexTile, type HexTone } from "./hex";
 import { Button, Skeleton } from "./ui";
+import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
+
+// Só importado por client components (usa useT). Num server component passa os textos já traduzidos.
 
 const EMPTY_TONE: Record<"areia" | "ok" | "ambar", HexTone> = { areia: "areia", ok: "salvia-tint", ambar: "ambar-tint" };
 
@@ -52,14 +55,15 @@ export function HiveEmptyState({
 
 /** Estado de erro: hexágono erro + mensagem + "Tentar outra vez". */
 export function ErrorState({ message, onRetry, className }: { message: string; onRetry?: () => void; className?: string }) {
+  const t = useT();
   return (
     <div role="alert" className={cn("flex flex-col items-center gap-3 px-6 py-12 text-center", className)}>
       <HexTile icon={CloudOff} tone="erro" size={72} />
-      <h2 className="mt-2 font-titulo text-xl font-bold text-verde">Não conseguimos carregar</h2>
+      <h2 className="mt-2 font-titulo text-xl font-bold text-verde">{t.states.errorTitle}</h2>
       <p className="max-w-sm text-cinza">{message}</p>
       {onRetry && (
         <Button variant="secondary" onClick={onRetry} className="mt-3">
-          <RotateCw strokeWidth={1.8} /> Tentar outra vez
+          <RotateCw strokeWidth={1.8} /> {t.common.retry}
         </Button>
       )}
     </div>
@@ -67,9 +71,10 @@ export function ErrorState({ message, onRetry, className }: { message: string; o
 }
 
 /** Lista a carregar (linhas com foto), role="status". */
-export function ListSkeleton({ rows = 3, label = "A carregar" }: { rows?: number; label?: string }) {
+export function ListSkeleton({ rows = 3, label }: { rows?: number; label?: string }) {
+  const t = useT();
   return (
-    <div role="status" aria-label={label} className="grid gap-3">
+    <div role="status" aria-label={label ?? t.common.loading} className="grid gap-3">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex gap-3 rounded-cartao border border-borda bg-branco p-3">
           <Skeleton className="size-20 shrink-0 rounded-campo" />
@@ -86,8 +91,9 @@ export function ListSkeleton({ rows = 3, label = "A carregar" }: { rows?: number
 
 /** Grelha de equipamento a carregar (fotos 4:3), role="status". */
 export function GridSkeleton({ count = 6 }: { count?: number }) {
+  const t = useT();
   return (
-    <div role="status" aria-label="A carregar equipamento" className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+    <div role="status" aria-label={t.states.loadingItems} className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="grid gap-2">
           <Skeleton className="aspect-[4/3] rounded-cartao" />
@@ -104,11 +110,12 @@ export function GridSkeleton({ count = 6 }: { count?: number }) {
  * `what` descreve o que falta; a lista completa está em docs/BACKEND_GAPS.md.
  */
 export function BackendPending({ what, className }: { what: string; className?: string }) {
+  const t = useT().states;
   return (
     <div className={cn("flex gap-3 rounded-cartao border border-dashed border-mel/60 bg-ambar-tint/60 p-4 text-sm text-aviso-texto", className)}>
       <Construction className="mt-0.5 size-5 shrink-0" strokeWidth={1.8} aria-hidden />
       <p>
-        <strong className="font-bold">Falta backend.</strong> {what} Por agora nada disto é guardado.
+        <strong className="font-bold">{t.backendPending}</strong> {what} {t.backendPendingAfter}
       </p>
     </div>
   );
