@@ -30,6 +30,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.beeznoo.api.geo.entity.LocationContext;
+
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -73,6 +75,7 @@ public class AuthService {
     private final PasswordPolicy passwordPolicy;
     private final SecurityEventService securityEvents;
     private final SecurityProperties securityProperties;
+    private final com.beeznoo.api.geo.service.LocationService locationService;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private final SecureRandom secureRandom = new SecureRandom();
@@ -103,6 +106,9 @@ public class AuthService {
         profileRepository.save(profile);
 
         accountRepository.save(Account.builder().profile(profile).build());
+        if (request.location() != null) {
+            locationService.record(profile, LocationContext.SIGNUP, request.location().lat(), request.location().lng());
+        }
 
         sendOtp(request.phone(), Purpose.REGISTRATION);
     }

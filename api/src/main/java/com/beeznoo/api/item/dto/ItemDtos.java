@@ -1,6 +1,8 @@
 package com.beeznoo.api.item.dto;
 
 import com.beeznoo.api.item.entity.ItemCondition;
+import com.beeznoo.api.geo.dto.GeoDtos.LocationInput;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
 import java.math.BigDecimal;
@@ -18,8 +20,13 @@ public class ItemDtos {
             @NotNull @DecimalMin("0.01") BigDecimal pricePerDay,
             @DecimalMin("0.01") BigDecimal depositAmount,
             @Size(max = 100) String province,
-            @Size(max = 100) String city
+            @Size(max = 100) String city,
+            // localização atual (obrigatória para publicar; null → 422 location_required) — decisoes-produto.md 2026-11-17
+            @Valid LocationInput location
             ) {}
+
+    /** PATCH /items/{id}/activate: reativar também exige estar numa zona ativa. */
+    public record ActivateItemRequest(@Valid LocationInput location) {}
 
     public record UpdateItemRequest(
             @Size(max = 200) String title,

@@ -82,6 +82,35 @@ public class Profile {
         return suspendedAt != null;
     }
 
+    // Localização com consentimento (V27): só arredondada a 2 casas (~1 km). Escrita pelo geo.LocationService.
+    @Column(name = "last_lat", precision = 5, scale = 2)
+    private BigDecimal lastLat;
+
+    @Column(name = "last_lng", precision = 5, scale = 2)
+    private BigDecimal lastLng;
+
+    @Column(name = "last_location_at")
+    private OffsetDateTime lastLocationAt;
+
+    @Column(name = "location_consent_at")
+    private OffsetDateTime locationConsentAt;
+
+    @Column(name = "signup_lat", precision = 5, scale = 2)
+    private BigDecimal signupLat;
+
+    @Column(name = "signup_lng", precision = 5, scale = 2)
+    private BigDecimal signupLng;
+
+    @Column(name = "kyc_lat", precision = 5, scale = 2)
+    private BigDecimal kycLat;
+
+    @Column(name = "kyc_lng", precision = 5, scale = 2)
+    private BigDecimal kycLng;
+
+    // null = nunca enviou localização
+    @Column(name = "in_service_area")
+    private Boolean inServiceArea;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

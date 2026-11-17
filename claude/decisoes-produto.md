@@ -733,3 +733,4 @@ ativas; mapa usado na decisão da 2.ª província.
 **Em aberto.**
 - Corpo exato de `POST /v1/messages` e resposta de `GET /v1/contacts/{phone}` no Losambo (consola /consola).
 - Custo por mensagem WhatsApp e orçamento mensal.
+- Limpeza diária automática de `location_events` com mais de 12 meses (`LocationRetentionScheduler`).
