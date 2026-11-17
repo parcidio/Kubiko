@@ -343,7 +343,7 @@ public class MessageService {
     }
 
     /**
-     * Cidade da zona de serviço (V27, service_areas). Enquanto a V27 não estiver aplicada, CITY dá 422.
+     * Cidade da zona de serviço (V27, service_areas). Zona inexistente → 404 area_not_found.
      * ⚑ Hoje compara com profiles.city (texto escrito pela pessoa); com a localização da V27 pode passar a raio.
      */
     private String areaCity(UUID areaId) {

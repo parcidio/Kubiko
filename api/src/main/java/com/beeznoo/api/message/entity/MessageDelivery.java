@@ -7,7 +7,7 @@ import org.hibernate.annotations.UuidGenerator;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/** Uma linha por destinatário de um envio (V26). destination nunca sai da API sem máscara. */
+/** Uma linha por destinatário de um envio (V28). destination nunca sai da API sem máscara. */
 @Entity
 @Table(name = "message_deliveries")
 @Getter

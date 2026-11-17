@@ -1,5 +1,5 @@
 -- ============================================================
--- V26 — Mensagens da equipa (Admin › Mensagens) — decisoes-produto.md 2026-11-17
+-- V28 — Mensagens da equipa (Admin › Mensagens) — decisoes-produto.md 2026-11-17
 -- Só saída (não é chat). Canais: WHATSAPP (Losambo), EMAIL (Resend), SMS (Ombala, só +244).
 -- O envio sai depois do commit, em segundo plano; cada destinatário tem uma linha em message_deliveries.
 -- ============================================================

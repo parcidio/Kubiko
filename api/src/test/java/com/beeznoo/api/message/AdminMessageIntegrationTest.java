@@ -221,7 +221,7 @@ class AdminMessageIntegrationTest {
                 .andExpect(status().isServiceUnavailable())
                 .andExpect(jsonPath("$.code").value("channel_unavailable"));
 
-        // CITY antes da V27 → 422 (ou 404 se a tabela já existir); nunca 500
+        // CITY com zona inexistente → 404 (ou 422 sem zona); nunca 500
         mvc.perform(post("/api/v1/admin/messages/preview").header("Authorization", bearer(admin))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"channel\":\"WHATSAPP\",\"audience\":{\"type\":\"CITY\",\"areaId\":\"" + UUID.randomUUID() + "\"},\"body\":\"Olá\"}"))

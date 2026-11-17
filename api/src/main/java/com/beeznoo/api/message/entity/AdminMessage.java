@@ -10,7 +10,7 @@ import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.UUID;
 
-/** Um envio da equipa (V26). body guarda o texto com as variáveis por substituir. */
+/** Um envio da equipa (V28). body guarda o texto com as variáveis por substituir. */
 @Entity
 @Table(name = "admin_messages")
 @Getter

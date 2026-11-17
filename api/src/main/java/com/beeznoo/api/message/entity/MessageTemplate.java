@@ -7,7 +7,7 @@ import org.hibernate.annotations.UuidGenerator;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/** Modelo de mensagem (V26). Predefinidos vêm da migração e não se apagam. */
+/** Modelo de mensagem (V28). Predefinidos vêm da migração e não se apagam. */
 @Entity
 @Table(name = "message_templates")
 @Getter

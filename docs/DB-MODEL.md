@@ -1,6 +1,6 @@
 # Modelo de dados — schema atual
 
-Gerado a partir das migrações Flyway **V1–V26** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-17.
+Gerado a partir das migrações Flyway **V1–V28** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-17.
 As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
 A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
 
@@ -315,8 +315,8 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V23 | emails em minúsculas (sem colisões) e índice em `lower(email)` |
 | V24 | pagamento direto ao dono: método `DIRECT`, `payments.confirmed_by`, `commission_settled_at/by`; um só pagamento `CONFIRMED` por reserva (índice único parcial); índice das comissões por receber |
 | V25 | suspensão de contas pela equipa: `profiles.suspended_at`, `suspension_reason` (obrigatório se suspensa), `suspended_by` |
-| V26 | mensagens da equipa: `message_templates` (+ 6 predefinidos), `admin_messages`, `message_deliveries` (uma por destinatário, única por envio) |
 | V27 | zonas de serviço e localização: `service_areas` (província, cidade, centro, `radius_km`, `active`; semeadas Luanda e Bengo/Caxito, 60 km); `profiles.last_lat/last_lng/last_location_at`, `location_consent_at`, `signup_lat/lng`, `kyc_lat/lng`, `in_service_area`; `location_events` (append-only) |
+| V28 | mensagens da equipa: `message_templates` (+ 6 predefinidos), `admin_messages`, `message_deliveries` (uma por destinatário, única por envio) |
 
 **Localização (V27, decisoes-produto.md 2026-11-17):** coordenadas de pessoas só em `NUMERIC(5,2)` (~1 km, a BD
 arredonda). `location_events` guarda cada envio (`SIGNUP`, `KYC`, `PUBLISH` — cada tentativa de publicar/reativar —,

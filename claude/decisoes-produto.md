@@ -734,3 +734,7 @@ ativas; mapa usado na decisão da 2.ª província.
 - Corpo exato de `POST /v1/messages` e resposta de `GET /v1/contacts/{phone}` no Losambo (consola /consola).
 - Custo por mensagem WhatsApp e orçamento mensal.
 - Limpeza diária automática de `location_events` com mais de 12 meses (`LocationRetentionScheduler`).
+
+**Nota de schema (2026-11-17).** As mensagens da equipa entram como **V28** (`V28__admin_messages.sql`), não V26:
+foram integradas depois da V27 (zonas de serviço) e o Flyway recusa uma versão mais baixa numa base onde a V27 já
+esteja aplicada. A V26 fica por usar (o Flyway aceita saltos).
