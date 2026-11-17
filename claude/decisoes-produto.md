@@ -716,7 +716,8 @@ ativas; mapa usado na decisão da 2.ª província.
    ⚠ A localização vem do browser e pode ser falsificada: é um controlo de produto, não de segurança.
 5. **Localização com consentimento.** A app pede acesso à localização (registo, KYC e publicar), explica porquê, e
    guarda só coordenadas **arredondadas a ~1 km** (2 casas decimais). Recusar não bloqueia o registo; bloqueia
-   publicar. Política de privacidade atualizada.
+   publicar. Política de privacidade atualizada. Histórico de localização guardado **até 12 meses** (confirmado pela
+   equipa em 2026-11-17).
 6. **Mapa de calor** (Admin › Mapa): contagem agregada por célula (~5 km) de pessoas com KYC submetido/aprovado, com
    mínimo de 3 por célula para não identificar ninguém. Não é localização de pessoas.
 7. **Inglês:** a interface ganha seletor PT/EN (cookie `lang`, omissão `pt`). Dicionários próprios, sem biblioteca.
