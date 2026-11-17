@@ -101,6 +101,8 @@ public class WhatsAppOtpClient {
 
     static boolean isVerified(Map<?, ?> res) {
         if (res == null || res.isEmpty()) return true; // 2xx sem corpo
+        // 2xx com um erro no corpo (ex. {"error":"invalid_code"}) não é um código válido: falhar fechado
+        if (res.get("error") != null) return false;
         for (String flag : new String[]{"valid", "verified", "ok", "success"}) {
             if (res.get(flag) instanceof Boolean b) return b;
         }

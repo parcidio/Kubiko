@@ -39,9 +39,16 @@ public class OmbalaSmsService {
                     .toBodilessEntity();
             log.info("OTP enviado via Ombala para {}", maskPhone(phone));
         } catch (Exception e) {
-            log.error("Falha ao enviar OTP via Ombala para {}: {}", maskPhone(phone), e.getMessage());
+            // Nunca e.getMessage(): numa resposta de erro traz o corpo, que pode repetir a mensagem com o código OTP
+            log.error("Falha ao enviar OTP via Ombala para {}: {}", maskPhone(phone), describe(e));
             throw new RuntimeException("Não foi possível enviar o código de verificação. Tenta novamente.");
         }
+    }
+
+    private static String describe(Exception e) {
+        return e instanceof org.springframework.web.client.RestClientResponseException r
+                ? "HTTP " + r.getStatusCode().value()
+                : e.getClass().getSimpleName();
     }
 
     private String normalizePhone(String phone) {

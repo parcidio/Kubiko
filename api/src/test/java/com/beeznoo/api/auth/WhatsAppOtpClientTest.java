@@ -80,6 +80,12 @@ class WhatsAppOtpClientTest {
                         .body("{\"error\":\"invalid_code\"}"));
         assertThat(s.client().verify("otp_8f2c", "+244923000111", "000000")).isFalse();
 
+        // 2xx com erro no corpo: falha fechado (revisão de segurança 2026-11-17)
+        s.server().reset();
+        s.server().expect(requestTo(URL + "/otp/verify"))
+                .andRespond(withSuccess("{\"error\":\"invalid_code\"}", MediaType.APPLICATION_JSON));
+        assertThat(s.client().verify("otp_8f2c", "+244923000111", "000000")).isFalse();
+
         s.server().reset();
         s.server().expect(requestTo(URL + "/otp/verify")).andRespond(withServerError());
         assertThatThrownBy(() -> s.client().verify("otp_8f2c", "+244923000111", "123456"))

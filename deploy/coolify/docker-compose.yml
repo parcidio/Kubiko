@@ -1,27 +1,112 @@
-# Beeznoo no Coolify (VPS Contabo). Ver o PDF "Beeznoo — guia da plataforma", secção 11.
+# Beeznoo no Coolify (VPS Contabo). Ver o PDF "Beeznoo — guia da plataforma", secção 11, e docs/DEPLOY_VPS.md.
 # No Coolify: New Resource › Public/Private Repository › Build Pack "Docker Compose"
 #   Docker Compose Location: /deploy/coolify/docker-compose.yml
 #   Domínios (separador de cada serviço):  web → https://beeznoo.ao:3000   garage → https://s3.beeznoo.ao:3900
 #   Variáveis: o Coolify lista todas as ${...} deste ficheiro no separador Environment Variables.
 # HTTPS: o proxy do Coolify (Traefik) trata dos certificados. Nada publica portas no servidor.
+# Só web e garage têm domínio. A API (2 réplicas) fica atrás do balanceador interno api-lb (Caddy), sem domínio:
+#   Traefik → web (Next) → api-lb:8080 → api-1 / api-2 → postgres
+# Não dês domínio a api-1, api-2, api-lb nem postgres: deixavam de ser só internos.
 # Caminhos de build relativos à RAIZ do repositório: o Coolify corre o compose com --project-directory na raiz
 # ("../../frontend" saía do repositório e o BuildKit recusava). Base Directory no Coolify: "/".
 #   Fora do Coolify: docker compose --project-directory . -f deploy/coolify/docker-compose.yml ...
+
+# Uma definição para as duas réplicas da API (só muda o nome e SCHEDULER_ENABLED)
+x-api-env: &api-env
+  # base de dados (serviço postgres deste stack)
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_SSLMODE: disable
+  DB_NAME: ${DB_NAME:-beeznoo}
+  DB_USER: ${DB_USER:-beeznoo}
+  DB_PASSWORD: ${DB_PASSWORD}
+  # 2 réplicas × 10 ligações (o Postgres aceita 100)
+  DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+  # URLs públicos
+  FRONTEND_URL: ${PUBLIC_WEB_URL}
+  GOOGLE_REDIRECT_URI: ${PUBLIC_WEB_URL}/login/oauth2/code/google
+  # armazenamento (Garage) pelo URL público: as URLs assinadas têm de ter este host
+  B2_ENDPOINT: ${PUBLIC_S3_URL}
+  B2_REGION: garage
+  B2_BUCKET: ${S3_BUCKET:-beeznoo}
+  B2_ACCESS_KEY: ${S3_ACCESS_KEY}
+  B2_SECRET_KEY: ${S3_SECRET_KEY}
+  B2_PATH_STYLE: "true"
+  # segurança
+  JWT_SECRET: ${JWT_SECRET}
+  SESSION_COOKIE_SECURE: "true"
+  ADMIN_MFA_ENABLED: ${ADMIN_MFA_ENABLED:-true}
+  RATE_LIMITS_ENABLED: "true"
+  # 2 réplicas: limites de pedidos e tentativas de OTP partilhados no Postgres
+  RATE_LIMIT_STORE: database
+  # browser → Traefik (escreve X-Forwarded-For = cliente) → Next (mantém) → api-lb (acrescenta o IP do Next) → API
+  RATE_LIMIT_TRUSTED_PROXIES: "2"
+  API_DOCS_ENABLED: "false"
+  # login Google
+  GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+  GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+  # OTP por WhatsApp (Losambo) e SMS
+  WHATSAPP_API_URL: ${WHATSAPP_API_URL:-https://message.beeznoo.ao/v1}
+  WHATSAPP_API_KEY_PRD: ${WHATSAPP_API_KEY_PRD:-}
+  WHATSAPP_API_KEY_TST: ${WHATSAPP_API_KEY_TST:-}
+  WHATSAPP_ENV: ${WHATSAPP_ENV:-prd}
+  OTP_CHANNEL: ${OTP_CHANNEL:-auto}
+  OMBALA_TOKEN: ${OMBALA_TOKEN:-}
+  OMBALA_SENDER: ${OMBALA_SENDER:-Beeznoo}
+  # email
+  NOTIFICATIONS_EMAIL_ENABLED: ${NOTIFICATIONS_EMAIL_ENABLED:-false}
+  RESEND_API_KEY: ${RESEND_API_KEY:-}
+  RESEND_FROM: ${RESEND_FROM:-Beeznoo <noreply@beeznoo.ao>}
+  # produto
+  KYC_REQUIRED: ${KYC_REQUIRED:-true}
+  PAYMENTS_MODE: ${PAYMENTS_MODE:-direct}
+  # taxa de serviço sobre o aluguer (0.08 = 8%); o frontend lê-a de GET /api/v1/config
+  PAYMENTS_SERVICE_FEE_RATE: ${PAYMENTS_SERVICE_FEE_RATE:-0.08}
+  COMPANY_LEGAL_NAME: ${COMPANY_LEGAL_NAME:-Beeznoo}
+  COMPANY_NIF: ${COMPANY_NIF:-}
+  COMPANY_ADDRESS: ${COMPANY_ADDRESS:-Luanda, Angola}
+  COMPANY_EMAIL: ${COMPANY_EMAIL:-ajuda@beeznoo.ao}
+  # JVM: o Dockerfile vem afinado para 512 MB (Render); aqui cada réplica tem API_MEM_LIMIT (768 MB)
+  JAVA_OPTS: ${API_JAVA_OPTS:--XX:MaxRAMPercentage=50 -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=64m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError}
+
+x-api: &api
+  build:
+    context: ./api
+  image: beeznoo-api:local
+  restart: unless-stopped
+  # Sem teto, MaxRAMPercentage mede a RAM do servidor inteiro e as duas JVMs podiam pedir metade cada
+  mem_limit: ${API_MEM_LIMIT:-768m}
+  expose:
+    - "8080"
+  depends_on:
+    postgres:
+      condition: service_healthy
+    garage:
+      condition: service_started
+  healthcheck:
+    test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/actuator/health"]
+    interval: 30s
+    timeout: 5s
+    retries: 10
+    start_period: 60s
 
 services:
   web:
     build:
       context: ./frontend
       args:
-        API_URL: http://api:8080
+        # balanceador interno (deploy/coolify/api-lb), nunca uma réplica diretamente
+        API_URL: http://api-lb:8080
         STORAGE_PUBLIC_ORIGIN: ${PUBLIC_S3_URL}
         # pré-visualização dos links (og:image absoluto)
         SITE_URL: ${PUBLIC_WEB_URL}
         NEXT_PUBLIC_WHATSAPP_NUMBER: ${NEXT_PUBLIC_WHATSAPP_NUMBER:-244939351150}
     restart: unless-stopped
     depends_on:
-      api:
+      api-1:
         condition: service_healthy
+      api-lb:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/"]
       interval: 30s
@@ -29,73 +114,26 @@ services:
       retries: 5
       start_period: 20s
 
-  api:
+  # Balanceador interno (Caddy): health check, afinidade por cookie para o login Google, só /api/v1 e OAuth2
+  api-lb:
     build:
-      context: ./api
+      context: ./deploy/coolify/api-lb
     restart: unless-stopped
+    expose:
+      - "8080"
+
+  api-1:
+    <<: *api
     environment:
-      # base de dados (serviço postgres deste stack)
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_SSLMODE: disable
-      DB_NAME: ${DB_NAME:-beeznoo}
-      DB_USER: ${DB_USER:-beeznoo}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
-      # URLs públicos
-      FRONTEND_URL: ${PUBLIC_WEB_URL}
-      GOOGLE_REDIRECT_URI: ${PUBLIC_WEB_URL}/login/oauth2/code/google
-      # armazenamento (Garage) pelo URL público: as URLs assinadas têm de ter este host
-      B2_ENDPOINT: ${PUBLIC_S3_URL}
-      B2_REGION: garage
-      B2_BUCKET: ${S3_BUCKET:-beeznoo}
-      B2_ACCESS_KEY: ${S3_ACCESS_KEY}
-      B2_SECRET_KEY: ${S3_SECRET_KEY}
-      B2_PATH_STYLE: "true"
-      # segurança
-      JWT_SECRET: ${JWT_SECRET}
-      SESSION_COOKIE_SECURE: "true"
-      ADMIN_MFA_ENABLED: ${ADMIN_MFA_ENABLED:-true}
-      RATE_LIMITS_ENABLED: "true"
-      # browser → Traefik (Coolify) → Next → API
-      RATE_LIMIT_TRUSTED_PROXIES: "2"
-      # login Google
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      # OTP por WhatsApp (Losambo) e SMS
-      WHATSAPP_API_URL: ${WHATSAPP_API_URL:-https://message.beeznoo.ao/v1}
-      WHATSAPP_API_KEY_PRD: ${WHATSAPP_API_KEY_PRD:-}
-      WHATSAPP_API_KEY_TST: ${WHATSAPP_API_KEY_TST:-}
-      WHATSAPP_ENV: ${WHATSAPP_ENV:-prd}
-      OTP_CHANNEL: ${OTP_CHANNEL:-auto}
-      OMBALA_TOKEN: ${OMBALA_TOKEN:-}
-      OMBALA_SENDER: ${OMBALA_SENDER:-Beeznoo}
-      # email
-      NOTIFICATIONS_EMAIL_ENABLED: ${NOTIFICATIONS_EMAIL_ENABLED:-false}
-      RESEND_API_KEY: ${RESEND_API_KEY:-}
-      RESEND_FROM: ${RESEND_FROM:-Beeznoo <noreply@beeznoo.ao>}
-      # produto
-      KYC_REQUIRED: ${KYC_REQUIRED:-true}
-      PAYMENTS_MODE: ${PAYMENTS_MODE:-direct}
-      # taxa de serviço sobre o aluguer (0.08 = 8%); o frontend lê-a de GET /api/v1/config
-      PAYMENTS_SERVICE_FEE_RATE: ${PAYMENTS_SERVICE_FEE_RATE:-0.08}
-      COMPANY_LEGAL_NAME: ${COMPANY_LEGAL_NAME:-Beeznoo}
-      COMPANY_NIF: ${COMPANY_NIF:-}
-      COMPANY_ADDRESS: ${COMPANY_ADDRESS:-Luanda, Angola}
-      COMPANY_EMAIL: ${COMPANY_EMAIL:-ajuda@beeznoo.ao}
-      # JVM: o Dockerfile vem afinado para 512 MB (Render); aqui há mais memória
-      JAVA_OPTS: ${API_JAVA_OPTS:--XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      garage:
-        condition: service_started
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/actuator/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 10
-      start_period: 60s
+      <<: *api-env
+      # agendadores (expirar pedidos e pagamentos) só nesta réplica
+      SCHEDULER_ENABLED: "true"
+
+  api-2:
+    <<: *api
+    environment:
+      <<: *api-env
+      SCHEDULER_ENABLED: "false"
 
   postgres:
     image: postgres:16-alpine
@@ -107,6 +145,8 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - /opt/beeznoo-backups:/backups
+    expose:
+      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
