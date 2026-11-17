@@ -721,6 +721,12 @@ ativas; mapa usado na decisão da 2.ª província.
 7. **Inglês:** a interface ganha seletor PT/EN (cookie `lang`, omissão `pt`). Dicionários próprios, sem biblioteca.
 8. **Balanceador:** Caddy é a única porta de entrada (80/443). API, Postgres e Garage só na rede interna do Docker;
    a API corre em 2 réplicas atrás do Caddy/Next com health check. Nenhuma porta da API ou da BD publicada no host.
+   **Implementação:** Next → `api-lb:8080` (site interno do mesmo Caddy; no Coolify um Caddy à parte) → `api-1`/`api-2`,
+   `least_conn` + afinidade por cookie (o login Google usa a sessão HTTP da réplica). Postgres e Garage em redes
+   `internal: true`. Agendadores só na `api-1` (`SCHEDULER_ENABLED`); limites de pedidos no Postgres
+   (`RATE_LIMIT_STORE=database`); 768 MB por réplica (~700 MB a mais do que uma réplica numa VPS de 4 GB);
+   `update.sh` rolante. Não é alta disponibilidade: um só servidor e um só Postgres. Detalhe e trade-offs em
+   `docs/DEPLOY_VPS.md` ("Arquitetura") e achados em `docs/SEGURANCA.md` ("Revisão 2026-11-17").
 
 **Em aberto.**
 - Corpo exato de `POST /v1/messages` e resposta de `GET /v1/contacts/{phone}` no Losambo (consola /consola).
