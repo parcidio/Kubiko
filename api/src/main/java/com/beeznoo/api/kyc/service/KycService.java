@@ -6,6 +6,8 @@ import com.beeznoo.api.common.storage.StorageService;
 import com.beeznoo.api.common.storage.StorageTransactions;
 import com.beeznoo.api.common.storage.UploadedFiles;
 import com.beeznoo.api.common.storage.UploadedFiles.ValidFile;
+import com.beeznoo.api.geo.entity.LocationContext;
+import com.beeznoo.api.geo.service.LocationService;
 import com.beeznoo.api.kyc.dto.KycDtos.*;
 import com.beeznoo.api.kyc.entity.*;
 import com.beeznoo.api.kyc.repository.KycDecisionRepository;
@@ -53,14 +55,16 @@ public class KycService {
     private final StorageService storageService;
     private final NotificationService notificationService;
     private final AuditService auditService;
+    private final LocationService locationService;
     private final boolean kycRequired;
 
     public KycService(KycVerificationRepository verificationRepository, KycDocumentRepository documentRepository,
                       KycDecisionRepository decisionRepository, ProfileRepository profileRepository,
                       StorageService storageService, NotificationService notificationService,
-                      AuditService auditService,
+                      AuditService auditService, LocationService locationService,
                       @Value("${app.kyc.required:true}") boolean kycRequired) {
         this.kycRequired = kycRequired;
+        this.locationService = locationService;
         if (!kycRequired) {
             log.warn("KYC desligado (KYC_REQUIRED=false): publicar e pedir reserva não exigem identidade verificada. "
                     + "Ligar antes do primeiro aluguer real.");
@@ -76,7 +80,14 @@ public class KycService {
 
     // Primeira submissão, nova depois de REJECTED, ou re-submissão na mesma verificação depois de INFO_REQUESTED
     public KycStatusResponse submit(UUID profileId, AccountType accountType, Map<DocumentType, MultipartFile> files) {
+        return submit(profileId, accountType, files, null, null);
+    }
+
+    // lat/lng opcionais (as duas ou nenhuma): guardadas arredondadas para o mapa do admin (decisoes-produto.md 2026-11-17)
+    public KycStatusResponse submit(UUID profileId, AccountType accountType, Map<DocumentType, MultipartFile> files,
+                                    Double lat, Double lng) {
         if (accountType == null) throw new IllegalArgumentException("Indica o tipo de conta");
+        if ((lat == null) != (lng == null)) throw new IllegalArgumentException("Envia latitude e longitude, ou nenhuma");
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado"));
 
@@ -119,6 +130,7 @@ public class KycService {
         });
 
         profile.setAccountType(accountType);
+        if (lat != null) locationService.record(profile, LocationContext.KYC, lat, lng);
         notificationService.kycSubmitted(verification);
         log.info("KYC {} submetido ({} documentos)", verification.getId(), valid.size());
         return KycStatusResponse.from(verification);

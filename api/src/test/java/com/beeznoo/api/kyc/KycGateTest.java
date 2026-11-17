@@ -12,7 +12,7 @@ class KycGateTest {
 
     @Test
     void gateDesligado_deixaPublicarEReservar() {
-        KycService service = new KycService(null, null, null, null, null, null, null, false);
+        KycService service = new KycService(null, null, null, null, null, null, null, null, false);
         assertThatNoException().isThrownBy(() -> service.assertCanTransact(UUID.randomUUID()));
     }
 }

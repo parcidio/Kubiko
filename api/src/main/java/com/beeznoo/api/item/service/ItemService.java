@@ -3,6 +3,9 @@ package com.beeznoo.api.item.service;
 import com.beeznoo.api.audit.entity.AuditAction;
 import com.beeznoo.api.audit.service.AuditService;
 import com.beeznoo.api.booking.repository.BookingRepository;
+import com.beeznoo.api.geo.dto.GeoDtos.LocationInput;
+import com.beeznoo.api.geo.service.LocationService;
+import com.beeznoo.api.geo.service.LocationService.AreaNotAvailableException;
 import com.beeznoo.api.item.dto.ItemDtos.*;
 import com.beeznoo.api.item.entity.Category;
 import com.beeznoo.api.item.entity.Item;
@@ -47,10 +50,13 @@ public class ItemService {
     private final ReviewService reviewService;
     private final BookingRepository bookingRepository;
     private final AuditService auditService;
+    private final LocationService locationService;
 
     public ItemService(ItemRepository itemRepository, CategoryRepository categoryRepository,
                        ProfileRepository profileRepository, KycService kycService, PhotoUrls photoUrls,
-                       ReviewService reviewService, BookingRepository bookingRepository, AuditService auditService) {
+                       ReviewService reviewService, BookingRepository bookingRepository, AuditService auditService,
+                       LocationService locationService) {
+        this.locationService = locationService;
         this.itemRepository = itemRepository;
         this.categoryRepository = categoryRepository;
         this.profileRepository = profileRepository;
@@ -61,6 +67,8 @@ public class ItemService {
         this.auditService = auditService;
     }
 
+    // noRollbackFor: fora da zona, o evento PUBLISH fica registado mesmo com a recusa (nada mais foi escrito)
+    @Transactional(noRollbackFor = AreaNotAvailableException.class)
     public ItemResponse publish(UUID ownerId, PublishItemRequest request) throws AccessDeniedException {
         Profile owner = profileRepository.findById(ownerId)
                 .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado"));
@@ -69,6 +77,8 @@ public class ItemService {
             throw new AccessDeniedException("Apenas OWNER ou BOTH podem publicar itens");
         }
         kycService.assertCanTransact(ownerId);
+        // só se publica dentro de uma zona ativa (decisoes-produto.md 2026-11-17, item 4)
+        locationService.assertCanPublish(owner, request.location());
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Categoria não encontrada"));
@@ -200,7 +210,8 @@ public class ItemService {
     }
 
     // Pausado → ativo outra vez. SUSPENDED é decisão do admin e não sai por aqui.
-    public ItemResponse activate(UUID requesterId, UUID itemId) throws AccessDeniedException {
+    @Transactional(noRollbackFor = AreaNotAvailableException.class)
+    public ItemResponse activate(UUID requesterId, UUID itemId, LocationInput location) throws AccessDeniedException {
         Item item = itemRepository.findActiveById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
         assertOwner(requesterId, item);
@@ -209,6 +220,7 @@ public class ItemService {
             throw new IllegalStateException("Este equipamento está em revisão pela equipa e não pode ser reativado");
         }
         kycService.assertCanTransact(requesterId);
+        locationService.assertCanPublish(item.getOwner(), location);
         item.activate();
         return toResponse(item);
     }

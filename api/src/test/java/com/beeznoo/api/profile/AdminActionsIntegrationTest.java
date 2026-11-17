@@ -175,7 +175,7 @@ class AdminActionsIntegrationTest {
         assertThat(saved.getFeaturedAt()).isNull();
         assertThat(publicIds()).doesNotContain(item.getId());
         assertThatThrownBy(this::request).isInstanceOf(IllegalStateException.class);
-        assertThatThrownBy(() -> itemService.activate(owner.getId(), item.getId())).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> itemService.activate(owner.getId(), item.getId(), null)).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> itemService.suspend(admin.getId(), item.getId(), "outra vez"))
                 .isInstanceOf(IllegalStateException.class);
 

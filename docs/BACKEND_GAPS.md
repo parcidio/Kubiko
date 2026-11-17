@@ -139,3 +139,17 @@ equipamento e reservas recentes). ✅ `POST /admin/users/{id}/suspend` e `/reins
 sessões revogadas, equipamento fora do Explorar). ✅ `PATCH /admin/items/{id}/suspend` e `/reinstate`. Motivo na
 auditoria em todas. Ecrãs: `/admin/utilizadores` e `/admin/utilizadores/[id]`. Regras em `claude/decisoes-produto.md`.
 ⬜ Avisar a pessoa automaticamente da suspensão (hoje a equipa avisa).
+
+## Zonas de serviço, localização e mapa (2026-11-17)
+
+Contrato: `docs/API_ADMIN_MESSAGES_GEO.md`. Decisão: `claude/decisoes-produto.md` 2026-11-17 (itens 4–6). Migração V27.
+✅ `GET /service-areas` (público, ativas). ✅ `GET/POST /admin/service-areas`, `PUT /admin/service-areas/{id}` (sem
+delete; auditoria `SERVICE_AREA_CHANGED`). Semeadas: Luanda e Bengo/Caxito (60 km cada).
+✅ `POST /me/location` `{ lat, lng, accuracyM?, context }` → `{ inServiceArea, area }` (30/hora por pessoa).
+✅ `GET /me/publish-eligibility?lat=&lng=` (só consulta). ✅ Gate em `POST /items` e `PATCH /items/{id}/activate`:
+campo `location: { lat, lng }` no corpo; sem ele → 422 `location_required`, fora → 403 `area_not_available`
+(erro com `code`). Cada tentativa fica em `location_events`. Ações do admin sobre equipamento não passam pelo gate.
+✅ Opcional: `location` no `POST /auth/register`; `lat`/`lng` (campos do formulário) no `POST /kyc/submit`.
+✅ `GET /admin/metrics/heatmap?scope=KYC_SUBMITTED|KYC_APPROVED|SIGNUP` (omissão `KYC_SUBMITTED`; células de 0,05°,
+mínimo 3; a mais: `scope`, `suppressed`, `withoutLocation`; províncias com < 3 juntam-se em "Outras").
+⬜ Localização no registo com Google (`/auth/google/register`). ⬜ Cabeçalho como alternativa ao corpo para publicar.

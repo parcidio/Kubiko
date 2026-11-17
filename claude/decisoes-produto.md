@@ -725,4 +725,8 @@ ativas; mapa usado na decisão da 2.ª província.
 **Em aberto.**
 - Corpo exato de `POST /v1/messages` e resposta de `GET /v1/contacts/{phone}` no Losambo (consola /consola).
 - Custo por mensagem WhatsApp e orçamento mensal.
-- Raio da zona de Luanda (semeado 60 km a partir do centro) e se Bengo/Icolo e Bengo contam.
+- ~~Raio da zona de Luanda (semeado 60 km a partir do centro) e se Bengo/Icolo e Bengo contam.~~ **Decidido
+  (PM, 2026-11-17):** Luanda mantém 60 km; Bengo conta no piloto — segunda zona ativa Bengo/Caxito
+  (centro -8,5785, 13,6643, 60 km), semeada na V27.
+- **Decidido (PM, 2026-11-17):** o histórico de localizações (`location_events`) guarda-se no máximo 12 meses;
+  limpeza diária automática.

@@ -27,8 +27,15 @@ public class AuthDtos {
             @Size(min = 8, max = 72, message = "A password deve ter entre 8 e 72 caracteres")
             String password,
 
-            @NotNull UserRole role
-    ) {}
+            @NotNull UserRole role,
+
+            // opcional: localização com consentimento (arredondada a ~1 km); recusar não bloqueia o registo
+            @jakarta.validation.Valid com.beeznoo.api.geo.dto.GeoDtos.LocationInput location
+    ) {
+        public RegisterRequest(String fullName, String phone, String email, String password, UserRole role) {
+            this(fullName, phone, email, password, role, null);
+        }
+    }
 
     // ---- Registo: passo 2 — confirmar número com OTP ----
     public record VerifyRegistrationRequest(

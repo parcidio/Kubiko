@@ -45,6 +45,9 @@ public class KycController {
 
                     Cada ficheiro: JPEG, PNG ou PDF (validado pelo conteúdo), até 5 MB.
 
+                    Opcional: `lat` e `lng` (as duas ou nenhuma) — localização com consentimento, guardada
+                    arredondada a ~1 km para o mapa do admin. Não bloqueia o KYC.
+
                     Pode submeter-se outra vez depois de `REJECTED` (nova verificação) ou de
                     `INFO_REQUESTED` (os novos documentos entram na mesma verificação, que volta a `PENDING`).
                     """
@@ -68,14 +71,17 @@ public class KycController {
             @RequestPart(required = false) MultipartFile biBack,
             @RequestPart(required = false) MultipartFile selfie,
             @RequestPart(required = false) MultipartFile nifDocument,
-            @RequestPart(required = false) MultipartFile businessDocument) {
+            @RequestPart(required = false) MultipartFile businessDocument,
+            // localização opcional (com consentimento) — o KYC continua aberto em todo o lado
+            @RequestParam(required = false) Double lat,
+            @RequestParam(required = false) Double lng) {
         Map<DocumentType, MultipartFile> files = new EnumMap<>(DocumentType.class);
         if (biFront != null) files.put(DocumentType.BI_FRONT, biFront);
         if (biBack != null) files.put(DocumentType.BI_BACK, biBack);
         if (selfie != null) files.put(DocumentType.SELFIE, selfie);
         if (nifDocument != null) files.put(DocumentType.NIF_DOCUMENT, nifDocument);
         if (businessDocument != null) files.put(DocumentType.BUSINESS_DOCUMENT, businessDocument);
-        return ResponseEntity.status(HttpStatus.CREATED).body(kycService.submit(profileId, accountType, files));
+        return ResponseEntity.status(HttpStatus.CREATED).body(kycService.submit(profileId, accountType, files, lat, lng));
     }
 
     @Operation(

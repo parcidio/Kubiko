@@ -59,6 +59,14 @@ public class GlobalExceptionHandler {
                 .body(new ErrorBody(HttpStatus.CONFLICT.value(), ex.getMessage(), null));
     }
 
+    // Erros de negócio com código estável (ApiException): o frontend decide pelo `code`, não pelo texto
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorBody> handleApi(ApiException ex) {
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ErrorBody(ex.status().value(), ex.getMessage(), null, OffsetDateTime.now(), ex.code()));
+    }
+
     // Limites de pedidos (RateLimiter) — OWASP A06/A07
     @ExceptionHandler(RateLimitExceededException.class)
     public ResponseEntity<ErrorBody> handleRateLimit(RateLimitExceededException ex) {
@@ -146,10 +154,12 @@ public class GlobalExceptionHandler {
             int status,
             String message,
             Map<String, String> fields,
-            OffsetDateTime timestamp
+            OffsetDateTime timestamp,
+            // código estável do erro (ex.: `area_not_available`); null quando não há
+            String code
     ) {
         public ErrorBody(int status, String message, Map<String, String> fields) {
-            this(status, message, fields, OffsetDateTime.now());
+            this(status, message, fields, OffsetDateTime.now(), null);
         }
     }
 

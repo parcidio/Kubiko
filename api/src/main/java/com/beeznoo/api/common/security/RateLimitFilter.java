@@ -78,6 +78,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
             if (isMultipart(request)) {
                 limiter.check("upload:" + profileId, 30, Duration.ofHours(1), "Enviaste demasiados ficheiros. Tenta mais tarde.");
             }
+            // localização: a app envia no registo, KYC, publicar e ao abrir — mais do que isto é abuso
+            if (path.equals("/api/v1/me/location")) {
+                limiter.check("location:" + profileId, 30, Duration.ofHours(1),
+                        "Enviaste a localização demasiadas vezes. Tenta mais tarde.");
+            }
             limiter.check("write:" + profileId, 120, Duration.ofMinutes(1), "Demasiados pedidos. Espera um pouco.");
         }
     }
