@@ -16,23 +16,16 @@ import { formatDateTime } from "@/lib/format";
 import { compressImage } from "@/lib/images";
 import type { KycAccountType, KycStatusInfo } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { fmt } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 
 type Slot = "biFront" | "biBack" | "selfie" | "nifDocument" | "businessDocument";
 const REQUIRED: Record<KycAccountType, Slot[]> = {
   INDIVIDUAL: ["biFront", "biBack", "selfie"],
   BUSINESS: ["nifDocument", "businessDocument"],
 };
-/** Para dizer o que falta debaixo do botão, em vez de o deixar só cinzento. */
-const SLOT_LABEL: Record<Slot, string> = {
-  biFront: "o BI (frente)",
-  biBack: "o BI (verso)",
-  selfie: "a selfie com o BI",
-  nifDocument: "o documento do NIF",
-  businessDocument: "a certidão ou alvará",
-};
-
-/** A verificação é manual (decisoes-produto.md 2026-11-15) — dizê-lo antes e depois do envio. */
-const DELAY = "A verificação é feita à mão pela equipa Beeznoo e pode demorar até 2 dias úteis.";
+// SLOT_LABEL (t.verification.slots): diz o que falta debaixo do botão, em vez de o deixar só cinzento.
+// DELAY (t.verification.delay): a verificação é manual (decisoes-produto.md 2026-11-15) — dizê-lo antes e depois do envio.
 
 /**
  * KYC manual (SPEC §7): particular = BI frente/verso + selfie com o BI · empresa = documento do NIF + certidão/alvará.
@@ -45,17 +38,22 @@ export default function VerificacaoPage() {
   const [files, setFiles] = useState<Partial<Record<Slot, File>>>({});
   const [previews, setPreviews] = useState<Partial<Record<Slot, string>>>({});
   const [sending, setSending] = useState(false);
+  const dict = useT();
+  const lang = useLang();
+  const t = dict.verification;
+  const SLOT_LABEL = t.slots;
+  const DELAY = t.delay;
 
   if (!session) return null;
   if (status.error) return <ErrorState message={status.error} onRetry={status.reload} />;
-  if (status.loading || !status.data) return <Skeleton role="status" aria-label="A carregar" className="mx-auto h-96 max-w-2xl rounded-sheet" />;
+  if (status.loading || !status.data) return <Skeleton role="status" aria-label={dict.common.loading} className="mx-auto h-96 max-w-2xl rounded-sheet" />;
 
   const k = status.data;
 
   if (k.status === "APPROVED") {
     return (
-      <Result tone="ok" title="Identidade verificada">
-        Já podes pedir reservas e publicar equipamento. O selo &quot;Verificado&quot; aparece no teu perfil.
+      <Result tone="ok" title={t.approvedTitle}>
+        {t.approvedText}
       </Result>
     );
   }
@@ -63,9 +61,9 @@ export default function VerificacaoPage() {
   if (k.status === "PENDING" || k.status === "IN_REVIEW") {
     return (
       // Acabou de enviar (PENDING) = sucesso; IN_REVIEW = a equipa já está a ver (prazo, não sucesso)
-      <Result tone={k.status === "IN_REVIEW" ? "ambar" : "ok"} title={k.status === "IN_REVIEW" ? "A equipa está a verificar" : "Em análise"}>
-        {DELAY} Avisamos-te na app e por email quando houver decisão.
-        {k.submittedAt && <span className="mt-2 block text-[13px]">Enviado a {formatDateTime(k.submittedAt)}.</span>}
+      <Result tone={k.status === "IN_REVIEW" ? "ambar" : "ok"} title={k.status === "IN_REVIEW" ? t.reviewingTitle : t.pendingTitle}>
+        {DELAY} {t.notify}
+        {k.submittedAt && <span className="mt-2 block text-[13px]">{fmt(t.sentAt, { when: formatDateTime(k.submittedAt, lang) })}</span>}
       </Result>
     );
   }
@@ -92,9 +90,9 @@ export default function VerificacaoPage() {
         payload[slot] = f.type === "application/pdf" ? f : await compressImage(f, 2200, 0.85);
       }
       status.setData(await kycApi.submit(type, payload));
-      toast.success("Documentos enviados.");
+      toast.success(t.sent);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível enviar os documentos.");
+      toast.error(e instanceof Error ? e.message : t.sendError);
     } finally {
       setSending(false);
     }
@@ -102,39 +100,39 @@ export default function VerificacaoPage() {
 
   return (
     <div className="mx-auto grid max-w-2xl gap-5 pb-24">
-      <BackLink href="/conta">Voltar à conta</BackLink>
+      <BackLink href="/conta">{t.back}</BackLink>
       <div className="grid justify-items-start gap-4">
         <HexTile icon={BadgeCheck} tone="salvia" size={64} flip className="animate-sobe" />
-        <PageHeader title="Verifica a tua identidade" subtitle="Obrigatório antes de pedir uma reserva ou publicar. Enviar leva 2 minutos." />
+        <PageHeader title={t.title} subtitle={t.subtitle} />
       </div>
 
       {k.status === "REJECTED" && (
-        <Callout tone="erro" icon={AlertTriangle} title="A verificação anterior foi recusada">
-          {k.rejectionReason ?? "Envia os documentos outra vez."}
+        <Callout tone="erro" icon={AlertTriangle} title={t.rejectedTitle}>
+          {k.rejectionReason ?? t.sendAgain}
         </Callout>
       )}
       {k.status === "INFO_REQUESTED" && (
-        <Callout tone="warn" icon={AlertTriangle} title="A equipa pediu mais informação">
-          {k.infoRequestNote ?? "Envia os documentos outra vez."}
+        <Callout tone="warn" icon={AlertTriangle} title={t.infoTitle}>
+          {k.infoRequestNote ?? t.sendAgain}
         </Callout>
       )}
 
-      <Callout tone="ok" icon={BadgeCheck} title="Porque pedimos isto">
-        Quem aluga sabe com quem está a lidar. Os documentos ficam guardados de forma privada e só a equipa Beeznoo os vê.{" "}
-        <a href="/privacidade" target="_blank" className="font-medium underline">Como tratamos os teus dados</a>.
+      <Callout tone="ok" icon={BadgeCheck} title={t.whyTitle}>
+        {t.whyText}{" "}
+        <a href="/privacidade" target="_blank" className="font-medium underline">{t.privacyLink}</a>.
       </Callout>
-      <Callout tone="info" icon={Clock} title="Não é automático">
+      <Callout tone="info" icon={Clock} title={t.manualTitle}>
         {DELAY}
       </Callout>
 
       {k.status !== "INFO_REQUESTED" && (
         <SegmentedControl
-          label="Tipo de conta"
+          label={t.accountType}
           value={kind}
           onChange={setKind}
           options={[
-            { value: "INDIVIDUAL", label: "Particular" },
-            { value: "BUSINESS", label: "Empresa" },
+            { value: "INDIVIDUAL", label: t.individual },
+            { value: "BUSINESS", label: t.business },
           ]}
         />
       )}
@@ -144,27 +142,27 @@ export default function VerificacaoPage() {
         {type === "INDIVIDUAL" ? (
           <>
             <p className="flex items-center gap-2 font-bold">
-              <UserRound className="size-5 text-ambar" strokeWidth={1.8} aria-hidden /> Bilhete de Identidade
+              <UserRound className="size-5 text-ambar" strokeWidth={1.8} aria-hidden /> {t.idCard}
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <CameraSlot label="BI — frente" hint="Os 4 cantos visíveis, sem reflexos" photo={previews.biFront} onPick={pick("biFront")} />
-              <CameraSlot label="BI — verso" hint="Texto legível" photo={previews.biBack} onPick={pick("biBack")} />
+              <CameraSlot label={t.biFront.label} hint={t.biFront.hint} photo={previews.biFront} onPick={pick("biFront")} />
+              <CameraSlot label={t.biBack.label} hint={t.biBack.hint} photo={previews.biBack} onPick={pick("biBack")} />
             </div>
             <p className="flex items-center gap-2 pt-2 font-bold">
-              <ScanFace className="size-5 text-ambar" strokeWidth={1.8} aria-hidden /> Selfie
+              <ScanFace className="size-5 text-ambar" strokeWidth={1.8} aria-hidden /> {t.selfieTitle}
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <CameraSlot label="Selfie com o BI" hint="Cara e BI na mesma foto" photo={previews.selfie} onPick={pick("selfie")} capture="user" />
+              <CameraSlot label={t.selfie.label} hint={t.selfie.hint} photo={previews.selfie} onPick={pick("selfie")} capture="user" />
             </div>
           </>
         ) : (
           <>
             <p className="flex items-center gap-2 font-bold">
-              <Building2 className="size-5 text-ambar" strokeWidth={1.8} aria-hidden /> Documentos da empresa
+              <Building2 className="size-5 text-ambar" strokeWidth={1.8} aria-hidden /> {t.companyDocs}
             </p>
             <div className="grid grid-cols-2 gap-3">
-              <CameraSlot label="Documento do NIF" hint="Cartão ou declaração com o NIF" photo={previews.nifDocument} onPick={pick("nifDocument")} />
-              <CameraSlot label="Certidão ou alvará" hint="Registo comercial da empresa" photo={previews.businessDocument} onPick={pick("businessDocument")} />
+              <CameraSlot label={t.nif.label} hint={t.nif.hint} photo={previews.nifDocument} onPick={pick("nifDocument")} />
+              <CameraSlot label={t.business2.label} hint={t.business2.hint} photo={previews.businessDocument} onPick={pick("businessDocument")} />
             </div>
           </>
         )}
@@ -172,11 +170,11 @@ export default function VerificacaoPage() {
 
       <StickyCTA>
         <Button size="lg" block disabled={!ready} loading={sending} onClick={submit} aria-describedby={ready ? undefined : "kyc-falta"}>
-          Enviar para verificação
+          {t.submit}
         </Button>
         {!ready && (
           <p id="kyc-falta" className="mt-1.5 text-center text-[13px] text-cinza">
-            {missing.length > 1 ? "Faltam" : "Falta"} {missing.join(", ").replace(/, ([^,]*)$/, " e $1")}
+            {fmt(missing.length > 1 ? t.missingMany : t.missingOne, { list: missing.join(", ").replace(/, ([^,]*)$/, `${t.and}$1`) })}
           </p>
         )}
       </StickyCTA>
@@ -185,13 +183,14 @@ export default function VerificacaoPage() {
 }
 
 function Result({ tone, title, children }: { tone: "ok" | "ambar"; title: string; children: React.ReactNode }) {
+  const t = useT().verification;
   return (
     <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
       {tone === "ok" ? <SuccessCheck /> : <HexTile icon={Clock} tone="ambar-tint" size={88} />}
       <h1 className="animate-sobe font-titulo text-[28px] leading-tight font-bold tracking-[-0.02em] text-verde [animation-delay:150ms]">{title}</h1>
       <p className="animate-sobe text-texto-corpo [animation-delay:200ms]">{children}</p>
       <ButtonLink href="/explorar" variant="dark" arrow className="mt-2">
-        Explorar equipamento
+        {t.explore}
       </ButtonLink>
     </div>
   );
