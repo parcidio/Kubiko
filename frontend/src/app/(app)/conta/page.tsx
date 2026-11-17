@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BadgeCheck, CheckCircle2, ChevronRight, CircleHelp, Clock, LogOut, Mail, Moon, Package, Phone, ShieldCheck, Sun, Ticket, Wallet, type LucideIcon } from "lucide-react";
+import { BadgeCheck, CheckCircle2, ChevronRight, CircleHelp, Clock, Languages, LogOut, Mail, Moon, Package, Phone, ShieldCheck, Sun, Ticket, Wallet, type LucideIcon } from "lucide-react";
 import { HexGlow } from "@/components/bz/brand";
 import { FormError, OtpField, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { HexTile } from "@/components/bz/hex";
@@ -17,20 +17,12 @@ import { initials, whatsappLink } from "@/lib/booking";
 import { canOwn, canRent, isAdmin } from "@/lib/mode";
 import type { Me, UserRole } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { LangSwitch } from "@/components/bz/lang-switch";
+import { fmt } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 
-const ROLE_LABEL: Record<UserRole, string> = {
-  RENTER: "Arrendatário",
-  OWNER: "Dono de equipamento",
-  BOTH: "Alugo e sou dono",
-  ADMIN: "Equipa Beeznoo",
-};
-
-/** Regresso de "Associar conta Google" (/conta?google=…). */
-const GOOGLE_RESULT: Record<string, { tone: "ok" | "warn"; title: string; text: string }> = {
-  linked: { tone: "ok", title: "Conta Google associada", text: "Já podes entrar com o Google. Se o email era o mesmo, ficou verificado." },
-  already: { tone: "warn", title: "Já tens outra conta Google associada", text: "Fala connosco no WhatsApp se a quiseres trocar." },
-  conflict: { tone: "warn", title: "Essa conta Google pertence a outro perfil", text: "Entra com essa conta Google para a usar, ou escolhe outra conta Google." },
-};
+/** Regresso de "Associar conta Google" (/conta?google=…); textos em t.account.google. */
+const GOOGLE_TONE: Record<string, "ok" | "warn"> = { linked: "ok", already: "warn", conflict: "warn" };
 
 function subscribeTheme(onChange: () => void) {
   window.addEventListener("beeznoo:theme", onChange);
@@ -51,7 +43,11 @@ function ContaInner() {
   const params = useSearchParams();
   const darkMode = useSyncExternalStore(subscribeTheme, getThemeSnapshot, () => false);
   const me = useResource<Me>(session ? "profile:me" : null, () => profileApi.me());
-  const googleResult = GOOGLE_RESULT[params.get("google") ?? ""];
+  const dict = useT();
+  const t = dict.account;
+  const ROLE_LABEL: Record<UserRole, string> = t.roles;
+  const googleKey = params.get("google") ?? "";
+  const googleResult = googleKey in GOOGLE_TONE ? { tone: GOOGLE_TONE[googleKey], ...t.google[googleKey as keyof typeof t.google] } : undefined;
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
@@ -60,12 +56,12 @@ function ContaInner() {
   if (!session) return null;
 
   const links: { href: string; label: string; icon: LucideIcon; show: boolean; external?: boolean }[] = [
-    { href: "/verificacao", label: "Verificação de identidade", icon: BadgeCheck, show: true },
-    { href: "/reservas", label: "As minhas reservas", icon: Ticket, show: canRent(session.role) },
-    { href: "/equipamentos", label: "O meu equipamento", icon: Package, show: canOwn(session.role) },
-    { href: "/carteira", label: "Carteira", icon: Wallet, show: true },
-    { href: "/admin", label: "Painel da equipa", icon: ShieldCheck, show: isAdmin(session.role) },
-    { href: whatsappLink("Olá Beeznoo! Preciso de ajuda com a minha conta."), label: "Ajuda no WhatsApp", icon: CircleHelp, show: true, external: true },
+    { href: "/verificacao", label: t.links.verification, icon: BadgeCheck, show: true },
+    { href: "/reservas", label: t.links.bookings, icon: Ticket, show: canRent(session.role) },
+    { href: "/equipamentos", label: t.links.equipment, icon: Package, show: canOwn(session.role) },
+    { href: "/carteira", label: t.links.wallet, icon: Wallet, show: true },
+    { href: "/admin", label: t.links.admin, icon: ShieldCheck, show: isAdmin(session.role) },
+    { href: whatsappLink(t.helpText), label: t.links.help, icon: CircleHelp, show: true, external: true },
   ];
 
   return (
@@ -90,9 +86,9 @@ function ContaInner() {
             </div>
             {me.data && (
               <ul className="grid gap-2.5 rounded-cartao border border-white/10 bg-white/5 p-3.5 text-left md:gap-2 md:p-4 text-sm text-salvia-tint">
-                <Status icon={Phone} label={me.data.phone} ok={me.data.phoneVerified} okText="confirmado" noText="por confirmar" />
-                {me.data.email && <Status icon={Mail} label={me.data.email} ok={me.data.emailVerified} okText="verificado" noText="por verificar" />}
-                <Status icon={BadgeCheck} label="Identidade" ok={me.data.identityVerified} okText="verificada" noText={me.data.kycStatus === "PENDING" || me.data.kycStatus === "IN_REVIEW" ? "em análise" : me.data.kycStatus === "REJECTED" ? "recusada" : me.data.kycStatus === "INFO_REQUESTED" ? "falta informação" : "por verificar"} />
+                <Status icon={Phone} label={me.data.phone} ok={me.data.phoneVerified} okText={t.confirmed} noText={t.toConfirm} />
+                {me.data.email && <Status icon={Mail} label={me.data.email} ok={me.data.emailVerified} okText={t.verifiedM} noText={t.toVerify} />}
+                <Status icon={BadgeCheck} label={t.identity} ok={me.data.identityVerified} okText={t.verifiedF} noText={me.data.kycStatus === "PENDING" || me.data.kycStatus === "IN_REVIEW" ? t.inReview : me.data.kycStatus === "REJECTED" ? t.rejected : me.data.kycStatus === "INFO_REQUESTED" ? t.infoNeeded : t.toVerify} />
               </ul>
             )}
           </div>
@@ -109,7 +105,7 @@ function ContaInner() {
         {me.error ? (
           <Card><ErrorState message={me.error} onRetry={me.reload} /></Card>
         ) : !me.data ? (
-          <Skeleton role="status" aria-label="A carregar" className="h-72 rounded-cartao" />
+          <Skeleton role="status" aria-label={dict.common.loading} className="h-72 rounded-cartao" />
         ) : (
           <>
             <ProfileForm me={me.data} onSaved={me.setData} />
@@ -119,7 +115,7 @@ function ContaInner() {
         )}
 
         <section className="grid gap-3 md:gap-4">
-          <h2 className="font-titulo text-xl font-bold text-verde">Sobre a minha conta</h2>
+          <h2 className="font-titulo text-xl font-bold text-verde">{t.about}</h2>
           <Card className="overflow-hidden">
             {links
               .filter((l) => l.show)
@@ -140,22 +136,29 @@ function ContaInner() {
         </section>
 
         <section className="grid gap-3 md:gap-4">
-          <h2 className="font-titulo text-xl font-bold text-verde">Aparência</h2>
+          <h2 className="font-titulo text-xl font-bold text-verde">{t.appearance}</h2>
           <Card className="grid gap-4 p-4">
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-              <div><p className="font-bold text-verde">Modo de utilização</p><p className="text-sm text-cinza">Escolhe como usas a Beeznoo.</p></div>
+              <div><p className="font-bold text-verde">{t.mode}</p><p className="text-sm text-cinza">{t.modeText}</p></div>
               <ModeSwitch className="w-full sm:w-auto" />
             </div>
             <div className="flex items-center justify-between gap-4 border-t border-borda pt-4">
               <div className="flex min-w-0 items-center gap-3">
+                <Languages className="size-5 text-mel" aria-hidden />
+                <div><p className="font-bold text-verde">{t.language}</p><p className="text-sm text-cinza">{t.languageText}</p></div>
+              </div>
+              <LangSwitch />
+            </div>
+            <div className="flex items-center justify-between gap-4 border-t border-borda pt-4">
+              <div className="flex min-w-0 items-center gap-3">
                 {darkMode ? <Moon className="size-5 text-mel" aria-hidden /> : <Sun className="size-5 text-mel" aria-hidden />}
-                <div><p className="font-bold text-verde">Tema escuro</p><p className="text-sm text-cinza">Altera o contraste da aplicação.</p></div>
+                <div><p className="font-bold text-verde">{t.darkTheme}</p><p className="text-sm text-cinza">{t.darkThemeText}</p></div>
               </div>
               <button
                 type="button"
                 role="switch"
                 aria-checked={darkMode}
-                aria-label="Ativar tema escuro"
+                aria-label={t.darkThemeToggle}
                 onClick={() => {
                   window.localStorage.setItem("beeznoo.theme", darkMode ? "light" : "dark");
                   window.dispatchEvent(new Event("beeznoo:theme"));
@@ -176,7 +179,7 @@ function ContaInner() {
           }}
           className="flex min-h-14 cursor-pointer items-center justify-center gap-2 rounded-cartao border border-borda bg-branco font-bold text-erro hover:bg-erro-tint"
         >
-          <LogOut className="size-5" strokeWidth={1.8} aria-hidden /> Sair
+          <LogOut className="size-5" strokeWidth={1.8} aria-hidden /> {t.signOut}
         </button>
       </div>
     </div>
@@ -210,6 +213,7 @@ function ProfileForm({ me, onSaved }: { me: Me; onSaved: (me: Me) => void }) {
   const [city, setCity] = useState(me.city ?? "");
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
+  const t = useT().account;
   const dirty = fullName !== me.fullName || email.trim().toLowerCase() !== (me.email ?? "") || city !== (me.city ?? "");
 
   async function save() {
@@ -218,7 +222,7 @@ function ProfileForm({ me, onSaved }: { me: Me; onSaved: (me: Me) => void }) {
     try {
       const updated = await profileApi.update({ fullName: fullName.trim(), email: email.trim(), city: city.trim() });
       onSaved(updated);
-      toast.success(updated.email !== me.email && updated.email ? "Guardado. Verifica o email novo." : "Dados guardados.");
+      toast.success(updated.email !== me.email && updated.email ? t.savedVerify : t.saved);
     } catch (e) {
       setErrors(toFormErrors(e));
     } finally {
@@ -228,23 +232,23 @@ function ProfileForm({ me, onSaved }: { me: Me; onSaved: (me: Me) => void }) {
 
   return (
     <section className="grid gap-3 md:gap-4">
-      <h2 className="font-titulo text-xl font-bold text-verde">Dados pessoais</h2>
+      <h2 className="font-titulo text-xl font-bold text-verde">{t.personal}</h2>
       <Card className="grid gap-4 p-4">
-        <TextField label="Nome" value={fullName} onChange={setFullName} error={errors.fields.fullName} autoComplete="name" />
+        <TextField label={t.name} value={fullName} onChange={setFullName} error={errors.fields.fullName} autoComplete="name" />
         <TextField
-          label="Email (opcional)"
+          label={t.email}
           type="email"
           value={email}
           onChange={setEmail}
           error={errors.fields.email}
           autoComplete="email"
-          hint="Mudar o email anula a verificação. Deixa vazio para remover."
+          hint={t.emailHint}
         />
-        <TextField label="Bairro ou cidade" value={city} onChange={setCity} error={errors.fields.city} placeholder="Ex.: Talatona" />
-        <p className="text-[13px] text-cinza">O telefone ({me.phone}) muda-se só com a equipa, porque é com ele que entras.</p>
+        <TextField label={t.city} value={city} onChange={setCity} error={errors.fields.city} placeholder={t.cityPh} />
+        <p className="text-[13px] text-cinza">{fmt(t.phoneNote, { phone: me.phone })}</p>
         <FormError message={errors.form} />
         <Button variant="dark" disabled={!dirty || !fullName.trim()} loading={busy} onClick={save} className="w-full sm:w-auto sm:justify-self-start">
-          Guardar
+          {t.save}
         </Button>
       </Card>
     </section>
@@ -256,6 +260,7 @@ function EmailVerification({ me, onVerified }: { me: Me; onVerified: (me: Me) =>
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const t = useT().account;
   if (!me.email || me.emailVerified) return null;
 
   async function send() {
@@ -264,9 +269,9 @@ function EmailVerification({ me, onVerified }: { me: Me; onVerified: (me: Me) =>
     try {
       await profileApi.requestEmailCode();
       setSent(true);
-      toast.success(`Enviámos um código para ${me.email}.`);
+      toast.success(fmt(t.codeSent, { email: me.email ?? "" }));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível enviar o código.");
+      setError(e instanceof Error ? e.message : t.codeSendError);
     } finally {
       setBusy(false);
     }
@@ -277,9 +282,9 @@ function EmailVerification({ me, onVerified }: { me: Me; onVerified: (me: Me) =>
     setError(undefined);
     try {
       onVerified(await profileApi.confirmEmail(code));
-      toast.success("Email verificado.");
+      toast.success(t.emailVerified);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Código inválido.");
+      setError(e instanceof Error ? e.message : t.invalidCode);
     } finally {
       setBusy(false);
     }
@@ -287,20 +292,20 @@ function EmailVerification({ me, onVerified }: { me: Me; onVerified: (me: Me) =>
 
   return (
     <section className="grid gap-3 md:gap-4">
-      <h2 className="font-titulo text-xl font-bold text-verde">Verificar email</h2>
+      <h2 className="font-titulo text-xl font-bold text-verde">{t.verifyEmail}</h2>
       <Card className="grid gap-4 p-4">
         <p className="text-texto-corpo">
-          Com o email verificado podes recuperar a conta por email. Se o teu email for do Gmail, associar a conta Google (abaixo) também o verifica.
+          {t.verifyEmailText}
         </p>
         {sent ? (
           <>
             <OtpField value={code} onChange={setCode} length={6} error={error} />
             <div className="flex flex-wrap gap-2">
               <Button variant="dark" disabled={code.length !== 6} loading={busy} onClick={confirm}>
-                Confirmar código
+                {t.confirmCode}
               </Button>
               <Button variant="ghost" disabled={busy} onClick={send}>
-                Enviar outro
+                {t.sendAnother}
               </Button>
             </div>
           </>
@@ -308,7 +313,7 @@ function EmailVerification({ me, onVerified }: { me: Me; onVerified: (me: Me) =>
           <>
             {error && <Callout tone="warn">{error}</Callout>}
             <Button variant="outline" loading={busy} onClick={send} className="w-full sm:w-auto sm:justify-self-start">
-              <Mail strokeWidth={1.8} /> Enviar código para {me.email}
+              <Mail strokeWidth={1.8} /> {fmt(t.sendCodeTo, { email: me.email })}
             </Button>
           </>
         )}
@@ -319,33 +324,34 @@ function EmailVerification({ me, onVerified }: { me: Me; onVerified: (me: Me) =>
 
 function GoogleSection({ me }: { me: Me }) {
   const [busy, setBusy] = useState(false);
+  const t = useT().account;
 
   async function link() {
     setBusy(true);
     try {
       await authApi.linkGoogle(); // navega para o Google
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível começar a associação.");
+      toast.error(e instanceof Error ? e.message : t.linkError);
       setBusy(false);
     }
   }
 
   return (
     <section className="grid gap-3 md:gap-4">
-      <h2 className="font-titulo text-xl font-bold text-verde">Entrar com Google</h2>
+      <h2 className="font-titulo text-xl font-bold text-verde">{t.googleTitle}</h2>
       <Card className="grid gap-3 p-4">
         {me.googleLinked ? (
           <p className="flex items-center gap-2 text-verde">
             <CheckCircle2 className="size-5 text-verde-medio" strokeWidth={1.8} aria-hidden />
-            A tua conta Google está associada: podes entrar com ela.
+            {t.googleLinked}
           </p>
         ) : (
           <>
             <p className="text-texto-corpo">
-              Associa a tua conta Google para entrares com um toque. Vais ao Google confirmar e voltas aqui.
+              {t.googleText}
             </p>
             <Button variant="outline" loading={busy} onClick={link} className="w-full sm:w-auto sm:justify-self-start">
-              Associar conta Google
+              {t.googleLink}
             </Button>
           </>
         )}

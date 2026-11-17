@@ -6,22 +6,21 @@ import { useRouter } from "next/navigation";
 import { Camera, FilePen, Lightbulb, Package, Pause, Pencil, Play, Plus, Search } from "lucide-react";
 import { CategoryChip, ItemPhoto } from "@/components/bz/equipment";
 import { HEX_CLIP, HexTile } from "@/components/bz/hex";
+import { isAreaNotAvailable, useLocationRequest } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
 import { ErrorState, HiveEmptyState, ListSkeleton } from "@/components/bz/states";
 import { BackLink, Badge, Button, ButtonLink, Card, Kz, type Tone } from "@/components/bz/ui";
 import { bookingApi, ownerItemApi } from "@/lib/api";
 import { DRAFT_KEY_PREFIX, useRequireSession } from "@/lib/auth";
-import { CONDITION_LABEL } from "@/lib/format";
-import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
+import { docT, fmt, type Dict } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
+import { toLatLng } from "@/lib/location";
+import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
 import { useMode } from "@/lib/mode";
 import type { ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 
-const STATUS: Record<string, { label: string; tone: Tone }> = {
-  ACTIVE: { label: "Ativo", tone: "ok" },
-  INACTIVE: { label: "Pausado", tone: "neutro" },
-  SUSPENDED: { label: "Em revisão", tone: "erro" },
-};
+const STATUS_TONE: Record<string, Tone> = { ACTIVE: "ok", INACTIVE: "neutro", SUSPENDED: "erro" };
 
 type Filter = "all" | "published" | "paused" | "drafts";
 
@@ -38,7 +37,7 @@ function readDraftTitle(profileId: string): string | null {
     if (!raw) return null;
     const d = JSON.parse(raw) as { title?: string; description?: string; pricePerDay?: number | "" };
     if (!d.title?.trim() && !d.description?.trim() && !d.pricePerDay) return null;
-    return d.title?.trim() || "Sem título";
+    return d.title?.trim() || docT().ownerItems.untitled;
   } catch {
     return null;
   }
@@ -46,6 +45,8 @@ function readDraftTitle(profileId: string): string | null {
 
 export default function EquipamentosPage() {
   const session = useRequireSession();
+  const dict = useT();
+  const t = dict.ownerItems;
   const router = useRouter();
   const mode = useMode(session?.role);
   const { data, error, loading, reload } = useResource(session ? "items:mine" : null, () => ownerItemApi.mine());
@@ -53,6 +54,7 @@ export default function EquipamentosPage() {
   const received = useResource(session ? "bookings:owner" : null, () => bookingApi.received());
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const { request: requestLocation, sheet: locationSheet } = useLocationRequest({ required: true, title: t.reactivateLocationTitle });
 
   if (!session) return null;
   const items = data?.content ?? [];
@@ -70,38 +72,41 @@ export default function EquipamentosPage() {
   async function pause(id: string) {
     try {
       await ownerItemApi.deactivate(id);
-      toast.success("Pausado. Já não aparece em Explorar.");
+      toast.success(t.paused);
       reload();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível pausar.");
+      toast.error(e instanceof Error ? e.message : t.pauseFailed);
     }
   }
 
   async function resume(id: string) {
     try {
-      await ownerItemApi.activate(id);
-      toast.success("Reativado. Já aparece outra vez em Explorar.");
+      const loc = await requestLocation();
+      if (!loc) return toast.error(t.reactivateNeedsLocation);
+      await ownerItemApi.activate(id, toLatLng(loc));
+      toast.success(t.resumed);
       reload();
     } catch (e) {
+      if (isAreaNotAvailable(e)) return toast.error(dict.location.areaNotAvailable);
       if (isKycRequired(e)) {
-        toast(KYC_REDIRECT_TOAST);
+        toast(kycRedirectToast());
         router.push("/verificacao");
         return;
       }
-      toast.error(e instanceof Error ? e.message : "Não foi possível reativar.");
+      toast.error(e instanceof Error ? e.message : t.resumeFailed);
     }
   }
 
   const FILTERS: { value: Filter; label: string; count: number }[] = [
-    { value: "all", label: "Todos", count: items.length + drafts },
-    { value: "published", label: "Publicados", count: published.length },
-    { value: "paused", label: "Pausados", count: paused.length },
-    { value: "drafts", label: "Rascunhos", count: drafts },
+    { value: "all", label: t.filters.all, count: items.length + drafts },
+    { value: "published", label: t.filters.published, count: published.length },
+    { value: "paused", label: t.filters.paused, count: paused.length },
+    { value: "drafts", label: t.filters.drafts, count: drafts },
   ];
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4 md:gap-6">
-      {mode === "renter" && <BackLink href="/conta">Voltar à conta</BackLink>}
+      {mode === "renter" && <BackLink href="/conta">{t.backToAccount}</BackLink>}
 
       {/* Cabeçalho âmbar com favo, contagens e hexágonos decorativos à direita */}
       <section className="superficie-ambar relative overflow-hidden rounded-sheet bg-ambar p-5 text-verde md:p-8">
@@ -113,16 +118,16 @@ export default function EquipamentosPage() {
             <HexTile icon={Package} size={56} tone="verde" className="text-white md:hidden" />
             <HexTile icon={Package} size={76} tone="verde" className="hidden text-white md:inline-flex" />
             <div className="grid min-w-0 gap-1">
-              <h1 className="font-titulo text-[26px] leading-tight font-extrabold tracking-[-0.02em] md:text-[34px]">O meu equipamento</h1>
-              <p className="text-verde/85">Os teus anúncios, preços e disponibilidade.</p>
+              <h1 className="font-titulo text-[26px] leading-tight font-extrabold tracking-[-0.02em] md:text-[34px]">{t.title}</h1>
+              <p className="text-verde/85">{t.subtitle}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="num inline-flex h-11 items-center gap-1.5 rounded-full bg-verde px-4 text-sm text-areia">
-              <strong className="font-titulo text-xl">{loading ? "–" : items.length}</strong> {items.length === 1 ? "anúncio" : "anúncios"}
+              <strong className="font-titulo text-xl">{loading ? "–" : items.length}</strong> {items.length === 1 ? t.listings.one : t.listings.other}
             </span>
             <span className="num inline-flex h-11 items-center gap-1.5 rounded-full bg-areia/75 px-4 text-sm text-verde backdrop-blur-sm">
-              <strong className="font-titulo text-xl">{received.loading ? "–" : rentedIds.size}</strong> {rentedIds.size === 1 ? "alugado agora" : "alugados agora"}
+              <strong className="font-titulo text-xl">{received.loading ? "–" : rentedIds.size}</strong> {rentedIds.size === 1 ? t.rentedNow.one : t.rentedNow.other}
             </span>
           </div>
         </div>
@@ -131,19 +136,19 @@ export default function EquipamentosPage() {
       <div className="overflow-hidden rounded-cartao border border-borda bg-branco">
         {/* Filtros (deslizam no telemóvel) e pesquisa */}
         <div className="grid gap-3 border-b border-borda p-3 md:grid-cols-[minmax(0,1fr)_18rem] md:items-center md:p-4">
-          <div role="group" aria-label="Filtrar equipamento" className="faixa -mx-3 -my-1 min-w-0 gap-2 px-3 py-1 md:mx-0 md:px-0">
+          <div role="group" aria-label={t.filterLabel} className="faixa -mx-3 -my-1 min-w-0 gap-2 px-3 py-1 md:mx-0 md:px-0">
             {FILTERS.map((f) => (
               <CategoryChip key={f.value} label={f.label} count={f.count} active={filter === f.value} onClick={() => setFilter(f.value)} />
             ))}
           </div>
           <label className="relative">
-            <span className="sr-only">Procurar no meu equipamento</span>
+            <span className="sr-only">{t.searchLabel}</span>
             <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-cinza" strokeWidth={1.8} aria-hidden />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Procurar"
+              placeholder={t.searchPlaceholder}
               className="h-12 w-full rounded-campo border-[1.5px] border-borda-forte bg-branco pr-4 pl-12 text-base text-verde outline-none transition placeholder:text-cinza focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint"
             />
           </label>
@@ -157,11 +162,11 @@ export default function EquipamentosPage() {
           <HiveEmptyState
             icon={Package}
             satellites={[Camera, Lightbulb]}
-            title="Põe o teu equipamento a render"
-            text="Câmaras, lentes, luzes, colunas. Quem tem equipamento parado em Luanda ganha com ele na Beeznoo."
+            title={t.emptyTitle}
+            text={t.emptyText}
             action={
               <ButtonLink href="/publicar" variant="primary">
-                <Plus strokeWidth={2} /> Publicar o primeiro
+                <Plus strokeWidth={2} /> {t.publishFirst}
               </ButtonLink>
             }
           />
@@ -169,8 +174,8 @@ export default function EquipamentosPage() {
           <HiveEmptyState
             icon={Package}
             satellites={[Camera, Lightbulb]}
-            title="Nada por aqui"
-            text={q ? `Nenhum equipamento com "${query.trim()}".` : filter === "drafts" ? "Não tens rascunhos por acabar." : "Nenhum equipamento neste estado."}
+            title={t.nothingTitle}
+            text={q ? fmt(t.noMatch, { q: query.trim() }) : filter === "drafts" ? t.noDrafts : t.noneInState}
           />
         ) : (
           <ul className="grid gap-3 p-3 md:grid-cols-2 md:p-4">
@@ -180,57 +185,59 @@ export default function EquipamentosPage() {
                   <HexTile icon={FilePen} size={48} tone="ambar-tint" className="ml-1" />
                   <span className="grid min-w-0 flex-1 gap-1">
                     <span className="truncate font-titulo text-lg leading-tight font-bold text-verde">{draftTitle}</span>
-                    <span className="text-[13px] text-cinza">Rascunho neste aparelho · toca para continuar</span>
+                    <span className="text-[13px] text-cinza">{t.draftHint}</span>
                   </span>
-                  <Badge tone="pendente" className="hidden sm:inline-flex">Continuar</Badge>
+                  <Badge tone="pendente" className="hidden sm:inline-flex">{t.draftContinue}</Badge>
                 </Link>
               </li>
             )}
             {visible.map((item, i) => (
               <li key={item.id}>
-                <ItemCard item={item} index={i} rented={rentedIds.has(item.id)} onPause={pause} onResume={resume} />
+                <ItemCard dict={dict} item={item} index={i} rented={rentedIds.has(item.id)} onPause={pause} onResume={resume} />
               </li>
             ))}
           </ul>
         )}
       </div>
+      {locationSheet}
     </div>
   );
 }
 
 function ItemCard({
-  item, index, rented, onPause, onResume,
-}: { item: ItemSummary; index: number; rented: boolean; onPause: (id: string) => void; onResume: (id: string) => void }) {
-  const st = STATUS[item.status] ?? { label: item.status, tone: "neutro" as Tone };
+  dict, item, index, rented, onPause, onResume,
+}: { dict: Dict; item: ItemSummary; index: number; rented: boolean; onPause: (id: string) => void; onResume: (id: string) => void }) {
+  const t = dict.ownerItems;
+  const st = { label: t.status[item.status as keyof typeof t.status] ?? item.status, tone: STATUS_TONE[item.status] ?? ("neutro" as Tone) };
   return (
     <Card className="levantar grid h-full animate-sobe gap-3 p-3" style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}>
       <Link href={`/equipamentos/${item.id}`} className="flex gap-3 rounded-campo">
         <ItemPhoto src={item.coverPhoto} alt={item.title} className="w-24 shrink-0 rounded-campo" />
         <div className="grid min-w-0 content-start gap-1">
           <p className="line-clamp-2 font-titulo text-lg leading-tight font-bold text-verde">{item.title}</p>
-          <p className="text-[13px] text-cinza">{CONDITION_LABEL[item.condition]} · {item.city ?? "Luanda"}</p>
+          <p className="text-[13px] text-cinza">{dict.condition[item.condition] ?? item.condition} · {item.city ?? "Luanda"}</p>
           <p className="text-verde">
             <Kz value={item.pricePerDay} className="text-lg" />
-            <span className="text-[13px] text-cinza"> /dia</span>
+            <span className="text-[13px] text-cinza"> {dict.common.perDay}</span>
           </p>
         </div>
       </Link>
       <div className="flex flex-wrap items-center gap-2 border-t border-borda pt-3">
         <Badge tone={st.tone}>{st.label}</Badge>
-        {rented && <Badge tone="escuro">Alugado agora</Badge>}
+        {rented && <Badge tone="escuro">{t.rentedBadge}</Badge>}
         <div className="ml-auto flex gap-2">
           {item.status === "ACTIVE" && (
             <Button variant="ghost" size="sm" onClick={() => onPause(item.id)}>
-              <Pause strokeWidth={1.8} /> Pausar
+              <Pause strokeWidth={1.8} /> {t.pause}
             </Button>
           )}
           {item.status === "INACTIVE" && (
             <Button variant="ghost" size="sm" onClick={() => onResume(item.id)}>
-              <Play strokeWidth={1.8} /> Reativar
+              <Play strokeWidth={1.8} /> {t.resume}
             </Button>
           )}
           <ButtonLink href={`/equipamentos/${item.id}`} variant="soft" size="sm">
-            <Pencil strokeWidth={1.8} /> Gerir
+            <Pencil strokeWidth={1.8} /> {t.manage}
           </ButtonLink>
         </div>
       </div>

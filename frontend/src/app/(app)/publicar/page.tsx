@@ -7,6 +7,7 @@ import { categoryIcon } from "@/components/bz/brand";
 import { EquipmentCard } from "@/components/bz/equipment";
 import { FormError, StepProgress, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { DetailsFields, EMPTY_DRAFT, PriceFields, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
+import { AreaNotAvailable, isAreaNotAvailable, isLocationRequired, PublishLocationGate } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
 import { PhotoPicker, useLocalPhotos } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
@@ -15,12 +16,14 @@ import { Button, ButtonLink, Callout } from "@/components/bz/ui";
 import { catalogApi, ownerItemApi } from "@/lib/api";
 import { DRAFT_KEY_PREFIX, useRequireSession } from "@/lib/auth";
 import { compressImage } from "@/lib/images";
+import { toLatLng, type ApproxLocation } from "@/lib/location";
 import { canOwn } from "@/lib/mode";
 import type { Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
-import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
+import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
+import { fmt, LOCALE } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 
-const STEPS = ["Fotos", "Detalhes", "Preço e caução", "Pré-visualização"];
 const MAX_PHOTOS = 8; // limite da API
 
 // Rascunho por conta: no mesmo browser, outra pessoa nunca vê o rascunho de quem saiu
@@ -38,21 +41,38 @@ function loadDraft(profileId: string): ItemDraft {
 
 export default function PublicarPage() {
   const session = useRequireSession();
+  const t = useT().publish;
 
   if (!session) return null;
   if (!canOwn(session.role)) {
     return (
-      <Callout tone="info" title="Publicar é para donos de equipamento" action={<ButtonLink href="/explorar" variant="outline">Ir para Explorar</ButtonLink>}>
-        A tua conta está como arrendatário. Fala connosco para mudar para &quot;as duas coisas&quot;.
+      <Callout tone="info" title={t.ownersOnlyTitle} action={<ButtonLink href="/explorar" variant="outline">{t.goExplore}</ButtonLink>}>
+        {t.ownersOnlyText}
       </Callout>
     );
   }
   // key: trocar de conta recomeça o formulário com o rascunho dessa conta
-  return <PublicarForm key={session.profileId} profileId={session.profileId} />;
+  // Piloto só em Luanda: localização obrigatória e zona confirmada antes do formulário (decisoes-produto.md 2026-11-17)
+  return (
+    <PublishLocationGate>
+      {(location, refreshLocation) => (
+        <PublicarForm key={session.profileId} profileId={session.profileId} location={location} refreshLocation={refreshLocation} />
+      )}
+    </PublishLocationGate>
+  );
 }
 
-function PublicarForm({ profileId }: { profileId: string }) {
+function PublicarForm({
+  profileId, location, refreshLocation,
+}: {
+  profileId: string;
+  location: ApproxLocation;
+  refreshLocation: () => Promise<ApproxLocation | null>;
+}) {
   const router = useRouter();
+  const lang = useLang();
+  const t = useT().publish;
+  const STEPS = t.steps;
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
   const photos = useLocalPhotos(MAX_PHOTOS);
   const [step, setStep] = useState(1);
@@ -63,6 +83,7 @@ function PublicarForm({ profileId }: { profileId: string }) {
   const [busy, setBusy] = useState(false);
   const [published, setPublished] = useState<Item | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [outside, setOutside] = useState(false);
 
   // Rascunho automático (rede fraca, app fechada a meio). As fotos não entram: ficam só na memória.
   useEffect(() => {
@@ -90,7 +111,19 @@ function PublicarForm({ profileId }: { profileId: string }) {
     setBusy(true);
     setFormErr({ fields: {} });
     try {
-      const item = await ownerItemApi.publish(draftToInput(draft));
+      let item: Item;
+      try {
+        item = await ownerItemApi.publish(draftToInput(draft), toLatLng(location));
+      } catch (e) {
+        if (!isLocationRequired(e)) throw e;
+        // a API não recebeu localização válida: pedir outra vez e tentar uma vez
+        const again = await refreshLocation();
+        if (!again) {
+          setFormErr({ form: t.needLocation, fields: {} });
+          return;
+        }
+        item = await ownerItemApi.publish(draftToInput(draft), toLatLng(again));
+      }
       try {
         localStorage.removeItem(draftKey(profileId));
       } catch {
@@ -101,18 +134,19 @@ function PublicarForm({ profileId }: { profileId: string }) {
         try {
           const files = await Promise.all(photos.photos.map((p) => compressImage(p.file)));
           await ownerItemApi.uploadPhotos(item.id, files);
-          toast.success("Equipamento publicado com fotos.");
+          toast.success(t.publishedWithPhotos);
         } catch (e) {
           // o item já existe: as fotos acrescentam-se em Gerir equipamento › Fotos
-          toast.error(`Publicado, mas as fotos falharam (${e instanceof Error ? e.message : "rede"}). Adiciona-as em Gerir equipamento › Fotos.`);
+          toast.error(fmt(t.photosFailed, { reason: e instanceof Error ? e.message : t.network }));
         }
       } else {
-        toast.success("Equipamento publicado.");
+        toast.success(t.published);
       }
       setPublished(item);
     } catch (e) {
+      if (isAreaNotAvailable(e)) return setOutside(true);
       if (isKycRequired(e)) {
-        toast(KYC_REDIRECT_TOAST);
+        toast(kycRedirectToast());
         router.push("/verificacao");
         return;
       }
@@ -122,18 +156,20 @@ function PublicarForm({ profileId }: { profileId: string }) {
     }
   }
 
+  if (outside) return <AreaNotAvailable />;
+
   if (published) {
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
         <SuccessCheck />
-        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">Está publicado!</h1>
-        <p className="text-cinza">{published.title} já aparece em Explorar. Avisamos-te quando chegar o primeiro pedido.</p>
+        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">{t.doneTitle}</h1>
+        <p className="text-cinza">{fmt(t.doneText, { title: published.title })}</p>
         <div className="grid w-full gap-2">
           <ButtonLink href={`/equipamento/${published.id}`} block>
-            Ver como os outros veem
+            {t.seeAsOthers}
           </ButtonLink>
           <Button variant="ghost" block onClick={() => router.push("/equipamentos")}>
-            Ir para o meu equipamento
+            {t.goMyItems}
           </Button>
         </div>
       </div>
@@ -146,27 +182,27 @@ function PublicarForm({ profileId }: { profileId: string }) {
     <div className="mx-auto grid max-w-2xl gap-6">
       {step > 1 && (
         <button type="button" onClick={() => setStep(step - 1)} className="inline-flex min-h-11 items-center gap-1.5 justify-self-start text-sm font-medium text-mel-texto hover:underline">
-          <ArrowLeft className="size-4" strokeWidth={1.8} aria-hidden /> Passo anterior
+          <ArrowLeft className="size-4" strokeWidth={1.8} aria-hidden /> {t.previousStep}
         </button>
       )}
-      <PageHeader title="Publicar equipamento" subtitle={savedAt ? `Rascunho guardado às ${savedAt.toLocaleTimeString("pt-PT", { hour: "2-digit", minute: "2-digit" })}` : "Leva uns 3 minutos."} />
+      <PageHeader title={t.title} subtitle={savedAt ? fmt(t.draftSavedAt, { time: savedAt.toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit" }) }) : t.takesMinutes} />
       <StepProgress step={step} total={STEPS.length} label={STEPS[step - 1]} />
 
       <div key={step} className="animate-sobe">
         {step === 1 && (
           <div className="grid gap-4">
-            <Callout tone="dark" icon={Camera} title="Fotos vendem">
-              Luz natural, fundo limpo, o equipamento inteiro. Mostra também os acessórios e qualquer marca de uso.
+            <Callout tone="dark" icon={Camera} title={t.photosSellTitle}>
+              {t.photosSellText}
             </Callout>
             <PhotoPicker photos={photos.photos} onAdd={photos.add} onRemove={photos.remove} onCover={photos.makeCover} />
-            <p className="text-sm text-cinza">Até {MAX_PHOTOS} fotos, JPEG ou PNG. Comprimimos antes de enviar para poupar dados.</p>
+            <p className="text-sm text-cinza">{fmt(t.photosLimit, { max: MAX_PHOTOS })}</p>
           </div>
         )}
         {step === 2 && <DetailsFields draft={draft} set={set} errors={errors} categories={categories} />}
         {step === 3 && <PriceFields draft={draft} set={set} errors={errors} />}
         {step === 4 && (
           <div className="grid gap-5">
-            <p className="text-cinza">É assim que aparece em Explorar:</p>
+            <p className="text-cinza">{t.previewIntro}</p>
             <div className="max-w-[260px]">
               <EquipmentCard
                 href="#"
@@ -198,11 +234,11 @@ function PublicarForm({ profileId }: { profileId: string }) {
       <StickyCTA>
         {step < STEPS.length ? (
           <Button block size="lg" variant="dark" onClick={next}>
-            Continuar
+            {t.continue}
           </Button>
         ) : (
           <Button block size="lg" loading={busy} onClick={publish}>
-            Publicar
+            {t.publish}
           </Button>
         )}
       </StickyCTA>

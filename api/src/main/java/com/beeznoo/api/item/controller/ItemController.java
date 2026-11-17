@@ -38,6 +38,9 @@ public class ItemController {
                     não há moderação prévia nesta fase.
                     
                     As fotos são geridas separadamente após a criação do item
+
+                    Exige `location: { lat, lng }` (localização atual): sem ela → 422 `location_required`;
+                    fora das zonas ativas → 403 `area_not_available`. Cada tentativa fica registada (arredondada).
                     """
     )
     @ApiResponses({
@@ -182,7 +185,9 @@ public class ItemController {
             description = """
                     Muda o estado de `INACTIVE` (pausado) para `ACTIVE`: volta a aparecer em Explorar.
                     Apenas o dono. Um item `SUSPENDED` (em revisão pela equipa) não se reativa por aqui.
-                    Passa pelo mesmo gate de identidade que publicar (`KYC_REQUIRED`).
+                    Passa pelo mesmo gate de identidade que publicar (`KYC_REQUIRED`) e de zona:
+                    corpo `{ "location": { "lat", "lng" } }`; sem localização → 422 `location_required`,
+                    fora das zonas ativas → 403 `area_not_available`.
                     """
     )
     @ApiResponses({
@@ -198,8 +203,9 @@ public class ItemController {
     @PatchMapping("/{id}/activate")
     public ResponseEntity<ItemResponse> activate(
             @AuthenticationPrincipal UUID profileId,
-            @PathVariable UUID id) {
-        return ResponseEntity.ok(itemService.activate(profileId, id));
+            @PathVariable UUID id,
+            @Valid @RequestBody(required = false) ActivateItemRequest request) {
+        return ResponseEntity.ok(itemService.activate(profileId, id, request == null ? null : request.location()));
     }
 
     @Operation(

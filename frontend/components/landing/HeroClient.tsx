@@ -15,7 +15,7 @@ function timeLeft(): Left | "done" {
 }
 
 /** Contagem até à abertura. No servidor mostra "--" (sem desencontro de hidratação). */
-export function Countdown() {
+export function Countdown({ label, units: names }: { label: string; units: { d: string; h: string; m: string; s: string } }) {
   const [left, setLeft] = useState<Left | "done">(null);
 
   useEffect(() => {
@@ -29,17 +29,12 @@ export function Countdown() {
   }, []);
 
   if (left === "done") return null;
-  const units = [
-    { k: "d", label: "dias" },
-    { k: "h", label: "horas" },
-    { k: "m", label: "min" },
-    { k: "s", label: "seg" },
-  ] as const;
+  const units = (["d", "h", "m", "s"] as const).map((k) => ({ k, label: names[k] }));
 
   return (
     <div>
       <div className="lp-eyebrow lp-eyebrow--dark" style={{ marginBottom: 10 }} id="lp-cd-label">
-        Abrimos em
+        {label}
       </div>
       {/* role="timer" sem aria-live: não interrompe o leitor de ecrã a cada segundo */}
       <div className="lp-cd" role="timer" aria-labelledby="lp-cd-label">

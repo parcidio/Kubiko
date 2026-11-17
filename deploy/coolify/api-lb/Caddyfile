@@ -1,0 +1,35 @@
+# Balanceador interno da API no Coolify: http://api-lb:8080. Sem domínio no Coolify e sem porta publicada; o Next é o
+# único cliente. O HTTPS e a entrada pública são do Traefik do Coolify. Igual ao site :8080 de deploy/vps/Caddyfile.
+{
+	admin off
+	servers :8080 {
+		# Só o Next (rede interna) chega aqui: confiar no X-Forwarded-For que ele traz e acrescentar o IP dele
+		trusted_proxies static private_ranges
+	}
+}
+
+http://:8080 {
+	request_body {
+		max_size 30MB
+	}
+	@api path /api/v1/* /oauth2/authorization/* /login/oauth2/*
+	handle @api {
+		reverse_proxy api-1:8080 api-2:8080 {
+			# Afinidade por cookie: o login Google guarda o pedido OAuth2 na sessão HTTP da réplica que o iniciou
+			lb_policy cookie bz_lb {
+				fallback least_conn
+			}
+			lb_try_duration 5s
+			lb_try_interval 250ms
+			health_uri /actuator/health
+			health_interval 10s
+			health_timeout 3s
+			fail_duration 30s
+			max_fails 1
+		}
+	}
+	# /actuator e tudo o resto não passa
+	handle {
+		respond 404
+	}
+}

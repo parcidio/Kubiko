@@ -6,6 +6,8 @@ import { ChipGroup, inputClass } from "@/components/bz/form";
 import { Button } from "@/components/bz/ui";
 import { cn } from "@/lib/utils";
 import { LUANDA_AREAS, addDaysIso, formatRange, todayIso } from "@/lib/format";
+import { fmt, type Dict, type Lang } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 import type { ItemCondition } from "@/lib/types";
 
 // Mesmo contrato do backend; a página importa daqui
@@ -24,18 +26,16 @@ export const EMPTY_FILTERS: Filters = { maxPrice: "", categorias: [], precoMin: 
 
 type CategoryOption = { id: string; name: string };
 
-const CONDITION_LABEL: Partial<Record<ItemCondition, string>> = { NEW: "Novo", LIKE_NEW: "Como novo" };
-
 // Campos v4 (raio 12, contorno borda-forte, foco verde-médio): os mesmos do resto da app
 const inputCls = cn(inputClass, "disabled:cursor-not-allowed");
 
-function buildChips(f: Filters, categoryName?: string): string[] {
+function buildChips(f: Filters, t: Dict, lang: Lang, categoryName?: string): string[] {
   const chips: string[] = [];
   if (categoryName) chips.push(categoryName);
   if (f.area) chips.push(f.area);
-  if (f.maxPrice !== "") chips.push(`até ${f.maxPrice.toLocaleString("de-DE")} Kz/dia`);
-  if (f.condition && f.condition !== "ANY") chips.push(CONDITION_LABEL[f.condition] ?? f.condition);
-  if (f.dataInicio && f.dataFim) chips.push(`livre ${formatRange(f.dataInicio, f.dataFim)}`);
+  if (f.maxPrice !== "") chips.push(fmt(t.explore.upTo, { price: f.maxPrice.toLocaleString("de-DE") }));
+  if (f.condition && f.condition !== "ANY") chips.push(t.condition[f.condition] ?? f.condition);
+  if (f.dataInicio && f.dataFim) chips.push(fmt(t.explore.freeOn, { range: formatRange(f.dataInicio, f.dataFim, lang) }));
   return chips;
 }
 
@@ -67,6 +67,9 @@ export default function BeeznoFilters({
   onApplied,
 }: BeeznoFiltersProps) {
   const applied = value ?? initialFilters ?? EMPTY_FILTERS;
+  const dict = useT();
+  const lang = useLang();
+  const t = dict.filters;
   const [open, setOpen] = useState<string | null>(null);
   const [draft, setDraft] = useState<Filters>(applied);
   const [draftCat, setDraftCat] = useState<string | undefined>(categoryId);
@@ -103,14 +106,14 @@ export default function BeeznoFilters({
     onApplied?.();
   };
 
-  const savedChips = buildChips(applied, categories.find((c) => c.id === categoryId)?.name);
+  const savedChips = buildChips(applied, dict, lang, categories.find((c) => c.id === categoryId)?.name);
 
   const sections = [
     {
-      key: "bairro", icon: MapPin, label: "Bairro",
+      key: "bairro", icon: MapPin, label: t.area,
       content: (
         <ChipGroup
-          label="Bairro"
+          label={t.area}
           value={draft.area}
           onChange={(v) => setDraft({ ...draft, area: draft.area === v ? undefined : v })}
           options={LUANDA_AREAS.map((a) => ({ value: a, label: a }))}
@@ -118,26 +121,26 @@ export default function BeeznoFilters({
       ),
     },
     {
-      key: "estado", icon: Star, label: "Estado",
+      key: "estado", icon: Star, label: t.condition,
       content: (
         <ChipGroup<ItemCondition | "ANY">
-          label="Estado"
+          label={t.condition}
           value={draft.condition ?? "ANY"}
           onChange={(v) => setDraft({ ...draft, condition: v })}
           options={[
-            { value: "ANY", label: "Qualquer" },
-            { value: "NEW", label: "Novo" },
-            { value: "LIKE_NEW", label: "Como novo" },
+            { value: "ANY", label: t.any },
+            { value: "NEW", label: dict.condition.NEW },
+            { value: "LIKE_NEW", label: dict.condition.LIKE_NEW },
           ]}
         />
       ),
     },
     ...(categories.length > 0
       ? [{
-          key: "categoria", icon: Bookmark, label: "Categoria",
+          key: "categoria", icon: Bookmark, label: t.category,
           content: (
             <ChipGroup
-              label="Categoria"
+              label={t.category}
               value={draftCat}
               onChange={(v) => setDraftCat(draftCat === v ? undefined : v)}
               options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
@@ -146,13 +149,13 @@ export default function BeeznoFilters({
         }]
       : []),
     {
-      key: "preco", icon: Banknote, label: "Preço",
+      key: "preco", icon: Banknote, label: t.price,
       content: (
         <input
           type="number"
           min={0}
           inputMode="numeric"
-          placeholder="Máx (Kz/dia)"
+          placeholder={t.pricePh}
           value={draft.maxPrice}
           onChange={(e) => setDraft((p) => ({ ...p, maxPrice: e.target.value === "" ? "" : Math.max(0, Number(e.target.value)) }))}
           className={inputCls}
@@ -160,11 +163,11 @@ export default function BeeznoFilters({
       ),
     },
     {
-      key: "datas", icon: Calendar, label: "Datas de disponibilidade",
+      key: "datas", icon: Calendar, label: t.dates,
       content: (
         <div className="flex flex-col gap-3">
           <label className="grid gap-1.5 text-sm font-medium text-verde">
-            Levantas
+            {t.pickup}
             <input
               type="date"
               min={todayIso()}
@@ -177,7 +180,7 @@ export default function BeeznoFilters({
             />
           </label>
           <label className="grid gap-1.5 text-sm font-medium text-verde">
-            Devolves
+            {t.dropoff}
             <input
               type="date"
               min={draft.dataInicio ? addDaysIso(draft.dataInicio, 1) : todayIso(1)}
@@ -187,7 +190,7 @@ export default function BeeznoFilters({
               className={inputCls}
             />
           </label>
-          <p className="text-[13px] text-cinza">Mostra só o equipamento livre nesses dias.</p>
+          <p className="text-[13px] text-cinza">{t.datesHint}</p>
         </div>
       ),
     },
@@ -197,7 +200,7 @@ export default function BeeznoFilters({
     <div className={cn("overflow-y-auto overscroll-contain", !mobile && "max-h-[calc(100dvh-6rem)] rounded-cartao border border-borda bg-branco")}>
       {!mobile && (
         <div className="border-b border-borda px-5 py-4">
-          <h2 className="font-titulo text-lg font-bold tracking-tight text-verde">Filtros</h2>
+          <h2 className="font-titulo text-lg font-bold tracking-tight text-verde">{t.title}</h2>
         </div>
       )}
 
@@ -205,10 +208,10 @@ export default function BeeznoFilters({
         {/* Preferências aplicadas */}
         <div className="rounded-cartao bg-areia-2 px-4 py-4">
           <div className="flex items-center justify-between gap-3">
-            <h3 className="text-sm font-bold text-verde">As tuas preferências</h3>
+            <h3 className="text-sm font-bold text-verde">{t.yours}</h3>
             {savedChips.length > 0 && (
               <button type="button" onClick={handleClear} className="-my-2 min-h-11 cursor-pointer text-sm font-medium text-mel-texto hover:underline">
-                Limpar todos
+                {t.clearAll}
               </button>
             )}
           </div>
@@ -221,7 +224,7 @@ export default function BeeznoFilters({
               ))}
             </div>
           ) : (
-            <p className="mt-1 text-[13px] text-cinza">Ainda sem filtros. Escolhe abaixo.</p>
+            <p className="mt-1 text-[13px] text-cinza">{t.none}</p>
           )}
         </div>
 
@@ -251,11 +254,11 @@ export default function BeeznoFilters({
 
           <div className="mt-5 flex flex-col gap-2">
             <Button variant="dark" block onClick={handleSave}>
-              Guardar
+              {t.save}
             </Button>
             {!(isEmpty(draft, draftCat) && isEmpty(applied, categoryId)) && (
               <Button variant="ghost" block onClick={handleClear}>
-                Limpar todos os filtros
+                {t.clearAllFilters}
               </Button>
             )}
           </div>
@@ -267,7 +270,7 @@ export default function BeeznoFilters({
   if (!mobile) {
     // Fixo à esquerda; no telemóvel a página continua a usar o Sheet
     return (
-      <aside aria-label="Filtros" className="sticky top-20 hidden w-84 shrink-0 self-start lg:block">
+      <aside aria-label={t.title} className="sticky top-20 hidden w-84 shrink-0 self-start lg:block">
         {content}
       </aside>
     );

@@ -47,6 +47,10 @@ server:
   port: ${PORT:8080}
   # Termina os pedidos em curso antes de parar (deploys sem cortar pedidos)
   shutdown: graceful
+  # X-Forwarded-* nunca mudam o esquema, o host nem o IP do pedido (nada no Spring confia neles). O IP do cliente
+  # para os limites vem só do ClientIp, que conta RATE_LIMIT_TRUSTED_PROXIES entradas a partir da direita. Explícito
+  # para não ligar sozinho (ex.: deteção de Kubernetes). Ver docs/SEGURANCA.md.
+  forward-headers-strategy: none
   tomcat:
     threads:
       # 200 por omissão: cada thread tem pilha própria. 40 chegam para o tráfego do MVP num contentor de 512 MB
@@ -116,6 +120,9 @@ otp:
 
 app:
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  scheduler:
+    # false nas réplicas extra da API: só uma corre os agendadores (expirar pedidos e pagamentos). docs/DEPLOY_VPS.md
+    enabled: ${SCHEDULER_ENABLED:true}
   payments:
     # direct: o arrendatário paga ao dono na entrega e o dono confirma (2026-11-15)
     # reference: referência Multicaixa paga à Beeznoo (precisa da EMIS)
@@ -151,6 +158,15 @@ app:
     nif: ${COMPANY_NIF:}
     address: ${COMPANY_ADDRESS:Luanda, Angola}
     email: ${COMPANY_EMAIL:ajuda@beeznoo.ao}
+  messages:
+    # Admin › Mensagens (decisoes-produto.md 2026-11-17): envio em segundo plano, com ritmo no WhatsApp
+    whatsapp-min-delay: ${MESSAGES_WHATSAPP_MIN_DELAY:2s}
+    whatsapp-max-delay: ${MESSAGES_WHATSAPP_MAX_DELAY:4s}
+    other-delay: ${MESSAGES_OTHER_DELAY:600ms}
+    max-recipients: 2000
+    max-whatsapp-recipients: ${MESSAGES_MAX_WHATSAPP_RECIPIENTS:300}
+    # mensagens de WhatsApp por admin por hora (custo); acima → 429 whatsapp_hourly_cap
+    whatsapp-hourly-cap: ${MESSAGES_WHATSAPP_HOURLY_CAP:500}
   notifications:
     email:
       # false: notificações só na app (email_status SKIPPED). true exige RESEND_API_KEY e domínio verificado no Resend.

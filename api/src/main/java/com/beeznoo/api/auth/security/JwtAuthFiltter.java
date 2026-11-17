@@ -1,6 +1,8 @@
 package com.beeznoo.api.auth.security;
 
 import com.beeznoo.api.auth.service.JwtService;
+import com.beeznoo.api.profile.entity.UserRole;
+import com.beeznoo.api.profile.repository.ProfileRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -26,6 +28,7 @@ import java.util.UUID;
 public class JwtAuthFiltter  extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final ProfileRepository profileRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -48,6 +51,12 @@ public class JwtAuthFiltter  extends OncePerRequestFilter {
             UUID profileId = UUID.fromString(claims.getSubject());
             String role = claims.get("role", String.class);
             if (role == null || role.isBlank()) throw new JwtException("Token sem papel");
+            if (UserRole.ADMIN.name().equals(role)) {
+                // O papel vem no token (15 min). Para ADMIN confirma-se na BD em cada pedido: um admin despromovido
+                // ou suspenso perde os poderes já, não quando o token expirar (decisoes-produto.md 2026-11-17)
+                role = profileRepository.findActiveRoleById(profileId).map(Enum::name)
+                        .orElseThrow(() -> new JwtException("Conta inexistente ou suspensa"));
+            }
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(

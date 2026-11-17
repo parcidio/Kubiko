@@ -2,6 +2,11 @@
 app:
   kyc:
     required: true
+  # sem pausas entre mensagens nos testes
+  messages:
+    whatsapp-min-delay: 0s
+    whatsapp-max-delay: 0s
+    other-delay: 0s
   storage:
     endpoint: http://localhost:9
     region: us-east-005

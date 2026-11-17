@@ -337,7 +337,8 @@ public class DevSeeder implements ApplicationRunner {
                 .getId();
         UUID id = itemService.publish(owner, new PublishItemRequest(
                 title, description, categoryId, condition,
-                BigDecimal.valueOf(pricePerDay), BigDecimal.valueOf(deposit), "Luanda", city)).id();
+                BigDecimal.valueOf(pricePerDay), BigDecimal.valueOf(deposit), "Luanda", city,
+                new com.beeznoo.api.geo.dto.GeoDtos.LocationInput(-8.84, 13.29))).id(); // centro de Luanda (zona ativa)
         items.put(key, id);
         return id;
     }

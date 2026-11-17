@@ -1,11 +1,11 @@
 # Modelo de dados — schema atual
 
-Gerado a partir das migrações Flyway **V1–V25** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-15.
+Gerado a partir das migrações Flyway **V1–V28** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-17.
 As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
 A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
 
 Valores monetários em `NUMERIC(12,2)` (Kz; taxa e retenções em kwanzas inteiros). Datas de aluguer em `DATE`; instantes em `TIMESTAMPTZ`.
-Tabelas **append-only** (trigger bloqueia `UPDATE`/`DELETE`): `ledger_entries`, `kyc_decisions`, `audit_logs`, `security_events`.
+Tabelas **append-only** (trigger bloqueia `UPDATE`/`DELETE`): `ledger_entries`, `kyc_decisions`, `audit_logs`, `security_events`. `location_events` só bloqueia `UPDATE` (retenção de 12 meses apaga).
 `reviews` não se alteram (trigger bloqueia `UPDATE`).
 Ficheiros (KYC, fotos, checklists, problemas) ficam no Backblaze B2; a base de dados guarda só a `storage_key`.
 
@@ -250,6 +250,37 @@ erDiagram
         varchar request_id
         jsonb details
     }
+    MESSAGE_TEMPLATES {
+        uuid id PK
+        varchar key UK "só predefinidos"
+        varchar name
+        varchar channel "WHATSAPP | EMAIL | SMS | null = qualquer"
+        varchar subject
+        text body "≤ 1000, {{nome}} {{primeiro_nome}}"
+        boolean predefined
+    }
+    ADMIN_MESSAGES {
+        uuid id PK
+        varchar channel
+        uuid template_id FK
+        text body "variáveis por substituir"
+        jsonb audience
+        int recipients
+        uuid created_by FK
+        timestamptz finished_at
+    }
+    MESSAGE_DELIVERIES {
+        uuid id PK
+        uuid message_id FK
+        uuid profile_id FK
+        varchar destination "mascarado na API"
+        varchar status "PENDING | SENT | FAILED | SKIPPED"
+        varchar error "motivo curto"
+        timestamptz sent_at
+    }
+    MESSAGE_TEMPLATES |o--o{ ADMIN_MESSAGES : "modelo"
+    ADMIN_MESSAGES ||--o{ MESSAGE_DELIVERIES : "uma por pessoa"
+    PROFILES ||--o{ MESSAGE_DELIVERIES : "recebe"
 ```
 
 Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códigos OTP com hash), `google_pending_signups` (registo Google à espera do telefone), `oauth_login_codes` (código de 60 s do login Google, só o hash),
@@ -284,6 +315,13 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V23 | emails em minúsculas (sem colisões) e índice em `lower(email)` |
 | V24 | pagamento direto ao dono: método `DIRECT`, `payments.confirmed_by`, `commission_settled_at/by`; um só pagamento `CONFIRMED` por reserva (índice único parcial); índice das comissões por receber |
 | V25 | suspensão de contas pela equipa: `profiles.suspended_at`, `suspension_reason` (obrigatório se suspensa), `suspended_by` |
+| V27 | zonas de serviço e localização: `service_areas` (província, cidade, centro, `radius_km`, `active`; semeadas Luanda e Bengo/Caxito, 60 km); `profiles.last_lat/last_lng/last_location_at`, `location_consent_at`, `signup_lat/lng`, `kyc_lat/lng`, `in_service_area`; `location_events` (append-only) |
+| V28 | mensagens da equipa: `message_templates` (+ 6 predefinidos), `admin_messages`, `message_deliveries` (uma por destinatário, única por envio) |
+
+**Localização (V27, decisoes-produto.md 2026-11-17):** coordenadas de pessoas só em `NUMERIC(5,2)` (~1 km, a BD
+arredonda). `location_events` guarda cada envio (`SIGNUP`, `KYC`, `PUBLISH` — cada tentativa de publicar/reativar —,
+`APP`) com `in_area` e `area_id`; trigger bloqueia `UPDATE`; guarda-se no máximo 12 meses
+(`LocationRetentionScheduler`, diário, só com `app.scheduler.enabled=true`). `service_areas` não se apagam: desativam-se.
 
 **Pagamento direto (V24, modo por omissão):** o arrendatário paga ao dono na entrega e o dono confirma. Não há
 movimentos no ledger (`accounts`/`ledger_entries` só registam dinheiro que passa pela Beeznoo, modo `reference`). A

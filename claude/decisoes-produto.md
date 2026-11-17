@@ -676,3 +676,65 @@ pagamento guarda a taxa calculada). A landing mostra um exemplo ilustrativo com 
 build para os endereços absolutos) e duas imagens geradas no servidor com `next/og`: a da marca (título da landing) e
 uma por equipamento (foto, nome, preço por dia, bairro, selo de dono verificado), em JPEG < 100 KB para o WhatsApp a
 mostrar. Sem dados pessoais além do que a página pública do equipamento já mostra.
+
+---
+
+## 2026-11-17 — Administradores, mensagens da equipa, zonas de serviço (piloto Luanda), mapa de registos, EN, balanceador
+
+**Contexto.** Pedido urgente da equipa: (a) dar papel de admin a outras pessoas; (b) mandar mensagens às pessoas a
+partir do Admin, com modelos predefinidos ou texto livre, por WhatsApp (Losambo, custa mais), email (Resend) ou SMS
+(Ombala); (c) o piloto é **só Luanda** — quem está noutra província pode registar-se e fazer KYC, mas não publica;
+(d) mapa de calor de onde se fazem os registos pós-KYC; (e) plataforma também em inglês; (f) revisão de segurança e
+balanceador à frente da API, que não deve ser acessível fora da VPS.
+
+**Hipótese.** Contactar as pessoas certas no momento certo (KYC parado, reserva por aceitar) aumenta a conversão
+pedido → aluguer pago; travar a publicação fora de Luanda evita anúncios que ninguém consegue alugar no piloto e
+mostra-nos onde está a procura para expandir.
+**Utilizador-alvo:** equipa Beeznoo (admin); donos fora de Luanda; estrangeiros residentes com número não angolano.
+**Critério de sucesso:** ≥ 80% das mensagens enviadas pelo Admin entregues; 0 anúncios publicados fora das zonas
+ativas; mapa usado na decisão da 2.ª província.
+
+**Decisões (pedidas pela equipa nesta data — ⚑ validar com o André):**
+
+1. **Promover/retirar admin** em Admin › Utilizadores (`PATCH /admin/users/{id}/role`). Não se retira o próprio papel
+   nem o último admin. Contas suspensas não são promovidas. Auditoria `USER_ROLE_CHANGED`.
+2. **Mensagens da equipa** (Admin › Mensagens): modelos predefinidos (semeados na migração) e modelos próprios, com
+   variáveis `{{nome}}`; envio a uma pessoa, a várias ou a um segmento (todos, verificados, por cidade). Canais:
+   `WHATSAPP` (Losambo `POST /v1/messages` — o corpo não está documentado publicamente, usamos `{to, text}`; ⚑ confirmar),
+   `EMAIL` (Resend), `SMS` (Ombala). **Números não angolanos (fora de +244) só recebem por WhatsApp** — SMS da Ombala
+   não chega lá. O envio sai depois do commit, em segundo plano, com ritmo (Losambo "ritmo humano") e limite de
+   destinatários por envio; cada entrega fica registada (`message_deliveries`) com estado. WhatsApp mostra aviso de custo.
+   Verificar se um número tem WhatsApp: `GET /admin/messages/whatsapp-check` → Losambo `GET /v1/contacts/{phone}`.
+   Não é chat: só saída. Auditoria `MESSAGE_SENT`.
+3. **Telefones estrangeiros** aceites no registo em formato internacional (`+<indicativo>…`); para eles o OTP é só
+   WhatsApp.
+4. **Zonas de serviço** (`service_areas`): província + cidade, centro (lat/lng) e raio em km, ativa/inativa, geridas
+   em Admin › Zonas. Semeado: **Luanda (ativa, raio 60 km)** e **Bengo (ativa, Caxito,
+   raio 60 km)** — Bengo confirmado no piloto pela equipa em 2026-11-17. Publicar equipamento exige localização atual dentro de uma zona
+   ativa; fora dela a API responde 403 `area_not_available` e a app explica "Ainda não estamos na tua zona". O registo
+   e o KYC continuam abertos em todo o lado. A verificação repete-se em cada tentativa de publicar.
+   ⚠ A localização vem do browser e pode ser falsificada: é um controlo de produto, não de segurança.
+5. **Localização com consentimento.** A app pede acesso à localização (registo, KYC e publicar), explica porquê, e
+   guarda só coordenadas **arredondadas a ~1 km** (2 casas decimais). Recusar não bloqueia o registo; bloqueia
+   publicar. Política de privacidade atualizada. Histórico de localização guardado **até 12 meses** (confirmado pela
+   equipa em 2026-11-17).
+6. **Mapa de calor** (Admin › Mapa): contagem agregada por célula (~5 km) de pessoas com KYC submetido/aprovado, com
+   mínimo de 3 por célula para não identificar ninguém. Não é localização de pessoas.
+7. **Inglês:** a interface ganha seletor PT/EN (cookie `lang`, omissão `pt`). Dicionários próprios, sem biblioteca.
+8. **Balanceador:** Caddy é a única porta de entrada (80/443). API, Postgres e Garage só na rede interna do Docker;
+   a API corre em 2 réplicas atrás do Caddy/Next com health check. Nenhuma porta da API ou da BD publicada no host.
+   **Implementação:** Next → `api-lb:8080` (site interno do mesmo Caddy; no Coolify um Caddy à parte) → `api-1`/`api-2`,
+   `least_conn` + afinidade por cookie (o login Google usa a sessão HTTP da réplica). Postgres e Garage em redes
+   `internal: true`. Agendadores só na `api-1` (`SCHEDULER_ENABLED`); limites de pedidos no Postgres
+   (`RATE_LIMIT_STORE=database`); 768 MB por réplica (~700 MB a mais do que uma réplica numa VPS de 4 GB);
+   `update.sh` rolante. Não é alta disponibilidade: um só servidor e um só Postgres. Detalhe e trade-offs em
+   `docs/DEPLOY_VPS.md` ("Arquitetura") e achados em `docs/SEGURANCA.md` ("Revisão 2026-11-17").
+
+**Em aberto.**
+- Corpo exato de `POST /v1/messages` e resposta de `GET /v1/contacts/{phone}` no Losambo (consola /consola).
+- Custo por mensagem WhatsApp e orçamento mensal.
+- Limpeza diária automática de `location_events` com mais de 12 meses (`LocationRetentionScheduler`).
+
+**Nota de schema (2026-11-17).** As mensagens da equipa entram como **V28** (`V28__admin_messages.sql`), não V26:
+foram integradas depois da V27 (zonas de serviço) e o Flyway recusa uma versão mais baixa numa base onde a V27 já
+esteja aplicada. A V26 fica por usar (o Flyway aceita saltos).

@@ -13,8 +13,9 @@ import { useRequireSession } from "@/lib/auth";
 import { useResource } from "@/lib/use-resource";
 import { bookingCode } from "@/lib/booking";
 import { cn } from "@/lib/utils";
+import { fmt, plural } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 
-const LABELS = ["", "Correu mal", "Podia ser melhor", "Correu bem", "Muito bom", "Excelente"];
 
 export default function AvaliarPage() {
   const session = useRequireSession();
@@ -23,6 +24,10 @@ export default function AvaliarPage() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const existing = useResource(session ? `review:${id}` : null, () => bookingApi.review(id));
+  const dict = useT();
+  const t = dict.review;
+  const LABELS = t.labels;
+  const backLabel = fmt(dict.bookingPage.bookingCode, { code: bookingCode(id) });
 
   if (!session) return null;
   const done = existing.data;
@@ -31,10 +36,10 @@ export default function AvaliarPage() {
     setSending(true);
     try {
       await bookingApi.createReview(id, { rating: stars, comment: text.trim() || undefined });
-      toast.success("Obrigado! A tua avaliação já está no equipamento.");
+      toast.success(t.thanks);
       existing.reload();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível enviar a avaliação.");
+      toast.error(e instanceof Error ? e.message : t.sendError);
     } finally {
       setSending(false);
     }
@@ -43,12 +48,12 @@ export default function AvaliarPage() {
   if (done) {
     return (
       <div className="mx-auto grid max-w-md gap-5">
-        <BackLink href={`/reservas/${id}`}>Reserva {bookingCode(id)}</BackLink>
+        <BackLink href={`/reservas/${id}`}>{backLabel}</BackLink>
         <div className="grid justify-items-center gap-4 pt-4 text-center">
           <SuccessCheck />
           <div className="grid gap-1">
-            <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">Já avaliaste</h1>
-            <p className="text-cinza">Deste {done.rating} de 5. Obrigado por ajudares os próximos.</p>
+            <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">{t.doneTitle}</h1>
+            <p className="text-cinza">{fmt(t.doneText, { n: done.rating })}</p>
           </div>
         </div>
         {done.comment && <p className="rounded-cartao border border-borda bg-branco p-4 text-verde">“{done.comment}”</p>}
@@ -58,10 +63,10 @@ export default function AvaliarPage() {
 
   return (
     <div className="mx-auto grid max-w-md gap-6">
-      <BackLink href={`/reservas/${id}`}>Reserva {bookingCode(id)}</BackLink>
-      <PageHeader title="Como correu?" subtitle="A tua avaliação ajuda os próximos a confiar." />
+      <BackLink href={`/reservas/${id}`}>{backLabel}</BackLink>
+      <PageHeader title={t.title} subtitle={t.subtitle} />
       <fieldset className="grid justify-items-center gap-3">
-        <legend className="sr-only">Avaliação de 1 a 5</legend>
+        <legend className="sr-only">{t.legend}</legend>
         <div className="flex gap-2">
           {[1, 2, 3, 4, 5].map((n) => (
             <label key={n} className="cursor-pointer">
@@ -69,16 +74,16 @@ export default function AvaliarPage() {
               <Star
                 className={cn("size-11 transition peer-focus-visible:scale-110 active:scale-90", n <= stars ? "animate-estrela fill-ambar text-ambar" : "text-borda-forte")}
                 strokeWidth={1.5}
-                aria-label={`${n} ${n === 1 ? "estrela" : "estrelas"}`}
+                aria-label={plural(n, t.stars)}
               />
             </label>
           ))}
         </div>
         <p className="h-6 font-bold text-verde" aria-live="polite">{LABELS[stars]}</p>
       </fieldset>
-      <TextArea label="Uma frase sobre o aluguer (opcional)" value={text} onChange={setText} rows={3} maxLength={1000} />
+      <TextArea label={t.comment} value={text} onChange={setText} rows={3} maxLength={1000} />
       <Button size="lg" block disabled={!stars} loading={sending} onClick={send}>
-        Enviar avaliação
+        {t.send}
       </Button>
     </div>
   );

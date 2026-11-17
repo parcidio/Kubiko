@@ -39,8 +39,40 @@ public class OmbalaSmsService {
                     .toBodilessEntity();
             log.info("OTP enviado via Ombala para {}", maskPhone(phone));
         } catch (Exception e) {
-            log.error("Falha ao enviar OTP via Ombala para {}: {}", maskPhone(phone), e.getMessage());
+            // Nunca e.getMessage(): numa resposta de erro traz o corpo, que pode repetir a mensagem com o código OTP
+            log.error("Falha ao enviar OTP via Ombala para {}: {}", maskPhone(phone), describe(e));
             throw new RuntimeException("Não foi possível enviar o código de verificação. Tenta novamente.");
+        }
+    }
+
+    private static String describe(Exception e) {
+        return e instanceof org.springframework.web.client.RestClientResponseException r
+                ? "HTTP " + r.getStatusCode().value()
+                : e.getClass().getSimpleName();
+    }
+
+    /** true se houver token da Ombala neste ambiente. */
+    public boolean configured() {
+        return props.token() != null && !props.token().isBlank();
+    }
+
+    /**
+     * SMS de texto livre (Admin › Mensagens). Só números angolanos (+244): a Ombala não entrega fora de Angola.
+     * Lança RuntimeException sem o número nem o texto na mensagem.
+     */
+    public void sendText(String phone, String text) {
+        if (phone == null || !phone.startsWith("+244")) {
+            throw new IllegalArgumentException("SMS só para números angolanos (+244)");
+        }
+        try {
+            ombalaRestClient.post()
+                    .uri("/messages")
+                    .body(Map.of("message", text, "from", props.sender(), "to", normalizePhone(phone)))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
+            log.warn("Falha ao enviar SMS via Ombala para {}: {}", maskPhone(phone), describe(e));
+            throw new RuntimeException("Ombala: envio falhou");
         }
     }
 

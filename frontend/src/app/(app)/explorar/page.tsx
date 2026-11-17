@@ -12,6 +12,8 @@ import { Button } from "@/components/bz/ui";
 import { catalogApi, totalPages } from "@/lib/api";
 import { addDaysIso, formatRange, todayIso } from "@/lib/format";
 import { useSession } from "@/lib/auth";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 import type { ItemCondition, ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import BeeznoFilters, { type Filters } from "../../../../components/items/Filters";
@@ -30,6 +32,9 @@ const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").t
 
 function Explorar() {
   const session = useSession();
+  const lang = useLang();
+  const dict = useT();
+  const t = dict.explore;
   const wanted = useSearchParams().get("categoria");
   // null = ainda não escolheu: vale a categoria do link (landing → /explorar?categoria=Fotografia)
   const [chosen, setChosen] = useState<string | undefined | null>(null);
@@ -98,17 +103,17 @@ function Explorar() {
         <HexGlow />
         {/* min-w-0: item de flex — sem isto a faixa de pesquisas rápidas alarga a página a 360–390px */}
         <div className="relative grid w-full min-w-0 grid-cols-[minmax(0,1fr)] gap-4 md:max-w-2xl">
-          <p className="text-xs font-bold tracking-[0.12em] text-salvia uppercase">{session ? "Bem-vindo de volta" : "Luanda · fotografia, vídeo e eventos"}</p>
+          <p className="text-xs font-bold tracking-[0.12em] text-salvia uppercase">{session ? t.welcomeBack : t.eyebrow}</p>
           <h1 className="font-titulo text-[34px] leading-[1.02] font-extrabold tracking-tight text-white md:text-[56px]">
-            Do que precisas <span className="text-salvia">hoje?</span>
+            {t.titleBefore}<span className="text-salvia">{t.titleAccent}</span>
           </h1>
           <div className="flex gap-2">
             <label className="relative flex-1">
-              <span className="sr-only">Pesquisar equipamento</span>
+              <span className="sr-only">{t.searchLabel}</span>
               <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-cinza" strokeWidth={1.8} aria-hidden />
               <input
                 type="search"
-                placeholder="Câmara, lente, coluna, projetor…"
+                placeholder={t.searchPh}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="h-14 w-full rounded-campo border-[1.5px] border-transparent bg-branco pr-4 pl-12 text-[15px] text-verde outline-none transition placeholder:text-cinza focus:border-salvia focus:ring-4 focus:ring-salvia/40"
@@ -117,7 +122,7 @@ function Explorar() {
             <button
               type="button"
               onClick={() => setSheet(true)}
-              aria-label={`Filtros${activeFilters ? ` (${activeFilters} ativos)` : ""}`}
+              aria-label={activeFilters ? fmt(t.filtersActive, { n: activeFilters }) : t.filters}
               className="relative flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-campo bg-branco text-verde transition-transform duration-200 active:scale-95 md:hidden"
             >
               <SlidersHorizontal className="size-5" strokeWidth={1.8} aria-hidden />
@@ -129,9 +134,9 @@ function Explorar() {
           {/* "Quando?" — quem aluga sabe as datas primeiro; a API devolve só o equipamento livre nesses dias */}
           {/* fieldset e input[type=date] têm largura mínima própria: min-w-0 e minmax(0,1fr) deixam-nos encolher */}
           <fieldset className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
-            <legend className="sr-only">Quando precisas?</legend>
+            <legend className="sr-only">{t.when}</legend>
             <label className="grid min-w-0 gap-1">
-              <span className="text-[13px] font-medium text-salvia-tint">Levanto</span>
+              <span className="text-[13px] font-medium text-salvia-tint">{t.pickup}</span>
               <input
                 type="date"
                 min={todayIso()}
@@ -145,7 +150,7 @@ function Explorar() {
               />
             </label>
             <label className="grid min-w-0 gap-1">
-              <span className="text-[13px] font-medium text-salvia-tint">Devolvo</span>
+              <span className="text-[13px] font-medium text-salvia-tint">{t.dropoff}</span>
               <input
                 type="date"
                 min={filters.dataInicio ? addDaysIso(filters.dataInicio, 1) : todayIso(1)}
@@ -171,8 +176,8 @@ function Explorar() {
           <div className="hidden md:block"><TrustStrip /></div>
 
           {/* Categorias em pills (v4): ativa = verde com ícone âmbar */}
-          <section aria-label="Categorias" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none md:mx-0 md:flex-wrap md:px-0">
-            <CategoryChip label="Tudo" icon={LayoutGrid} active={!categoryId} onClick={() => setCategoryId(undefined)} />
+          <section aria-label={t.categories} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none md:mx-0 md:flex-wrap md:px-0">
+            <CategoryChip label={t.all} icon={LayoutGrid} active={!categoryId} onClick={() => setCategoryId(undefined)} />
             {roots.map((c) => (
               <CategoryChip key={c.id} label={c.name} icon={categoryIcon(c.slug)} active={c.id === categoryId} onClick={() => setCategoryId(c.id)} />
             ))}
@@ -182,23 +187,23 @@ function Explorar() {
             <div className="flex flex-wrap items-center gap-2 text-sm">
           {filters.area && <FilterTag onClear={() => setFilters({ ...filters, area: undefined })}>{filters.area}</FilterTag>}
           {filters.maxPrice !== "" && (
-            <FilterTag onClear={() => setFilters({ ...filters, maxPrice: "" })}>até {filters.maxPrice.toLocaleString("de-DE")} Kz/dia</FilterTag>
+            <FilterTag onClear={() => setFilters({ ...filters, maxPrice: "" })}>{fmt(t.upTo, { price: filters.maxPrice.toLocaleString("de-DE") })}</FilterTag>
           )}
           {filters.condition && filters.condition !== "ANY" && (
-            <FilterTag onClear={() => setFilters({ ...filters, condition: undefined })}>{filters.condition === "NEW" ? "Novo" : "Como novo"}</FilterTag>
+            <FilterTag onClear={() => setFilters({ ...filters, condition: undefined })}>{dict.condition[filters.condition]}</FilterTag>
           )}
           {filters.dataInicio && filters.dataFim && (
-            <FilterTag onClear={() => setFilters({ ...filters, dataInicio: undefined, dataFim: undefined })}>livre {formatRange(filters.dataInicio, filters.dataFim)}</FilterTag>
+            <FilterTag onClear={() => setFilters({ ...filters, dataInicio: undefined, dataFim: undefined })}>{fmt(t.freeOn, { range: formatRange(filters.dataInicio, filters.dataFim, lang) })}</FilterTag>
           )}
             </div>
           )}
 
           {browsing && (
             <>
-          <Rail title="Em destaque" subtitle="Escolhido pela equipa Beeznoo" icon={Sparkles} featured order="RECENT" categoryId={categoryId} />
+          <Rail title={t.featured} subtitle={t.featuredSub} icon={Sparkles} featured order="RECENT" categoryId={categoryId} />
           <Rail
-            title="Mais alugados"
-            subtitle="O que mais sai em Luanda"
+            title={t.popular}
+            subtitle={t.popularSub}
             icon={Flame}
             order="POPULAR"
             categoryId={categoryId}
@@ -206,8 +211,8 @@ function Explorar() {
            
           />
           <Rail
-            title="Mais bem avaliados"
-            subtitle="Notas de quem já alugou"
+            title={t.topRated}
+            subtitle={t.topRatedSub}
             icon={Star}
             order="RATING"
             categoryId={categoryId}
@@ -217,12 +222,12 @@ function Explorar() {
             </>
           )}
 
-          <section aria-label="Equipamento" className="grid gap-4">
+          <section aria-label={t.equipment} className="grid gap-4">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-titulo text-[19px] font-bold tracking-tight text-verde md:text-2xl">
-            {query.trim() ? `Resultados para "${query.trim()}"` : categoryId ? categories.find((c) => c.id === categoryId)?.name : "Todo o equipamento"}
+            {query.trim() ? fmt(t.resultsFor, { q: query.trim() }) : categoryId ? categories.find((c) => c.id === categoryId)?.name : t.allEquipment}
           </h2>
-          {state === "ready" && <span className="num text-[13px] text-cinza">{total} {total === 1 ? "resultado" : "resultados"}</span>}
+          {state === "ready" && <span className="num text-[13px] text-cinza">{plural(total, t.results)}</span>}
         </div>
 
         {state === "loading" && <GridSkeleton />}
@@ -230,8 +235,8 @@ function Explorar() {
         {state === "ready" && visible.length === 0 && (
           <EmptyState
             icon={PackageSearch}
-            title="Nada por aqui ainda"
-            text={query ? `Não encontrámos "${query}". Experimenta outra palavra ou outra categoria.` : "Ainda não há equipamento com estes filtros."}
+            title={t.emptyTitle}
+            text={query ? fmt(t.emptyQuery, { q: query }) : t.emptyFilters}
             action={
               <Button
                 variant="outline"
@@ -241,7 +246,7 @@ function Explorar() {
                   setFilters({ maxPrice: "" });
                 }}
               >
-                Ver todo o equipamento
+                {t.seeAll}
               </Button>
             }
           />
@@ -262,7 +267,7 @@ function Explorar() {
             </ul>
             {page + 1 < pages && (
               <Button variant="outline" className="justify-self-center" loading={loadingMore} onClick={loadMore}>
-                Ver mais
+                {t.more}
               </Button>
             )}
           </>
@@ -274,7 +279,7 @@ function Explorar() {
         </div>
       </div>
 
-      <Sheet open={sheet} onClose={() => setSheet(false)} title="Filtros">
+      <Sheet open={sheet} onClose={() => setSheet(false)} title={t.filters}>
         <BeeznoFilters mobile onApplied={() => setSheet(false)} value={filters} onChange={setFilters} categories={roots} categoryId={categoryId} onCategoryChange={setCategoryId} />
       </Sheet>
     </div>
@@ -282,10 +287,11 @@ function Explorar() {
 }
 
 function FilterTag({ children, onClear }: { children: React.ReactNode; onClear: () => void }) {
+  const t = useT().explore;
   return (
     <span className="inline-flex min-h-9 items-center gap-1 rounded-full bg-areia-2 pr-1 pl-3 text-[13px] font-medium text-verde">
       {children}
-      <button type="button" onClick={onClear} aria-label={`Remover filtro ${children}`} className="-my-1 flex size-9 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-skeleton">
+      <button type="button" onClick={onClear} aria-label={fmt(t.removeFilter, { name: String(children) })} className="-my-1 flex size-9 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-skeleton">
         <X className="size-4" strokeWidth={2} />
       </button>
     </span>

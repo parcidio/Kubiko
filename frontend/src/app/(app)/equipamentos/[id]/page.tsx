@@ -7,6 +7,7 @@ import { MonthCalendar } from "@/components/bz/calendar";
 import { TextField } from "@/components/bz/form";
 import { FormError, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { DetailsFields, PriceFields, draftFromItem, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
+import { isAreaNotAvailable, useLocationRequest } from "@/components/bz/location";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { SavedPhotoGrid } from "@/components/bz/photo";
@@ -16,11 +17,14 @@ import { BackLink, Button, ButtonLink, Callout, Card, Skeleton } from "@/compone
 import { catalogApi, ownerItemApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { compressImage } from "@/lib/images";
+import { toLatLng } from "@/lib/location";
 import { unavailableDays } from "@/lib/availability";
 import { formatDay, formatDays, formatRange } from "@/lib/format";
 import type { Availability, AvailabilityBlock, Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
-import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
+import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
 
 type Tab = "fotos" | "detalhes" | "preco" | "datas";
 
@@ -28,6 +32,8 @@ const MAX_PHOTOS = 8; // limite da API
 
 export default function GerirEquipamentoPage() {
   const session = useRequireSession();
+  const dict = useT();
+  const t = dict.manageItem;
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
@@ -39,12 +45,13 @@ export default function GerirEquipamentoPage() {
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const { request: requestLocation, sheet: locationSheet } = useLocationRequest({ required: true, title: dict.ownerItems.reactivateLocationTitle });
 
   if (!session) return null;
   if (item.error) return <ErrorState message={item.error} onRetry={item.reload} />;
-  if (!item.data) return <Skeleton role="status" aria-label="A carregar" className="mx-auto h-96 max-w-2xl rounded-sheet" />;
+  if (!item.data) return <Skeleton role="status" aria-label={dict.common.loading} className="mx-auto h-96 max-w-2xl rounded-sheet" />;
   if (item.data.ownerId !== session.profileId) {
-    return <ErrorState message="Este equipamento não é teu." />;
+    return <ErrorState message={t.notYours} />;
   }
 
   const d = draft ?? draftFromItem(item.data);
@@ -62,7 +69,7 @@ export default function GerirEquipamentoPage() {
     try {
       item.setData(await ownerItemApi.update(id, draftToInput(d)));
       setDraft(null);
-      toast.success("Alterações guardadas.");
+      toast.success(t.saved);
     } catch (err) {
       setFormErr(toFormErrors(err));
     } finally {
@@ -73,24 +80,27 @@ export default function GerirEquipamentoPage() {
   async function pause() {
     try {
       await ownerItemApi.deactivate(id);
-      toast.success("Pausado. Já não aparece em Explorar.");
+      toast.success(dict.ownerItems.paused);
       router.push("/equipamentos");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível pausar.");
+      toast.error(e instanceof Error ? e.message : dict.ownerItems.pauseFailed);
     }
   }
 
   async function resume() {
     try {
-      item.setData(await ownerItemApi.activate(id));
-      toast.success("Reativado. Já aparece outra vez em Explorar.");
+      const loc = await requestLocation();
+      if (!loc) return toast.error(dict.ownerItems.reactivateNeedsLocation);
+      item.setData(await ownerItemApi.activate(id, toLatLng(loc)));
+      toast.success(dict.ownerItems.resumed);
     } catch (e) {
+      if (isAreaNotAvailable(e)) return toast.error(dict.location.areaNotAvailable);
       if (isKycRequired(e)) {
-        toast(KYC_REDIRECT_TOAST);
+        toast(kycRedirectToast());
         router.push("/verificacao");
         return;
       }
-      toast.error(e instanceof Error ? e.message : "Não foi possível reativar.");
+      toast.error(e instanceof Error ? e.message : dict.ownerItems.resumeFailed);
     }
   }
 
@@ -100,9 +110,9 @@ export default function GerirEquipamentoPage() {
       const compressed = await Promise.all(files.map((f) => compressImage(f)));
       const photos = await ownerItemApi.uploadPhotos(id, compressed);
       item.setData({ ...item.data!, photos });
-      toast.success(files.length === 1 ? "Foto adicionada." : `${files.length} fotos adicionadas.`);
+      toast.success(plural(files.length, t.photoAdded));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível enviar as fotos.");
+      toast.error(e instanceof Error ? e.message : t.photosFailed);
     } finally {
       setPhotoBusy(false);
     }
@@ -113,9 +123,9 @@ export default function GerirEquipamentoPage() {
     try {
       const photos = await ownerItemApi.deletePhoto(id, photoId);
       item.setData({ ...item.data!, photos });
-      toast.success("Foto removida.");
+      toast.success(t.photoRemoved);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível remover a foto.");
+      toast.error(e instanceof Error ? e.message : t.photoRemoveFailed);
     } finally {
       setPhotoBusy(false);
     }
@@ -125,34 +135,34 @@ export default function GerirEquipamentoPage() {
     setBusy(true);
     try {
       await ownerItemApi.remove(id);
-      toast.success("Equipamento eliminado.");
+      toast.success(t.deleted);
       router.replace("/equipamentos");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível eliminar.");
+      toast.error(e instanceof Error ? e.message : t.deleteFailed);
       setBusy(false);
     }
   }
 
   return (
     <div className="mx-auto grid max-w-2xl gap-5">
-      <BackLink href="/equipamentos">O meu equipamento</BackLink>
+      <BackLink href="/equipamentos">{dict.ownerItems.title}</BackLink>
       <PageHeader
         title={item.data.title}
         action={
-          <ButtonLink href={`/equipamento/${id}`} variant="soft" size="sm" aria-label="Ver anúncio">
-            <Eye strokeWidth={1.8} /> <span className="hidden sm:inline">Ver anúncio</span>
+          <ButtonLink href={`/equipamento/${id}`} variant="soft" size="sm" aria-label={t.viewListing}>
+            <Eye strokeWidth={1.8} /> <span className="hidden sm:inline">{t.viewListing}</span>
           </ButtonLink>
         }
       />
       <Segmented
-        label="Secções"
+        label={t.sections}
         value={tab}
         onChange={setTab}
         options={[
-          { value: "fotos", label: "Fotos" },
-          { value: "detalhes", label: "Detalhes" },
-          { value: "preco", label: "Preço" },
-          { value: "datas", label: "Datas" },
+          { value: "fotos", label: t.tabs.fotos },
+          { value: "detalhes", label: t.tabs.detalhes },
+          { value: "preco", label: t.tabs.preco },
+          { value: "datas", label: t.tabs.datas },
         ]}
       />
       <div key={tab} className="animate-sobe">
@@ -168,26 +178,26 @@ export default function GerirEquipamentoPage() {
       {(tab === "detalhes" || tab === "preco") && (
         <StickyCTA>
           <Button block size="lg" loading={busy} disabled={!draft} onClick={save}>
-            Guardar alterações
+            {t.saveChanges}
           </Button>
         </StickyCTA>
       )}
 
       <Card className="grid gap-3 p-4 md:p-5">
-        <h2 className="font-titulo text-lg font-bold text-verde">Zona de cuidado</h2>
+        <h2 className="font-titulo text-lg font-bold text-verde">{t.careZone}</h2>
         <div className="flex flex-wrap gap-2">
           {item.data.status === "ACTIVE" && (
             <Button variant="outline" size="sm" onClick={pause}>
-              <Pause strokeWidth={1.8} /> Pausar anúncio
+              <Pause strokeWidth={1.8} /> {t.pauseListing}
             </Button>
           )}
           {item.data.status === "INACTIVE" && (
             <Button variant="outline" size="sm" onClick={resume}>
-              <Play strokeWidth={1.8} /> Reativar anúncio
+              <Play strokeWidth={1.8} /> {t.resumeListing}
             </Button>
           )}
           <Button variant="danger" size="sm" onClick={() => setConfirmDelete(true)}>
-            <Trash2 strokeWidth={1.8} /> Eliminar
+            <Trash2 strokeWidth={1.8} /> {t.delete}
           </Button>
         </div>
       </Card>
@@ -195,26 +205,30 @@ export default function GerirEquipamentoPage() {
       <Sheet
         open={confirmDelete}
         onClose={() => setConfirmDelete(false)}
-        title="Eliminar equipamento?"
+        title={t.deleteTitle}
         footer={
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setConfirmDelete(false)}>
-              Cancelar
+              {dict.common.cancel}
             </Button>
             <Button variant="danger" block loading={busy} onClick={remove}>
-              Sim, eliminar
+              {t.deleteConfirm}
             </Button>
           </div>
         }
       >
-        <p className="pt-2">Deixa de aparecer em Explorar e não podes receber novos pedidos. Os alugueres já feitos ficam no histórico.</p>
+        <p className="pt-2">{t.deleteText}</p>
       </Sheet>
+      {locationSheet}
     </div>
   );
 }
 
 /** Bloqueios de datas do dono: toca no primeiro e no último dia (inclusivos), nota opcional, bloquear. */
 function DatesManager({ itemId }: { itemId: string }) {
+  const dict = useT();
+  const lang = useLang();
+  const t = dict.manageItem;
   const availability = useResource<Availability>(`availability:${itemId}`, () => catalogApi.availability(itemId));
   const blocks = useResource<AvailabilityBlock[]>(`blocks:${itemId}`, () => ownerItemApi.blocks(itemId));
   const [sel, setSel] = useState<{ start: string; end?: string } | null>(null);
@@ -230,7 +244,7 @@ function DatesManager({ itemId }: { itemId: string }) {
   if (availability.error || blocks.error) {
     return <Card><ErrorState message={availability.error ?? blocks.error ?? ""} onRetry={reload} /></Card>;
   }
-  if (!availability.data || !blocks.data) return <Card className="p-4"><ListSkeleton rows={3} label="A carregar datas" /></Card>;
+  if (!availability.data || !blocks.data) return <Card className="p-4"><ListSkeleton rows={3} label={t.loadingDates} /></Card>;
 
   const days = unavailableDays(availability.data);
   const start = sel?.start;
@@ -249,12 +263,12 @@ function DatesManager({ itemId }: { itemId: string }) {
     setError(undefined);
     try {
       await ownerItemApi.createBlock(itemId, { startDate: start, endDate: end, note: note.trim() || undefined });
-      toast.success(start === end ? "Dia bloqueado." : "Datas bloqueadas.");
+      toast.success(start === end ? t.dayBlocked : t.datesBlocked);
       setSel(null);
       setNote("");
       reload();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Não foi possível bloquear.");
+      setError(e instanceof Error ? e.message : t.blockFailed);
     } finally {
       setBusy(false);
     }
@@ -264,10 +278,10 @@ function DatesManager({ itemId }: { itemId: string }) {
     setRemoving(b.id);
     try {
       await ownerItemApi.deleteBlock(itemId, b.id);
-      toast.success("Datas desbloqueadas.");
+      toast.success(t.unblocked);
       reload();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível desbloquear.");
+      toast.error(e instanceof Error ? e.message : t.unblockFailed);
     } finally {
       setRemoving(null);
     }
@@ -277,22 +291,22 @@ function DatesManager({ itemId }: { itemId: string }) {
     <div className="grid gap-4">
       <Card className="grid gap-4 p-4">
         <p className="text-texto-corpo">
-          Toca no primeiro e no último dia em que o equipamento <strong>não</strong> está disponível. Os dias com reserva já estão marcados.
+          {t.datesHelpBefore}<strong>{t.datesHelpNot}</strong>{t.datesHelpAfter}
         </p>
         <MonthCalendar days={days} mode="owner" selection={start ? { start, end, endInclusive: true } : undefined} onDayClick={pick} />
         {start && end && (
           <div className="grid gap-3 border-t border-borda pt-4">
             <p className="font-bold text-verde">
-              {start === end ? `Bloquear ${formatDay(start)}` : `Bloquear de ${formatRange(start, end)}`}
+              {start === end ? fmt(t.blockDay, { day: formatDay(start, false, lang) }) : fmt(t.blockRange, { range: formatRange(start, end, lang) })}
             </p>
-            <TextField label="Nota (opcional, só tu vês)" value={note} onChange={setNote} maxLength={200} placeholder="Ex.: viagem, uso próprio, alugado fora da app" />
+            <TextField label={t.noteLabel} value={note} onChange={setNote} maxLength={200} placeholder={t.notePlaceholder} />
             {error && <Callout tone="warn">{error}</Callout>}
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => { setSel(null); setError(undefined); }}>
-                Cancelar
+                {dict.common.cancel}
               </Button>
               <Button block loading={busy} onClick={block}>
-                Bloquear datas
+                {t.blockDates}
               </Button>
             </div>
           </div>
@@ -300,19 +314,19 @@ function DatesManager({ itemId }: { itemId: string }) {
       </Card>
 
       <Card className="grid gap-3 p-4">
-        <h2 className="font-titulo text-lg font-bold text-verde">Bloqueios ativos</h2>
+        <h2 className="font-titulo text-lg font-bold text-verde">{t.activeBlocks}</h2>
         {blocks.data.length === 0 ? (
-          <p className="text-sm text-cinza">Sem datas bloqueadas. Quem procura vê o equipamento livre fora das reservas.</p>
+          <p className="text-sm text-cinza">{t.noBlocks}</p>
         ) : (
           <ul className="grid gap-2">
             {blocks.data.map((b) => (
               <li key={b.id} className="flex items-center gap-3 rounded-campo border border-borda p-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-verde">{formatDays(b.startDate, b.endDate)}</p>
+                  <p className="font-medium text-verde">{formatDays(b.startDate, b.endDate, lang)}</p>
                   {b.note && <p className="truncate text-[13px] text-cinza">{b.note}</p>}
                 </div>
                 <Button variant="outline" size="sm" loading={removing === b.id} onClick={() => unblock(b)}>
-                  Desbloquear
+                  {t.unblock}
                 </Button>
               </li>
             ))}

@@ -13,6 +13,7 @@ import { bookingApi, ownerItemApi, paymentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { canOwn } from "@/lib/mode";
 import { useResource } from "@/lib/use-resource";
+import { useT } from "@/lib/i18n/client";
 
 export default function PainelPage() {
   const session = useRequireSession();
@@ -21,12 +22,13 @@ export default function PainelPage() {
   const items = useResource(owner ? "items:mine" : null, () => ownerItemApi.mine());
   // pagamento direto (2026-11-15): sem saldo na Beeznoo; o que importa é a taxa por entregar
   const commissions = useResource(owner ? "commissions:me" : null, () => paymentApi.myCommissions());
+  const t = useT().dashboard;
 
   if (!session) return null;
   if (!owner) {
     return (
-      <Callout tone="info" title="O painel é para donos de equipamento" action={<ButtonLink href="/explorar" variant="outline">Ir para Explorar</ButtonLink>}>
-        A tua conta está como arrendatário. Para publicar equipamento fala connosco para mudar a conta para &quot;as duas coisas&quot;.
+      <Callout tone="info" title={t.notOwnerTitle} action={<ButtonLink href="/explorar" variant="outline">{t.goExplore}</ButtonLink>}>
+        {t.notOwnerText}
       </Callout>
     );
   }
@@ -44,7 +46,7 @@ export default function PainelPage() {
         <HexGlow />
         <div className="relative grid gap-6">
           <div className="flex items-center justify-between gap-3">
-            <Eyebrow className="text-salvia">O teu negócio na Beeznoo</Eyebrow>
+            <Eyebrow className="text-salvia">{t.eyebrow}</Eyebrow>
             <ModeSwitch dark className="md:hidden" />
           </div>
           <div className="grid gap-3 md:max-w-xl">
@@ -52,8 +54,8 @@ export default function PainelPage() {
               <div className="absolute -top-20 -right-16 size-56 rounded-full bg-ambar/15 blur-3xl" aria-hidden />
               <div className="relative flex items-start justify-between">
                 <div className="grid gap-1">
-                  <p className="text-xs font-bold tracking-[0.12em] text-salvia uppercase">Carteira</p>
-                  <p className="font-titulo text-lg font-bold text-white">Recebes na entrega</p>
+                  <p className="text-xs font-bold tracking-[0.12em] text-salvia uppercase">{t.wallet}</p>
+                  <p className="font-titulo text-lg font-bold text-white">{t.receiveAtHandover}</p>
                 </div>
                 <CreditCard className="size-7 text-ambar" strokeWidth={1.6} aria-hidden />
               </div>
@@ -66,25 +68,25 @@ export default function PainelPage() {
               <div className="relative grid gap-1">
                 <div className="flex items-end justify-between gap-4">
                   <div>
-                    <p className="text-xs tracking-[0.08em] text-salvia-tint uppercase">Taxa por entregar à Beeznoo</p>
+                    <p className="text-xs tracking-[0.08em] text-salvia-tint uppercase">{t.feeDue}</p>
                     {commissions.loading ? <Skeleton className="mt-1 h-8 w-40 bg-white/10" /> : <Kz value={commissions.data?.due ?? 0} className="mt-1 block text-3xl leading-none text-white" />}
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-salvia-tint uppercase">Pagamentos</p>
+                    <p className="text-xs text-salvia-tint uppercase">{t.payments}</p>
                     <p className="num text-sm font-bold text-white">{commissions.data?.lines.length ?? 0}</p>
                   </div>
                 </div>
               </div>
             </div>
             <Link href="/carteira" className="inline-flex min-h-11 items-center gap-1 text-sm font-bold text-salvia hover:underline">
-              Ver carteira <ArrowUpRight className="size-4" strokeWidth={2} aria-hidden />
+              {t.seeWallet} <ArrowUpRight className="size-4" strokeWidth={2} aria-hidden />
             </Link>
           </div>
           <dl className="grid grid-cols-3 gap-2">
             {[
-              { label: "Pedidos à espera", value: pending.length, href: "/pedidos", icon: Inbox },
-              { label: "Alugueres ativos", value: upcoming.length, href: "/pedidos", icon: Ticket },
-              { label: "Equipamentos ativos", value: activeItems, href: "/equipamentos", icon: Package },
+              { label: t.pending, value: pending.length, href: "/pedidos", icon: Inbox },
+              { label: t.activeRentals, value: upcoming.length, href: "/pedidos", icon: Ticket },
+              { label: t.activeItems, value: activeItems, href: "/equipamentos", icon: Package },
             ].map(({ label, value, href, icon: Icon }) => (
               <Link
                 key={label}
@@ -101,8 +103,8 @@ export default function PainelPage() {
       </section>
 
       <section className="grid gap-4">
-        <SectionTitle action={pending.length > 0 ? <Link href="/pedidos" className="inline-flex min-h-11 items-center text-sm font-bold text-mel-texto hover:underline">Ver todos</Link> : null}>
-          Responde a estes pedidos
+        <SectionTitle action={pending.length > 0 ? <Link href="/pedidos" className="inline-flex min-h-11 items-center text-sm font-bold text-mel-texto hover:underline">{t.seeAll}</Link> : null}>
+          {t.answerThese}
         </SectionTitle>
         {received.error ? (
           <ErrorState message={received.error} onRetry={received.reload} />
@@ -111,9 +113,9 @@ export default function PainelPage() {
         ) : pending.length === 0 ? (
           <EmptyState
             icon={Inbox}
-            title="Sem pedidos à espera"
-            text="Quando alguém pedir o teu equipamento, aparece aqui. Mais fotos e bom preço trazem mais pedidos."
-            action={<ButtonLink href="/publicar" variant="dark"><Plus strokeWidth={2} /> Publicar equipamento</ButtonLink>}
+            title={t.emptyTitle}
+            text={t.emptyText}
+            action={<ButtonLink href="/publicar" variant="dark"><Plus strokeWidth={2} /> {t.publish}</ButtonLink>}
             className="py-6"
           />
         ) : (
@@ -127,7 +129,7 @@ export default function PainelPage() {
 
       {upcoming.length > 0 && (
         <section className="grid gap-4">
-          <SectionTitle>Próximas entregas e devoluções</SectionTitle>
+          <SectionTitle>{t.upcoming}</SectionTitle>
           <ul className="grid gap-3 md:grid-cols-2">
             {upcoming.map((b, i) => (
               <li key={b.id}>

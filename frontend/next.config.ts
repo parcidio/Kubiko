@@ -23,7 +23,8 @@ const csp = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   // em desenvolvimento também um S3 local (MinIO/S3Mock, B2_PATH_STYLE=true)
-  `img-src 'self' data: blob: https://*.backblazeb2.com${storageOrigin ? ` ${storageOrigin}` : ""}${isDev ? " http://localhost:*" : ""}`,
+  // tile.openstreetmap.org: mosaicos do mapa em Admin › Mapa (só imagens; o Leaflet vem do nosso bundle)
+  `img-src 'self' data: blob: https://*.backblazeb2.com https://tile.openstreetmap.org${storageOrigin ? ` ${storageOrigin}` : ""}${isDev ? " http://localhost:*" : ""}`,
   "font-src 'self' data:",
   // Google Apps Script: formulário da lista de espera na landing. ws:/localhost só em desenvolvimento (React Refresh)
   `connect-src 'self' https://script.google.com https://script.googleusercontent.com${isDev ? " ws: http://localhost:*" : ""}`,
@@ -34,13 +35,14 @@ const csp = [
   ...(isDev ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
+// geolocation=(self): localização aproximada com consentimento (registo, KYC, publicar) — decisoes-produto.md 2026-11-17
 const securityHeaders = [
   { key: "Content-Security-Policy", value: csp },
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=()" },
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(self), payment=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
 ];
 

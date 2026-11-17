@@ -1,5 +1,6 @@
 package com.beeznoo.api.item;
 
+import com.beeznoo.api.geo.dto.GeoDtos.LocationInput;
 import com.beeznoo.api.item.dto.ItemDtos.*;
 import com.beeznoo.api.item.entity.Category;
 import com.beeznoo.api.item.entity.ItemCondition;
@@ -51,6 +52,8 @@ class ItemServiceIntegrationTest {
     private Profile owner;
     private Profile renter;
     private UUID categoryId;
+    // publicar exige localização numa zona ativa (decisoes-produto.md 2026-11-17)
+    static final LocationInput LUANDA = new LocationInput(-8.81, 13.23);
 
     @BeforeEach
     void setup() {
@@ -102,7 +105,7 @@ class ItemServiceIntegrationTest {
                 "Canon EOS R5", "Câmara mirrorless em excelente estado",
                 categoryId, ItemCondition.LIKE_NEW,
                 new BigDecimal("5000.00"), new BigDecimal("20000.00"),
-                "Luanda", "Miramar"
+                "Luanda", "Miramar", LUANDA
         );
 
         assertThatThrownBy(() -> itemService.publish(unverified.getId(), req))
@@ -116,7 +119,7 @@ class ItemServiceIntegrationTest {
                 "Canon EOS R5", "Câmara mirrorless em excelente estado",
                 categoryId, ItemCondition.LIKE_NEW,
                 new BigDecimal("5000.00"), new BigDecimal("20000.00"),
-                "Luanda", "Miramar"
+                "Luanda", "Miramar", LUANDA
         );
 
         ItemResponse res = itemService.publish(owner.getId(), req);
@@ -130,7 +133,7 @@ class ItemServiceIntegrationTest {
     void renterCannotPublishItem() {
         PublishItemRequest req = new PublishItemRequest(
                 "Tripé", null, categoryId, ItemCondition.GOOD,
-                new BigDecimal("500.00"), null, "Luanda", null
+                new BigDecimal("500.00"), null, "Luanda", null, LUANDA
         );
 
         assertThatThrownBy(() -> itemService.publish(renter.getId(), req))
@@ -142,7 +145,7 @@ class ItemServiceIntegrationTest {
         PublishItemRequest req = new PublishItemRequest(
                 "Drone DJI", null, categoryId, ItemCondition.NEW,
                 new BigDecimal("8000.00"), new BigDecimal("30000.00"),
-                "Luanda", "Talatona"
+                "Luanda", "Talatona", LUANDA
         );
         itemService.publish(owner.getId(), req);
 
@@ -156,7 +159,7 @@ class ItemServiceIntegrationTest {
     void ownerDeactivatesItem_statusBecomesInactive() throws java.nio.file.AccessDeniedException {
         PublishItemRequest req = new PublishItemRequest(
                 "Microfone Rode", null, categoryId, ItemCondition.GOOD,
-                new BigDecimal("1500.00"), null, "Luanda", null
+                new BigDecimal("1500.00"), null, "Luanda", null, LUANDA
         );
         ItemResponse created = itemService.publish(owner.getId(), req);
 
@@ -170,7 +173,7 @@ class ItemServiceIntegrationTest {
     void otherUserCannotDeactivateItem() throws java.nio.file.AccessDeniedException {
         PublishItemRequest req = new PublishItemRequest(
                 "Flash Godox", null, categoryId, ItemCondition.NEW,
-                new BigDecimal("3000.00"), null, "Luanda", null
+                new BigDecimal("3000.00"), null, "Luanda", null, LUANDA
         );
         ItemResponse created = itemService.publish(owner.getId(), req);
 
@@ -182,10 +185,10 @@ class ItemServiceIntegrationTest {
     void ownerReactivatesPausedItem() throws java.nio.file.AccessDeniedException {
         ItemResponse created = itemService.publish(owner.getId(), new PublishItemRequest(
                 "Tripé Manfrotto", null, categoryId, ItemCondition.GOOD,
-                new BigDecimal("1000.00"), null, "Luanda", null));
+                new BigDecimal("1000.00"), null, "Luanda", null, LUANDA));
         itemService.deactivate(owner.getId(), created.id());
 
-        ItemResponse reactivated = itemService.activate(owner.getId(), created.id());
+        ItemResponse reactivated = itemService.activate(owner.getId(), created.id(), LUANDA);
 
         assertThat(reactivated.status()).isEqualTo("ACTIVE");
         assertThat(itemRepository.findById(created.id()).orElseThrow().getStatus()).isEqualTo(ItemStatus.ACTIVE);
@@ -195,15 +198,15 @@ class ItemServiceIntegrationTest {
     void otherUserCannotReactivate_andSuspendedStaysSuspended() throws java.nio.file.AccessDeniedException {
         ItemResponse created = itemService.publish(owner.getId(), new PublishItemRequest(
                 "Gimbal DJI", null, categoryId, ItemCondition.GOOD,
-                new BigDecimal("2500.00"), null, "Luanda", null));
+                new BigDecimal("2500.00"), null, "Luanda", null, LUANDA));
         itemService.deactivate(owner.getId(), created.id());
-        assertThatThrownBy(() -> itemService.activate(renter.getId(), created.id()))
+        assertThatThrownBy(() -> itemService.activate(renter.getId(), created.id(), LUANDA))
                 .isInstanceOf(AccessDeniedException.class);
 
         var item = itemRepository.findById(created.id()).orElseThrow();
         item.setStatus(ItemStatus.SUSPENDED);
         itemRepository.saveAndFlush(item);
-        assertThatThrownBy(() -> itemService.activate(owner.getId(), created.id()))
+        assertThatThrownBy(() -> itemService.activate(owner.getId(), created.id(), LUANDA))
                 .isInstanceOf(IllegalStateException.class);
     }
 
@@ -211,7 +214,7 @@ class ItemServiceIntegrationTest {
     void itemShowsOwnerVerifiedBadge() throws java.nio.file.AccessDeniedException {
         ItemResponse created = itemService.publish(owner.getId(), new PublishItemRequest(
                 "Lente 85mm", null, categoryId, ItemCondition.GOOD,
-                new BigDecimal("2000.00"), null, "Luanda", null));
+                new BigDecimal("2000.00"), null, "Luanda", null, LUANDA));
 
         assertThat(created.ownerVerified()).isTrue();
         assertThat(itemService.listMyItems(owner.getId(), Pageable.ofSize(20)).getContent())
@@ -222,7 +225,7 @@ class ItemServiceIntegrationTest {
     void ownerDeletesItem_softDelete() throws java.nio.file.AccessDeniedException {
         PublishItemRequest req = new PublishItemRequest(
                 "Lente 50mm", null, categoryId, ItemCondition.FAIR,
-                new BigDecimal("2000.00"), null, "Luanda", null
+                new BigDecimal("2000.00"), null, "Luanda", null, LUANDA
         );
         ItemResponse created = itemService.publish(owner.getId(), req);
 
@@ -236,7 +239,7 @@ class ItemServiceIntegrationTest {
     void updateItem_onlyChangedFields() throws java.nio.file.AccessDeniedException {
         PublishItemRequest req = new PublishItemRequest(
                 "Câmara Sony A7", null, categoryId, ItemCondition.GOOD,
-                new BigDecimal("6000.00"), null, "Luanda", null
+                new BigDecimal("6000.00"), null, "Luanda", null, LUANDA
         );
         ItemResponse created = itemService.publish(owner.getId(), req);
 
@@ -255,7 +258,7 @@ class ItemServiceIntegrationTest {
     void listMyItems_doesNotReturnDeletedItems() throws java.nio.file.AccessDeniedException {
         PublishItemRequest req = new PublishItemRequest(
                 "Item a eliminar", null, categoryId, ItemCondition.FAIR,
-                new BigDecimal("1000.00"), null, "Luanda", null
+                new BigDecimal("1000.00"), null, "Luanda", null, LUANDA
         );
         ItemResponse created = itemService.publish(owner.getId(), req);
         itemService.delete(owner.getId(), created.id());

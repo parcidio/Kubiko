@@ -1,22 +1,85 @@
-# HTTPS automático (Let's Encrypt) para os dois domínios. Os DNS (registo A) têm de apontar para a VPS antes de arrancar.
+# Única porta de entrada da VPS (80/443) e balanceador interno da API (8080, sem porta publicada).
+# Os DNS (registo A) têm de apontar para a VPS antes de arrancar. Ver docs/DEPLOY_VPS.md ("Arquitetura").
 {
 	email {$ACME_EMAIL}
+	servers :8080 {
+		# Pedidos ao balanceador só chegam do Next pela rede interna: confiar no X-Forwarded-For que ele traz
+		# (o IP do cliente, escrito pelo site público abaixo) e acrescentar o IP do Next
+		trusted_proxies static private_ranges
+	}
 }
 
-# Site e API (a API não é pública: o Next encaminha /api/v1, /oauth2 e /login/oauth2 pela rede interna)
+# Cabeçalhos de segurança da borda. "?" = só se a aplicação não os tiver definido (o Next manda a sua CSP,
+# com frame-ancestors 'none'; aqui não se substitui nada, só se completa).
+(security_headers) {
+	header {
+		?Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		?X-Content-Type-Options "nosniff"
+		?X-Frame-Options "DENY"
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		?Content-Security-Policy "frame-ancestors 'none'"
+		-Server
+		-X-Powered-By
+	}
+}
+
+# Site. A API não é pública: o Next encaminha /api/v1, /oauth2 e /login/oauth2 para o balanceador interno.
+# O X-Forwarded-For que vem da Internet é ignorado: o Caddy escreve-o de novo com o IP real do cliente.
 {$WEB_DOMAIN} {
+	import security_headers
 	encode zstd gzip
 	request_body {
 		max_size 30MB
 	}
+	# Endpoints de gestão da API nunca na borda (o Next também não os encaminha; isto é a segunda barreira)
+	@internal path /actuator /actuator/* /v3/api-docs* /swagger-ui*
+	respond @internal 404
 	reverse_proxy web:3000
 }
 
 # Armazenamento S3 (Garage). Só serve URLs assinadas; sem assinatura válida responde 403.
 # O cabeçalho Host passa intacto: faz parte da assinatura.
 {$S3_DOMAIN} {
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		-Server
+	}
 	request_body {
 		max_size 30MB
 	}
 	reverse_proxy garage:3900
+}
+
+# Balanceador interno da API: http://api-lb:8080 (alias do Caddy na rede "public"). Sem TLS (não sai do servidor)
+# e sem porta publicada no host. Só os caminhos que o Next encaminha; o resto (ex. /actuator) responde 404.
+http://:8080 {
+	request_body {
+		max_size 30MB
+	}
+	@api path /api/v1/* /oauth2/authorization/* /login/oauth2/*
+	handle @api {
+		reverse_proxy api-1:8080 api-2:8080 {
+			# Afinidade por cookie (bz_lb): o login Google guarda o pedido OAuth2 na sessão HTTP da réplica que o
+			# iniciou, por isso o regresso do Google tem de cair na mesma. Primeira visita → a menos ocupada.
+			# Se a réplica do cookie estiver em baixo, o Caddy escolhe outra.
+			lb_policy cookie bz_lb {
+				fallback least_conn
+			}
+			lb_try_duration 5s
+			lb_try_interval 250ms
+			# Health check ativo: uma réplica a reiniciar (deploy, OOM) sai da rotação
+			health_uri /actuator/health
+			health_interval 10s
+			health_timeout 3s
+			# Passivo: uma réplica que falha um pedido fica 30 s de fora
+			fail_duration 30s
+			max_fails 1
+		}
+	}
+	handle {
+		respond 404
+	}
 }

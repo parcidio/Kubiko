@@ -18,6 +18,8 @@ import { refreshUnread, safeLink } from "@/lib/notifications";
 import type { AppNotification } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
+import { fmt, plural, type Dict, type Lang } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 
 /** Ícone pelo tipo (NotificationType no backend); desconhecido → sino. */
 function iconOf(type: string): LucideIcon {
@@ -35,31 +37,25 @@ function iconOf(type: string): LucideIcon {
 
 // Filtros por tipo de aviso. Problemas, verificação e segurança aparecem só em "Tudo".
 type Filter = "all" | "requests" | "payments" | "handovers" | "deposits";
-const FILTERS: { value: Filter; label: string; prefix?: string }[] = [
-  { value: "all", label: "Tudo" },
-  { value: "requests", label: "Pedidos", prefix: "BOOKING_" },
-  { value: "payments", label: "Pagamentos", prefix: "PAYMENT_" },
-  { value: "handovers", label: "Entregas", prefix: "CHECKLIST_" },
-  { value: "deposits", label: "Cauções", prefix: "DEPOSIT_" },
+// Rótulos em t.activity.filters; textos vazios em t.activity.empty
+const FILTERS: { value: Filter; prefix?: string }[] = [
+  { value: "all" },
+  { value: "requests", prefix: "BOOKING_" },
+  { value: "payments", prefix: "PAYMENT_" },
+  { value: "handovers", prefix: "CHECKLIST_" },
+  { value: "deposits", prefix: "DEPOSIT_" },
 ];
 
-const EMPTY_TEXT: Record<Filter, string> = {
-  all: "Quando houver novidades (um pedido, um pagamento, uma entrega), aparecem aqui.",
-  requests: "Ainda sem avisos de pedidos. Quando pedires ou aceitarem um aluguer, aparece aqui.",
-  payments: "Ainda sem avisos de pagamentos.",
-  handovers: "Ainda sem avisos de entregas ou devoluções.",
-  deposits: "Ainda sem avisos de cauções.",
-};
-
 // "agora", "há 5 min", "há 3 h", "ontem"; mais antigo → data
-function since(iso: string, now: number) {
+function since(iso: string, now: number, t: Dict, lang: Lang) {
+  const a = t.activity;
   const min = Math.max(0, Math.round((now - new Date(iso).getTime()) / 60_000));
-  if (min < 1) return "agora";
-  if (min < 60) return `há ${min} min`;
+  if (min < 1) return a.now;
+  if (min < 60) return fmt(a.minAgo, { n: min });
   const h = Math.round(min / 60);
-  if (h < 24) return `há ${h} h`;
-  if (h < 48) return "ontem";
-  return formatDateTime(iso);
+  if (h < 24) return fmt(a.hAgo, { n: h });
+  if (h < 48) return a.yesterday;
+  return formatDateTime(iso, lang);
 }
 
 /** "2026-11-16" no fuso do telemóvel. */
@@ -72,6 +68,9 @@ export default function AtividadePage() {
   const [markingAll, setMarkingAll] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [now] = useState(() => Date.now()); // instante fixo por visita: o render tem de ser puro
+  const dict = useT();
+  const lang = useLang();
+  const t = dict.activity;
 
   if (!session) return null;
   const items = list.data ?? [];
@@ -97,7 +96,7 @@ export default function AtividadePage() {
       list.setData(items.map((x) => (x.readAt ? x : { ...x, readAt: at })));
       refreshUnread();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível marcar como lidas.");
+      toast.error(e instanceof Error ? e.message : t.markError);
     } finally {
       setMarkingAll(false);
     }
@@ -116,9 +115,9 @@ export default function AtividadePage() {
               {unread > 0 && <span className="absolute top-0.5 right-0 size-4 rounded-full border-2 border-areia-2 bg-ambar md:top-1 md:size-5" aria-hidden />}
             </span>
             <div className="grid min-w-0 gap-1">
-              <h1 className="font-titulo text-[26px] leading-tight font-extrabold tracking-[-0.02em] text-verde md:text-[34px]">Atividade</h1>
+              <h1 className="font-titulo text-[26px] leading-tight font-extrabold tracking-[-0.02em] text-verde md:text-[34px]">{t.title}</h1>
               <p className="text-texto-corpo">
-                {unread > 0 ? `${unread} ${unread === 1 ? "aviso por ler" : "avisos por ler"}` : "Pedidos, pagamentos, entregas e cauções."}
+                {unread > 0 ? plural(unread, t.unread) : t.subtitle}
               </p>
             </div>
           </div>
@@ -129,14 +128,14 @@ export default function AtividadePage() {
       <div className="overflow-hidden rounded-cartao border border-borda bg-branco">
         {/* Filtros por tipo; no telemóvel deslizam na horizontal */}
         <div className="flex flex-col gap-2 border-b border-borda p-3 sm:flex-row sm:items-center sm:gap-3 md:p-4">
-          <div role="group" aria-label="Filtrar avisos" className="faixa -mx-3 -my-1 min-w-0 flex-1 gap-2 px-3 py-1 sm:mx-0 sm:px-0">
+          <div role="group" aria-label={t.filterLabel} className="faixa -mx-3 -my-1 min-w-0 flex-1 gap-2 px-3 py-1 sm:mx-0 sm:px-0">
             {FILTERS.map((f) => (
-              <CategoryChip key={f.value} label={f.label} active={filter === f.value} onClick={() => setFilter(f.value)} />
+              <CategoryChip key={f.value} label={t.filters[f.value]} active={filter === f.value} onClick={() => setFilter(f.value)} />
             ))}
           </div>
           {unread > 0 && (
             <Button variant="ghost" size="sm" loading={markingAll} onClick={markAll} className="shrink-0 self-end sm:self-auto">
-              <CheckCheck strokeWidth={1.8} /> Marcar todas como lidas
+              <CheckCheck strokeWidth={1.8} /> {t.markAll}
             </Button>
           )}
         </div>
@@ -149,9 +148,9 @@ export default function AtividadePage() {
           <HiveEmptyState
             icon={Bell}
             satellites={[Ticket, Wallet]}
-            title={filter === "all" ? "Tudo calmo" : "Nada por aqui"}
-            text={EMPTY_TEXT[filter]}
-            action={filter === "all" ? <ButtonLink href="/explorar" variant="outline">Explorar equipamento</ButtonLink> : undefined}
+            title={filter === "all" ? t.calmTitle : t.nothingTitle}
+            text={t.empty[filter]}
+            action={filter === "all" ? <ButtonLink href="/explorar" variant="outline">{t.explore}</ButtonLink> : undefined}
           />
         ) : (
           <ul className="entra-cascata">
@@ -170,10 +169,10 @@ export default function AtividadePage() {
                     <span className="grid min-w-0 flex-1 gap-1">
                       <span className="flex items-start gap-2">
                         <span className={cn("flex-1 text-[15px]", isUnread ? "font-bold text-verde" : "font-medium text-texto-corpo")}>{n.title}</span>
-                        {isUnread && <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-erro" aria-label="Por ler" />}
+                        {isUnread && <span className="mt-1.5 size-2.5 shrink-0 rounded-full bg-erro" aria-label={t.unreadDot} />}
                       </span>
                       <span className="line-clamp-3 text-sm whitespace-pre-line text-cinza">{n.body}</span>
-                      <span className="text-[13px] text-cinza">{since(n.createdAt, now)}</span>
+                      <span className="text-[13px] text-cinza">{since(n.createdAt, now, dict, lang)}</span>
                     </span>
                     {href && <ChevronRight className="mt-2 size-5 shrink-0 text-cinza" strokeWidth={1.8} aria-hidden />}
                   </button>
@@ -183,16 +182,18 @@ export default function AtividadePage() {
           </ul>
         )}
       </div>
-      {items.length >= 50 && <p className="text-center text-[13px] text-cinza">Mostramos os 50 avisos mais recentes.</p>}
+      {items.length >= 50 && <p className="text-center text-[13px] text-cinza">{t.latest50}</p>}
     </div>
   );
 }
 
-const WEEKDAY = ["S", "T", "Q", "Q", "S", "S", "D"]; // segunda a domingo
-const WEEKDAY_NAME = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+// t.activity.weekday / weekdayName: segunda a domingo
 
 /** "Esta semana": segunda a domingo em hexágonos; cheio = houve avisos nesse dia, contorno escuro = hoje. */
 function WeekHive({ items, now, loading }: { items: AppNotification[]; now: number; loading: boolean }) {
+  const t = useT().activity;
+  const WEEKDAY = t.weekday;
+  const WEEKDAY_NAME = t.weekdayName;
   const today = new Date(now);
   const monday = new Date(today);
   monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
@@ -212,8 +213,8 @@ function WeekHive({ items, now, loading }: { items: AppNotification[]; now: numb
   return (
     <div className="rounded-cartao border border-borda bg-branco/70 p-4 backdrop-blur-sm md:w-[22rem]">
       <div className="mb-3 flex items-baseline justify-between gap-3">
-        <p className="text-sm font-bold text-verde">Esta semana</p>
-        <p className="num text-[13px] text-cinza">{loading ? "…" : `${week} ${week === 1 ? "novidade" : "novidades"}`}</p>
+        <p className="text-sm font-bold text-verde">{t.thisWeek}</p>
+        <p className="num text-[13px] text-cinza">{loading ? "…" : plural(week, t.news)}</p>
       </div>
       <ol className="grid grid-cols-7 gap-1">
         {days.map((k, i) => {
@@ -221,7 +222,7 @@ function WeekHive({ items, now, loading }: { items: AppNotification[]; now: numb
           const isToday = k === todayKey;
           const future = k > todayKey;
           return (
-            <li key={k} className="grid justify-items-center gap-1" aria-label={`${isToday ? "Hoje" : WEEKDAY_NAME[i]}: ${count} ${count === 1 ? "aviso" : "avisos"}`}>
+            <li key={k} className="grid justify-items-center gap-1" aria-label={plural(count, t.dayCount, { day: isToday ? t.today : WEEKDAY_NAME[i] })}>
               <svg viewBox="0 0 40 46" className="w-full max-w-10" aria-hidden>
                 <polygon
                   points="20,2 38,12.5 38,33.5 20,44 2,33.5 2,12.5"
@@ -235,7 +236,7 @@ function WeekHive({ items, now, loading }: { items: AppNotification[]; now: numb
                   <text x="20" y="28" textAnchor="middle" className="num fill-aviso-texto font-titulo text-[14px] font-bold">{count}</text>
                 )}
               </svg>
-              <span className={cn("text-xs", isToday ? "font-bold text-verde" : "text-cinza")}>{isToday ? "Hoje" : WEEKDAY[i]}</span>
+              <span className={cn("text-xs", isToday ? "font-bold text-verde" : "text-cinza")}>{isToday ? t.today : WEEKDAY[i]}</span>
             </li>
           );
         })}

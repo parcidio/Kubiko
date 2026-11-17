@@ -16,26 +16,92 @@ servidor. Ficheiros em `deploy/vps/`. Há uma variante para o **Coolify** em `de
 
 ## Arquitetura
 
+Decisão em `claude/decisoes-produto.md` (2026-11-17, ponto 8): **o Caddy é a única porta de entrada**; a API corre em
+2 réplicas atrás de um balanceador interno e nenhuma porta da API, da BD ou do Garage é publicada no host.
+
 ```
-Browser ──443──> Caddy (HTTPS, Let's Encrypt)
-                   ├── beeznoo.ao     ──> web (Next.js :3000) ──rede interna──> api (Spring :8080) ──> postgres (:5432)
-                   └── s3.beeznoo.ao  ──> garage (S3 :3900)  <── URLs assinadas pedidas pela api
+                      Internet
+                         │ 80 / 443 (as únicas portas publicadas; ufw: 22, 80, 443)
+┌────────────────────────┼──────────────────────────────────────── VPS ─┐
+│                        ▼                                               │
+│   caddy  (HTTPS, cabeçalhos de segurança, /actuator → 404)             │
+│     ├── beeznoo.ao ─────────► web  (Next.js :3000)                     │
+│     │                           │  /api/v1, /oauth2/authorization, /login/oauth2
+│     │                           ▼                                      │
+│     ├── :8080 "api-lb" ◄────────┘   balanceador interno, sem porta no host
+│     │     │  least_conn + afinidade por cookie (bz_lb), health check   │
+│     │     ├──────► api-1 (Spring :8080, agendadores ligados) ──┐       │
+│     │     └──────► api-2 (Spring :8080, agendadores desligados) ┤      │
+│     │                                                           ▼      │
+│     │                                  postgres :5432 (rede "data", internal)
+│     └── s3.beeznoo.ao ──────► garage (S3 :3900, rede "storage", internal)
+│                                                                        │
+│   api-1/2 ──► https://s3.beeznoo.ao = alias do caddy na rede "backend" │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-- Só o Caddy publica portas (80 e 443). A API, o Postgres e o Garage ficam na rede interna do Docker.
-- O browser só fala com o Next, que faz proxy de `/api/v1`, `/oauth2/authorization` e `/login/oauth2` para a API. Sem CORS.
-- O Garage serve **apenas URLs assinadas**: sem assinatura válida responde 403. O bucket é privado.
-- A API chega ao Garage pelo URL público (`s3.beeznoo.ao`), resolvido para o próprio servidor (`extra_hosts`), porque o
-  host faz parte da assinatura do URL.
-- As migrações Flyway correm sozinhas no arranque da API.
+| Rede Docker | Quem | Saída para a Internet | Para quê |
+|---|---|---|---|
+| `public` | caddy, web | sim | Caddy → Next; Next → `api-lb`; Let's Encrypt; o Next lê fotos para as imagens de partilha |
+| `backend` | caddy, api-1, api-2 | sim | `api-lb` → réplicas; a API fala com Losambo, Ombala, Resend, Google e com o Garage pelo URL público |
+| `data` | api-1, api-2, postgres | **não** (`internal: true`) | Só as réplicas da API veem o Postgres |
+| `storage` | caddy, garage | **não** (`internal: true`) | Só o Caddy vê o Garage |
 
-| Serviço | Imagem | Dados persistentes (volume) |
+- **Só o Caddy publica portas** (80 e 443). A API, o `api-lb` (8080), o Postgres e o Garage só têm `expose:`. O Next
+  não chega às réplicas diretamente (não está na rede `backend`), só ao balanceador.
+- O browser só fala com o Next, que faz proxy de `/api/v1`, `/oauth2/authorization` e `/login/oauth2` para
+  `http://api-lb:8080`. Sem CORS. O `api-lb` só deixa passar esses caminhos (o resto, incluindo `/actuator`, dá 404),
+  e a borda responde 404 a `/actuator`, `/v3/api-docs` e `/swagger-ui`.
+- **Balanceamento:** `least_conn` na primeira visita e depois **afinidade por cookie** (`bz_lb`). É precisa para o
+  login Google: o Spring guarda o pedido OAuth2 (e a intenção "associar Google") na sessão HTTP da réplica que o
+  iniciou, e o regresso do Google tem de cair na mesma. O cookie só escolhe a réplica (não tem dados); se a réplica
+  estiver em baixo, o Caddy usa a outra.
+- **Health check:** o Caddy pergunta `/actuator/health` a cada réplica a cada 10 s e tira da rotação a que falhar
+  (também durante 30 s depois de um pedido falhado). Uma réplica a reiniciar (deploy, falta de memória) não corta o site.
+- **Agendadores** (expirar pedidos e pagamentos) só correm na `api-1` (`SCHEDULER_ENABLED=true`); na `api-2` estão
+  desligados. Mesmo a correr nas duas o resultado seria igual (cada expiração bloqueia a linha e volta a verificar),
+  mas haveria notificações e logs repetidos. Se a `api-1` estiver em baixo, as expirações esperam que volte.
+- **Limites de pedidos partilhados:** com 2 réplicas os contadores ficam no Postgres (`RATE_LIMIT_STORE=database`,
+  fixado no compose). Com `memory`, cada réplica contava à parte e um atacante tinha o dobro das tentativas de OTP.
+  O Caddy oficial não tem limite de pedidos (precisaria de um plugin e de uma imagem própria): os limites são os da API.
+- **IP do cliente:** o Caddy da borda ignora o `X-Forwarded-For` que vem da Internet e escreve o IP real; o Next
+  mantém-no; o `api-lb` acrescenta o IP do Next. A API recebe `cliente, next` e usa
+  `RATE_LIMIT_TRUSTED_PROXIES=2`. O Spring não usa `X-Forwarded-*` para mais nada (`forward-headers-strategy: none`).
+- O Garage serve **apenas URLs assinadas**: sem assinatura válida responde 403. O bucket é privado. A porta de
+  administração do Garage (3903) só escuta em `127.0.0.1` dentro do contentor; a RPC (3901) não sai da rede `storage`.
+- A API chega ao Garage pelo URL público (`s3.beeznoo.ao`, que faz parte da assinatura): na rede `backend` esse nome é
+  um alias do Caddy, por isso o pedido não sai do Docker e o certificado é o mesmo.
+- As migrações Flyway correm no arranque da API. As duas réplicas podem arrancar juntas: o Flyway bloqueia a BD
+  enquanto aplica e a segunda espera.
+
+| Serviço | Imagem | Dados persistentes (volume) | Memória (teto) |
+|---|---|---|---|
+| `caddy` | `caddy:2.8-alpine` | `caddy_data`, `caddy_config` (certificados) | ~50 MB |
+| `web` | `frontend/Dockerfile` (Next standalone) | — | `WEB_MEM_LIMIT` (512 MB) |
+| `api-1`, `api-2` | `api/Dockerfile` (mesma imagem, `beeznoo-api:local`) | — | `API_MEM_LIMIT` (768 MB cada) |
+| `postgres` | `postgres:16-alpine` | `postgres_data` | ~300–500 MB |
+| `garage` | `dxflrs/garage:v1.1.0` | `garage_meta`, `garage_data` (fotos, KYC, checklists) | ~100 MB |
+
+### Memória: 2 réplicas numa VPS de 4 GB
+
+Cada réplica tem um teto (`mem_limit`). Sem ele, `-XX:MaxRAMPercentage=50` media a RAM **da VPS inteira**: duas JVMs
+podiam pedir 2 GB de heap cada e o kernel matava processos ao acaso (incluindo o Postgres).
+
+| | Por réplica | 2 réplicas |
 |---|---|---|
-| `caddy` | `caddy:2.8-alpine` | `caddy_data`, `caddy_config` (certificados) |
-| `web` | `frontend/Dockerfile` (Next standalone) | — |
-| `api` | `api/Dockerfile` | — |
-| `postgres` | `postgres:16-alpine` | `postgres_data` |
-| `garage` | `dxflrs/garage:v1.1.0` | `garage_meta`, `garage_data` (fotos, KYC, checklists) |
+| Teto do contentor (`API_MEM_LIMIT`) | 768 MB | 1,5 GB |
+| Heap (`MaxRAMPercentage=50`) | ~384 MB | ~768 MB |
+| Fora do heap (metaspace ≤ 160, código ≤ 64, threads, buffers) | ~250 MB | ~500 MB |
+
+Total previsto: API 1,5 GB + Next 0,5 GB + Postgres ~0,5 GB + Garage/Caddy ~0,15 GB + SO ~0,4 GB ≈ **3 GB de 4 GB**.
+A API no Render já corria com ~400 MB (`api/Dockerfile`, medido), por isso 768 MB por réplica tem folga.
+
+**Trade-off.** Duas réplicas custam ~700 MB a mais do que uma. Em troca: atualizações sem cortar a API (uma réplica de
+cada vez), uma réplica que morre por falta de memória não derruba o serviço, e os 2 vCPU ficam melhor aproveitados.
+**Não é alta disponibilidade:** continua a haver um só servidor e um só Postgres — se a VPS cair, cai tudo. Se a
+memória apertar (`docker stats`), as opções são, por esta ordem: subir a VPS para 8 GB; ou voltar a uma réplica
+(apagar `api-2` do compose e do `Caddyfile`). Os limites de pedidos no Postgres fazem uma escrita por pedido; com o
+tráfego do MVP é irrelevante.
 
 ---
 
@@ -93,7 +159,8 @@ docker compose version
 ```
 
 > O Docker abre as portas publicadas por fora do `ufw`. Aqui só o Caddy publica portas, por isso não há problema, mas
-> **não acrescentes `ports:` ao Postgres nem ao Garage** no `docker-compose.yml`.
+> **não acrescentes `ports:` à API, ao Postgres nem ao Garage** no `docker-compose.yml` — usa `expose:`. Para
+> consultar a BD, `docker compose exec postgres psql …` no servidor; nunca uma porta publicada.
 
 Desligar o login por password no SSH (`/etc/ssh/sshd_config`: `PasswordAuthentication no`, `PermitRootLogin prohibit-password`)
 e `systemctl restart ssh`. Testar noutra janela antes de fechar a sessão atual.
@@ -152,7 +219,9 @@ Preencher o resto:
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | Número da equipa | Entra **no build** do frontend |
 
 Variáveis que o `docker-compose.yml` já fixa e **não vão no `.env`**: `DB_HOST`, `DB_SSLMODE`, `FRONTEND_URL`,
-`GOOGLE_REDIRECT_URI`, `B2_*`, `SESSION_COOKIE_SECURE=true`, `RATE_LIMIT_TRUSTED_PROXIES=2` (Caddy + Next).
+`GOOGLE_REDIRECT_URI`, `B2_*`, `SESSION_COOKIE_SECURE=true`, `RATE_LIMIT_STORE=database`,
+`RATE_LIMIT_TRUSTED_PROXIES=2` (Caddy da borda + `api-lb`), `SCHEDULER_ENABLED` (só `api-1`), `API_DOCS_ENABLED=false`.
+Opcionais: `API_MEM_LIMIT` (768m), `WEB_MEM_LIMIT` (512m), `API_JAVA_OPTS`.
 
 `PAYMENTS_AUTO_CONFIRM` e `API_DOCS_ENABLED` não devem aparecer no `.env` de produção: a omissão (`false`) é a certa.
 
@@ -177,10 +246,10 @@ docker compose --env-file .env up -d --build
 
 # 4. Estado e logs
 docker compose ps
-docker compose logs -f api      # esperar "Started ...Application"; as migrações Flyway aparecem antes
+docker compose logs -f api-1 api-2   # esperar "Started ...Application"; as migrações Flyway aparecem antes
 ```
 
-O `web` só arranca quando a API estiver saudável (`/actuator/health`). O Caddy pede os certificados no primeiro pedido
+O `web` só arranca quando a `api-1` estiver saudável (`/actuator/health`). O Caddy pede os certificados no primeiro pedido
 a cada domínio; se falhar, ver `docker compose logs caddy` (quase sempre DNS ainda a propagar ou porta 80 fechada).
 
 ### Primeiro admin
@@ -213,6 +282,13 @@ docker compose exec postgres psql -U beeznoo -d beeznoo \
 - [ ] Sem erros de CSP na consola do browser (imagens de `s3.beeznoo.ao` têm de carregar)
 - [ ] O IP em `security_events` é o teu e não o de um contentor (`172.x`). Se não for, ajustar
       `RATE_LIMIT_TRUSTED_PROXIES` no `docker-compose.yml`
+- [ ] **Isolamento:** a partir de **outra máquina**, `nc -zv <IP da VPS> 8080`, `5432`, `3900` e `3903` falham
+      (só 80 e 443 respondem). No servidor, `docker compose ps` mostra portas publicadas só no `caddy`
+- [ ] `https://beeznoo.ao/actuator/health` responde **404**
+- [ ] **Balanceador:** `docker compose stop api-2`; o site e o login continuam; `docker compose start api-2`.
+      Repetir com `api-1`
+- [ ] Login Google funciona várias vezes seguidas (afinidade por cookie `bz_lb`)
+- [ ] Na `api-2` os agendadores estão desligados: `docker compose logs api-2 | grep -i expirad` não mostra nada
 
 Só há eventos depois de algo os gerar: tenta entrar com a password errada e depois:
 
@@ -230,8 +306,14 @@ cd /opt/beeznoo/deploy/vps
 ./update.sh
 ```
 
-O `update.sh` faz backup, `git pull --ff-only`, reconstrói as imagens e reinicia o que mudou. As migrações novas
-aplicam-se quando a API arranca. Durante o rebuild há alguns segundos sem serviço.
+O `update.sh` faz backup, `git pull --ff-only` e reconstrói as imagens; depois reinicia a `api-1`, espera que fique
+saudável, faz o mesmo à `api-2` e só então o resto (Next, Caddy, …). O Caddy tira da rotação a réplica que está a
+reiniciar, por isso **a API não para**; o Next reinicia em poucos segundos no fim.
+
+As migrações novas aplicam-se quando a `api-1` arranca. **Durante uns segundos a `api-2` corre o código antigo com o
+schema novo**, por isso as migrações têm de ser compatíveis com a versão anterior: acrescentar colunas (nulas ou com
+omissão) e tabelas, sim; apagar ou renomear o que o código antigo usa, só numa versão seguinte. Se uma migração não
+puder ser compatível, para as duas réplicas antes (`docker compose stop api-1 api-2`) e aceita o corte.
 
 Antes de atualizar a produção: CI verde na `main` e a migração nova testada noutra BD (staging ou cópia local do backup).
 
@@ -252,8 +334,10 @@ Depois de resolvido, volta à `main` (`git -C ../.. checkout main`).
 | Tarefa | Comando |
 |---|---|
 | Estado dos serviços | `docker compose ps` |
-| Logs da API | `docker compose logs -f --tail 200 api` |
-| Reiniciar um serviço | `docker compose restart api` |
+| Logs da API | `docker compose logs -f --tail 200 api-1 api-2` |
+| Reiniciar uma réplica | `docker compose restart api-2` (o Caddy manda o tráfego para a outra) |
+| Memória por contentor | `docker stats --no-stream` |
+| Portas publicadas | `docker compose ps` (só o `caddy` pode ter `0.0.0.0:80/443`) |
 | Espaço em disco | `df -h` e `docker system df` |
 | Ocupação do Garage | `docker compose exec garage /garage bucket info beeznoo` |
 | Consola SQL | `docker compose exec postgres psql -U beeznoo -d beeznoo` |
@@ -306,11 +390,11 @@ Na pasta `deploy/vps`, com o `.env` do ambiente certo. Substitui `<STAMP>` pelo 
 
 ```bash
 set -a; . ./.env; set +a
-docker compose stop api web
+docker compose stop api-1 api-2 web
 docker compose exec -T postgres psql -U "$DB_USER" -d postgres -c "DROP DATABASE \"$DB_NAME\";"
 docker compose exec -T postgres psql -U "$DB_USER" -d postgres -c "CREATE DATABASE \"$DB_NAME\" OWNER \"$DB_USER\";"
 gunzip -c backups/db-<STAMP>.sql.gz | docker compose exec -T postgres psql -U "$DB_USER" -d "$DB_NAME"
-docker compose start api web
+docker compose start api-1 api-2 web
 ```
 
 ### Ficheiros (Garage)
@@ -351,7 +435,12 @@ Mapa completo de controlos em `docs/SEGURANCA.md`.
 
 `deploy/coolify/` tem os mesmos serviços para o [Coolify](https://coolify.io) num servidor próprio. Diferenças:
 
-- O Coolify (Traefik) trata do HTTPS e dos domínios; não há Caddy nem portas publicadas no compose.
+- O Coolify (Traefik) trata do HTTPS e dos domínios; não há portas publicadas no compose. O balanceador interno é
+  um Caddy à parte (`deploy/coolify/api-lb/`, com o `Caddyfile` dentro da imagem), igual ao site `:8080` da VPS:
+  2 réplicas (`api-1`, `api-2`), health check, afinidade por cookie. **Só `web` e `garage` têm domínio**; `api-1`,
+  `api-2`, `api-lb` e `postgres` não.
+- As redes `internal` da VPS não estão no compose do Coolify: o Coolify liga todos os serviços do recurso à sua
+  própria rede. O isolamento vem de nenhum serviço interno ter domínio nem porta publicada.
 - No Coolify: **New Resource › Repository › Build Pack "Docker Compose"**, `Docker Compose Location:
   /deploy/coolify/docker-compose.yml`. Domínios por serviço: `web` → `https://beeznoo.ao:3000`,
   `garage` → `https://s3.beeznoo.ao:3900`.

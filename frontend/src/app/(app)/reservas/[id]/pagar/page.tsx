@@ -16,8 +16,10 @@ import { ApiError, bookingApi, contractApi, paymentApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { PAID_STATUSES, bookingCode, firstName } from "@/lib/booking";
 import { daysBetween, formatDay } from "@/lib/format";
-import { CHANNEL_LABEL, type Booking, type Contract, type DirectChannel } from "@/lib/types";
+import { type Booking, type Contract, type DirectChannel } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 
 const CHANNELS: { value: DirectChannel; icon: LucideIcon }[] = [
   { value: "CASH", icon: Banknote },
@@ -42,12 +44,16 @@ export default function PagarPage() {
   const [channel, setChannel] = useState<DirectChannel | null>(null);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const lang = useLang();
+  const dict = useT();
+  const t = dict.pay;
+  const bp = dict.bookingPage;
 
   if (!session) return null;
   const err = booking.error ?? contract.error;
   if (err) return <ErrorState message={err} onRetry={() => { booking.reload(); contract.reload(); }} />;
   if (!booking.data || (booking.data.status === "ACCEPTED" && contract.loading)) {
-    return <Skeleton role="status" aria-label="A carregar" className="mx-auto h-96 max-w-2xl rounded-sheet" />;
+    return <Skeleton role="status" aria-label={dict.common.loading} className="mx-auto h-96 max-w-2xl rounded-sheet" />;
   }
 
   const b = booking.data;
@@ -63,12 +69,12 @@ export default function PagarPage() {
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
         {paid ? <SuccessCheck /> : <HexTile icon={Wallet} tone="areia" size={72} />}
-        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">{paid ? "Pagamento registado" : "Nada para pagar agora"}</h1>
+        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">{paid ? t.paidTitle : t.nothingTitle}</h1>
         <p className="text-cinza">
-          {paid ? "O comprovativo está na reserva. O próximo passo é a checklist de entrega." : "Só se paga depois de o dono aceitar o pedido, na entrega."}
+          {paid ? t.paidText : t.nothingText}
         </p>
         <ButtonLink href={`/reservas/${id}`} variant="dark">
-          Ver reserva
+          {bp.seeBooking}
         </ButtonLink>
       </div>
     );
@@ -80,12 +86,12 @@ export default function PagarPage() {
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
         <HexTile icon={FileText} tone="ambar-tint" size={72} />
-        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">Primeiro, o contrato</h1>
-        <p className="text-cinza">Antes do levantamento, lê e aceita o contrato. Diz como se paga, o que acontece à caução e o que fazer se houver um problema.</p>
+        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">{t.contractFirst}</h1>
+        <p className="text-cinza">{t.contractFirstText}</p>
         <ButtonLink href={`/reservas/${id}/contrato`} block size="lg">
-          Ler e aceitar o contrato
+          {t.readContract}
         </ButtonLink>
-        <BackLink href={`/reservas/${id}`}>Voltar à reserva</BackLink>
+        <BackLink href={`/reservas/${id}`}>{bp.backToBooking}</BackLink>
       </div>
     );
   }
@@ -95,36 +101,37 @@ export default function PagarPage() {
     setBusy(true);
     try {
       booking.setData(await paymentApi.received(id, channel));
-      toast.success("Pagamento registado. Enviámos o comprovativo ao arrendatário.");
+      toast.success(t.registered);
       router.replace(`/reservas/${id}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível registar o pagamento.");
+      toast.error(e instanceof Error ? e.message : t.registerError);
     } finally {
       setBusy(false);
     }
   }
 
+  const daysLabel = plural(days, dict.common.days);
   const rows: [string, number][] =
     as === "owner"
       ? [
-          [`Recebes (aluguer, ${days} ${days === 1 ? "dia" : "dias"})`, rental],
-          ...(deposit > 0 ? ([["Caução — devolves no fim", deposit]] as [string, number][]) : []),
-          ["Taxa de serviço — entregas à Beeznoo", fee],
+          [fmt(t.ownerRental, { days: daysLabel }), rental],
+          ...(deposit > 0 ? ([[t.ownerDeposit, deposit]] as [string, number][]) : []),
+          [t.ownerFee, fee],
         ]
       : [
-          [`Aluguer · ${days} ${days === 1 ? "dia" : "dias"}`, rental],
-          [`Taxa de serviço (${formatFeeRate(feeRate)})`, fee],
-          ...(deposit > 0 ? ([["Caução reembolsável", deposit]] as [string, number][]) : []),
+          [fmt(t.renterRental, { days: daysLabel }), rental],
+          [fmt(t.renterFee, { rate: formatFeeRate(feeRate, lang) }), fee],
+          ...(deposit > 0 ? ([[t.renterDeposit, deposit]] as [string, number][]) : []),
         ];
 
   const hero = (
     <section className="superficie-marca relative animate-sobe overflow-hidden rounded-sheet bg-verde p-5 text-areia md:p-6">
       <div className="hex-bg absolute inset-0 opacity-60" aria-hidden />
       <div className="relative grid gap-1">
-        <Eyebrow className="text-salvia">{as === "owner" ? `Recebes de ${firstName(b.renterName)}, na entrega` : `Pagas a ${firstName(b.ownerName)}, na entrega`}</Eyebrow>
+        <Eyebrow className="text-salvia">{as === "owner" ? fmt(t.receiveFrom, { name: firstName(b.renterName, dict) }) : fmt(t.payTo, { name: firstName(b.ownerName, dict) })}</Eyebrow>
         <Kz value={total} className="text-[38px] leading-none text-white md:text-[48px]" />
         <p className="mt-1 text-[15px] text-salvia-tint">
-          {b.itemTitle} · levantamento a {formatDay(b.startDate)}
+          {fmt(t.pickupOn, { title: b.itemTitle, day: formatDay(b.startDate, false, lang) })}
         </p>
         <dl className="mt-3 grid border-t border-salvia/25 pt-2 text-sm text-salvia-tint">
           {rows.map(([label, value]) => (
@@ -141,51 +148,55 @@ export default function PagarPage() {
   if (as === "owner") {
     return (
       <div className="mx-auto grid max-w-2xl gap-5 pb-24">
-        <BackLink href={`/reservas/${id}`}>Reserva {bookingCode(id)}</BackLink>
+        <BackLink href={`/reservas/${id}`}>{fmt(bp.bookingCode, { code: bookingCode(id) })}</BackLink>
         {hero}
 
         {!contractAccepted ? (
-          <Callout tone="warn" title={`${firstName(b.renterName)} ainda não aceitou o contrato`}>
-            Só podes registar o pagamento depois disso. Avisamos-te quando aceitar; podes lembrá-lo quando combinarem o levantamento.
+          <Callout tone="warn" title={fmt(t.notAcceptedTitle, { name: firstName(b.renterName, dict) })}>
+            {t.notAcceptedText}
           </Callout>
         ) : (
           <>
             <Card className="grid gap-4 p-5">
-              <h2 className="font-titulo text-lg font-bold text-verde">Na entrega</h2>
+              <h2 className="font-titulo text-lg font-bold text-verde">{t.atHandover}</h2>
               <Steps
-                items={[
-                  `Mostra o equipamento a ${firstName(b.renterName)} e deixa-o conferir.`,
-                  `Recebe ${formatKzPlain(total)}${deposit > 0 ? `, com ${formatKzPlain(deposit)} de caução que lhe devolves no fim` : ""}.`,
-                  "Confirma aqui que recebeste. A reserva fica paga e o comprovativo sai para as duas partes.",
-                  "Fazem juntos a checklist de entrega, com fotos.",
-                ]}
+                items={t.ownerSteps.map((s) =>
+                  fmt(s, {
+                    renter: firstName(b.renterName, dict),
+                    total: formatKzPlain(total),
+                    depositPart: deposit > 0 ? fmt(t.ownerStepsDeposit, { deposit: formatKzPlain(deposit) }) : "",
+                  }),
+                )}
               />
             </Card>
 
             <Card className="grid gap-4 p-5">
               <div className="grid gap-2">
-                <h2 className="font-titulo text-lg font-bold text-verde">Como recebeste?</h2>
+                <h2 className="font-titulo text-lg font-bold text-verde">{t.howReceived}</h2>
                 <SegmentedControl
-                  label="Como recebeste?"
+                  label={t.howReceived}
                   value={channel as DirectChannel}
                   onChange={setChannel}
-                  options={CHANNELS.map(({ value, icon }) => ({ value, label: CHANNEL_LABEL[value], icon }))}
+                  options={CHANNELS.map(({ value, icon }) => ({ value, label: dict.channel[value], icon }))}
                   className="max-sm:grid-flow-row max-sm:auto-rows-fr"
                 />
               </div>
               <Checkbox checked={confirmed} onChange={setConfirmed}>
-                Confirmo que recebi {formatKzPlain(total)} de {b.renterName}
-                {deposit > 0 ? `, incluindo ${formatKzPlain(deposit)} de caução que devolvo no fim` : ""}.
+                {fmt(t.confirmReceived, {
+                  total: formatKzPlain(total),
+                  name: b.renterName,
+                  depositPart: deposit > 0 ? fmt(t.confirmReceivedDeposit, { deposit: formatKzPlain(deposit) }) : "",
+                })}
               </Checkbox>
             </Card>
 
-            <Callout tone="info" icon={HandCoins} title="Taxa de serviço">
-              Dos {formatKzPlain(total)}, {formatKzPlain(fee)} são a taxa de serviço da Beeznoo. Fica registada na tua Carteira e a equipa combina contigo como a entregas.
+            <Callout tone="info" icon={HandCoins} title={t.feeTitle}>
+              {fmt(t.feeText, { total: formatKzPlain(total), fee: formatKzPlain(fee) })}
             </Callout>
 
             <StickyCTA>
               <Button block size="lg" disabled={!channel || !confirmed} loading={busy} onClick={confirmReceived}>
-                Confirmar que recebi
+                {t.confirmButton}
               </Button>
             </StickyCTA>
           </>
@@ -196,33 +207,28 @@ export default function PagarPage() {
 
   return (
     <div className="mx-auto grid max-w-2xl gap-5">
-      <BackLink href={`/reservas/${id}`}>Reserva {bookingCode(id)}</BackLink>
+      <BackLink href={`/reservas/${id}`}>{fmt(bp.bookingCode, { code: bookingCode(id) })}</BackLink>
       {hero}
 
       <Card className="grid gap-4 p-5">
-        <h2 className="font-titulo text-lg font-bold text-verde">Como funciona</h2>
+        <h2 className="font-titulo text-lg font-bold text-verde">{t.howItWorks}</h2>
         <Steps
-          items={[
-            `Combina com ${firstName(b.ownerName)} a hora e o local do levantamento.`,
-            "Confere o equipamento antes de pagar: liga-o, vê se está tudo.",
-            "Paga ao dono em numerário, transferência ou Multicaixa Express.",
-            "O dono confirma na app e recebes o comprovativo. Depois fazem a checklist de entrega com fotos.",
-          ]}
+          items={t.renterSteps.map((s) => fmt(s, { owner: firstName(b.ownerName, dict) }))}
         />
       </Card>
 
-      <Callout tone="erro" icon={ShieldAlert} title="Nunca pagues antes do encontro">
-        Ninguém da Beeznoo te pede pagamentos antecipados nem dados do cartão. Se alguém pedir, não pagues e fala connosco.
+      <Callout tone="erro" icon={ShieldAlert} title={t.neverPayTitle}>
+        {t.neverPayText}
       </Callout>
 
       {deposit > 0 && (
-        <Callout tone="ok" icon={ShieldCheck} title="A caução volta para ti">
-          Os {formatKzPlain(deposit)} de caução ficam com o dono durante o aluguer. Ele devolve-os no fim, depois de confirmarem a devolução. Se não concordares com uma retenção, reporta um problema até 7 dias depois.
+        <Callout tone="ok" icon={ShieldCheck} title={t.depositBackTitle}>
+          {fmt(t.depositBackText, { deposit: formatKzPlain(deposit) })}
         </Callout>
       )}
 
       <ButtonLink href={`/reservas/${id}`} variant="outline" block size="lg">
-        Voltar à reserva
+        {bp.backToBooking}
       </ButtonLink>
     </div>
   );

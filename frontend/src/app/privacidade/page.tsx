@@ -2,20 +2,23 @@ import type { Metadata } from "next";
 import { Logo } from "@/components/bz/brand";
 import { Callout } from "@/components/bz/ui";
 import { whatsappLink } from "@/lib/booking";
+import { getLang } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade · Beeznoo",
   description: "Que dados pessoais a Beeznoo recolhe, para quê, com quem os partilha e como exerces os teus direitos.",
 };
 
-const UPDATED = "15 de novembro de 2026";
+const UPDATED = "17 de novembro de 2026";
 
 /**
  * Rascunho escrito a partir do que a app recolhe de facto (decisoes-produto.md 2026-11-15).
  * A rever por jurista antes da abertura ao público: Lei n.º 22/11 (Proteção de Dados Pessoais) e notificação/autorização
  * da Agência de Proteção de Dados (APD), incluindo a transferência para fornecedores fora de Angola.
  */
-export default function PrivacidadePage() {
+export default async function PrivacidadePage() {
+  // Texto jurídico só em PT enquanto está em revisão (docs/I18N.md): em EN mostra-se um aviso no topo
+  const lang = await getLang();
   return (
     <div className="app min-h-dvh bg-areia text-texto-corpo">
       <header className="border-b border-borda bg-branco px-4 py-4 md:px-12">
@@ -26,6 +29,13 @@ export default function PrivacidadePage() {
           <h1 className="font-titulo text-3xl font-extrabold text-verde md:text-4xl">Política de Privacidade</h1>
           <p className="text-sm text-cinza">Última atualização: {UPDATED}</p>
         </div>
+
+        {lang === "en" && (
+          <Callout tone="info" title="Available in Portuguese only">
+            This privacy policy is currently available in Portuguese only, the language in which it is being reviewed. If you need help
+            understanding it, talk to us on WhatsApp.
+          </Callout>
+        )}
 
         <Callout tone="warn" title="Versão provisória">
           Este texto está em revisão jurídica e pode mudar antes de a Beeznoo abrir ao público. Se mudar de forma relevante, avisamos-te na app.
@@ -44,6 +54,7 @@ export default function PrivacidadePage() {
             <li><b>Equipamento e reservas:</b> o que publicas (descrição, preço, fotos), os pedidos de reserva, datas, mensagens entre as partes, o contrato aceite e quando foi aceite.</li>
             <li><b>Entrega, devolução e problemas:</b> fotos e notas das checklists e dos problemas reportados.</li>
             <li><b>Pagamentos:</b> o valor, o meio usado (numerário, transferência ou Multicaixa Express) e quem confirmou. O pagamento é feito diretamente ao dono: não recebemos nem guardamos dados de cartões ou contas bancárias.</li>
+            <li><b>Localização aproximada:</b> só se autorizares no browser. Ver a secção 3A.</li>
             <li><b>Segurança:</b> registos de entrada na conta e de ações sensíveis, com data, hora e endereço IP, para proteger as contas e investigar abusos.</li>
           </ul>
         </Section>
@@ -58,6 +69,25 @@ export default function PrivacidadePage() {
             <li>Cumprir obrigações legais e responder a pedidos de autoridades competentes.</li>
           </ul>
           <p className="mt-3">Não vendemos os teus dados nem os usamos para publicidade de terceiros.</p>
+        </Section>
+
+        <Section id="localizacao" title="3A. Localização">
+          <ul className="grid list-disc gap-2 pl-5">
+            <li><b>O quê:</b> a tua posição aproximada, pedida ao browser do telemóvel ou do computador. Arredondamo-la logo no teu aparelho a cerca de 1 km (duas casas decimais) e só essa versão chega até nós. Nunca guardamos a morada nem a posição exata.</li>
+            <li><b>Quando:</b> ao criar conta, ao enviar a verificação de identidade e ao abrir a app (opcional, podes recusar sem perder nada), e ao publicar ou reativar equipamento (obrigatório).</li>
+            <li><b>Porquê:</b> durante o piloto a Beeznoo só funciona em Luanda. A localização diz-nos se já estamos na tua zona e, de forma agregada, onde abrir a seguir. Para publicar equipamento confirmamos que estás numa zona aberta.</li>
+            <li><b>Mapa agregado:</b> a equipa vê um mapa com contagens por zonas de cerca de 5 km, e só zonas com 3 ou mais pessoas. O mapa não mostra pessoas, nomes nem posições individuais. Ninguém fora da equipa Beeznoo vê a tua localização.</li>
+            <li><b>Consentimento e como retirar:</b> o browser pergunta-te antes de partilhar. Podes retirar a autorização a qualquer momento nas definições do browser (no telemóvel: Definições do site › Localização; no computador: o cadeado ao lado do endereço). Sem localização continuas a poder usar a conta e a pedir reservas; só não consegues publicar.</li>
+            <li><b>Quanto tempo:</b> guardamos a última localização aproximada enquanto tiveres conta e o histórico de pedidos de localização até 12 meses, para estatísticas agregadas. Podes pedir que a apaguemos.</li>
+          </ul>
+        </Section>
+
+        <Section id="mensagens" title="3B. Mensagens da equipa">
+          A equipa Beeznoo pode mandar-te mensagens por WhatsApp, SMS ou email sobre a tua conta e as tuas reservas (por exemplo, uma verificação
+          por concluir ou um pedido por aceitar) e, ocasionalmente, novidades do serviço. Para isso usamos o teu número de telefone e o teu email,
+          através dos fornecedores de envio indicados na secção 4. Guardamos o registo de cada envio (data, canal, estado da entrega) para saber
+          se chegou. As mensagens são só de saída: para responder, fala connosco no WhatsApp. Se não quiseres receber novidades, diz-nos e
+          deixamos de as mandar; os avisos sobre reservas em curso continuam.
         </Section>
 
         <Section title="4. Quem vê os teus dados">
@@ -93,7 +123,7 @@ export default function PrivacidadePage() {
         </Section>
 
         <Section title="8. Cookies e armazenamento no browser">
-          Usamos um cookie essencial para manter a sessão iniciada e o armazenamento local do browser para guardar a sessão, o rascunho de um
+          Usamos um cookie essencial para manter a sessão iniciada, um cookie de preferência com a língua escolhida (português ou inglês) e o armazenamento local do browser para guardar a sessão, o rascunho de um
           equipamento por publicar e preferências como o tema. Não usamos cookies de publicidade.
         </Section>
 
@@ -105,9 +135,9 @@ export default function PrivacidadePage() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ id, title, children }: { id?: string; title: string; children: React.ReactNode }) {
   return (
-    <section className="grid gap-2">
+    <section id={id} className="grid scroll-mt-6 gap-2">
       <h2 className="font-titulo text-xl font-bold text-verde">{title}</h2>
       <div>{children}</div>
     </section>

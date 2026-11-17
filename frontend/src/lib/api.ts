@@ -4,21 +4,24 @@ import type {
   CommissionDue, Contract, Deposit, DirectChannel, Incident, IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, KycAccountType, KycDetail,
   KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
 } from "./types";
+import type { LatLng } from "./types-ops";
+import { docT } from "./i18n";
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string, public fields?: Record<string, string>) {
+  constructor(public status: number, message: string, public fields?: Record<string, string>, public code?: string) {
     super(message);
   }
 }
 
-const NETWORK_ERROR = "Sem ligação. Verifica a internet e tenta outra vez.";
+// Mensagens geradas no browser (as da API chegam já escritas e passam tal como vêm)
+const NETWORK_ERROR = () => docT().common.networkError;
 
 async function parseError(res: Response): Promise<ApiError> {
   try {
     const body = await res.json();
-    return new ApiError(res.status, body.message ?? body.error ?? "Algo correu mal.", body.fields ?? undefined);
+    return new ApiError(res.status, body.message ?? body.error ?? docT().common.somethingWrong, body.fields ?? undefined, typeof body.code === "string" ? body.code : undefined);
   } catch {
-    return new ApiError(res.status, res.status >= 500 ? "O servidor falhou. Tenta outra vez." : "Algo correu mal.");
+    return new ApiError(res.status, res.status >= 500 ? docT().common.serverError : docT().common.somethingWrong);
   }
 }
 
@@ -49,7 +52,7 @@ async function refreshTokens(): Promise<boolean> {
   return refreshing;
 }
 
-async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
+export async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const session = readSession();
   const headers = new Headers(init.headers);
   headers.set("X-Beeznoo-Client", CLIENT_HEADER["X-Beeznoo-Client"]);
@@ -60,7 +63,7 @@ async function request<T>(path: string, init: RequestInit = {}, retry = true): P
   try {
     res = await fetch(`/api/v1${path}`, { ...init, headers, credentials: "same-origin" });
   } catch {
-    throw new ApiError(0, NETWORK_ERROR);
+    throw new ApiError(0, NETWORK_ERROR());
   }
 
   if (res.status === 401 && session && retry && (await refreshTokens())) {
@@ -81,7 +84,7 @@ async function download(path: string, fallbackName: string, retry = true): Promi
   try {
     res = await fetch(`/api/v1${path}`, { headers, credentials: "same-origin" });
   } catch {
-    throw new ApiError(0, NETWORK_ERROR);
+    throw new ApiError(0, NETWORK_ERROR());
   }
   if (res.status === 401 && session && retry && (await refreshTokens())) return download(path, fallbackName, false);
   if (!res.ok) throw await parseError(res);
@@ -107,7 +110,7 @@ async function upload<T>(path: string, form: FormData, retry = true): Promise<T>
   try {
     res = await fetch(`/api/v1${path}`, { method: "POST", body: form, headers, credentials: "same-origin" });
   } catch {
-    throw new ApiError(0, NETWORK_ERROR);
+    throw new ApiError(0, NETWORK_ERROR());
   }
   if (res.status === 401 && session && retry && (await refreshTokens())) return upload<T>(path, form, false);
   if (!res.ok) throw await parseError(res);
@@ -125,7 +128,8 @@ export function totalPages(page: Page<unknown>) {
 }
 
 export const authApi = {
-  register: (b: { fullName: string; phone: string; email?: string; password: string; role: UserRole }) =>
+  // location: opcional, com consentimento (lib/location.ts, arredondada a 2 casas)
+  register: (b: { fullName: string; phone: string; email?: string; password: string; role: UserRole; location?: LatLng }) =>
     post<void>("/auth/register", b),
   verifyRegistration: (b: { phone: string; code: string }) => post<AuthResponse>("/auth/register/verify", b),
   login: (b: { phone?: string; email?: string; password: string }) => post<AuthResponse>("/auth/login", b),
@@ -219,12 +223,13 @@ export interface ItemInput {
 /** Equipamento do dono autenticado. */
 export const ownerItemApi = {
   mine: (page = 0) => request<Page<ItemSummary>>(`/items/me?page=${page}&size=50&sort=createdAt,desc`),
-  publish: (b: ItemInput) => post<Item>("/items", b),
+  // Localização atual obrigatória: 422 location_required, 403 area_not_available (fora das zonas ativas)
+  publish: (b: ItemInput, location?: LatLng) => post<Item>("/items", { ...b, location }),
   // UpdateItemRequest usa "condition" (o publish usa "itemCondition")
   update: (id: string, { itemCondition, ...b }: Partial<ItemInput>) => patch<Item>(`/items/${id}`, { ...b, condition: itemCondition }),
   deactivate: (id: string) => patch<void>(`/items/${id}/deactivate`),
   // Pausado → ativo (SUSPENDED é da equipa e devolve 409)
-  activate: (id: string) => patch<Item>(`/items/${id}/activate`),
+  activate: (id: string, location?: LatLng) => patch<Item>(`/items/${id}/activate`, location ? { location } : undefined),
   // JPEG/PNG até 5 MB, máx. 8 por item. Comprimir antes (lib/images.ts)
   uploadPhotos: (id: string, files: Blob[]) => {
     const form = new FormData();
@@ -305,8 +310,11 @@ export const adminApi = {
     return request<Page<SecurityEvent>>(`/admin/security-events?${q}`);
   },
   // Utilizadores: pesquisa por nome, email ou telefone; suspensão com motivo (auditoria)
-  users: (q: string, suspended = false, page = 0, size = 20) =>
-    request<Page<AdminUserSummary>>(`/admin/users?${new URLSearchParams({ q, suspended: String(suspended), page: String(page), size: String(size) })}`),
+  users: (q: string, suspended = false, page = 0, size = 20, adminsOnly = false) => {
+    const sp = new URLSearchParams({ q, suspended: String(suspended), page: String(page), size: String(size) });
+    if (adminsOnly) sp.set("role", "ADMIN");
+    return request<Page<AdminUserSummary>>(`/admin/users?${sp}`);
+  },
   user: (id: string) => request<AdminUserDetail>(`/admin/users/${id}`),
   suspendUser: (id: string, reason: string) => post<AdminUserSummary>(`/admin/users/${id}/suspend`, { reason }),
   reinstateUser: (id: string, reason?: string) => post<AdminUserSummary>(`/admin/users/${id}/reinstate`, { reason }),

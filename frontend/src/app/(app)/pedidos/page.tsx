@@ -12,14 +12,11 @@ import { bookingApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import type { Booking } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { fmt, plural, type Dict } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 
 type Tab = "pending" | "ongoing" | "past";
 
-const EMPTY: Record<Tab, { title: string; text: string }> = {
-  pending: { title: "Nenhum pedido à espera", text: "Quando alguém pedir o teu equipamento, avisamos-te e aparece aqui." },
-  ongoing: { title: "Nada em curso", text: "Os alugueres aceites aparecem aqui até à devolução e à caução." },
-  past: { title: "Sem histórico ainda", text: "Os alugueres concluídos, recusados e cancelados aparecem aqui." },
-};
 
 const HOUR = 3_600_000;
 
@@ -28,6 +25,9 @@ export default function PedidosPage() {
   const [tab, setTab] = useState<Tab>("pending");
   const [now] = useState(() => Date.now()); // instante fixo por visita: o render tem de ser puro
   const { data, error, loading, reload, setData } = useResource(session ? "bookings:owner" : null, () => bookingApi.received());
+  const dict = useT();
+  const t = dict.requests;
+  const EMPTY = t.empty;
 
   if (!session) return null;
   const all = data?.content ?? [];
@@ -52,34 +52,34 @@ export default function PedidosPage() {
             <HexTile icon={Inbox} size={56} className="bg-ambar text-sobre-ambar md:hidden" />
             <HexTile icon={Inbox} size={76} className="hidden bg-ambar text-sobre-ambar md:inline-flex" />
             <div className="grid min-w-0 gap-1">
-              <h1 className="font-titulo text-[26px] leading-tight font-extrabold tracking-[-0.02em] text-white md:text-[34px]">Pedidos recebidos</h1>
-              <p className="text-salvia-tint">Responde em 24 h. Quem responde depressa aluga mais.</p>
+              <h1 className="font-titulo text-[26px] leading-tight font-extrabold tracking-[-0.02em] text-white md:text-[34px]">{t.title}</h1>
+              <p className="text-salvia-tint">{t.subtitle}</p>
             </div>
           </div>
         </section>
 
         {/* Anel das 24 h + pedidos por responder */}
-        <section aria-label="Pedidos por responder" className="flex items-center gap-4 rounded-sheet border border-ambar/30 bg-ambar-tint p-5 md:gap-5 md:p-6">
+        <section aria-label={t.toAnswerLabel} className="flex items-center gap-4 rounded-sheet border border-ambar/30 bg-ambar-tint p-5 md:gap-5 md:p-6">
           <DeadlineRing hours={waitedHours} active={!!oldest} />
           <div className="grid min-w-0 gap-0.5">
             <p className="num font-titulo text-[34px] leading-none font-extrabold text-verde">{loading ? "–" : groups.pending.length}</p>
-            <p className="font-bold text-verde">a responder</p>
+            <p className="font-bold text-verde">{t.toAnswer}</p>
             <p className="text-[13px] text-aviso-texto">
-              {loading ? "A carregar…" : oldest ? `O mais antigo espera há ${formatWait(waitedHours)}` : "Nada por responder agora"}
+              {loading ? t.loading : oldest ? fmt(t.oldest, { wait: formatWait(waitedHours, dict) }) : t.none}
             </p>
           </div>
         </section>
       </div>
 
       <Segmented
-        label="Pedidos"
+        label={t.tabsLabel}
         value={tab}
         onChange={setTab}
         counts="neutral"
         options={[
-          { value: "pending", label: "A responder", count: groups.pending.length },
-          { value: "ongoing", label: "Em curso", count: groups.ongoing.length },
-          { value: "past", label: "Histórico", count: groups.past.length },
+          { value: "pending", label: t.tabs.pending, count: groups.pending.length },
+          { value: "ongoing", label: t.tabs.ongoing, count: groups.ongoing.length },
+          { value: "past", label: t.tabs.past, count: groups.past.length },
         ]}
       />
 
@@ -94,7 +94,7 @@ export default function PedidosPage() {
             satellites={[Clock, Ticket]}
             title={EMPTY[tab].title}
             text={EMPTY[tab].text}
-            action={<ButtonLink href="/equipamentos" variant="outline">Ver o meu equipamento</ButtonLink>}
+            action={<ButtonLink href="/equipamentos" variant="outline">{t.myEquipment}</ButtonLink>}
           />
         ) : tab === "pending" ? (
           <div className="grid grid-cols-[minmax(0,1fr)] gap-3 p-3 md:grid-cols-2 md:p-4">
@@ -117,11 +117,10 @@ export default function PedidosPage() {
 }
 
 // 0.4 → "menos de 1 h" · 5.2 → "5 h" · 30 → "1 dia"
-function formatWait(h: number) {
-  if (h < 1) return "menos de 1 h";
-  if (h < 24) return `${Math.floor(h)} h`;
-  const d = Math.floor(h / 24);
-  return `${d} ${d === 1 ? "dia" : "dias"}`;
+function formatWait(h: number, t: Dict) {
+  if (h < 1) return t.requests.lessThanHour;
+  if (h < 24) return fmt(t.requests.hours, { n: Math.floor(h) });
+  return plural(Math.floor(h / 24), t.common.days);
 }
 
 /** Anel das 24 h: enche com o tempo de espera do pedido mais antigo; o ponto âmbar marca onde vai. */
@@ -130,8 +129,9 @@ function DeadlineRing({ hours, active }: { hours: number; active: boolean }) {
   const C = 2 * Math.PI * R;
   const p = active ? Math.min(hours / 24, 1) : 0;
   const angle = p * 2 * Math.PI - Math.PI / 2; // começa no topo
+  const t = useT().requests;
   return (
-    <svg viewBox="0 0 100 100" className="size-20 shrink-0 md:size-24" role="img" aria-label={active ? `${Math.floor(hours)} de 24 horas passadas` : "Prazo de 24 horas"}>
+    <svg viewBox="0 0 100 100" className="size-20 shrink-0 md:size-24" role="img" aria-label={active ? fmt(t.ringPassed, { n: Math.floor(hours) }) : t.ringLabel}>
       <circle cx="50" cy="50" r={R} fill="none" strokeWidth="9" className="stroke-mel/20" />
       {p > 0 && (
         <circle

@@ -99,8 +99,66 @@ public class WhatsAppOtpClient {
         }
     }
 
+    // ---- Mensagens livres (Admin › Mensagens, decisoes-produto.md 2026-11-17) ----
+    // ⚑ API do Losambo NÃO documentada publicamente: os dois métodos abaixo são o único sítio que conhece o formato.
+    //   Se o corpo/resposta real for diferente, muda-se só aqui (confirmar na consola do Losambo).
+
+    /**
+     * POST /messages { to: "+244…", text } → 2xx. 404 not_on_whatsapp → {@link NotOnWhatsAppException};
+     * outros erros → {@link UnavailableException}. Nunca escreve o número completo nem o texto nos logs.
+     */
+    public void sendText(String phone, String text) {
+        if (!props.configured()) throw new UnavailableException("WhatsApp sem chave para o ambiente " + props.env());
+        try {
+            client.post().uri("/messages").body(Map.of("to", phone, "text", text)).retrieve().toBodilessEntity();
+        } catch (RestClientResponseException e) {
+            String error = errorCode(e);
+            if (e.getStatusCode().value() == 404 && "not_on_whatsapp".equals(error)) throw new NotOnWhatsAppException();
+            log.warn("Losambo recusou a mensagem para {}: {} {}", mask(phone), e.getStatusCode().value(), error);
+            throw new UnavailableException("Losambo " + e.getStatusCode().value() + (error == null ? "" : " " + error));
+        } catch (RuntimeException e) {
+            log.warn("Falha a contactar o Losambo para enviar mensagem a {}: {}", mask(phone), e.getClass().getSimpleName());
+            throw new UnavailableException("Losambo indisponível");
+        }
+    }
+
+    /**
+     * GET /contacts/{phone} → o número tem WhatsApp? true/false; null = não sabemos (sem chave, gateway em baixo,
+     * resposta sem campo reconhecido). 404 = sem WhatsApp. A resposta é lida com tolerância: exists, numberExists,
+     * onWhatsApp, hasWhatsApp, on_whatsapp ou registered (booleanos), no topo ou dentro de "data".
+     */
+    public Boolean hasWhatsApp(String phone) {
+        if (!props.configured()) return null;
+        try {
+            Map<?, ?> res = client.get().uri("/contacts/{phone}", phone).retrieve().body(Map.class);
+            return parseHasWhatsApp(res);
+        } catch (RestClientResponseException e) {
+            if (e.getStatusCode().value() == 404) return false;
+            log.warn("Losambo falhou a verificar o contacto {}: {}", mask(phone), e.getStatusCode().value());
+            return null;
+        } catch (RuntimeException e) {
+            log.warn("Falha a contactar o Losambo para verificar {}: {}", mask(phone), e.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    public static Boolean parseHasWhatsApp(Map<?, ?> res) {
+        if (res == null) return null;
+        for (String flag : new String[]{"hasWhatsApp", "onWhatsApp", "on_whatsapp", "numberExists", "exists", "registered"}) {
+            Object v = res.get(flag);
+            if (v instanceof Boolean b) return b;
+            if (v instanceof String s && (s.equalsIgnoreCase("true") || s.equalsIgnoreCase("false"))) {
+                return Boolean.parseBoolean(s);
+            }
+        }
+        if (res.get("data") instanceof Map<?, ?> inner) return parseHasWhatsApp(inner);
+        return null;
+    }
+
     static boolean isVerified(Map<?, ?> res) {
         if (res == null || res.isEmpty()) return true; // 2xx sem corpo
+        // 2xx com um erro no corpo (ex. {"error":"invalid_code"}) não é um código válido: falhar fechado
+        if (res.get("error") != null) return false;
         for (String flag : new String[]{"valid", "verified", "ok", "success"}) {
             if (res.get(flag) instanceof Boolean b) return b;
         }
