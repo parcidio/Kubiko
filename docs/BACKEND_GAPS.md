@@ -153,3 +153,17 @@ campo `location: { lat, lng }` no corpo; sem ele → 422 `location_required`, fo
 ✅ `GET /admin/metrics/heatmap?scope=KYC_SUBMITTED|KYC_APPROVED|SIGNUP` (omissão `KYC_SUBMITTED`; células de 0,05°,
 mínimo 3; a mais: `scope`, `suppressed`, `withoutLocation`; províncias com < 3 juntam-se em "Outras").
 ⬜ Localização no registo com Google (`/auth/google/register`). ⬜ Cabeçalho como alternativa ao corpo para publicar.
+
+## Papéis, mensagens da equipa e telefones estrangeiros (2026-11-17)
+
+✅ `PATCH /admin/users/{id}/role` `{ admin }` (409 `self_demotion` / `last_admin` / `account_suspended`, auditoria
+`USER_ROLE_CHANGED`, sessões revogadas) e `GET /admin/users?role=ADMIN`. Um token ADMIN já emitido é confirmado na BD
+em cada pedido: o admin despromovido perde os poderes logo. Erros com código vêm em `code` no corpo do erro.
+✅ Admin › Mensagens (V26): `GET/POST/PUT/DELETE /admin/messages/templates`, `GET /admin/messages/whatsapp-check`,
+`POST /admin/messages/preview`, `POST /admin/messages` (202), `GET /admin/messages`, `GET /admin/messages/{id}`.
+Contrato em `docs/API_ADMIN_MESSAGES_GEO.md`. Envio depois do commit numa thread própria, WhatsApp com 2–4 s entre
+mensagens. ⬜ Retoma de entregas `PENDING` se a API reiniciar a meio. ⬜ Público `CITY` depende da V27
+(`service_areas`); hoje compara com `profiles.city`. ⚑ Corpo de `POST /messages` e resposta de `GET /contacts/{phone}`
+do Losambo por confirmar (só em `WhatsAppOtpClient`).
+✅ Registo com número internacional (E.164, 8–15 dígitos); fora de +244 o OTP vai só por WhatsApp (503
+`whatsapp_unavailable` / 422 `not_on_whatsapp`).

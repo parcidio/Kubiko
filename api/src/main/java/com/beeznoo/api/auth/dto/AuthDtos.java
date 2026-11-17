@@ -9,7 +9,9 @@ import jakarta.validation.constraints.Size;
 
 public class AuthDtos {
 
-    static final String PHONE = "^\\+244[0-9]{9}$";
+    // Angola: +244 e 9 dígitos. Estrangeiros (decisoes-produto.md 2026-11-17): E.164, 8–15 dígitos, OTP só por WhatsApp
+    static final String PHONE = "^(\\+244[0-9]{9}|\\+(?!244)[1-9][0-9]{7,14})$";
+    static final String PHONE_MESSAGE = "Número em formato internacional: +244XXXXXXXXX ou +<indicativo><número>";
     static final String OTP = "^[0-9]{6}$";
 
     // ---- Registo: passo 1 — dados + envia OTP ----
@@ -17,8 +19,7 @@ public class AuthDtos {
             @NotBlank @Size(max = 120) String fullName,
 
             @NotBlank
-            @Pattern(regexp = "^\\+244[0-9]{9}$",
-                    message = "Número deve estar no formato angolano: +244XXXXXXXXX")
+            @Pattern(regexp = PHONE, message = PHONE_MESSAGE)
             String phone,
 
             @Email @Size(max = 254) String email,      // opcional
@@ -55,8 +56,7 @@ public class AuthDtos {
     // ---- Recuperação: passo 1 — pede OTP ----
     public record PasswordResetRequest(
             @NotBlank
-            @Pattern(regexp = "^\\+244[0-9]{9}$",
-                    message = "Número deve estar no formato angolano: +244XXXXXXXXX")
+            @Pattern(regexp = PHONE, message = PHONE_MESSAGE)
             String phone
     ) {}
 
@@ -75,8 +75,7 @@ public class AuthDtos {
             @NotBlank @Size(max = 64) String pendingToken,
 
             @NotBlank
-            @Pattern(regexp = "^\\+244[0-9]{9}$",
-                    message = "Número deve estar no formato angolano: +244XXXXXXXXX")
+            @Pattern(regexp = PHONE, message = PHONE_MESSAGE)
             String phone,
 
             @NotNull UserRole role

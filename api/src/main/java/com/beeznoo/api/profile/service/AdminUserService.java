@@ -3,6 +3,7 @@ package com.beeznoo.api.profile.service;
 import com.beeznoo.api.audit.entity.AuditAction;
 import com.beeznoo.api.audit.service.AuditService;
 import com.beeznoo.api.auth.repository.RefreshTokenRepository;
+import com.beeznoo.api.common.exception.ApiException;
 import com.beeznoo.api.profile.dto.AdminUserDtos.*;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
@@ -46,6 +47,7 @@ public class AdminUserService {
             WHERE (?::text IS NULL OR p.full_name ILIKE ? ESCAPE '\\' OR p.email ILIKE ? ESCAPE '\\'
                    OR (?::text IS NOT NULL AND regexp_replace(p.phone, '\\D', '', 'g') LIKE ?))
               AND (? = false OR p.suspended_at IS NOT NULL)
+              AND (?::text IS NULL OR p.role = ?)
             """;
 
     private static final RowMapper<AdminUserSummary> SUMMARY = (rs, i) -> new AdminUserSummary(
@@ -70,11 +72,18 @@ public class AdminUserService {
 
     @Transactional(readOnly = true)
     public Page<AdminUserSummary> search(String query, boolean suspendedOnly, int page, int size) {
+        return search(query, suspendedOnly, null, page, size);
+    }
+
+    /** role != null → só esse papel (ex.: ADMIN para a lista da equipa). */
+    @Transactional(readOnly = true)
+    public Page<AdminUserSummary> search(String query, boolean suspendedOnly, UserRole role, int page, int size) {
+        String roleName = role == null ? null : role.name();
         String q = query == null || query.isBlank() ? null : query.strip();
         String like = q == null ? null : "%" + escapeLike(q) + "%";
         String digits = q == null ? null : q.replaceAll("\\D", "");
         String phoneLike = digits == null || digits.length() < 3 ? null : "%" + digits + "%";
-        Object[] filterArgs = {q, like, like, phoneLike, phoneLike, suspendedOnly};
+        Object[] filterArgs = {q, like, like, phoneLike, phoneLike, suspendedOnly, roleName, roleName};
 
         long total = jdbc.queryForObject("SELECT count(*) " + FILTER, Long.class, filterArgs);
         List<Object> args = new ArrayList<>(java.util.Arrays.asList(filterArgs)); // List.of não aceita null
@@ -138,6 +147,42 @@ public class AdminUserService {
         profileRepository.saveAndFlush(profile);
         auditService.record(adminId, AuditAction.ACCOUNT_REINSTATED, AuditService.ACCOUNT, userId,
                 reason == null || reason.isBlank() ? null : reason.strip(), Map.of());
+        return summary(userId);
+    }
+
+    /**
+     * Promove a ADMIN ou retira o papel (decisoes-produto.md 2026-11-17). Ao retirar, o papel volta a BOTH e as
+     * sessões são revogadas (o token de acesso já emitido deixa de valer como ADMIN no JwtAuthFiltter, que confirma
+     * o papel na BD para tokens ADMIN). Sem mudança (já é/não é admin) → devolve o estado atual, sem auditoria.
+     */
+    @Transactional
+    public AdminUserSummary changeRole(UUID adminId, UUID userId, boolean makeAdmin) {
+        if (!makeAdmin && userId.equals(adminId)) {
+            throw ApiException.conflict("self_demotion", "Não podes retirar o teu próprio papel de admin");
+        }
+        Profile profile = find(userId);
+        UserRole from = profile.getRole();
+        if (makeAdmin == (from == UserRole.ADMIN)) return summary(userId);
+
+        if (makeAdmin) {
+            if (profile.isSuspended()) {
+                throw ApiException.conflict("account_suspended", "Reativa a conta antes de lhe dar papel de admin");
+            }
+            profile.setRole(UserRole.ADMIN);
+        } else {
+            // bloqueia as linhas dos admins: dois admins a retirarem-se um ao outro ao mesmo tempo não deixam zero
+            List<UUID> admins = jdbc.queryForList(
+                    "SELECT id FROM profiles WHERE role = 'ADMIN' AND suspended_at IS NULL ORDER BY id FOR UPDATE", UUID.class);
+            if (admins.size() <= 1) {
+                throw ApiException.conflict("last_admin", "Tem de ficar pelo menos um admin");
+            }
+            profile.setRole(UserRole.BOTH);
+        }
+        profileRepository.saveAndFlush(profile);
+        // o papel vai no token: obriga a entrar outra vez (com 2FA de admin, na promoção) para ter um token novo
+        refreshTokenRepository.revokedAllForProfile(userId);
+        auditService.record(adminId, AuditAction.USER_ROLE_CHANGED, AuditService.ACCOUNT, userId, null,
+                Map.of("from", from.name(), "to", profile.getRole().name()));
         return summary(userId);
     }
 

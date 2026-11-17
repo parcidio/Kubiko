@@ -1,6 +1,8 @@
 package com.beeznoo.api.auth.service;
 
+import com.beeznoo.api.common.exception.ApiException;
 import com.beeznoo.api.common.util.Emails;
+import org.springframework.http.HttpStatus;
 import com.beeznoo.api.auth.dto.AuthDtos.*;
 import com.beeznoo.api.auth.entity.GooglePendingSignup;
 import com.beeznoo.api.auth.entity.OAuthLoginCode;
@@ -371,7 +373,16 @@ public class AuthService {
 
         otpCodeRepository.invalidateAllForPhone(phone, purpose);
 
-        if (useWhatsApp()) {
+        // Números estrangeiros (decisoes-produto.md 2026-11-17, decisão 3): só WhatsApp, seja qual for OTP_CHANNEL —
+        // a Ombala só entrega em Angola
+        boolean foreign = isForeign(phone);
+        if (foreign && !whatsAppOtpClient.configured()) {
+            log.warn("OTP para número estrangeiro sem WhatsApp configurado neste ambiente");
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "whatsapp_unavailable",
+                    "Para números fora de Angola o código vai por WhatsApp, que não está disponível agora. Tenta mais tarde.");
+        }
+
+        if (foreign || useWhatsApp()) {
             try {
                 WhatsAppOtpClient.OtpSent sent = whatsAppOtpClient.send(phone);
                 // o Losambo gera e guarda o código; aqui fica o pedido (propósito, validade, uso único)
@@ -383,11 +394,19 @@ public class AuthService {
                         .build());
                 return;
             } catch (WhatsAppOtpClient.NotOnWhatsAppException e) {
+                if (foreign) {
+                    throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "not_on_whatsapp",
+                            "Este número não tem WhatsApp. Números fora de Angola recebem o código só por WhatsApp.");
+                }
                 if (!smsAvailable()) {
                     throw new IllegalArgumentException("Este número não tem WhatsApp. Usa um número com WhatsApp para receber o código.");
                 }
                 log.info("{} sem WhatsApp: código enviado por SMS", maskPhone(phone));
             } catch (WhatsAppOtpClient.UnavailableException e) {
+                if (foreign) {
+                    throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, "whatsapp_unavailable",
+                            "Não foi possível enviar o código por WhatsApp agora. Tenta daqui a pouco.");
+                }
                 if (!smsAvailable()) {
                     throw new IllegalStateException("Não foi possível enviar o código agora. Tenta daqui a pouco.");
                 }
@@ -450,6 +469,11 @@ public class AuthService {
             case "sms" -> false;
             default -> whatsAppOtpClient.configured();
         };
+    }
+
+    /** Fora de +244: a Ombala (SMS) não chega lá. */
+    static boolean isForeign(String phone) {
+        return phone != null && !phone.startsWith("+244");
     }
 
     private boolean smsAvailable() {

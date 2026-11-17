@@ -27,6 +27,10 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
 
     List<Profile> findByRole(UserRole role);
 
+    // Papel atual de uma conta não suspensa (JwtAuthFiltter confirma tokens ADMIN contra a BD)
+    @org.springframework.data.jpa.repository.Query("SELECT p.role FROM Profile p WHERE p.id = :id AND p.suspendedAt IS NULL")
+    Optional<UserRole> findActiveRoleById(UUID id);
+
     boolean existsByEmail(String email);
 
     boolean existsByGoogleId(String googleId);

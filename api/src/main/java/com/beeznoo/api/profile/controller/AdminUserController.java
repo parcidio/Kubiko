@@ -2,6 +2,8 @@ package com.beeznoo.api.profile.controller;
 
 import com.beeznoo.api.profile.dto.AdminUserDtos.AdminUserDetail;
 import com.beeznoo.api.profile.dto.AdminUserDtos.AdminUserSummary;
+import com.beeznoo.api.profile.dto.AdminUserDtos.ChangeRoleRequest;
+import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.dto.AdminUserDtos.ModerateUserRequest;
 import com.beeznoo.api.profile.service.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,17 +31,19 @@ public class AdminUserController {
 
     @Operation(summary = "Pesquisar utilizadores", description = """
             `q` procura no nome, no email ou no telefone (dígitos, mínimo 3). `suspended=true` só contas suspensas.
+            `role=ADMIN` só a equipa (aceita qualquer papel: OWNER, RENTER, BOTH, ADMIN).
             Mais recentes primeiro. Inclui papel, telefone confirmado, estado do KYC, suspensão e contagens. Apenas ADMIN.
             """)
     @GetMapping
     public ResponseEntity<Page<AdminUserSummary>> search(
             @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "false") boolean suspended,
+            @RequestParam(required = false) UserRole role,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         // limites aplicados aqui (input do cliente nunca dá 500): q ≤ 100, página ≥ 0, 1–100 por página
         if (q != null && q.length() > 100) throw new IllegalArgumentException("Pesquisa demasiado longa");
-        return ResponseEntity.ok(adminUserService.search(q, suspended, Math.max(page, 0), Math.clamp(size, 1, 100)));
+        return ResponseEntity.ok(adminUserService.search(q, suspended, role, Math.max(page, 0), Math.clamp(size, 1, 100)));
     }
 
     @Operation(summary = "Ficha de um utilizador", description = "Resumo, equipamento e as 10 reservas mais recentes. Apenas ADMIN.")
@@ -67,5 +71,16 @@ public class AdminUserController {
     public ResponseEntity<AdminUserSummary> reinstate(@AuthenticationPrincipal UUID adminId, @PathVariable UUID id,
                                                       @Valid @RequestBody(required = false) ModerateUserRequest request) {
         return ResponseEntity.ok(adminUserService.reinstate(adminId, id, request == null ? null : request.reason()));
+    }
+
+    @Operation(summary = "Dar ou retirar papel de admin", description = """
+            `{ "admin": true|false }`. Ao retirar, o papel volta a BOTH. As sessões da pessoa são revogadas (volta a
+            entrar, com 2FA se for admin). 409 `self_demotion` (o próprio), 409 `last_admin` (ficaria sem admins),
+            409 `account_suspended` (promover conta suspensa). Auditoria `USER_ROLE_CHANGED`. Apenas ADMIN.
+            """)
+    @PatchMapping("/{id}/role")
+    public ResponseEntity<AdminUserSummary> changeRole(@AuthenticationPrincipal UUID adminId, @PathVariable UUID id,
+                                                       @Valid @RequestBody ChangeRoleRequest request) {
+        return ResponseEntity.ok(adminUserService.changeRole(adminId, id, request.admin()));
     }
 }

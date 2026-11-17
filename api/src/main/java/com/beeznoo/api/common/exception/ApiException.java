@@ -24,4 +24,16 @@ public class ApiException extends RuntimeException {
     public String code() {
         return code;
     }
+
+    public static ApiException conflict(String code, String message) {
+        return new ApiException(HttpStatus.CONFLICT, code, message);
+    }
+
+    public static ApiException unprocessable(String code, String message) {
+        return new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, code, message);
+    }
+
+    public static ApiException notFound(String code, String message) {
+        return new ApiException(HttpStatus.NOT_FOUND, code, message);
+    }
 }

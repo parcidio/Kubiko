@@ -32,5 +32,8 @@ public enum AuditAction {
     ACCOUNT_SUSPENDED,
     ACCOUNT_REINSTATED,
     // Zonas de serviço (decisoes-produto.md 2026-11-17): criar, editar, ativar/desativar
-    SERVICE_AREA_CHANGED
+    SERVICE_AREA_CHANGED,
+    // Papéis e mensagens da equipa (decisoes-produto.md 2026-11-17)
+    USER_ROLE_CHANGED,
+    MESSAGE_SENT
 }

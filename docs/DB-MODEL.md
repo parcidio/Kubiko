@@ -1,6 +1,6 @@
 # Modelo de dados — schema atual
 
-Gerado a partir das migrações Flyway **V1–V25** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-15.
+Gerado a partir das migrações Flyway **V1–V26** (`api/src/main/resources/db/migration/`), atualizado a 2026-11-17.
 As migrações são a única fonte de verdade do schema (`ddl-auto: validate`); este documento é só um mapa.
 A versão anterior deste ficheiro era o desenho inicial (tabelas `claims`, `transactions`, `waitlist_leads`, …) e foi substituída.
 
@@ -250,6 +250,37 @@ erDiagram
         varchar request_id
         jsonb details
     }
+    MESSAGE_TEMPLATES {
+        uuid id PK
+        varchar key UK "só predefinidos"
+        varchar name
+        varchar channel "WHATSAPP | EMAIL | SMS | null = qualquer"
+        varchar subject
+        text body "≤ 1000, {{nome}} {{primeiro_nome}}"
+        boolean predefined
+    }
+    ADMIN_MESSAGES {
+        uuid id PK
+        varchar channel
+        uuid template_id FK
+        text body "variáveis por substituir"
+        jsonb audience
+        int recipients
+        uuid created_by FK
+        timestamptz finished_at
+    }
+    MESSAGE_DELIVERIES {
+        uuid id PK
+        uuid message_id FK
+        uuid profile_id FK
+        varchar destination "mascarado na API"
+        varchar status "PENDING | SENT | FAILED | SKIPPED"
+        varchar error "motivo curto"
+        timestamptz sent_at
+    }
+    MESSAGE_TEMPLATES |o--o{ ADMIN_MESSAGES : "modelo"
+    ADMIN_MESSAGES ||--o{ MESSAGE_DELIVERIES : "uma por pessoa"
+    PROFILES ||--o{ MESSAGE_DELIVERIES : "recebe"
 ```
 
 Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códigos OTP com hash), `google_pending_signups` (registo Google à espera do telefone), `oauth_login_codes` (código de 60 s do login Google, só o hash),
@@ -284,6 +315,7 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V23 | emails em minúsculas (sem colisões) e índice em `lower(email)` |
 | V24 | pagamento direto ao dono: método `DIRECT`, `payments.confirmed_by`, `commission_settled_at/by`; um só pagamento `CONFIRMED` por reserva (índice único parcial); índice das comissões por receber |
 | V25 | suspensão de contas pela equipa: `profiles.suspended_at`, `suspension_reason` (obrigatório se suspensa), `suspended_by` |
+| V26 | mensagens da equipa: `message_templates` (+ 6 predefinidos), `admin_messages`, `message_deliveries` (uma por destinatário, única por envio) |
 | V27 | zonas de serviço e localização: `service_areas` (província, cidade, centro, `radius_km`, `active`; semeadas Luanda e Bengo/Caxito, 60 km); `profiles.last_lat/last_lng/last_location_at`, `location_consent_at`, `signup_lat/lng`, `kyc_lat/lng`, `in_service_area`; `location_events` (append-only) |
 
 **Localização (V27, decisoes-produto.md 2026-11-17):** coordenadas de pessoas só em `NUMERIC(5,2)` (~1 km, a BD
