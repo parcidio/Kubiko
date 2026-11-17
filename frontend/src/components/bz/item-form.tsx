@@ -5,6 +5,8 @@ import { categoryIcon } from "./brand";
 import { formatKz, LUANDA_AREAS, suggestedDeposit } from "@/lib/format";
 import type { Category, Item, ItemCondition } from "@/lib/types";
 import type { ItemInput } from "@/lib/api";
+import { docT } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 
 export interface ItemDraft {
   title: string;
@@ -51,37 +53,36 @@ export function draftToInput(d: ItemDraft): ItemInput {
 export type DraftErrors = Partial<Record<keyof ItemDraft, string>>;
 
 export function validateDetails(d: ItemDraft): DraftErrors {
+  const t = docT().itemForm;
   const e: DraftErrors = {};
-  if (d.title.trim().length < 4) e.title = "Dá um nome com marca e modelo (ex.: Sony A7 III).";
-  if (!d.categoryId) e.categoryId = "Escolhe a categoria.";
-  if (!d.city) e.city = "Escolhe o bairro.";
+  if (d.title.trim().length < 4) e.title = t.errTitle;
+  if (!d.categoryId) e.categoryId = t.errCategory;
+  if (!d.city) e.city = t.errCity;
   return e;
 }
 
 export function validatePrice(d: ItemDraft): DraftErrors {
+  const t = docT().itemForm;
   const e: DraftErrors = {};
-  if (!d.pricePerDay || d.pricePerDay < 1000) e.pricePerDay = "O preço por dia tem de ser pelo menos 1.000 Kz.";
-  if (d.depositAmount === "" || d.depositAmount < 1) e.depositAmount = "Define a caução.";
+  if (!d.pricePerDay || d.pricePerDay < 1000) e.pricePerDay = t.errPrice;
+  if (d.depositAmount === "" || d.depositAmount < 1) e.depositAmount = t.errDeposit;
   return e;
 }
 
-const CONDITIONS: { value: ItemCondition; label: string }[] = [
-  { value: "NEW", label: "Novo" },
-  { value: "LIKE_NEW", label: "Como novo" },
-  { value: "GOOD", label: "Bom estado" },
-  { value: "FAIR", label: "Sinais de uso" },
-];
+const CONDITIONS: ItemCondition[] = ["NEW", "LIKE_NEW", "GOOD", "FAIR"];
 
 type Props = { draft: ItemDraft; set: (patch: Partial<ItemDraft>) => void; errors: DraftErrors; categories?: Category[] };
 
 export function DetailsFields({ draft, set, errors, categories = [] }: Props) {
+  const dict = useT();
+  const t = dict.itemForm;
   return (
     <div className="grid gap-5 rounded-cartao border border-borda bg-branco p-4 md:p-5">
-      <TextField label="Nome do equipamento" value={draft.title} onChange={(title) => set({ title })} error={errors.title} placeholder="Ex.: Sony A7 III com lente 28-70mm" maxLength={200} />
+      <TextField label={t.name} value={draft.title} onChange={(title) => set({ title })} error={errors.title} placeholder={t.namePlaceholder} maxLength={200} />
       <div className="grid gap-2">
-        <p className="text-sm font-medium text-verde">Categoria</p>
+        <p className="text-sm font-medium text-verde">{t.category}</p>
         <ChipGroup
-          label="Categoria"
+          label={t.category}
           value={draft.categoryId || undefined}
           onChange={(categoryId) => set({ categoryId })}
           options={categories.filter((c) => !c.parentId).map((c) => ({ value: c.id, label: c.name, icon: categoryIcon(c.slug) }))}
@@ -89,57 +90,58 @@ export function DetailsFields({ draft, set, errors, categories = [] }: Props) {
         {errors.categoryId && <p className="text-[13px] font-medium text-erro">{errors.categoryId}</p>}
       </div>
       <div className="grid gap-2">
-        <p className="text-sm font-medium text-verde">Estado</p>
-        <ChipGroup label="Estado" value={draft.condition} onChange={(condition) => set({ condition })} options={CONDITIONS} />
+        <p className="text-sm font-medium text-verde">{t.condition}</p>
+        <ChipGroup label={t.condition} value={draft.condition} onChange={(condition) => set({ condition })} options={CONDITIONS.map((value) => ({ value, label: dict.condition[value] }))} />
       </div>
-      <SelectField label="Bairro onde está" value={draft.city} onChange={(city) => set({ city })} placeholder="Escolhe o bairro" options={LUANDA_AREAS.map((a) => ({ value: a, label: a }))} error={errors.city} />
+      <SelectField label={t.area} value={draft.city} onChange={(city) => set({ city })} placeholder={t.areaPlaceholder} options={LUANDA_AREAS.map((a) => ({ value: a, label: a }))} error={errors.city} />
       <TextArea
-        label="Descrição"
+        label={t.description}
         value={draft.description}
         onChange={(description) => set({ description })}
         rows={5}
         maxLength={2000}
-        placeholder={"O que vem incluído (baterias, cartões, mala), para que serve melhor, cuidados."}
-        hint="Diz o que vem incluído. Evita surpresas na entrega."
+        placeholder={t.descriptionPlaceholder}
+        hint={t.descriptionHint}
       />
     </div>
   );
 }
 
 export function PriceFields({ draft, set, errors }: Omit<Props, "categories">) {
+  const t = useT().itemForm;
   const price = draft.pricePerDay || 0;
   const discount = Number(draft.weeklyDiscount);
   const suggestion = suggestedDeposit(Number(draft.declaredValue || 0), Number(price));
   return (
     <div className="grid gap-5 rounded-cartao border border-borda bg-branco p-4 md:p-5">
-      <MoneyField label="Preço por dia" value={draft.pricePerDay} onChange={(pricePerDay) => set({ pricePerDay })} error={errors.pricePerDay} />
+      <MoneyField label={t.pricePerDay} value={draft.pricePerDay} onChange={(pricePerDay) => set({ pricePerDay })} error={errors.pricePerDay} />
       <div className="grid gap-2">
-        <p className="text-sm font-medium text-verde">Desconto para uma semana</p>
+        <p className="text-sm font-medium text-verde">{t.weekDiscount}</p>
         <ChipGroup
-          label="Desconto semanal"
+          label={t.weekDiscountLabel}
           value={draft.weeklyDiscount}
           onChange={(weeklyDiscount) => set({ weeklyDiscount })}
-          options={["0", "10", "15", "20"].map((v) => ({ value: v, label: v === "0" ? "Sem desconto" : `−${v}%` }))}
+          options={["0", "10", "15", "20"].map((v) => ({ value: v, label: v === "0" ? t.noDiscount : `−${v}%` }))}
         />
         {price > 0 && (
           <p className="text-[13px] text-cinza">
-            7 dias = <strong className="num text-verde">{formatKz(price * 7 * (1 - discount / 100))}</strong>
-            {discount > 0 && " (ainda não é aplicado pela API)"}
+            {t.sevenDays} <strong className="num text-verde">{formatKz(price * 7 * (1 - discount / 100))}</strong>
+            {discount > 0 && t.discountNotApplied}
           </p>
         )}
       </div>
       <MoneyField
-        label="Quanto vale o equipamento?"
+        label={t.value}
         value={draft.declaredValue}
         onChange={(declaredValue) => set({ declaredValue })}
-        hint="Valor de compra aproximado. Serve para calcular a caução."
+        hint={t.valueHint}
       />
       <MoneyField
-        label="Caução"
+        label={t.deposit}
         value={draft.depositAmount}
         onChange={(depositAmount) => set({ depositAmount })}
         error={errors.depositAmount}
-        hint={suggestion ? <>Sugestão: <button type="button" className="font-bold text-mel-texto underline" onClick={() => set({ depositAmount: suggestion })}>{formatKz(suggestion)}</button> (o menor entre 10% do valor e 3 diárias).</> : "Retida durante o aluguer e devolvida se tudo correr bem."}
+        hint={suggestion ? <>{t.suggestion} <button type="button" className="font-bold text-mel-texto underline" onClick={() => set({ depositAmount: suggestion })}>{formatKz(suggestion)}</button>{t.suggestionRule}</> : t.depositHint}
       />
     </div>
   );

@@ -10,19 +10,17 @@ import { Button, ButtonLink, Callout, Skeleton } from "./ui";
 import { ApiError } from "@/lib/api";
 import { locationApi } from "@/lib/api-ops";
 import { useSession } from "@/lib/auth";
+import { fmt } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 import { getApproxLocation, LocationError, locationPermission, type ApproxLocation } from "@/lib/location";
 import type { PublishEligibility } from "@/lib/types-ops";
-
-export const AREA_NOT_AVAILABLE_TEXT = "Ainda não estamos na tua zona — o piloto é em Luanda. Avisamos-te quando chegarmos.";
-
-export const LOCATION_WHY = "Usamos a tua localização aproximada para saber se a Beeznoo já está na tua zona. Não partilhamos com ninguém.";
 
 /**
  * Explica antes de o browser perguntar (o pedido nativo não diz porquê). Só depois de "Permitir" chamamos a API
  * de geolocalização. `required`: sem "Agora não" (publicar), mas Fechar continua a funcionar.
  */
 export function LocationSheet({
-  open, onClose, onLocated, required, title = "Partilhar a tua localização?",
+  open, onClose, onLocated, required, title,
 }: {
   open: boolean;
   onClose: () => void;
@@ -30,6 +28,8 @@ export function LocationSheet({
   required?: boolean;
   title?: string;
 }) {
+  const dict = useT();
+  const t = dict.location;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -39,7 +39,7 @@ export function LocationSheet({
     try {
       onLocated(await getApproxLocation());
     } catch (e) {
-      setError(e instanceof LocationError ? e.message : "Não conseguimos saber onde estás. Tenta outra vez.");
+      setError(e instanceof LocationError ? e.message : t.locateFailed);
     } finally {
       setBusy(false);
     }
@@ -49,27 +49,27 @@ export function LocationSheet({
     <Sheet
       open={open}
       onClose={onClose}
-      title={title}
+      title={title ?? t.sheetTitle}
       footer={
         <div className="flex gap-3">
           {!required && (
             <Button variant="ghost" onClick={onClose}>
-              Agora não
+              {t.notNow}
             </Button>
           )}
           <Button variant="dark" block loading={busy} onClick={allow}>
-            <LocateFixed strokeWidth={1.8} aria-hidden /> {error ? "Tentar outra vez" : "Permitir localização"}
+            <LocateFixed strokeWidth={1.8} aria-hidden /> {error ? dict.common.retry : t.allow}
           </Button>
         </div>
       }
     >
       <div className="grid gap-4 pt-2">
         <HexTile icon={MapPin} tone="salvia" size={56} />
-        <p className="text-[15px]">{LOCATION_WHY}</p>
+        <p className="text-[15px]">{t.why}</p>
         <ul className="grid list-disc gap-1 pl-5 text-sm text-cinza">
-          <li>Guardamos só uma posição arredondada a cerca de 1 km, nunca a morada.</li>
-          <li>{required ? "Para publicar equipamento é obrigatório: o piloto é só em Luanda." : "É opcional. Podes continuar sem partilhar."}</li>
-          <li>Podes retirar a autorização a qualquer momento nas definições do browser.</li>
+          <li>{t.rounded}</li>
+          <li>{required ? t.requiredNote : t.optionalNote}</li>
+          <li>{t.revoke}</li>
         </ul>
         {error && (
           <p role="alert" className="rounded-campo bg-erro-tint p-3 text-sm text-erro">
@@ -77,7 +77,7 @@ export function LocationSheet({
           </p>
         )}
         <Link href="/privacidade#localizacao" target="_blank" className="text-sm font-medium text-mel-texto underline">
-          Como tratamos a localização
+          {t.howWeHandle}
         </Link>
       </div>
     </Sheet>
@@ -119,27 +119,28 @@ export function useLocationRequest({ required, title }: { required?: boolean; ti
 
 /** Opção "partilhar localização" (registo e KYC): opcional, nunca bloqueia. */
 export function LocationOptIn({ value, onChange }: { value: ApproxLocation | null; onChange: (v: ApproxLocation | null) => void }) {
+  const t = useT().location;
   const { request, sheet } = useLocationRequest();
   return (
     <div className="flex items-start gap-3 rounded-cartao border border-borda bg-branco p-4">
       <MapPin className="mt-0.5 size-5 shrink-0 text-mel" strokeWidth={1.8} aria-hidden />
       <div className="grid min-w-0 flex-1 gap-1">
-        <p className="font-bold text-verde">Localização aproximada (opcional)</p>
+        <p className="font-bold text-verde">{t.optInTitle}</p>
         {value ? (
           <p className="flex items-center gap-1.5 text-sm text-verde-medio" role="status">
-            <CheckCircle2 className="size-4" strokeWidth={1.8} aria-hidden /> Adicionada, arredondada a cerca de 1 km.
+            <CheckCircle2 className="size-4" strokeWidth={1.8} aria-hidden /> {t.optInAdded}
           </p>
         ) : (
-          <p className="text-sm text-cinza">Ajuda-nos a saber onde abrir a seguir. Não partilhamos com ninguém.</p>
+          <p className="text-sm text-cinza">{t.optInHint}</p>
         )}
       </div>
       {value ? (
         <Button variant="ghost" size="sm" onClick={() => onChange(null)}>
-          Remover
+          {t.remove}
         </Button>
       ) : (
         <Button variant="outline" size="sm" onClick={async () => onChange(await request())}>
-          Partilhar
+          {t.share}
         </Button>
       )}
       {sheet}
@@ -149,20 +150,21 @@ export function LocationOptIn({ value, onChange }: { value: ApproxLocation | nul
 
 /** Fora das zonas ativas (403 area_not_available). */
 export function AreaNotAvailable({ areas, onRetry }: { areas?: { province: string; city: string }[]; onRetry?: () => void }) {
+  const t = useT().location;
   const list = areas?.length ? areas.map((a) => (a.city === a.province ? a.city : `${a.city} (${a.province})`)).join(", ") : "Luanda";
   return (
     <div className="mx-auto grid max-w-md animate-sobe justify-items-center gap-4 py-10 text-center">
       <HexTile icon={MapPinOff} tone="ambar-tint" size={80} className="text-mel" />
-      <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde">Ainda não estamos na tua zona</h1>
-      <p className="text-cinza">O piloto é em Luanda. Avisamos-te quando chegarmos.</p>
-      <p className="text-sm text-cinza">Zonas abertas: {list}. Podes continuar a usar a conta e verificar a identidade.</p>
+      <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde">{t.outsideTitle}</h1>
+      <p className="text-cinza">{t.outsideText}</p>
+      <p className="text-sm text-cinza">{fmt(t.openAreas, { list })}</p>
       <div className="grid w-full gap-2">
         <ButtonLink href="/explorar" variant="dark" block>
-          Ir para Explorar
+          {t.goExplore}
         </ButtonLink>
         {onRetry && (
           <Button variant="ghost" block onClick={onRetry}>
-            Já estou em Luanda, verificar outra vez
+            {t.retryInLuanda}
           </Button>
         )}
       </div>
@@ -191,7 +193,9 @@ type GateState =
  * (GET /me/publish-eligibility), para ninguém preencher tudo e ser recusado no fim. A API volta a verificar ao publicar.
  */
 export function PublishLocationGate({ children }: { children: (location: ApproxLocation, refresh: () => Promise<ApproxLocation | null>) => React.ReactNode }) {
-  const { request, sheet } = useLocationRequest({ required: true, title: "Para publicar, precisamos da tua localização" });
+  const dict = useT();
+  const t = dict.location;
+  const { request, sheet } = useLocationRequest({ required: true, title: t.publishTitle });
   const [state, setState] = useState<GateState>({ kind: "asking" });
 
   // só a tentativa mais recente mexe no estado (Strict Mode corre o efeito duas vezes; "Tentar outra vez" recomeça)
@@ -209,9 +213,9 @@ export function PublishLocationGate({ children }: { children: (location: ApproxL
       else if (el.reason === "area_not_available") update({ kind: "outside", areas: el.areas });
       else update({ kind: "denied" });
     } catch (e) {
-      update({ kind: "error", message: e instanceof Error ? e.message : "Algo correu mal." });
+      update({ kind: "error", message: e instanceof Error ? e.message : dict.common.somethingWrong });
     }
-  }, [request]);
+  }, [request, dict]);
 
   useEffect(() => {
     // pedir a localização ao abrir é a ação deste ecrã: a folha explica antes do pedido do browser
@@ -234,17 +238,17 @@ export function PublishLocationGate({ children }: { children: (location: ApproxL
         <Callout
           tone={state.kind === "error" ? "erro" : "warn"}
           icon={MapPinOff}
-          title={state.kind === "error" ? "Não conseguimos confirmar a tua zona" : "Sem localização não dá para publicar"}
-          action={<Button variant="dark" onClick={run}>Tentar outra vez</Button>}
+          title={state.kind === "error" ? t.cantConfirm : t.noLocationNoPublish}
+          action={<Button variant="dark" onClick={run}>{dict.common.retry}</Button>}
         >
-          {state.kind === "error" ? state.message : `${LOCATION_WHY} Durante o piloto só se publica equipamento em Luanda.`}
+          {state.kind === "error" ? state.message : `${t.why} ${t.pilotOnly}`}
         </Callout>
-        <ButtonLink href="/explorar" variant="ghost">Voltar a Explorar</ButtonLink>
+        <ButtonLink href="/explorar" variant="ghost">{t.backExplore}</ButtonLink>
       </div>
     );
   } else {
     body = (
-      <div role="status" aria-label={state.kind === "checking" ? "A confirmar a tua zona" : "À espera da localização"} className="mx-auto grid max-w-2xl gap-4">
+      <div role="status" aria-label={state.kind === "checking" ? t.checking : t.waiting} className="mx-auto grid max-w-2xl gap-4">
         <Skeleton className="h-10 w-2/3" />
         <Skeleton className="h-64 rounded-cartao" />
       </div>

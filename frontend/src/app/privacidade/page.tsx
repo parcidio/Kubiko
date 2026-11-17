@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Logo } from "@/components/bz/brand";
 import { Callout } from "@/components/bz/ui";
 import { whatsappLink } from "@/lib/booking";
+import { getLang } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
   title: "Política de Privacidade · Beeznoo",
@@ -15,7 +16,9 @@ const UPDATED = "17 de novembro de 2026";
  * A rever por jurista antes da abertura ao público: Lei n.º 22/11 (Proteção de Dados Pessoais) e notificação/autorização
  * da Agência de Proteção de Dados (APD), incluindo a transferência para fornecedores fora de Angola.
  */
-export default function PrivacidadePage() {
+export default async function PrivacidadePage() {
+  // Texto jurídico só em PT enquanto está em revisão (docs/I18N.md): em EN mostra-se um aviso no topo
+  const lang = await getLang();
   return (
     <div className="app min-h-dvh bg-areia text-texto-corpo">
       <header className="border-b border-borda bg-branco px-4 py-4 md:px-12">
@@ -26,6 +29,13 @@ export default function PrivacidadePage() {
           <h1 className="font-titulo text-3xl font-extrabold text-verde md:text-4xl">Política de Privacidade</h1>
           <p className="text-sm text-cinza">Última atualização: {UPDATED}</p>
         </div>
+
+        {lang === "en" && (
+          <Callout tone="info" title="Available in Portuguese only">
+            This privacy policy is currently available in Portuguese only, the language in which it is being reviewed. If you need help
+            understanding it, talk to us on WhatsApp.
+          </Callout>
+        )}
 
         <Callout tone="warn" title="Versão provisória">
           Este texto está em revisão jurídica e pode mudar antes de a Beeznoo abrir ao público. Se mudar de forma relevante, avisamos-te na app.
@@ -113,7 +123,7 @@ export default function PrivacidadePage() {
         </Section>
 
         <Section title="8. Cookies e armazenamento no browser">
-          Usamos um cookie essencial para manter a sessão iniciada e o armazenamento local do browser para guardar a sessão, o rascunho de um
+          Usamos um cookie essencial para manter a sessão iniciada, um cookie de preferência com a língua escolhida (português ou inglês) e o armazenamento local do browser para guardar a sessão, o rascunho de um
           equipamento por publicar e preferências como o tema. Não usamos cookies de publicidade.
         </Section>
 
