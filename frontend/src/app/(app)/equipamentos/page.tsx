@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation";
 import { Camera, FilePen, Lightbulb, Package, Pause, Pencil, Play, Plus, Search } from "lucide-react";
 import { CategoryChip, ItemPhoto } from "@/components/bz/equipment";
 import { HEX_CLIP, HexTile } from "@/components/bz/hex";
+import { AREA_NOT_AVAILABLE_TEXT, isAreaNotAvailable, useLocationRequest } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
 import { ErrorState, HiveEmptyState, ListSkeleton } from "@/components/bz/states";
 import { BackLink, Badge, Button, ButtonLink, Card, Kz, type Tone } from "@/components/bz/ui";
 import { bookingApi, ownerItemApi } from "@/lib/api";
 import { DRAFT_KEY_PREFIX, useRequireSession } from "@/lib/auth";
 import { CONDITION_LABEL } from "@/lib/format";
+import { toLatLng } from "@/lib/location";
 import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
 import { useMode } from "@/lib/mode";
 import type { ItemSummary } from "@/lib/types";
@@ -53,6 +55,7 @@ export default function EquipamentosPage() {
   const received = useResource(session ? "bookings:owner" : null, () => bookingApi.received());
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
+  const { request: requestLocation, sheet: locationSheet } = useLocationRequest({ required: true, title: "Para reativar, precisamos da tua localização" });
 
   if (!session) return null;
   const items = data?.content ?? [];
@@ -79,10 +82,13 @@ export default function EquipamentosPage() {
 
   async function resume(id: string) {
     try {
-      await ownerItemApi.activate(id);
+      const loc = await requestLocation();
+      if (!loc) return toast.error("Para reativar precisamos da tua localização: o piloto é só em Luanda.");
+      await ownerItemApi.activate(id, toLatLng(loc));
       toast.success("Reativado. Já aparece outra vez em Explorar.");
       reload();
     } catch (e) {
+      if (isAreaNotAvailable(e)) return toast.error(AREA_NOT_AVAILABLE_TEXT);
       if (isKycRequired(e)) {
         toast(KYC_REDIRECT_TOAST);
         router.push("/verificacao");
@@ -194,6 +200,7 @@ export default function EquipamentosPage() {
           </ul>
         )}
       </div>
+      {locationSheet}
     </div>
   );
 }
