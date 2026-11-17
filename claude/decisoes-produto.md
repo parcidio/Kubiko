@@ -709,7 +709,8 @@ ativas; mapa usado na decisão da 2.ª província.
 3. **Telefones estrangeiros** aceites no registo em formato internacional (`+<indicativo>…`); para eles o OTP é só
    WhatsApp.
 4. **Zonas de serviço** (`service_areas`): província + cidade, centro (lat/lng) e raio em km, ativa/inativa, geridas
-   em Admin › Zonas. Semeado: **Luanda (ativa)**. Publicar equipamento exige localização atual dentro de uma zona
+   em Admin › Zonas. Semeado: **Luanda (ativa, raio 60 km)** e **Bengo (ativa, Caxito,
+   raio 60 km)** — Bengo confirmado no piloto pela equipa em 2026-11-17. Publicar equipamento exige localização atual dentro de uma zona
    ativa; fora dela a API responde 403 `area_not_available` e a app explica "Ainda não estamos na tua zona". O registo
    e o KYC continuam abertos em todo o lado. A verificação repete-se em cada tentativa de publicar.
    ⚠ A localização vem do browser e pode ser falsificada: é um controlo de produto, não de segurança.
@@ -725,4 +726,3 @@ ativas; mapa usado na decisão da 2.ª província.
 **Em aberto.**
 - Corpo exato de `POST /v1/messages` e resposta de `GET /v1/contacts/{phone}` no Losambo (consola /consola).
 - Custo por mensagem WhatsApp e orçamento mensal.
-- Raio da zona de Luanda (semeado 60 km a partir do centro) e se Bengo/Icolo e Bengo contam.

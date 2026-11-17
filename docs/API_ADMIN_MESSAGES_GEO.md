@@ -5,7 +5,7 @@ Todas as rotas sob `/api/v1`. Erros no formato já usado pela API (`ApiError`). 
 
 ## Migrações
 - **V26__admin_messages.sql** — `message_templates`, `admin_messages`, `message_deliveries` (+ seeds de modelos).
-- **V27__service_areas_location.sql** — `service_areas` (+ seed Luanda), colunas de localização em `profiles`,
+- **V27__service_areas_location.sql** — `service_areas` (+ seeds Luanda e Bengo, 60 km), colunas de localização em `profiles`,
   `location_events`.
 
 ## Papéis
