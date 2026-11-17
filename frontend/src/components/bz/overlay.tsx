@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { docLang, docT } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * Sheet/modal com <dialog> nativo: foco preso, Esc e backdrop de graça.
@@ -20,6 +22,7 @@ export function Sheet({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const closeLabel = useT().common.close;
 
   useEffect(() => {
     const d = ref.current;
@@ -46,7 +49,7 @@ export function Sheet({
           <h2 id={titleId} className="mt-3 flex-1 font-titulo text-xl font-bold text-verde">
             {title}
           </h2>
-          <button type="button" onClick={onClose} aria-label="Fechar" className="mt-3 flex size-11 items-center justify-center rounded-full hover:bg-areia-2">
+          <button type="button" onClick={onClose} aria-label={closeLabel} className="mt-3 flex size-11 items-center justify-center rounded-full hover:bg-areia-2">
             <X className="size-5" strokeWidth={1.8} />
           </button>
         </div>
@@ -119,8 +122,8 @@ export function Toaster() {
 export async function copyText(value: string, what: string) {
   try {
     await navigator.clipboard.writeText(value);
-    toast.success(`${what} copiad${what.endsWith("a") ? "a" : "o"}.`);
+    toast.success(docLang() === "en" ? `${what} copied.` : `${what} copiad${what.endsWith("a") ? "a" : "o"}.`);
   } catch {
-    toast.error("Não foi possível copiar. Seleciona e copia à mão.");
+    toast.error(docT().common.copyFailed);
   }
 }
