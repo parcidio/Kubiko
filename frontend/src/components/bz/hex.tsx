@@ -7,7 +7,7 @@ export const HEX_CLIP = "polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 2
 export type HexTone = "verde" | "salvia" | "areia" | "salvia-tint" | "ambar-tint" | "erro";
 
 const HEX_TONE: Record<HexTone, string> = {
-  verde: "bg-verde text-ambar", // ícone âmbar sobre verde (passos, confiança)
+  verde: "bg-verde-solido text-ambar", // ícone âmbar sobre verde (passos, confiança); continua verde no tema escuro
   salvia: "bg-salvia text-verde", // ícone verde sobre sálvia
   areia: "bg-areia-2 text-mel", // estados vazios
   "salvia-tint": "bg-salvia-tint text-verde-medio", // positivo

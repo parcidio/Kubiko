@@ -19,6 +19,37 @@ export function EmptyState({
   );
 }
 
+/**
+ * Estado vazio "colmeia" (v4, Reservas e Atividade): favo de fundo a desvanecer e um cacho de hexágonos —
+ * o ícone principal (ambar-tint) e dois satélites (verde e âmbar, decorativos). Vive dentro de um cartão.
+ */
+export function HiveEmptyState({
+  icon, satellites, title, text, action, className,
+}: {
+  icon: LucideIcon;
+  satellites: [LucideIcon, LucideIcon];
+  title: string;
+  text?: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  const [Dark, Amber] = satellites;
+  return (
+    <div className={cn("relative animate-sobe overflow-hidden px-6 pt-12 pb-14 text-center md:pt-16", className)}>
+      <div className="hex-bg absolute inset-x-0 top-0 h-64 [mask-image:linear-gradient(to_bottom,black,transparent)]" aria-hidden />
+      <div className="relative mx-auto mb-6 h-40 w-48" aria-hidden>
+        <HexTile icon={icon} size={112} tone="ambar-tint" className="absolute top-3 left-1/2 -translate-x-1/2 text-mel" />
+        <HexTile icon={Dark} size={52} tone="verde" className="absolute top-0 right-1 text-white" />
+        <HexTile icon={Amber} size={44} className="absolute bottom-3 left-2 bg-ambar text-sobre-ambar" />
+        <HexTile size={20} tone="areia" className="absolute right-6 bottom-0 bg-borda" />
+      </div>
+      <h2 className="relative font-titulo text-xl font-bold text-verde md:text-2xl">{title}</h2>
+      {text && <p className="relative mx-auto mt-2 max-w-sm text-cinza">{text}</p>}
+      {action && <div className="relative mt-6">{action}</div>}
+    </div>
+  );
+}
+
 /** Estado de erro: hexágono erro + mensagem + "Tentar outra vez". */
 export function ErrorState({ message, onRetry, className }: { message: string; onRetry?: () => void; className?: string }) {
   return (

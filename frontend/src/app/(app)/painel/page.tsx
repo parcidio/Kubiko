@@ -38,7 +38,9 @@ export default function PainelPage() {
 
   return (
     <div className="grid gap-8 px-4 md:gap-7 md:px-12">
-      <section className="hero-explore relative -mx-4 -mt-5 flex items-center overflow-hidden rounded-b-sheet bg-verde-noite px-4 pt-8 pb-8 text-areia md:-mx-12 md:-mt-8 md:min-h-[min(64svh,600px)] md:rounded-none md:px-12 md:py-14">
+      {/* O herói sobe para trás do TopBar (-mt = pt do <main> + 4rem do cabeçalho) e o cabeçalho fica transparente
+          por cima dele (HERO_ROUTES no shell.tsx); ao primeiro scroll para baixo volta ao normal */}
+      <section className="hero-explore relative -mx-4 -mt-[calc(4rem+1.25rem)] flex items-center overflow-hidden rounded-b-sheet bg-verde-noite px-4 pt-[calc(4rem+2rem)] pb-8 text-areia md:-mx-12 md:-mt-[calc(4rem+2rem)] md:min-h-[calc(min(64svh,600px)+4rem)] md:rounded-none md:px-12 md:pt-[calc(4rem+3.5rem)] md:pb-14">
         <HexGlow />
         <div className="relative grid gap-6">
           <div className="flex items-center justify-between gap-3">

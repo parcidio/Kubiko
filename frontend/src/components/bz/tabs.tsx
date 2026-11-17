@@ -4,9 +4,12 @@ import { useRef } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/** Separadores (role=tablist) com setas do teclado; visual v4: fundo areia-2, raio 14, ativa verde com texto areia. */
+/**
+ * Separadores (role=tablist) com setas do teclado; visual v4: fundo areia-2, raio 14, ativa verde com texto areia.
+ * `counts="neutral"`: contadores discretos (sem âmbar) e visíveis mesmo a zero, como em Reservas.
+ */
 export function Segmented<T extends string>({
-  label, value, onChange, options, className, dark,
+  label, value, onChange, options, className, dark, counts = "highlight",
 }: {
   label: string;
   value: T;
@@ -14,7 +17,9 @@ export function Segmented<T extends string>({
   options: { value: T; label: string; count?: number }[];
   className?: string;
   dark?: boolean;
+  counts?: "highlight" | "neutral";
 }) {
+  const neutral = counts === "neutral";
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const active = options.findIndex((o) => o.value === value);
 
@@ -62,7 +67,8 @@ export function Segmented<T extends string>({
             onClick={() => onChange(o.value)}
             onKeyDown={(e) => onKey(e, i)}
             className={cn(
-              "relative flex min-h-11 items-center justify-center cursor-pointer gap-2 rounded-[10px] px-3 text-sm font-medium transition-colors",
+              // telemóvel com 3 separadores (~104px cada): letra e espaços um pouco menores, sem partir o texto
+              "relative flex min-h-11 min-w-0 items-center justify-center cursor-pointer gap-1 rounded-[10px] px-1 text-[13px] font-medium whitespace-nowrap transition-colors sm:gap-2 sm:px-3 sm:text-sm",
               on
                 ? dark ? "font-bold text-verde" : "font-bold text-areia"
                 : dark
@@ -71,8 +77,17 @@ export function Segmented<T extends string>({
             )}
           >
             {o.label}
-            {o.count !== undefined && o.count > 0 && (
-              <span className={cn("num min-w-5 rounded-full px-1.5 text-xs font-bold", on ? (dark ? "bg-verde text-areia" : "bg-ambar text-sobre-ambar") : "bg-borda text-verde")}>{o.count}</span>
+            {o.count !== undefined && (o.count > 0 || neutral) && (
+              <span
+                className={cn(
+                  "num min-w-[18px] rounded-full px-1 text-[11px] font-bold sm:min-w-5 sm:px-1.5 sm:text-xs",
+                  neutral
+                    ? on ? (dark ? "bg-verde/10 text-verde" : "bg-white/15 text-areia") : "bg-borda text-cinza"
+                    : on ? (dark ? "bg-verde text-areia" : "bg-ambar text-sobre-ambar") : "bg-borda text-verde",
+                )}
+              >
+                {o.count}
+              </span>
             )}
           </button>
         );

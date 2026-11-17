@@ -90,12 +90,16 @@ function Explorar() {
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5 px-4 md:gap-7 md:px-12">
       {/* Herói */}
       {/* No telemóvel o herói é compacto: o primeiro equipamento tem de aparecer cedo (revisão de UX 2026-11-15) */}
-      {/* O TopBar já não é fixo: o herói encosta ao cabeçalho (-mt anula o pt do <main>), sem compensar a altura dele */}
-      <section className="hero-explore relative -mx-4 -mt-5 flex items-center overflow-hidden rounded-b-sheet bg-verde-noite px-4 pt-6 pb-6 text-areia md:-mx-12 md:-mt-8 md:min-h-[min(60svh,560px)] md:rounded-none md:px-12 md:py-14">
+      {/* O herói sobe para trás do TopBar (-mt = pt do <main> + 4rem do cabeçalho) e o cabeçalho fica transparente
+          por cima dele (HERO_ROUTES no shell.tsx); ao primeiro scroll para baixo volta ao normal */}
+      <section
+        className="hero-explore relative -mx-4 -mt-21 flex items-center overflow-hidden rounded-b-sheet bg-verde-noite px-4 pt-22 pb-6 text-areia md:-mx-12 md:-mt-24 md:min-h-[calc(min(60svh,560px)+4rem)] md:rounded-none md:px-12 md:pt-30 md:pb-14"
+      >
         <HexGlow />
-        <div className="relative grid w-full gap-4 md:max-w-2xl">
+        {/* min-w-0: item de flex — sem isto a faixa de pesquisas rápidas alarga a página a 360–390px */}
+        <div className="relative grid w-full min-w-0 grid-cols-[minmax(0,1fr)] gap-4 md:max-w-2xl">
           <p className="text-xs font-bold tracking-[0.12em] text-salvia uppercase">{session ? "Bem-vindo de volta" : "Luanda · fotografia, vídeo e eventos"}</p>
-          <h1 className="font-titulo text-[34px] leading-[1.02] font-extrabold tracking-[-0.025em] text-white md:text-[56px]">
+          <h1 className="font-titulo text-[34px] leading-[1.02] font-extrabold tracking-tight text-white md:text-[56px]">
             Do que precisas <span className="text-salvia">hoje?</span>
           </h1>
           <div className="flex gap-2">
@@ -123,9 +127,10 @@ function Explorar() {
             </button>
           </div>
           {/* "Quando?" — quem aluga sabe as datas primeiro; a API devolve só o equipamento livre nesses dias */}
-          <fieldset className="grid grid-cols-2 gap-2">
+          {/* fieldset e input[type=date] têm largura mínima própria: min-w-0 e minmax(0,1fr) deixam-nos encolher */}
+          <fieldset className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2">
             <legend className="sr-only">Quando precisas?</legend>
-            <label className="grid gap-1">
+            <label className="grid min-w-0 gap-1">
               <span className="text-[13px] font-medium text-salvia-tint">Levanto</span>
               <input
                 type="date"
@@ -136,10 +141,10 @@ function Explorar() {
                   if (!v) return setFilters({ ...filters, dataInicio: undefined, dataFim: undefined });
                   setFilters({ ...filters, dataInicio: v, dataFim: filters.dataFim && filters.dataFim > v ? filters.dataFim : addDaysIso(v, 1) });
                 }}
-                className="h-12 w-full rounded-campo border-[1.5px] border-transparent bg-branco px-4 text-[15px] text-verde outline-none transition focus:border-salvia focus:ring-4 focus:ring-salvia/40"
+                className="h-12 w-full min-w-0 rounded-campo border-[1.5px] border-transparent bg-branco px-3 text-[15px] text-verde outline-none transition focus:border-salvia focus:ring-4 focus:ring-salvia/40"
               />
             </label>
-            <label className="grid gap-1">
+            <label className="grid min-w-0 gap-1">
               <span className="text-[13px] font-medium text-salvia-tint">Devolvo</span>
               <input
                 type="date"
@@ -150,7 +155,7 @@ function Explorar() {
                   if (!v) return setFilters({ ...filters, dataInicio: undefined, dataFim: undefined });
                   setFilters({ ...filters, dataFim: v, dataInicio: filters.dataInicio && filters.dataInicio < v ? filters.dataInicio : addDaysIso(v, -1) });
                 }}
-                className="h-12 w-full rounded-campo border-[1.5px] border-transparent bg-branco px-4 text-[15px] text-verde outline-none transition focus:border-salvia focus:ring-4 focus:ring-salvia/40"
+                className="h-12 w-full min-w-0 rounded-campo border-[1.5px] border-transparent bg-branco px-3 text-[15px] text-verde outline-none transition focus:border-salvia focus:ring-4 focus:ring-salvia/40"
               />
             </label>
           </fieldset>
@@ -166,7 +171,7 @@ function Explorar() {
           <div className="hidden md:block"><TrustStrip /></div>
 
           {/* Categorias em pills (v4): ativa = verde com ícone âmbar */}
-          <section aria-label="Categorias" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:mx-0 md:flex-wrap md:px-0">
+          <section aria-label="Categorias" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none md:mx-0 md:flex-wrap md:px-0">
             <CategoryChip label="Tudo" icon={LayoutGrid} active={!categoryId} onClick={() => setCategoryId(undefined)} />
             {roots.map((c) => (
               <CategoryChip key={c.id} label={c.name} icon={categoryIcon(c.slug)} active={c.id === categoryId} onClick={() => setCategoryId(c.id)} />

@@ -1,7 +1,7 @@
 "use client";
 
 import { PageTransition } from "./motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -41,6 +41,21 @@ function useNav() {
   const mode = useMode(session?.role);
   if (!session) return { nav: GUEST_NAV, mode, session };
   return { nav: mode === "owner" ? OWNER_NAV : RENTER_NAV, mode, session };
+}
+
+// ─── Cabeçalho por cima do herói ──────────────────────────────────────────────
+// Ecrãs com herói escuro que sobe para trás do cabeçalho (margem negativa de 4rem). No topo da página o cabeçalho
+// é transparente, com logótipo e links claros; ao primeiro scroll para baixo volta ao estilo normal.
+const HERO_ROUTES = ["/explorar", "/painel"];
+
+function subscribeScroll(cb: () => void) {
+  window.addEventListener("scroll", cb, { passive: true });
+  return () => window.removeEventListener("scroll", cb);
+}
+
+/** true quando a página já desceu (alguns px de folga para o "elástico" do iOS). */
+function useScrolled() {
+  return useSyncExternalStore(subscribeScroll, () => window.scrollY > 8, () => false);
 }
 
 function isActive(pathname: string, href: string) {
@@ -97,8 +112,8 @@ export function ModeSwitch({ dark, className }: { dark?: boolean; className?: st
           aria-pressed={mode === m}
           onClick={() => go(m)}
           className={cn(
-            "min-h-9 rounded-full cursor-pointer px-3 text-[13px] font-bold transition",
-            mode === m ? (dark ? "bg-ambar text-verde" : "bg-verde text-areia") : dark ? "text-areia/80" : "text-verde",
+            "min-h-9 cursor-pointer rounded-full px-3 text-[13px] font-bold whitespace-nowrap transition",
+            mode === m ? (dark ? "bg-ambar text-sobre-ambar" : "bg-verde text-areia") : dark ? "text-areia/80" : "text-verde",
           )}
         >
           {m === "renter" ? "A alugar" : "Sou dono"}
@@ -108,44 +123,59 @@ export function ModeSwitch({ dark, className }: { dark?: boolean; className?: st
   );
 }
 
-/** AppHeader da app (v4): sempre claro — areia translúcida + borda, fixo no topo ao rolar. */
+/**
+ * AppHeader da app (v4): areia translúcida + borda, fixo no topo ao rolar.
+ * Nos ecrãs com herói escuro (HERO_ROUTES), no topo da página, fica transparente com logótipo e links claros.
+ */
 export function TopBar() {
   const pathname = usePathname();
   const { nav, mode, session } = useNav();
+  const scrolled = useScrolled();
+  const dark = HERO_ROUTES.includes(pathname) && !scrolled;
   return (
-    <header className="sticky top-0 z-40 border-b border-borda bg-areia/95 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4 md:px-12">
-        <Logo href={session && mode === "owner" ? "/painel" : "/explorar"} />
+    <header
+      className={cn(
+        // h-16 no próprio header (borda incluída): o herói sobe exatamente 4rem e cobre até ao topo do ecrã
+        "sticky top-0 z-40 h-16 border-b transition-[background-color,border-color] duration-[350ms] ease-[var(--ease-out)]",
+        // sobre-heroi: por cima do herói usa sempre as cores do tema claro (no escuro, salvia-tint e areia invertem)
+        dark ? "sobre-heroi border-transparent bg-transparent" : "border-borda bg-areia/95 backdrop-blur-md",
+      )}
+    >
+      <div className="mx-auto flex h-full max-w-6xl items-center gap-4 px-4 md:px-12">
+        <Logo dark={dark} href={session && mode === "owner" ? "/painel" : "/explorar"} />
         <nav className="ml-6 hidden items-center gap-1 md:flex" aria-label="Principal">
           {nav.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               aria-current={isActive(pathname, href) ? "page" : undefined}
-                className={cn(
+              className={cn(
                 "rounded-full px-4 py-2 text-[15px] font-medium transition",
-                isActive(pathname, href) ? "bg-verde text-areia" : "text-texto-corpo hover:bg-areia-2",
+                isActive(pathname, href)
+                  ? dark ? "bg-areia text-verde" : "bg-verde text-areia"
+                  : dark ? "text-salvia-tint hover:bg-white/10 hover:text-white" : "text-texto-corpo hover:bg-areia-2",
               )}
             >
               {label}
             </Link>
           ))}
         </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <ModeSwitch className="hidden md:grid" />
-          {session && <NotificationBell dark={false} active={isActive(pathname, "/atividade")} />}
+        {/* relative: a partir de 1440px o Publicar sai para a margem (absolute), e o seletor fica no mesmo sítio nos dois modos */}
+        <div className="relative ml-auto flex items-center gap-2">
+          <ModeSwitch dark={dark} className="hidden md:grid" />
+          {session && <NotificationBell dark={dark} active={isActive(pathname, "/atividade")} />}
           {session && isAdmin(session.role) && (
-            <ButtonLink href="/admin" variant="soft" size="sm" className="hidden md:inline-flex">
+            <ButtonLink href="/admin" variant={dark ? "on-dark" : "soft"} size="sm" className="hidden md:inline-flex">
               <ShieldCheck strokeWidth={1.8} /> Admin
             </ButtonLink>
           )}
           {session && mode === "owner" && (
-            <ButtonLink href="/publicar" variant="dark" size="sm" className="hidden md:inline-flex">
+            <ButtonLink href="/publicar" variant={dark ? "light" : "dark"} size="sm" className="hidden whitespace-nowrap md:inline-flex min-[1440px]:absolute min-[1440px]:left-full min-[1440px]:ml-4">
               <Plus strokeWidth={2} /> Publicar
             </ButtonLink>
           )}
           {session === null && (
-            <ButtonLink href={`/entrar?next=${encodeURIComponent(pathname)}`} variant="outline" size="sm">
+            <ButtonLink href={`/entrar?next=${encodeURIComponent(pathname)}`} variant={dark ? "on-dark" : "outline"} size="sm">
               Entrar
             </ButtonLink>
           )}
@@ -173,7 +203,7 @@ export function BottomNav() {
         if (item === "publish") {
           return (
             <Link key="publish" href="/publicar" aria-label="Publicar equipamento" className="flex items-center justify-center">
-              <span className="-mt-7 flex size-14 items-center justify-center bg-verde text-ambar shadow-flutua transition active:scale-95 [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
+              <span className="-mt-7 flex size-14 items-center justify-center bg-verde-solido text-ambar shadow-flutua transition active:scale-95 [clip-path:polygon(50%_0,100%_25%,100%_75%,50%_100%,0_75%,0_25%)]">
                 <Plus className="size-6" strokeWidth={2.4} aria-hidden />
               </span>
             </Link>
