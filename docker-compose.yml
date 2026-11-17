@@ -1,3 +1,4 @@
+# Desenvolvimento local. Produção: deploy/vps (só o Caddy exposto) e docs/DEPLOY_VPS.md.
 services:
   api:
     build:
@@ -10,8 +11,9 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
+    # só nesta máquina (127.0.0.1): noutra rede (Wi-Fi da 42, café) a API não fica visível
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -27,7 +29,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - beeznoo_data:/var/lib/postgresql/data
     healthcheck:

@@ -1,11 +1,69 @@
 # Beeznoo numa VPS: tudo no mesmo servidor (ver docs/DEPLOY_VPS.md e o PDF "Beeznoo — guia da plataforma").
-#   caddy    → HTTPS automático (Let's Encrypt) para o site e para o armazenamento
-#   web      → Next.js (o browser só fala com ele; /api/v1 vai para a API pela rede interna)
-#   api      → Spring Boot
-#   postgres → base de dados (só na rede interna)
-#   garage   → armazenamento S3 privado (fotos, documentos de KYC, checklists)
+#
+#   Internet ──80/443──> caddy ──> web (Next.js) ──> caddy :8080 "api-lb" ──> api-1 / api-2 ──> postgres
+#                          └────> garage (S3, só URLs assinadas)
+#
+#   caddy    → única porta pública (80/443): HTTPS automático e, na porta interna 8080, balanceador da API
+#   web      → Next.js (o browser só fala com ele; /api/v1 vai para o balanceador pela rede interna)
+#   api-1/2  → Spring Boot, 2 réplicas (api-1 corre os agendadores; ver SCHEDULER_ENABLED)
+#   postgres → base de dados (rede "data", internal: só as réplicas da API lá chegam)
+#   garage   → armazenamento S3 privado (rede "storage", internal: só o Caddy lá chega)
+#
+# Nenhum serviço além do Caddy tem `ports:`. Não acrescentes `ports:` à API, ao Postgres nem ao Garage: o Docker abre
+# as portas publicadas por fora do ufw.
 # Arrancar:   docker compose --env-file .env up -d --build
 name: beeznoo
+
+# Uma definição para as duas réplicas da API (só muda o nome e SCHEDULER_ENABLED)
+x-api: &api
+  build:
+    context: ../../api
+  image: beeznoo-api:local
+  restart: unless-stopped
+  env_file: .env
+  # Teto de memória por réplica: sem ele, MaxRAMPercentage mede a RAM da VPS inteira e duas JVMs podiam
+  # pedir 2 × 50% dos 4 GB. 768 MB → heap ~384 MB + ~250 MB fora do heap (metaspace, código, threads).
+  mem_limit: ${API_MEM_LIMIT:-768m}
+  expose:
+    - "8080"
+  networks:
+    - backend
+    - data
+  depends_on:
+    postgres:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:8080/actuator/health"]
+    interval: 15s
+    timeout: 5s
+    retries: 10
+    start_period: 60s
+
+x-api-env: &api-env
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_SSLMODE: disable
+  # 2 réplicas × 10 ligações (o Postgres aceita 100)
+  DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+  FRONTEND_URL: ${PUBLIC_WEB_URL}
+  GOOGLE_REDIRECT_URI: ${PUBLIC_WEB_URL}/login/oauth2/code/google
+  # armazenamento: o mesmo URL público que o browser usa (as URLs assinadas têm de ter este host).
+  # A API resolve S3_DOMAIN para o Caddy pela rede interna (alias abaixo), sem sair do servidor.
+  B2_ENDPOINT: ${PUBLIC_S3_URL}
+  B2_REGION: garage
+  B2_BUCKET: ${S3_BUCKET}
+  B2_ACCESS_KEY: ${S3_ACCESS_KEY}
+  B2_SECRET_KEY: ${S3_SECRET_KEY}
+  B2_PATH_STYLE: "true"
+  SESSION_COOKIE_SECURE: "true"
+  # Duas réplicas: os limites de pedidos (e o contador de tentativas de OTP) têm de ser partilhados
+  RATE_LIMIT_STORE: database
+  # browser → Caddy (escreve X-Forwarded-For = IP do cliente) → Next (mantém) → Caddy api-lb (acrescenta o IP do
+  # Next) → API. Duas entradas: a da esquerda é o cliente. Ver docs/SEGURANCA.md.
+  RATE_LIMIT_TRUSTED_PROXIES: "2"
+  API_DOCS_ENABLED: "false"
+  # JVM: o Dockerfile está afinado para os 512 MB do Render; aqui cada réplica tem API_MEM_LIMIT (768 MB)
+  JAVA_OPTS: ${API_JAVA_OPTS:--XX:MaxRAMPercentage=50 -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=64m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError}
 
 services:
   caddy:
@@ -15,6 +73,9 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"
+    # 8080 (balanceador da API) fica só nas redes internas
+    expose:
+      - "8080"
     environment:
       WEB_DOMAIN: ${WEB_DOMAIN}
       S3_DOMAIN: ${S3_DOMAIN}
@@ -23,55 +84,50 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    depends_on:
-      - web
-      - garage
+    networks:
+      public:
+        aliases:
+          - api-lb
+      backend:
+        aliases:
+          # a API chega ao Garage pelo URL público sem sair do Docker (o certificado é o mesmo)
+          - ${S3_DOMAIN_HOST}
+      storage: {}
 
   web:
     build:
       context: ../../frontend
       args:
-        API_URL: http://api:8080
+        # o balanceador interno (Caddy :8080), nunca uma réplica diretamente
+        API_URL: http://api-lb:8080
         STORAGE_PUBLIC_ORIGIN: ${PUBLIC_S3_URL}
         # pré-visualização dos links (og:image absoluto)
         SITE_URL: ${PUBLIC_WEB_URL}
         NEXT_PUBLIC_WHATSAPP_NUMBER: ${NEXT_PUBLIC_WHATSAPP_NUMBER:-}
     restart: unless-stopped
+    mem_limit: ${WEB_MEM_LIMIT:-512m}
+    expose:
+      - "3000"
+    networks:
+      - public
     depends_on:
-      api:
+      caddy:
+        condition: service_started
+      api-1:
         condition: service_healthy
 
-  api:
-    build:
-      context: ../../api
-    restart: unless-stopped
-    env_file: .env
+  api-1:
+    <<: *api
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_SSLMODE: disable
-      FRONTEND_URL: ${PUBLIC_WEB_URL}
-      GOOGLE_REDIRECT_URI: ${PUBLIC_WEB_URL}/login/oauth2/code/google
-      # armazenamento: o mesmo URL público que o browser usa (as URLs assinadas têm de ter este host)
-      B2_ENDPOINT: ${PUBLIC_S3_URL}
-      B2_REGION: garage
-      B2_BUCKET: ${S3_BUCKET}
-      B2_ACCESS_KEY: ${S3_ACCESS_KEY}
-      B2_SECRET_KEY: ${S3_SECRET_KEY}
-      B2_PATH_STYLE: "true"
-      SESSION_COOKIE_SECURE: "true"
-      # browser → Caddy → Next → API
-      RATE_LIMIT_TRUSTED_PROXIES: "2"
-      # VPS com 4 GB: mais heap e o compilador C2 (o Dockerfile está afinado para os 512 MB do Render)
-      JAVA_OPTS: ${API_JAVA_OPTS:--XX:MaxRAMPercentage=50 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError}
-    extra_hosts:
-      # a API chega ao armazenamento pelo URL público sem sair do servidor
-      - "${S3_DOMAIN_HOST}:host-gateway"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      garage:
-        condition: service_started
+      <<: *api-env
+      # agendadores (expirar pedidos e pagamentos) só nesta réplica
+      SCHEDULER_ENABLED: "true"
+
+  api-2:
+    <<: *api
+    environment:
+      <<: *api-env
+      SCHEDULER_ENABLED: "false"
 
   postgres:
     image: postgres:16-alpine
@@ -82,6 +138,10 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    expose:
+      - "5432"
+    networks:
+      - data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
@@ -97,6 +157,23 @@ services:
       - ./garage.toml:/etc/garage.toml:ro
       - garage_meta:/var/lib/garage/meta
       - garage_data:/var/lib/garage/data
+    # S3 (3900) só para o Caddy; RPC (3901) e admin (3903, em 127.0.0.1 no garage.toml) nunca saem do contentor
+    expose:
+      - "3900"
+    networks:
+      - storage
+
+networks:
+  # Caddy ↔ Next. Com saída para a Internet (Let's Encrypt; o Next lê as fotos para as imagens de partilha)
+  public: {}
+  # Caddy (balanceador) ↔ réplicas da API. Com saída: a API fala com o Losambo, a Ombala, o Resend e a Google
+  backend: {}
+  # API ↔ Postgres. Sem saída nem entrada de fora: o Postgres só é visto pelas réplicas
+  data:
+    internal: true
+  # Caddy ↔ Garage. Sem saída
+  storage:
+    internal: true
 
 volumes:
   caddy_data:
