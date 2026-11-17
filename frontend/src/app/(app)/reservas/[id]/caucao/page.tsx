@@ -15,6 +15,8 @@ import { useRequireSession } from "@/lib/auth";
 import { bookingCode, firstName } from "@/lib/booking";
 import type { Booking } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { fmt } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 
 /**
  * Pagamento direto (decisoes-produto.md 2026-11-15): a caução está com o dono. Depois da devolução confirmada,
@@ -30,10 +32,13 @@ export default function CaucaoPage() {
   const [reason, setReason] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const dict = useT();
+  const t = dict.deposit;
+  const bp = dict.bookingPage;
 
   if (!session) return null;
   if (booking.error) return <ErrorState message={booking.error} onRetry={booking.reload} />;
-  if (!booking.data) return <Skeleton role="status" aria-label="A carregar" className="mx-auto h-96 max-w-2xl rounded-sheet" />;
+  if (!booking.data) return <Skeleton role="status" aria-label={dict.common.loading} className="mx-auto h-96 max-w-2xl rounded-sheet" />;
 
   const b = booking.data;
   const deposit = Number(b.depositAmount);
@@ -43,14 +48,12 @@ export default function CaucaoPage() {
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
         <HexTile icon={HandCoins} tone="areia" size={72} />
-        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">Nada a registar agora</h1>
+        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">{t.nothingTitle}</h1>
         <p className="text-cinza">
-          {isOwner
-            ? "A caução regista-se depois de a devolução ser confirmada pelas duas partes."
-            : "É o dono que regista a devolução da caução."}
+          {isOwner ? t.nothingOwner : t.nothingRenter}
         </p>
         <ButtonLink href={`/reservas/${id}`} variant="dark">
-          Ver reserva
+          {bp.seeBooking}
         </ButtonLink>
       </div>
     );
@@ -65,10 +68,10 @@ export default function CaucaoPage() {
     setBusy(true);
     try {
       booking.setData(await paymentApi.depositDecision(id, amount, mode === "partial" ? reason.trim() : undefined));
-      toast.success("Caução registada. A reserva está concluída.");
+      toast.success(t.recorded);
       router.replace(`/reservas/${id}`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível registar a caução.");
+      toast.error(e instanceof Error ? e.message : t.recordError);
     } finally {
       setBusy(false);
     }
@@ -76,65 +79,65 @@ export default function CaucaoPage() {
 
   return (
     <div className="mx-auto grid max-w-2xl gap-5 pb-24">
-      <BackLink href={`/reservas/${id}`}>Reserva {bookingCode(id)}</BackLink>
-      <PageHeader title="Devolver a caução" subtitle={`${b.itemTitle} · ${firstName(b.renterName)}`} />
+      <BackLink href={`/reservas/${id}`}>{fmt(bp.bookingCode, { code: bookingCode(id) })}</BackLink>
+      <PageHeader title={t.title} subtitle={`${b.itemTitle} · ${firstName(b.renterName, dict)}`} />
 
       <Card className="flex items-center gap-4 p-5">
         <HexTile icon={HandCoins} tone="salvia-tint" size={48} />
         <div className="grid gap-0.5">
-          <p className="text-sm text-cinza">Caução que recebeste na entrega</p>
+          <p className="text-sm text-cinza">{t.received}</p>
           <Kz value={deposit} className="text-[26px] text-verde" />
         </div>
       </Card>
 
       <SegmentedControl
-        label="O que fizeste com a caução"
+        label={t.whatDid}
         value={mode}
         onChange={setMode}
         options={[
-          { value: "all", label: "Devolvi tudo" },
-          { value: "partial", label: "Retive uma parte" },
+          { value: "all", label: t.all },
+          { value: "partial", label: t.partial },
         ]}
       />
 
       {mode === "partial" && (
         <Card className="grid animate-sobe gap-4 p-5">
           <TextField
-            label="Valor retido (Kz)"
+            label={t.withheld}
             value={withheld}
             onChange={(v) => setWithheld(v.replace(/\D/g, "").slice(0, 9))}
             inputMode="numeric"
-            placeholder="Ex.: 5000"
-            error={withheld && invalidAmount ? `Entre 1 e ${deposit.toLocaleString("de-DE")} Kz` : undefined}
+            placeholder={t.withheldPh}
+            error={withheld && invalidAmount ? fmt(t.between, { max: deposit.toLocaleString("de-DE") }) : undefined}
           />
           <TextField
-            label="Motivo"
+            label={t.reason}
             value={reason}
             onChange={setReason}
-            placeholder="Ex.: risco na lente que não estava na entrega"
-            hint="O arrendatário vê este motivo. Usa as fotos da checklist para o explicar."
+            placeholder={t.reasonPh}
+            hint={t.reasonHint}
           />
           {!invalidAmount && amount > 0 && (
             <p className="text-sm text-texto-corpo">
-              Devolves {returned.toLocaleString("de-DE")} Kz e ficas com {amount.toLocaleString("de-DE")} Kz.
+              {fmt(t.split, { returned: returned.toLocaleString("de-DE"), kept: amount.toLocaleString("de-DE") })}
             </p>
           )}
         </Card>
       )}
 
-      <Callout tone="ok" icon={ShieldCheck} title="Se houver desacordo">
-        {firstName(b.renterName)} pode reportar um problema até 7 dias depois. A equipa Beeznoo compara as fotos da entrega e da devolução e decide.
+      <Callout tone="ok" icon={ShieldCheck} title={t.disagreeTitle}>
+        {fmt(t.disagreeText, { name: firstName(b.renterName, dict) })}
       </Callout>
 
       <Checkbox checked={confirmed} onChange={setConfirmed}>
         {mode === "all"
-          ? `Confirmo que devolvi os ${deposit.toLocaleString("de-DE")} Kz de caução a ${b.renterName}.`
-          : `Confirmo que devolvi ${Math.max(returned, 0).toLocaleString("de-DE")} Kz a ${b.renterName} e retive o resto pelo motivo indicado.`}
+          ? fmt(t.confirmAll, { amount: deposit.toLocaleString("de-DE"), name: b.renterName })
+          : fmt(t.confirmPartial, { amount: Math.max(returned, 0).toLocaleString("de-DE"), name: b.renterName })}
       </Checkbox>
 
       <StickyCTA>
         <Button block size="lg" disabled={!ready} loading={busy} onClick={submit}>
-          Registar e concluir
+          {t.submit}
         </Button>
       </StickyCTA>
     </div>

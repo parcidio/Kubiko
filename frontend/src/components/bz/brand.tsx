@@ -6,9 +6,10 @@ import { cn } from "@/lib/utils";
  * Logótipo horizontal (imagem SVG em public/svg; símbolo vetorial v4 em public/png/beeznoo-icon.svg).
  * `dark` = sobre fundo escuro (sempre branco). Sem `dark`: tinta no tema claro, branco no tema escuro.
  */
-export function Logo({ dark, href = "/explorar", className }: { dark?: boolean; href?: string; className?: string }) {
+// label: "Beeznoo — início" / "Beeznoo — home" (t.common.homeLabel); brand.tsx não usa hooks para servir server components
+export function Logo({ dark, href = "/explorar", className, label = "Beeznoo" }: { dark?: boolean; href?: string; className?: string; label?: string }) {
   return (
-    <Link href={href} aria-label="Beeznoo — início" className={cn("inline-flex shrink-0 items-center", className)}>
+    <Link href={href} aria-label={label} className={cn("inline-flex shrink-0 items-center", className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={dark ? "/svg/beeznoo-lockup-horizontal-branco.svg" : "/svg/beeznoo-lockup-horizontal-tinta.svg"}

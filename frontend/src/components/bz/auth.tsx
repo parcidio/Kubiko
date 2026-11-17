@@ -6,6 +6,8 @@ import { OtpField, RadioCards } from "./form";
 import { Button, buttonClass } from "./ui";
 import { authApi } from "@/lib/api";
 import { signIn } from "@/lib/auth";
+import { fmt } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 import type { UserRole } from "@/lib/types";
 
 export function AuthTitle({ title, subtitle }: { title: string; subtitle?: React.ReactNode }) {
@@ -22,17 +24,18 @@ export function AdminMfaStep({ mfaToken, phoneHint, onDone }: { mfaToken: string
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const t = useT().auth;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (code.length !== 6) return setError("O código tem 6 dígitos.");
+    if (code.length !== 6) return setError(t.codeLength);
     setLoading(true);
     setError(undefined);
     try {
       signIn(await authApi.loginMfa({ mfaToken, code }));
       onDone();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Não foi possível confirmar o código.");
+      setError(err instanceof Error ? err.message : t.mfa.failed);
     } finally {
       setLoading(false);
     }
@@ -41,13 +44,13 @@ export function AdminMfaStep({ mfaToken, phoneHint, onDone }: { mfaToken: string
   return (
     <>
       <AuthTitle
-        title="Confirma que és tu"
-        subtitle={`Enviámos um código por WhatsApp${phoneHint ? ` para ${phoneHint}` : ""}. As contas da equipa têm verificação em dois passos.`}
+        title={t.mfa.title}
+        subtitle={phoneHint ? fmt(t.mfa.subtitleTo, { phone: phoneHint }) : t.mfa.subtitle}
       />
       <form onSubmit={submit} className="grid gap-5" noValidate>
         <OtpField value={code} onChange={setCode} error={error} />
         <Button type="submit" loading={loading} block size="lg">
-          {loading ? "A confirmar…" : "Confirmar e entrar"}
+          {loading ? t.confirming : t.mfa.submit}
         </Button>
       </form>
     </>
@@ -58,6 +61,7 @@ export function AdminMfaStep({ mfaToken, phoneHint, onDone }: { mfaToken: string
 export function ResendCode({ onResend }: { onResend: () => Promise<void> }) {
   const [seconds, setSeconds] = useState(60);
   const [sending, setSending] = useState(false);
+  const t = useT().auth;
 
   useEffect(() => {
     if (seconds <= 0) return;
@@ -80,12 +84,13 @@ export function ResendCode({ onResend }: { onResend: () => Promise<void> }) {
         }
       }}
     >
-      {seconds > 0 ? `Reenviar código em 0:${String(seconds).padStart(2, "0")}` : "Reenviar código"}
+      {seconds > 0 ? fmt(t.resendIn, { s: String(seconds).padStart(2, "0") }) : t.resend}
     </button>
   );
 }
 
-export function GoogleButton({ label = "Continuar com Google" }: { label?: string }) {
+export function GoogleButton({ label }: { label?: string }) {
+  const t = useT().auth;
   // Por omissão a mesma origem (o Next faz proxy para a API). NEXT_PUBLIC_API_URL só para apontar diretamente à API em local.
   const base = process.env.NEXT_PUBLIC_API_URL ?? "";
   return (
@@ -96,15 +101,16 @@ export function GoogleButton({ label = "Continuar com Google" }: { label?: strin
         <path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z" />
         <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15A10.96 10.96 0 0 0 12 1 11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
       </svg>
-      {label}
+      {label ?? t.google}
     </a>
   );
 }
 
 export function Divider() {
+  const t = useT().auth;
   return (
     <div className="flex items-center gap-3 text-[13px] text-cinza" aria-hidden>
-      <span className="h-px flex-1 bg-borda" /> ou <span className="h-px flex-1 bg-borda" />
+      <span className="h-px flex-1 bg-borda" /> {t.or} <span className="h-px flex-1 bg-borda" />
     </div>
   );
 }
@@ -112,16 +118,17 @@ export function Divider() {
 export type SignupRole = Exclude<UserRole, "ADMIN">;
 
 export function RolePicker({ value, onChange }: { value: SignupRole; onChange: (v: SignupRole) => void }) {
+  const r = useT().auth.roles;
   return (
     <RadioCards<SignupRole>
-      legend="Como vais usar a Beeznoo?"
+      legend={r.legend}
       name="role"
       value={value}
       onChange={onChange}
       options={[
-        { value: "RENTER", title: "Quero alugar", text: "Procuro equipamento para um trabalho ou evento.", icon: Camera },
-        { value: "OWNER", title: "Tenho equipamento", text: "Quero ganhar dinheiro com o que está parado.", icon: PackageOpen },
-        { value: "BOTH", title: "As duas coisas", text: "Alugo e ponho equipamento a render.", icon: Repeat },
+        { value: "RENTER", ...r.RENTER, icon: Camera },
+        { value: "OWNER", ...r.OWNER, icon: PackageOpen },
+        { value: "BOTH", ...r.BOTH, icon: Repeat },
       ]}
     />
   );

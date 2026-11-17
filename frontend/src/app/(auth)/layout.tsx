@@ -5,12 +5,10 @@ import { usePathname } from "next/navigation";
 import { BadgeCheck, ShieldCheck, Ticket } from "lucide-react";
 import { HexGlow, Logo } from "@/components/bz/brand";
 import { HEX_CLIP, HexTile } from "@/components/bz/hex";
+import { LangSwitch } from "@/components/bz/lang-switch";
+import { useT } from "@/lib/i18n/client";
 
-const PROMISES = [
-  { icon: BadgeCheck, text: "Donos e arrendatários verificados" },
-  { icon: ShieldCheck, text: "Caução devolvida quando tudo corre bem" },
-  { icon: Ticket, text: "Pagas ao dono na entrega, com comprovativo" },
-];
+const PROMISE_ICONS = [BadgeCheck, ShieldCheck, Ticket];
 
 const EASE = "cubic-bezier(0.77, 0, 0.18, 1)";
 
@@ -38,6 +36,8 @@ function HexStack({ size, tone, className }: { size: number; tone: "ambar" | "sa
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isRegister = pathname.startsWith("/registar");
+  const t = useT().auth;
+  const PROMISES = t.promises.map((text, i) => ({ icon: PROMISE_ICONS[i], text }));
 
   const contentRef = useRef<HTMLDivElement>(null);
   const prevIsRegister = useRef(isRegister);
@@ -72,12 +72,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <HexGlow />
         <HexStack size={74} tone="ambar" className="top-4 right-5 origin-top-right scale-[.7] md:top-6 md:right-8 md:scale-90" />
         <HexStack size={34} tone="salvia" className="top-52 right-44 hidden md:block" />
-        <div className="relative">
+        {/* pr-20 no telemóvel: o hexágono 3D ocupa o canto superior direito */}
+        <div className="relative flex items-center justify-between gap-3 pr-20 md:pr-0">
           <Logo dark href="/" />
+          <LangSwitch dark className="md:mr-28" />
         </div>
         <div className="relative mt-8 grid gap-4 md:mt-0">
           <p className="max-w-[16ch] font-titulo text-[34px] leading-[1.02] font-extrabold tracking-[-0.025em] text-white md:text-[56px]">
-            Por que comprar quando podes <span className="text-salvia">alugar?</span>
+            {t.heroBefore}<span className="text-salvia">{t.heroAccent}</span>
           </p>
           <ul className="hidden gap-3 md:grid">
             {PROMISES.map(({ icon: Icon, text }) => (
@@ -88,7 +90,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             ))}
           </ul>
         </div>
-        <p className="relative hidden text-[13px] text-salvia-tint/80 md:block">Equipamento de fotografia, vídeo e eventos em Luanda.</p>
+        <p className="relative hidden text-[13px] text-salvia-tint/80 md:block">{t.heroFoot}</p>
       </aside>
 
       {/* Só esta área faz scroll; a margem reserva o espaço do painel fixo */}

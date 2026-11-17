@@ -16,9 +16,10 @@ import { compressImage } from "@/lib/images";
 import { bookingCode, whatsappLink } from "@/lib/booking";
 import type { Booking, IncidentType } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { fmt } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 
 type Kind = "dano" | "perda" | "roubo" | "outro";
-const KIND_LABEL: Record<Kind, string> = { dano: "Dano", perda: "Perda", roubo: "Roubo", outro: "Outro" };
 const KIND_API: Record<Kind, IncidentType> = { dano: "DAMAGE", perda: "LOSS", roubo: "THEFT", outro: "OTHER" };
 
 export default function ProblemaPage() {
@@ -31,21 +32,24 @@ export default function ProblemaPage() {
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
+  const dict = useT();
+  const t = dict.problem;
+  const bp = dict.bookingPage;
 
   if (!session) return null;
   if (booking.error) return <ErrorState message={booking.error} onRetry={booking.reload} />;
-  if (!booking.data) return <Skeleton role="status" aria-label="A carregar" className="mx-auto h-96 max-w-2xl rounded-sheet" />;
+  if (!booking.data) return <Skeleton role="status" aria-label={dict.common.loading} className="mx-auto h-96 max-w-2xl rounded-sheet" />;
   const b = booking.data;
   const code = bookingCode(b.id);
 
   async function submit() {
-    if (text.trim().length < 10) return setErrors({ fields: { text: "Descreve o que aconteceu (pelo menos uma frase)." } });
+    if (text.trim().length < 10) return setErrors({ fields: { text: t.describe } });
     setBusy(true);
     setErrors({ fields: {} });
     try {
       const files = await Promise.all(photos.photos.map((p) => compressImage(p.file)));
       await incidentApi.report(b.id, KIND_API[kind], text.trim(), files);
-      toast.success("Problema reportado. A equipa vai analisar.");
+      toast.success(t.reported);
       setSent(true);
     } catch (err) {
       setErrors(toFormErrors(err));
@@ -55,17 +59,17 @@ export default function ProblemaPage() {
   }
 
   if (sent) {
-    const wa = whatsappLink(`Reportei um problema na reserva ${code} (${b.itemTitle}): ${KIND_LABEL[kind]}.`);
+    const wa = whatsappLink(fmt(t.waText, { code, title: b.itemTitle, kind: t.kinds[kind].title }));
     return (
       <div className="mx-auto grid max-w-md justify-items-center gap-4 py-10 text-center">
         <SuccessCheck />
-        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">Problema reportado</h1>
-        <p className="text-cinza">A descrição e as fotos chegaram à equipa. A reserva fica em análise e a caução só é decidida depois disto. Falamos contigo se precisarmos de mais.</p>
+        <h1 className="font-titulo text-[26px] leading-tight font-bold text-verde md:text-[32px]">{t.sentTitle}</h1>
+        <p className="text-cinza">{t.sentText}</p>
         <ButtonLink href={`/reservas/${b.id}`} block size="lg">
-          Voltar à reserva
+          {bp.backToBooking}
         </ButtonLink>
         <a href={wa} target="_blank" rel="noreferrer" className={buttonClass("ghost", "md")}>
-          <MessageCircle strokeWidth={1.8} /> É urgente? Fala connosco no WhatsApp
+          <MessageCircle strokeWidth={1.8} /> {t.urgent}
         </a>
       </div>
     );
@@ -73,47 +77,47 @@ export default function ProblemaPage() {
 
   return (
     <div className="mx-auto grid max-w-2xl gap-5">
-      <BackLink href={`/reservas/${id}`}>Reserva {code}</BackLink>
-      <PageHeader title="Reportar problema" subtitle={`${b.itemTitle}. A equipa Beeznoo analisa e decide sobre a caução com base nas fotos.`} />
+      <BackLink href={`/reservas/${id}`}>{fmt(bp.bookingCode, { code })}</BackLink>
+      <PageHeader title={t.title} subtitle={fmt(t.subtitle, { title: b.itemTitle })} />
 
       {b.status === "COMPLETED" && b.renterId === session?.profileId && (
-        <Callout tone="info" icon={HelpCircle} title="Caução">
-          Se não recebeste a caução ou não concordas com o valor retido pelo dono, podes reportar até 7 dias depois de ele o registar.
+        <Callout tone="info" icon={HelpCircle} title={t.depositTitle}>
+          {t.depositText}
         </Callout>
       )}
       {!["ACTIVE", "IN_PROGRESS", "RETURNED", "DISPUTED", "COMPLETED"].includes(b.status) ? (
-        <Callout tone="info" icon={HelpCircle} title="Só durante o aluguer">
-          Podes reportar um problema enquanto a reserva está em curso. Para outras dúvidas, fala connosco no WhatsApp.
+        <Callout tone="info" icon={HelpCircle} title={t.onlyDuringTitle}>
+          {t.onlyDuringText}
         </Callout>
       ) : (
         <>
           <RadioCards<Kind>
-            legend="O que aconteceu?"
+            legend={t.what}
             name="kind"
             value={kind}
             onChange={setKind}
             columns={2}
             options={[
-              { value: "dano", title: "Dano", text: "Partiu, riscou ou deixou de funcionar", icon: Wrench },
-              { value: "perda", title: "Perda", text: "Falta o equipamento ou um acessório", icon: PackageX },
-              { value: "roubo", title: "Roubo", text: "Foi roubado durante o aluguer", icon: ShieldAlert },
-              { value: "outro", title: "Outro", text: "Atraso, equipamento diferente…", icon: HelpCircle },
+              { value: "dano", ...t.kinds.dano, icon: Wrench },
+              { value: "perda", ...t.kinds.perda, icon: PackageX },
+              { value: "roubo", ...t.kinds.roubo, icon: ShieldAlert },
+              { value: "outro", ...t.kinds.outro, icon: HelpCircle },
             ]}
           />
-          <TextArea label="Conta o que se passou" value={text} onChange={setText} rows={5} maxLength={2000} error={errors.fields.text} placeholder="Quando, onde e como. Quanto mais concreto, mais depressa resolvemos." />
+          <TextArea label={t.tell} value={text} onChange={setText} rows={5} maxLength={2000} error={errors.fields.text} placeholder={t.tellPh} />
           <div className="grid gap-2">
-            <p className="text-sm font-medium text-verde">Fotos (até 6)</p>
+            <p className="text-sm font-medium text-verde">{t.photos}</p>
             <PhotoPicker photos={photos.photos} onAdd={photos.add} onRemove={photos.remove} onCover={photos.makeCover} min={1} />
           </div>
           <Callout tone="warn" icon={AlertTriangle}>
-            Em caso de roubo, faz também queixa na polícia e guarda o auto. A equipa vai pedi-lo.
+            {t.theft}
           </Callout>
           <FormError message={errors.form} />
           <Button variant="dark" size="lg" block loading={busy} onClick={submit}>
-            Reportar problema
+            {t.submit}
           </Button>
           <p className="text-center text-[13px] text-cinza">
-            A reserva fica marcada com problema e a equipa Beeznoo é avisada. A outra parte também.
+            {t.footnote}
           </p>
         </>
       )}

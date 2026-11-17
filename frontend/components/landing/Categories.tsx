@@ -18,81 +18,33 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import { useT } from "@/lib/i18n/client";
 import { Hex3D } from "./Brand";
 
-type Item = { name: string; use: string; icon: LucideIcon; soon?: boolean };
-type Cat = {
-  key: string;
-  label: string;
+type Key = "foto" | "audio" | "eventos" | "mais";
+type Shape = {
+  key: Key;
   icon: LucideIcon;
-  kicker: string;
-  title: string;
-  text: string;
   /** Categoria real no Explorar (slug de V2__items_categories.sql); sem slug = ainda não existe. */
-  explore?: { href: string; label: string };
-  items: Item[];
+  href?: string;
+  /** Ícone de cada exemplo e se ainda não existe ("Em breve"). Nomes e usos vêm do dicionário. */
+  items: { icon: LucideIcon; soon?: boolean }[];
 };
 
 // Exemplos do tipo de equipamento de cada categoria (não são anúncios reais: sem preço nem dono).
-const CATS: Cat[] = [
-  {
-    key: "foto",
-    label: "Foto e vídeo",
-    icon: Camera,
-    kicker: "Foto e vídeo",
-    title: "Grava como um profissional, sem comprar como um.",
-    text: "Câmaras, estabilizadores e luz de estúdio para casamentos, videoclipes e conteúdo para redes.",
-    explore: { href: "/explorar?categoria=fotografia", label: "Ver foto e vídeo" },
-    items: [
-      { name: "Sony A7 III", use: "Casamentos e retratos", icon: Camera },
-      { name: "Canon EOS R6", use: "Foto e vídeo 4K", icon: Camera },
-      { name: "DJI Ronin RS3", use: "Planos estáveis em movimento", icon: Video },
-      { name: "Godox AD600", use: "Flash de estúdio portátil", icon: Lightbulb },
-    ],
-  },
-  {
-    key: "audio",
-    label: "Áudio",
-    icon: Mic,
-    kicker: "Áudio",
-    title: "Som limpo para gravar, falar ou fazer festa.",
-    text: "Microfones sem fio para entrevistas e podcasts, colunas para o fim de semana.",
-    explore: { href: "/explorar?categoria=audio", label: "Ver áudio" },
-    items: [
-      { name: "Rode Wireless GO II", use: "Entrevistas e reels", icon: Mic },
-      { name: "JBL PartyBox", use: "Festas e aniversários", icon: Speaker },
-      { name: "Microfone de mão", use: "Conferências e cultos", icon: Mic },
-      { name: "Coluna amplificada", use: "Eventos ao ar livre", icon: Speaker },
-    ],
-  },
+const SHAPES: Shape[] = [
+  { key: "foto", icon: Camera, href: "/explorar?categoria=fotografia", items: [{ icon: Camera }, { icon: Camera }, { icon: Video }, { icon: Lightbulb }] },
+  { key: "audio", icon: Mic, href: "/explorar?categoria=audio", items: [{ icon: Mic }, { icon: Speaker }, { icon: Mic }, { icon: Speaker }] },
   {
     key: "eventos",
-    label: "Eventos",
     icon: Projector,
-    kicker: "Eventos",
-    title: "Tudo para o teu evento, só pelo fim de semana.",
-    text: "Projeção, luz e som para casamentos, aniversários e apresentações.",
-    explore: { href: "/explorar?categoria=eventos", label: "Ver eventos" },
-    items: [
-      { name: "Projetor Epson", use: "Apresentações e cinema em casa", icon: Projector },
-      { name: "Kit de iluminação", use: "Pista e decoração", icon: Lightbulb },
-      { name: "Tendas", use: "Festas no quintal", icon: Tent, soon: true },
-      { name: "Cadeiras e mesas", use: "Receções", icon: Armchair, soon: true },
-    ],
+    href: "/explorar?categoria=eventos",
+    items: [{ icon: Projector }, { icon: Lightbulb }, { icon: Tent, soon: true }, { icon: Armchair, soon: true }],
   },
   {
     key: "mais",
-    label: "Mais categorias",
     icon: LayoutGrid,
-    kicker: "A seguir",
-    title: "Do berbequim à carrinha.",
-    text: "Começamos por foto, vídeo, áudio e eventos. Diz-nos na lista de espera o que procuras e abrimos primeiro as categorias mais pedidas.",
-    items: [
-      { name: "Ferramentas", use: "Obras e reparações em casa", icon: Wrench, soon: true },
-      { name: "Eletrónica", use: "Consolas, ecrãs, portáteis", icon: Cpu, soon: true },
-      { name: "Mobiliário", use: "Eventos e escritórios", icon: Armchair, soon: true },
-      { name: "Veículos", use: "Carrinhas e transporte", icon: Car, soon: true },
-    ],
+    items: [{ icon: Wrench, soon: true }, { icon: Cpu, soon: true }, { icon: Armchair, soon: true }, { icon: Car, soon: true }],
   },
 ];
 
@@ -100,6 +52,17 @@ const CATS: Cat[] = [
 export default function LandingCategories() {
   const [active, setActive] = useState(0);
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const t = useT().landing.categories;
+  const CATS = SHAPES.map((c) => {
+    const d = t.cats[c.key];
+    return {
+      ...d,
+      key: c.key,
+      icon: c.icon,
+      explore: c.href ? { href: c.href, label: d.explore } : undefined,
+      items: c.items.map((it, i) => ({ ...it, name: d.names[i], use: d.uses[i] })),
+    };
+  });
   const cur = CATS[active];
 
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -120,14 +83,15 @@ export default function LandingCategories() {
     <section id="categorias" className="lp-sec" aria-labelledby="lp-cat-title">
       <div className="lp-wrap">
         <div className="lp-rv">
-          <div className="lp-eyebrow">O que vais encontrar</div>
+          <div className="lp-eyebrow">{t.eyebrow}</div>
           <h2 id="lp-cat-title" className="lp-sg lp-h2">
-            Do casamento ao videoclipe.
-            <br />O equipamento certo, quando precisas.
+            {t.title1}
+            <br />
+            {t.title2}
           </h2>
         </div>
 
-        <div className="lp-tabs lp-rv" role="tablist" aria-label="Categorias" onKeyDown={onKey}>
+        <div className="lp-tabs lp-rv" role="tablist" aria-label={t.tabsLabel} onKeyDown={onKey}>
           {CATS.map((c, i) => {
             const Icon = c.icon;
             const selected = i === active;
@@ -168,7 +132,7 @@ export default function LandingCategories() {
               </Link>
             ) : (
               <a href="#lista" className="lp-btn lp-btn--o">
-                Diz-nos o que procuras
+                {t.tellUs}
               </a>
             )}
           </div>
@@ -183,7 +147,7 @@ export default function LandingCategories() {
                   </div>
                   <div className="lp-item__row">
                     <span className="lp-sg lp-item__name">{it.name}</span>
-                    {it.soon && <span className="lp-soon">Em breve</span>}
+                    {it.soon && <span className="lp-soon">{t.soon}</span>}
                   </div>
                   <div className="lp-item__use">{it.use}</div>
                 </li>

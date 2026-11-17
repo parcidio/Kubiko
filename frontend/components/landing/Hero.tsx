@@ -1,9 +1,9 @@
 import { landingExample } from "@/lib/format";
+import { fmt } from "@/lib/i18n";
+import { getLang, getT } from "@/lib/i18n/server";
 import { ArrowRight, BadgeCheck, Camera, Check, Clock, Search, Undo2 } from "lucide-react";
 import { Hex3D, HexGrid } from "./Brand";
 import { Countdown, HeroStage } from "./HeroClient";
-
-const PERKS = ["Acesso antecipado à plataforma", "Aviso quando abrirmos na tua província", "Benefícios para os primeiros inscritos"];
 
 /**
  * Hero escuro: título "linha a linha", traço desenhado na palavra de destaque (salvia sobre verde),
@@ -11,8 +11,11 @@ const PERKS = ["Acesso antecipado à plataforma", "Aviso quando abrirmos na tua 
  * O telemóvel é uma ilustração (aria-hidden) com um exemplo de preço, não um anúncio real.
  */
 // feeRate: taxa em vigor (PAYMENTS_SERVICE_FEE_RATE via API); o exemplo de preço recalcula-se com ela
-export default function LandingHero({ feeRate }: { feeRate: number }) {
-  const ex = landingExample(feeRate);
+export default async function LandingHero({ feeRate }: { feeRate: number }) {
+  const lang = await getLang();
+  const dict = await getT();
+  const t = dict.landing.hero;
+  const ex = landingExample(feeRate, lang);
   return (
     <section id="topo" className="lp-hero" aria-labelledby="lp-hero-title">
       <div className="lp-hero__glow" aria-hidden="true" />
@@ -22,18 +25,18 @@ export default function LandingHero({ feeRate }: { feeRate: number }) {
         <div>
           <span className="lp-pill lp-fade lp-fade--0">
             <span className="lp-dot" aria-hidden="true" />
-            Em breve em Luanda · Lista de espera aberta
+            {t.pill}
           </span>
           <h1 id="lp-hero-title" className="lp-sg lp-h1">
             <span className="lp-h1__l">
-              <span>Precisas de</span>
+              <span>{t.line1}</span>
             </span>
             <span className="lp-h1__l">
-              <span>equipamento?</span>
+              <span>{t.line2}</span>
             </span>
             <span className="lp-h1__l lp-h1__l--accent">
               <span className="lp-accent">
-                Aluga, não compres.
+                {t.accent}
                 <svg className="lp-swoosh" viewBox="0 0 400 26" preserveAspectRatio="none" aria-hidden="true" focusable="false">
                   <path d="M4 18 C 90 4, 220 2, 396 14" fill="none" stroke="#F0A22E" strokeWidth="6" strokeLinecap="round" />
                 </svg>
@@ -41,22 +44,21 @@ export default function LandingHero({ feeRate }: { feeRate: number }) {
             </span>
           </h1>
           <p className="lp-hero__lead lp-fade">
-            Câmaras, som, luzes e projetores de quem os tem parados, perto de ti e com caução reembolsável. Pagas só os dias
-            que usas, ao dono, na entrega.
+            {t.lead}
           </p>
           <div className="lp-hero__ctas lp-fade lp-fade--2">
             <a href="#lista" className="lp-btn lp-btn--p">
-              Entrar na lista de espera
+              {t.ctaWaitlist}
               <ArrowRight className="lp-btn__arr" size={20} strokeWidth={1.8} aria-hidden="true" />
             </a>
             <a href="#como" className="lp-btn lp-btn--o">
-              Ver como funciona
+              {t.ctaHow}
             </a>
           </div>
           <div className="lp-hero__meta lp-fade lp-fade--3">
-            <Countdown />
+            <Countdown label={t.countdown} units={t.units} />
             <ul className="lp-perks">
-              {PERKS.map((p) => (
+              {t.perks.map((p) => (
                 <li key={p}>
                   <Check size={18} strokeWidth={1.8} aria-hidden="true" />
                   {p}
@@ -89,7 +91,7 @@ export default function LandingHero({ feeRate }: { feeRate: number }) {
                     </div>
                     <div className="lp-fakesearch">
                       <Search size={15} strokeWidth={1.8} />
-                      Câmara para casamento
+                      {t.phone.search}
                     </div>
                     <div className="lp-mini">
                       <div className="lp-mini__ph">
@@ -101,38 +103,38 @@ export default function LandingHero({ feeRate }: { feeRate: number }) {
                         </span>
                         <span className="lp-sg lp-num" style={{ fontSize: 15 }}>
                           35.000 Kz
-                          <span style={{ fontWeight: 400, fontSize: 11, color: "#5E6B64", letterSpacing: 0 }}>/dia</span>
+                          <span style={{ fontWeight: 400, fontSize: 11, color: "#5E6B64", letterSpacing: 0 }}>{dict.common.perDay}</span>
                         </span>
                       </div>
                       <div className="lp-mini__meta">
                         Talatona ·
                         <span className="lp-badge-ok">
                           <Check size={11} strokeWidth={2.4} />
-                          Verificado
+                          {dict.common.verified}
                         </span>
                       </div>
                     </div>
                     <div className="lp-mini-sum lp-num">
                       <div>
-                        <span>3 diárias × 35.000 Kz</span>
+                        <span>{t.phone.days}</span>
                         <span>105.000 Kz</span>
                       </div>
                       <div>
-                        <span>Taxa de serviço ({ex.rateLabel})</span>
+                        <span>{fmt(t.phone.fee, { rate: ex.rateLabel })}</span>
                         <span>{`${ex.fee.toLocaleString("de-DE")} Kz`}</span>
                       </div>
                       <div className="lp-pos">
-                        <span>Caução reembolsável</span>
+                        <span>{t.phone.deposit}</span>
                         <span>105.000 Kz</span>
                       </div>
                       <div className="lp-tot">
-                        <span>Total</span>
+                        <span>{t.phone.total}</span>
                         <span className="lp-sg">{`${ex.total.toLocaleString("de-DE")} Kz`}</span>
                       </div>
                     </div>
                   </div>
                   <div className="lp-screen__bar">
-                    <div className="lp-screen__cta">Pedir reserva</div>
+                    <div className="lp-screen__cta">{t.phone.cta}</div>
                   </div>
                 </div>
               </div>
@@ -144,17 +146,17 @@ export default function LandingHero({ feeRate }: { feeRate: number }) {
                   <BadgeCheck size={18} strokeWidth={1.8} />
                 </span>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>Pedido aceite</div>
-                  <div style={{ fontSize: 12, color: "#5E6B64" }}>O dono aceitou o teu pedido</div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{t.phone.accepted}</div>
+                  <div style={{ fontSize: 12, color: "#5E6B64" }}>{t.phone.acceptedText}</div>
                 </div>
               </div>
             </div>
             <div className="lp-fcard lp-f2">
               <div className="lp-f2__k">
                 <Clock size={15} strokeWidth={2} />
-                Próximo passo
+                {t.phone.nextStep}
               </div>
-              <div style={{ fontWeight: 700, fontSize: 14, marginTop: 6 }}>Pagas ao dono na entrega · sáb, 10:00</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginTop: 6 }}>{t.phone.payAt}</div>
               <div className="lp-sg lp-num" style={{ fontSize: 20, marginTop: 2 }}>
                 {`${ex.total.toLocaleString("de-DE")} Kz`}
               </div>
@@ -163,7 +165,7 @@ export default function LandingHero({ feeRate }: { feeRate: number }) {
               <div className="lp-fcard__row">
                 <Undo2 size={26} strokeWidth={1.8} color="#1F5C42" />
                 <div>
-                  <div style={{ fontSize: 12, color: "#1F5C42", fontWeight: 700 }}>Caução devolvida</div>
+                  <div style={{ fontSize: 12, color: "#1F5C42", fontWeight: 700 }}>{t.phone.depositBack}</div>
                   <div className="lp-sg lp-num" style={{ fontSize: 17 }}>
                     105.000 Kz
                   </div>

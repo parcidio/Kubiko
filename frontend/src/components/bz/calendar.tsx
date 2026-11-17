@@ -4,9 +4,8 @@ import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { DayState } from "@/lib/availability";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n/client";
 
-const MONTHS = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-const DOW = ["S", "T", "Q", "Q", "S", "S", "D"];
 const STRIPES = "bg-[repeating-linear-gradient(135deg,#0E2A1F_0_4px,#1F5C42_4px_8px)]";
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -31,6 +30,9 @@ export function MonthCalendar({
   onDayClick?: (day: string) => void;
   initialMonth?: string;
 }) {
+  const t = useT().calendar;
+  const MONTHS = t.months;
+  const DOW = t.dow;
   const today = new Date();
   const start = initialMonth ? new Date(`${initialMonth.slice(0, 7)}-01T00:00:00`) : today;
   const [cursor, setCursor] = useState(new Date(start.getFullYear(), start.getMonth(), 1));
@@ -50,7 +52,7 @@ export function MonthCalendar({
       <div className="flex items-center justify-between">
         <button
           type="button"
-          aria-label="Mês anterior"
+          aria-label={t.prev}
           disabled={atCurrentMonth}
           onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
           className="flex size-11 cursor-pointer items-center justify-center rounded-campo text-verde transition-colors duration-200 hover:bg-areia-2 disabled:cursor-default disabled:opacity-30"
@@ -60,7 +62,7 @@ export function MonthCalendar({
         <p className="font-titulo text-[17px] font-bold tracking-tight text-verde" aria-live="polite">
           {MONTHS[cursor.getMonth()]} {cursor.getFullYear()}
         </p>
-        <button type="button" aria-label="Mês seguinte" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="flex size-11 cursor-pointer items-center justify-center rounded-campo text-verde transition-colors duration-200 hover:bg-areia-2">
+        <button type="button" aria-label={t.next} onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))} className="flex size-11 cursor-pointer items-center justify-center rounded-campo text-verde transition-colors duration-200 hover:bg-areia-2">
           <ChevronRight className="size-5" strokeWidth={1.8} aria-hidden />
         </button>
       </div>
@@ -81,9 +83,9 @@ export function MonthCalendar({
           const conflict = selected && !!state;
           const interactive = !!onDayClick && !past && !state;
           const label = `${i + 1} ${MONTHS[cursor.getMonth()]}${
-            state === "BOOKED" ? (mode === "owner" ? ", reservado" : ", indisponível")
-              : state === "BLOCKED" ? (mode === "owner" ? ", bloqueado por ti" : ", indisponível")
-                : selected ? ", selecionado" : isReturnDay(day) ? ", devolução" : ""
+            state === "BOOKED" ? (mode === "owner" ? t.booked : t.unavailable)
+              : state === "BLOCKED" ? (mode === "owner" ? t.blockedByYou : t.unavailable)
+                : selected ? t.selected : isReturnDay(day) ? t.returnDay : ""
           }`;
           const cls = cn(
             "num flex h-11 items-center justify-center rounded-campo font-titulo text-[15px] transition-colors duration-200",
@@ -111,14 +113,14 @@ export function MonthCalendar({
       <div className="flex flex-wrap gap-4 text-[13px] text-cinza">
         {mode === "owner" ? (
           <>
-            <span className="flex items-center gap-1.5"><i className={cn("size-3.5 rounded", STRIPES)} /> Bloqueado por ti</span>
-            <span className="flex items-center gap-1.5"><i className="size-3.5 rounded bg-areia-2" /> Reservado</span>
+            <span className="flex items-center gap-1.5"><i className={cn("size-3.5 rounded", STRIPES)} /> {t.legendBlocked}</span>
+            <span className="flex items-center gap-1.5"><i className="size-3.5 rounded bg-areia-2" /> {t.legendBooked}</span>
           </>
         ) : (
-          <span className="flex items-center gap-1.5"><i className="size-3.5 rounded bg-areia-2" /> Indisponível</span>
+          <span className="flex items-center gap-1.5"><i className="size-3.5 rounded bg-areia-2" /> {t.legendUnavailable}</span>
         )}
         {selection && (
-          <span className="flex items-center gap-1.5"><i className="size-3.5 rounded bg-verde" /> {mode === "owner" ? "A bloquear" : "As tuas datas"}</span>
+          <span className="flex items-center gap-1.5"><i className="size-3.5 rounded bg-verde" /> {mode === "owner" ? t.legendBlocking : t.legendYours}</span>
         )}
       </div>
     </div>

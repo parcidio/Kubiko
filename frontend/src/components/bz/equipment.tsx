@@ -6,7 +6,9 @@ import { BadgeCheck, MapPin, Package, Repeat2, Sparkles, Star, type LucideIcon }
 import { categoryIcon, hexPath } from "./brand";
 import { Kz } from "./ui";
 import { initials } from "@/lib/booking";
-import { CONDITION_LABEL, daysBetween, formatKz } from "@/lib/format";
+import { daysBetween, formatKz } from "@/lib/format";
+import { fmt, plural, type Lang } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import type { ItemCondition, ItemSummary } from "@/lib/types";
 
@@ -15,13 +17,14 @@ export function ItemPhoto({
   src, alt, icon, className, imgClassName, rounded = true,
 }: { src?: string | null; alt: string; icon?: LucideIcon; className?: string; imgClassName?: string; rounded?: boolean }) {
   const Icon = icon ?? Package;
+  const t = useT().equipment;
   return (
     <div className={cn("relative aspect-[4/3] overflow-hidden bg-areia-2", rounded && "rounded-cartao", className)}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={alt} loading="lazy" decoding="async" className={cn("size-full object-cover", imgClassName)} />
       ) : (
-        <div className={cn("flex size-full items-center justify-center text-mel", imgClassName)} role="img" aria-label={`${alt} — sem foto`}>
+        <div className={cn("flex size-full items-center justify-center text-mel", imgClassName)} role="img" aria-label={fmt(t.noPhoto, { alt })}>
           <Icon className="size-1/4 max-h-12 max-w-12" strokeWidth={1.4} aria-hidden />
         </div>
       )}
@@ -34,24 +37,27 @@ const CONDITION_LEVEL: Record<ItemCondition, number> = { NEW: 5, LIKE_NEW: 4, GO
 /** Estado do equipamento em 5 hexágonos (motivo da marca). */
 export function ConditionMeter({ condition, className }: { condition: ItemCondition; className?: string }) {
   const level = CONDITION_LEVEL[condition] ?? 3;
+  const dict = useT();
+  const label = dict.condition[condition] ?? condition;
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <svg viewBox="0 0 110 22" className="h-5 w-[110px]" role="img" aria-label={`Estado: ${CONDITION_LABEL[condition]} (${level} de 5)`}>
+      <svg viewBox="0 0 110 22" className="h-5 w-[110px]" role="img" aria-label={fmt(dict.equipment.conditionAria, { label, level })}>
         {Array.from({ length: 5 }, (_, i) => (
           <path key={i} d={hexPath(11 + i * 22, 11, 10)} fill={i < level ? "#1F5C42" : "#ECE6DA"} />
         ))}
       </svg>
-      <span className="text-sm font-medium text-verde">{CONDITION_LABEL[condition] ?? condition}</span>
+      <span className="text-sm font-medium text-verde">{label}</span>
     </div>
   );
 }
 
 /** Selo "Verificado" (KYC aprovado): pill salvia-tint + check + texto (`compact` esconde o texto visualmente). */
 export function VerifiedBadge({ className, compact }: { className?: string; compact?: boolean }) {
+  const label = useT().common.verified;
   return (
     <span className={cn("inline-flex h-7 items-center gap-1 rounded-full bg-salvia-tint px-2.5 text-[13px] font-bold text-verde-medio", className)}>
       <BadgeCheck className="size-4" strokeWidth={2} aria-hidden />
-      {compact ? <span className="sr-only">Verificado</span> : "Verificado"}
+      {compact ? <span className="sr-only">{label}</span> : label}
     </span>
   );
 }
@@ -79,16 +85,18 @@ export function placeOf(item: { city?: string | null; province?: string | null }
   return [item.city, item.province].filter(Boolean).join(", ") || "Luanda";
 }
 
-/** 4,8 — vírgula decimal (pt-PT). */
-export function formatRating(value: number) {
-  return value.toLocaleString("pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+/** 4,8 — vírgula decimal (pt-PT); en: 4.8. */
+export function formatRating(value: number, lang: Lang = "pt") {
+  return value.toLocaleString(lang === "en" ? "en-GB" : "pt-PT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 }
 
 /** Cinco estrelas preenchidas até à média arredondada a meia estrela. */
 export function Stars({ value, size = "md", className }: { value: number; size?: "sm" | "md"; className?: string }) {
   const half = Math.round(value * 2) / 2;
+  const lang = useLang();
+  const t = useT().equipment;
   return (
-    <span className={cn("inline-flex items-center gap-0.5", className)} role="img" aria-label={`${formatRating(value)} de 5`}>
+    <span className={cn("inline-flex items-center gap-0.5", className)} role="img" aria-label={fmt(t.outOf5, { value: formatRating(value, lang) })}>
       {Array.from({ length: 5 }, (_, i) => {
         const fill = half >= i + 1 ? 1 : half >= i + 0.5 ? 0.5 : 0;
         return (
@@ -108,15 +116,17 @@ export function Stars({ value, size = "md", className }: { value: number; size?:
 
 /** "4,8 (12)" com estrela, ou "Novo na Beeznoo" quando ainda não há avaliações. */
 export function RatingInline({ average, count, className }: { average: number | null; count: number; className?: string }) {
+  const lang = useLang();
+  const t = useT().equipment;
   if (!average || count === 0) {
-    return <span className={cn("text-[13px] font-medium text-mel-texto", className)}>Novo na Beeznoo</span>;
+    return <span className={cn("text-[13px] font-medium text-mel-texto", className)}>{t.newOnBeeznoo}</span>;
   }
   return (
     <span className={cn("inline-flex items-center gap-1 text-[13px] text-cinza", className)}>
       <Star className="size-3.5 fill-ambar text-ambar" strokeWidth={1.8} aria-hidden />
-      <span className="num font-bold text-verde">{formatRating(average)}</span>
+      <span className="num font-bold text-verde">{formatRating(average, lang)}</span>
       <span className="num">({count})</span>
-      <span className="sr-only">{count === 1 ? "avaliação" : "avaliações"}</span>
+      <span className="sr-only">{count === 1 ? t.review.one : t.review.other}</span>
     </span>
   );
 }
@@ -131,8 +141,10 @@ export function EquipmentCard({
 }: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean; dates?: { start: string; end: string } }) {
   const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
   const days = dates ? daysBetween(dates.start, dates.end) : 0;
+  const dict = useT();
+  const t = dict.equipment;
   const tag = item.featured && showFeatured
-    ? { label: "Em destaque", icon: Sparkles, cls: "bg-verde text-areia [&_svg]:text-ambar" }
+    ? { label: t.featured, icon: Sparkles, cls: "bg-verde text-areia [&_svg]:text-ambar" }
     : null;
   return (
     <Link
@@ -159,14 +171,14 @@ export function EquipmentCard({
         )}
         <span className="absolute bottom-2 left-2 rounded-full bg-branco/95 px-3 py-1 text-verde shadow-flutua backdrop-blur">
           <Kz value={item.pricePerDay} className="text-[15px]" />
-          <span className="text-xs text-cinza"> /dia</span>
+          <span className="text-xs text-cinza"> {dict.common.perDay}</span>
         </span>
       </div>
       <div className="grid gap-1 px-1 pt-2 pb-1">
         <h3 className="line-clamp-2 font-titulo text-base leading-snug font-bold text-verde md:text-lg">{item.title}</h3>
         {days > 0 && (
           <p className="text-[13px] text-texto-corpo">
-            <b className="num text-verde">{formatKz(Number(item.pricePerDay) * days * (1 + feeRate))}</b> · {days} {days === 1 ? "dia" : "dias"}
+            <b className="num text-verde">{formatKz(Number(item.pricePerDay) * days * (1 + feeRate))}</b> · {plural(days, dict.common.days)}
           </p>
         )}
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -175,7 +187,7 @@ export function EquipmentCard({
             <span className="inline-flex items-center gap-1 text-[13px] text-cinza">
               <Repeat2 className="size-3.5" strokeWidth={1.8} aria-hidden />
               <span className="num">
-                {item.completedRentals} {item.completedRentals === 1 ? "aluguer" : "alugueres"}
+                {plural(item.completedRentals, t.rentals)}
               </span>
             </span>
           )}
@@ -184,11 +196,11 @@ export function EquipmentCard({
           <MapPin className="size-3.5 shrink-0" strokeWidth={1.8} aria-hidden />
           <span className="truncate">{placeOf(item)}</span>
           <span aria-hidden>·</span>
-          <span className="truncate">{CONDITION_LABEL[item.condition] ?? item.condition}</span>
+          <span className="truncate">{dict.condition[item.condition] ?? item.condition}</span>
         </p>
         {item.ownerVerified && (
           <p className="flex items-center gap-1 text-[13px] font-medium text-verde-medio">
-            <BadgeCheck className="size-3.5 shrink-0" strokeWidth={2} aria-hidden /> Dono verificado
+            <BadgeCheck className="size-3.5 shrink-0" strokeWidth={2} aria-hidden /> {t.ownerVerified}
           </p>
         )}
       </div>

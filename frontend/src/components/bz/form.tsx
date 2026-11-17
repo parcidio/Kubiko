@@ -3,6 +3,8 @@
 import { useId, useRef, useState } from "react";
 import { AlertCircle, Check, Eye, EyeOff, type LucideIcon } from "lucide-react";
 import { ApiError } from "@/lib/api";
+import { docT, fmt } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 
 export const inputClass = cn(
@@ -18,7 +20,7 @@ export function toFormErrors(err: unknown): FormErrors {
   if (err instanceof ApiError) {
     return err.fields ? { fields: err.fields } : { form: err.message, fields: {} };
   }
-  return { form: "Algo correu mal. Tenta outra vez.", fields: {} };
+  return { form: docT().form.genericError, fields: {} };
 }
 
 export function FormError({ message }: { message?: string }) {
@@ -150,10 +152,11 @@ function AffixInput({
 
 /** Telefone angolano: prefixo +244 fixo, 9 dígitos. */
 // autoComplete="username" no registo: o gestor de passwords grava o telefone como utilizador (o login aceita-o)
-export function PhoneField({ label = "Telefone", value, onChange, error, hint, className, autoComplete = "tel-national" }: Partial<Common> & Pick<Common, "value" | "onChange"> & { autoComplete?: string }) {
+export function PhoneField({ label, value, onChange, error, hint, className, autoComplete = "tel-national" }: Partial<Common> & Pick<Common, "value" | "onChange"> & { autoComplete?: string }) {
   const id = useId();
+  const t = useT().form;
   return (
-    <Field id={id} label={label} hint={hint} error={error} className={className}>
+    <Field id={id} label={label ?? t.phone} hint={hint} error={error} className={className}>
       <AffixInput
         id={id}
         prefix="+244"
@@ -195,12 +198,13 @@ export function MoneyField({ label, value, onChange, error, hint, className }: O
 }
 
 export function PasswordField({
-  label = "Password", value, onChange, error, hint, autoComplete = "current-password",
+  label, value, onChange, error, hint, autoComplete = "current-password",
 }: Omit<Common, "label"> & { label?: string; autoComplete?: string }) {
   const id = useId();
+  const t = useT().form;
   const [visible, setVisible] = useState(false);
   return (
-    <Field id={id} label={label} hint={hint} error={error}>
+    <Field id={id} label={label ?? t.password} hint={hint} error={error}>
       <div className="relative">
         <input
           id={id}
@@ -217,7 +221,7 @@ export function PasswordField({
           type="button"
           onClick={() => setVisible((v) => !v)}
           className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-cinza hover:text-verde"
-          aria-label={visible ? "Esconder password" : "Mostrar password"}
+          aria-label={visible ? t.hidePassword : t.showPassword}
         >
           {visible ? <EyeOff className="size-5" strokeWidth={1.8} /> : <Eye className="size-5" strokeWidth={1.8} />}
         </button>
@@ -234,8 +238,9 @@ export function OtpField({ value, onChange, error, length = 6 }: { value: string
   const id = useId();
   const ref = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
+  const t = useT().form;
   return (
-    <Field id={id} label={`Código de ${length} dígitos`} error={error}>
+    <Field id={id} label={fmt(t.otp, { n: length })} error={error}>
       <div className="relative" onClick={() => ref.current?.focus()}>
         <input
           ref={ref}
@@ -375,12 +380,13 @@ export function ChipGroup<T extends string>({
 
 /** Progresso de um fluxo em passos: "Passo 2 de 5 · Detalhes". */
 export function StepProgress({ step, total, label }: { step: number; total: number; label: string }) {
+  const t = useT().form;
   return (
     <div className="grid gap-2">
       <div className="flex items-center justify-between text-[13px]">
         <span className="font-bold text-verde">{label}</span>
         <span className="num text-cinza">
-          Passo {step} de {total}
+          {fmt(t.step, { step, total })}
         </span>
       </div>
       <div className="flex gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step} aria-label={label}>

@@ -22,7 +22,7 @@ import { unavailableDays } from "@/lib/availability";
 import { formatDay, formatDays, formatRange } from "@/lib/format";
 import type { Availability, AvailabilityBlock, Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
-import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
+import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
 
 type Tab = "fotos" | "detalhes" | "preco" | "datas";
 
@@ -92,7 +92,7 @@ export default function GerirEquipamentoPage() {
     } catch (e) {
       if (isAreaNotAvailable(e)) return toast.error(AREA_NOT_AVAILABLE_TEXT);
       if (isKycRequired(e)) {
-        toast(KYC_REDIRECT_TOAST);
+        toast(kycRedirectToast());
         router.push("/verificacao");
         return;
       }

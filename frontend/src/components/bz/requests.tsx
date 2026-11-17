@@ -12,8 +12,9 @@ import { bookingApi } from "@/lib/api";
 import { bookingCode, deadlineOf, firstName } from "@/lib/booking";
 import { daysBetween, formatRange } from "@/lib/format";
 import type { Booking } from "@/lib/types";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 
-const DECLINE_REASONS = ["Já está alugado nessas datas", "Equipamento em manutenção", "Não consigo fazer a entrega", "Outro motivo"];
 
 /** Aceitar / Recusar um pedido (dono). Recusar pede motivo em chips. */
 export function RequestActions({ booking, onDone, compact }: { booking: Booking; onDone: (b: Booking) => void; compact?: boolean }) {
@@ -21,17 +22,20 @@ export function RequestActions({ booking, onDone, compact }: { booking: Booking;
   const [reason, setReason] = useState<string | undefined>();
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const dict = useT();
+  const t = dict.requests;
+  const lang = useLang();
 
   async function run() {
     setBusy(true);
     try {
       const ownerNote = [sheet === "decline" ? reason : undefined, note.trim()].filter(Boolean).join(" — ") || undefined;
       const updated = sheet === "accept" ? await bookingApi.accept(booking.id, ownerNote) : await bookingApi.cancel(booking.id, ownerNote);
-      toast.success(sheet === "accept" ? `Aceite. Avisamos ${firstName(booking.renterName)} para pagar.` : "Pedido recusado. As datas ficaram livres.");
+      toast.success(sheet === "accept" ? fmt(t.accepted, { name: firstName(booking.renterName, dict) }) : t.declined);
       setSheet(null);
       onDone(updated);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível responder.");
+      toast.error(e instanceof Error ? e.message : t.replyError);
     } finally {
       setBusy(false);
     }
@@ -41,37 +45,37 @@ export function RequestActions({ booking, onDone, compact }: { booking: Booking;
     <>
       <div className={compact ? "grid grid-cols-2 gap-2" : "grid gap-2 sm:grid-cols-2"}>
         <Button variant="secondary" onClick={() => setSheet("decline")}>
-          <X strokeWidth={2} /> Recusar
+          <X strokeWidth={2} /> {t.decline}
         </Button>
         {/* Na lista há vários pedidos: o âmbar fica para o detalhe (um por ecrã); aqui é verde-escuro. */}
         <Button variant={compact ? "dark" : "primary"} onClick={() => setSheet("accept")}>
-          <Check strokeWidth={2.2} /> Aceitar
+          <Check strokeWidth={2.2} /> {t.accept}
         </Button>
       </div>
       <Sheet
         open={sheet !== null}
         onClose={() => setSheet(null)}
-        title={sheet === "accept" ? "Aceitar pedido" : "Recusar pedido"}
+        title={sheet === "accept" ? t.acceptTitle : t.declineTitle}
         footer={
           <Button block size="lg" variant={sheet === "accept" ? "primary" : "dark"} loading={busy} onClick={run} disabled={sheet === "decline" && !reason}>
-            {sheet === "accept" ? "Aceitar e bloquear datas" : "Recusar pedido"}
+            {sheet === "accept" ? t.acceptCta : t.declineTitle}
           </Button>
         }
       >
         <div className="grid gap-4 pt-2">
           <p className="text-texto-corpo">
-            {booking.itemTitle} · <strong className="text-verde">{formatRange(booking.startDate, booking.endDate)}</strong> · {booking.renterName}
+            {booking.itemTitle} · <strong className="text-verde">{formatRange(booking.startDate, booking.endDate, lang)}</strong> · {booking.renterName}
           </p>
           {sheet === "decline" && (
-            <ChipGroup label="Motivo" value={reason} onChange={setReason} options={DECLINE_REASONS.map((r) => ({ value: r, label: r }))} />
+            <ChipGroup label={t.reason} value={reason} onChange={setReason} options={t.declineReasons.map((r) => ({ value: r, label: r }))} />
           )}
           <TextArea
-            label={sheet === "accept" ? "Nota para o arrendatário (opcional)" : "Mensagem (opcional)"}
+            label={sheet === "accept" ? t.noteAccept : t.noteDecline}
             value={note}
             onChange={setNote}
             rows={3}
             maxLength={500}
-            placeholder={sheet === "accept" ? "Ex.: levanta em Talatona, perto do Belas Shopping." : "Ex.: tenho livre a partir de dia 20."}
+            placeholder={sheet === "accept" ? t.noteAcceptPh : t.noteDeclinePh}
           />
         </div>
       </Sheet>
@@ -83,6 +87,8 @@ export function RequestActions({ booking, onDone, compact }: { booking: Booking;
 export function RequestCard({ booking, onChange, index = 0 }: { booking: Booking; onChange: (b: Booking) => void; index?: number }) {
   const days = daysBetween(booking.startDate, booking.endDate);
   const deadline = deadlineOf(booking);
+  const dict = useT();
+  const lang = useLang();
   return (
     // minmax(0,1fr): sem isto a coluna da grelha cresce com o conteúdo e o cartão transborda a 360px
     <Card className="grid animate-sobe grid-cols-[minmax(0,1fr)] gap-3 p-4" style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}>
@@ -105,14 +111,14 @@ export function RequestCard({ booking, onChange, index = 0 }: { booking: Booking
         <div className="min-w-0 flex-1">
           <p className="truncate font-titulo text-lg leading-tight font-bold text-verde">{booking.itemTitle}</p>
           <p className="text-sm text-cinza">
-            {formatRange(booking.startDate, booking.endDate)} · {days} {days === 1 ? "dia" : "dias"}
+            {formatRange(booking.startDate, booking.endDate, lang)} · {plural(days, dict.common.days)}
           </p>
         </div>
         <ChevronRight className="size-5 shrink-0 text-cinza transition-transform duration-200 group-hover:translate-x-1" strokeWidth={1.8} aria-hidden />
       </Link>
       {booking.renterMessage && <p className="line-clamp-3 text-sm whitespace-pre-line italic">“{booking.renterMessage}”</p>}
       <div className="flex items-center justify-between rounded-campo bg-salvia-tint px-3 py-2.5">
-        <span className="font-medium text-verde-medio">Recebes</span>
+        <span className="font-medium text-verde-medio">{dict.requests.youGet}</span>
         <Kz value={booking.totalPrice} className="text-xl text-verde" />
       </div>
       {booking.status === "PENDING_OWNER" && <RequestActions booking={booking} onDone={onChange} compact />}

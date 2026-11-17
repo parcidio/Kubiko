@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Camera, Check, ImagePlus, RotateCw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fmt } from "@/lib/i18n";
+import { useT } from "@/lib/i18n/client";
 
 export type LocalPhoto = { id: string; file: File; url: string };
 
@@ -38,24 +40,25 @@ export function PhotoPicker({
   min?: number;
 }) {
   const id = useId();
+  const t = useT().photo;
   return (
     <div className="grid gap-3">
       <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
         {photos.map((p, i) => (
           <figure key={p.id} className="group relative aspect-[4/3] overflow-hidden rounded-campo bg-areia-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.url} alt={`Foto ${i + 1}`} className="size-full object-cover" />
+            <img src={p.url} alt={fmt(t.photoN, { n: i + 1 })} className="size-full object-cover" />
             {i === 0 ? (
-              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">Capa</span>
+              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">{t.cover}</span>
             ) : (
               <button type="button" onClick={() => onCover(p.id)} className="absolute bottom-1.5 left-1.5 min-h-8 rounded-full bg-branco/90 px-2.5 text-xs font-bold text-verde">
-                Pôr capa
+                {t.makeCover}
               </button>
             )}
             <button
               type="button"
               onClick={() => onRemove(p.id)}
-              aria-label={`Remover foto ${i + 1}`}
+              aria-label={fmt(t.remove, { n: i + 1 })}
               className="absolute top-0 right-0 flex size-11 items-center justify-center text-areia"
             >
               <span className="flex size-8 items-center justify-center rounded-full bg-verde/80">
@@ -69,13 +72,13 @@ export function PhotoPicker({
           className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center gap-1 rounded-campo border-2 border-dashed border-borda-forte bg-branco text-center text-[13px] font-medium text-verde transition-colors duration-200 hover:border-verde has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-verde-medio/25"
         >
           <ImagePlus className="size-6 text-mel" strokeWidth={1.8} aria-hidden />
-          Adicionar
+          {t.add}
           <input id={id} type="file" accept="image/*" multiple className="sr-only" onChange={(e) => onAdd(e.target.files)} />
         </label>
       </div>
       <p className={cn("text-[13px]", photos.length >= min ? "text-verde-medio" : "text-cinza")}>
         {photos.length >= min ? <Check className="mr-1 inline size-4" strokeWidth={2} aria-hidden /> : null}
-        {photos.length} de pelo menos {min} fotos. Frente, traseira e acessórios ajudam a alugar mais depressa.
+        {fmt(t.minHint, { n: photos.length, min })}
       </p>
     </div>
   );
@@ -86,6 +89,7 @@ export function CameraSlot({
   label, hint, photo, onPick, capture = "environment",
 }: { label: string; hint: string; photo?: string; onPick: (f: File) => void; capture?: "user" | "environment" }) {
   const id = useId();
+  const retake = useT().photo.retake;
   return (
     <label
       htmlFor={id}
@@ -103,7 +107,7 @@ export function CameraSlot({
           </span>
           <span className="absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/80 to-transparent px-3 pt-6 pb-2 text-left text-[13px] font-bold text-branco">
             {label}
-            <RotateCw className="size-4" strokeWidth={2} aria-label="Repetir" />
+            <RotateCw className="size-4" strokeWidth={2} aria-label={retake} />
           </span>
         </>
       ) : (
@@ -143,21 +147,22 @@ export function SavedPhotoGrid({
   const id = useId();
   const sorted = [...photos].sort((a, b) => a.position - b.position);
   const room = max - sorted.length;
+  const t = useT().photo;
   return (
     <div className="grid gap-3" aria-busy={busy || undefined}>
       <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
         {sorted.map((p, i) => (
           <figure key={p.id} className="relative aspect-[4/3] overflow-hidden rounded-campo bg-areia-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.photUrl} alt={`Foto ${i + 1}`} className="size-full object-cover" />
+            <img src={p.photUrl} alt={fmt(t.photoN, { n: i + 1 })} className="size-full object-cover" />
             {i === 0 && (
-              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">Capa</span>
+              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">{t.cover}</span>
             )}
             <button
               type="button"
               disabled={busy}
               onClick={() => onRemove(p.id)}
-              aria-label={`Remover foto ${i + 1}`}
+              aria-label={fmt(t.remove, { n: i + 1 })}
               className="absolute top-1 right-1 flex size-11 items-center justify-center rounded-full text-areia disabled:opacity-50"
             >
               <span className="flex size-8 items-center justify-center rounded-full bg-verde/80">
@@ -175,7 +180,7 @@ export function SavedPhotoGrid({
             )}
           >
             <ImagePlus className="size-6 text-mel" strokeWidth={1.8} aria-hidden />
-            {busy ? "A enviar…" : "Adicionar"}
+            {busy ? t.uploading : t.add}
             <input
               id={id}
               type="file"
@@ -193,7 +198,7 @@ export function SavedPhotoGrid({
         )}
       </div>
       <p className="text-[13px] text-cinza">
-        {sorted.length} de {max} fotos. JPEG ou PNG; comprimimos antes de enviar.
+        {fmt(t.savedHint, { n: sorted.length, max })}
       </p>
     </div>
   );

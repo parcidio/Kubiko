@@ -14,7 +14,7 @@ import { bookingApi, ownerItemApi } from "@/lib/api";
 import { DRAFT_KEY_PREFIX, useRequireSession } from "@/lib/auth";
 import { CONDITION_LABEL } from "@/lib/format";
 import { toLatLng } from "@/lib/location";
-import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
+import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
 import { useMode } from "@/lib/mode";
 import type { ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
@@ -90,7 +90,7 @@ export default function EquipamentosPage() {
     } catch (e) {
       if (isAreaNotAvailable(e)) return toast.error(AREA_NOT_AVAILABLE_TEXT);
       if (isKycRequired(e)) {
-        toast(KYC_REDIRECT_TOAST);
+        toast(kycRedirectToast());
         router.push("/verificacao");
         return;
       }

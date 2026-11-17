@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { docT } from "./i18n";
 
 type Result<T> = { key: string; data?: T; error?: string };
 
@@ -23,7 +24,7 @@ export function useResource<T>(key: string | null, fetcher: () => Promise<T>) {
     let alive = true;
     fetcherRef.current().then(
       (data) => alive && setResult({ key: fullKey, data }),
-      (e) => alive && setResult({ key: fullKey, error: e instanceof Error ? e.message : "Algo correu mal." }),
+      (e) => alive && setResult({ key: fullKey, error: e instanceof Error ? e.message : docT().common.somethingWrong }),
     );
     return () => {
       alive = false;

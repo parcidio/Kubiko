@@ -15,15 +15,13 @@ import { formatRange, todayIso } from "@/lib/format";
 import type { Booking } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 
 type Tab = "open" | "past";
 type Sort = "recent" | "start" | "oldest";
 
-const SORTS: { value: Sort; label: string }[] = [
-  { value: "recent", label: "Mais recentes" },
-  { value: "start", label: "Data de levantamento" },
-  { value: "oldest", label: "Mais antigas" },
-];
+const SORTS: Sort[] = ["recent", "start", "oldest"];
 
 /** Sem acentos nem maiúsculas, para a pesquisa ("camara" encontra "Câmara"). */
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
@@ -43,6 +41,7 @@ export default function ReservasPage() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("recent");
   const { data, error, loading, reload } = useResource(session ? "bookings:renter" : null, () => bookingApi.mine());
+  const t = useT().bookings;
 
   const all = useMemo(() => data?.content ?? [], [data]);
   const open = all.filter((b) => OPEN_STATUSES.includes(b.status));
@@ -75,8 +74,8 @@ export default function ReservasPage() {
             <HexTile icon={Ticket} size={56} className="bg-ambar text-sobre-ambar md:hidden" />
             <HexTile icon={Ticket} size={76} className="hidden bg-ambar text-sobre-ambar md:inline-flex" />
             <div className="grid min-w-0 gap-1">
-              <h1 className="font-titulo text-[26px] leading-tight font-extrabold tracking-[-0.02em] text-white md:text-[34px] lg:whitespace-nowrap">As minhas reservas</h1>
-              <p className="text-salvia-tint">Tudo o que pediste, num só sítio.</p>
+              <h1 className="font-titulo text-[26px] leading-tight font-extrabold tracking-[-0.02em] text-white md:text-[34px] lg:whitespace-nowrap">{t.title}</h1>
+              <p className="text-salvia-tint">{t.subtitle}</p>
             </div>
           </div>
           <SummaryTicket loading={loading} next={next} active={open.length - waiting} waiting={waiting} completed={completed} />
@@ -84,13 +83,13 @@ export default function ReservasPage() {
       </section>
 
       <Segmented
-        label="Reservas"
+        label={t.tabsLabel}
         value={tab}
         onChange={setTab}
         counts="neutral"
         options={[
-          { value: "open", label: "Ativas", count: open.length },
-          { value: "past", label: "Passadas", count: past.length },
+          { value: "open", label: t.open, count: open.length },
+          { value: "past", label: t.past, count: past.length },
         ]}
       />
 
@@ -98,25 +97,25 @@ export default function ReservasPage() {
         {/* Pesquisa e ordenação */}
         <div className="grid gap-2 border-b border-borda p-3 sm:grid-cols-[minmax(0,1fr)_14rem] md:p-4">
           <label className="relative">
-            <span className="sr-only">Procurar por equipamento ou dono</span>
+            <span className="sr-only">{t.search}</span>
             <Search className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-cinza" strokeWidth={1.8} aria-hidden />
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Procurar por equipamento ou dono"
+              placeholder={t.search}
               className="h-12 w-full rounded-campo border-[1.5px] border-borda-forte bg-branco pr-4 pl-12 text-base text-verde outline-none transition placeholder:text-cinza focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint"
             />
           </label>
           <label className="relative">
-            <span className="sr-only">Ordenar</span>
+            <span className="sr-only">{t.sort}</span>
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as Sort)}
               className="h-12 w-full cursor-pointer appearance-none rounded-campo border-[1.5px] border-borda-forte bg-branco pr-11 pl-4 text-base text-verde outline-none transition focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint"
             >
               {SORTS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
+                <option key={s} value={s}>{t.sorts[s]}</option>
               ))}
             </select>
             <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2 text-verde" strokeWidth={1.8} aria-hidden />
@@ -129,21 +128,21 @@ export default function ReservasPage() {
           <div className="p-3 md:p-4"><ListSkeleton /></div>
         ) : list.length === 0 ? (
           q ? (
-            <HiveEmptyState icon={Ticket} satellites={[Camera, Lightbulb]} title="Nada encontrado" text={`Nenhuma reserva com "${query.trim()}". Experimenta o nome do equipamento ou do dono.`} />
+            <HiveEmptyState icon={Ticket} satellites={[Camera, Lightbulb]} title={t.notFoundTitle} text={fmt(t.notFoundText, { q: query.trim() })} />
           ) : tab === "open" ? (
             <HiveEmptyState
               icon={Ticket}
               satellites={[Camera, Lightbulb]}
-              title="Ainda sem reservas ativas"
-              text="Encontra o equipamento para o teu próximo trabalho e pede as datas."
+              title={t.emptyOpenTitle}
+              text={t.emptyOpenText}
               action={
                 <ButtonLink href="/explorar" variant="primary">
-                  <Search strokeWidth={2} /> Explorar equipamento
+                  <Search strokeWidth={2} /> {t.explore}
                 </ButtonLink>
               }
             />
           ) : (
-            <HiveEmptyState icon={Ticket} satellites={[Camera, Lightbulb]} title="Nada no histórico" text="Os alugueres concluídos e cancelados aparecem aqui." />
+            <HiveEmptyState icon={Ticket} satellites={[Camera, Lightbulb]} title={t.emptyPastTitle} text={t.emptyPastText} />
           )
         ) : (
           <ul className="grid gap-3 p-3 md:p-4">
@@ -163,16 +162,18 @@ export default function ReservasPage() {
 function SummaryTicket({
   loading, next, active, waiting, completed,
 }: { loading: boolean; next?: Booking; active: number; waiting: number; completed: number }) {
+  const t = useT().bookings;
+  const lang = useLang();
   const body = (
     <>
       <div className="grid min-w-0 flex-1 content-center gap-1 py-4 pr-3 pl-4 md:px-5">
-        <p className="text-[11px] font-bold tracking-[0.12em] text-cinza uppercase">Próxima reserva</p>
+        <p className="text-[11px] font-bold tracking-[0.12em] text-cinza uppercase">{t.next}</p>
         <p className="truncate font-titulo text-base leading-tight font-bold text-verde sm:text-lg">
-          {loading ? "A carregar…" : next ? next.itemTitle : "Nenhuma marcada"}
+          {loading ? t.loading : next ? next.itemTitle : t.noneScheduled}
         </p>
         <p className="num truncate text-[13px] text-cinza">
-          {next ? `${formatRange(next.startDate, next.endDate)} · ` : ""}
-          {active} {active === 1 ? "ativa" : "ativas"} · {waiting} à espera
+          {next ? `${formatRange(next.startDate, next.endDate, lang)} · ` : ""}
+          {plural(active, t.active)} · {fmt(t.waiting, { n: waiting })}
         </p>
       </div>
       {/* picotado vertical com os recortes do bilhete (cor do cabeçalho) */}
@@ -182,7 +183,7 @@ function SummaryTicket({
       </div>
       <div className="grid w-20 shrink-0 place-content-center bg-ambar-tint px-2 text-center sm:w-24 md:w-28">
         <p className="num font-titulo text-3xl leading-none font-extrabold text-verde">{loading ? "–" : completed}</p>
-        <p className="mt-1 text-[13px] text-aviso-texto">{completed === 1 ? "concluída" : "concluídas"}</p>
+        <p className="mt-1 text-[13px] text-aviso-texto">{completed === 1 ? t.completed.one : t.completed.other}</p>
       </div>
     </>
   );
@@ -191,7 +192,7 @@ function SummaryTicket({
     next && "transition-transform duration-200 hover:rotate-0 focus-visible:rotate-0",
   );
   return next ? (
-    <Link href={`/reservas/${next.id}`} className={shell} aria-label={`Próxima reserva: ${next.itemTitle}`}>
+    <Link href={`/reservas/${next.id}`} className={shell} aria-label={fmt(t.nextLabel, { title: next.itemTitle })}>
       {body}
     </Link>
   ) : (

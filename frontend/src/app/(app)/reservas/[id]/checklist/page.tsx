@@ -15,21 +15,13 @@ import { formatDateTime } from "@/lib/format";
 import { compressImage } from "@/lib/images";
 import type { Booking, Checklist, ChecklistType } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 
-const ANGLES = [
-  { key: "frente", label: "Frente", hint: "Equipamento inteiro, de frente" },
-  { key: "tras", label: "Traseira", hint: "Ecrã e botões visíveis" },
-  { key: "lados", label: "Lados", hint: "Portas e encaixes" },
-  { key: "serie", label: "Número de série", hint: "Etiqueta legível" },
-  { key: "acessorios", label: "Acessórios", hint: "Bateria, carregador, mala" },
-  { key: "detalhe", label: "Marcas existentes", hint: "Riscos ou desgaste já existentes" },
-];
+// Ângulos pedidos; rótulos e dicas em t.checklist.angles
+const ANGLES = (["frente", "tras", "lados", "serie", "acessorios", "detalhe"] as const).map((key) => ({ key }));
 const MIN_PHOTOS = 2; // mínimo da API (máx. 10)
 
-const LABEL: Record<ChecklistType, { noun: string; verb: string }> = {
-  DELIVERY: { noun: "entrega", verb: "Registar entrega" },
-  RETURN: { noun: "devolução", verb: "Registar devolução" },
-};
 
 /** Fase atual a partir do estado da reserva: entrega em ACTIVE, devolução em IN_PROGRESS, senão só histórico. */
 function phaseOf(status: Booking["status"]): ChecklistType | null {
@@ -43,6 +35,8 @@ export default function ChecklistPage() {
   const { id } = useParams<{ id: string }>();
   const booking = useResource<Booking>(session ? `booking:${id}` : null, () => bookingApi.get(id));
   const lists = useResource<Checklist[]>(session ? `checklists:${id}` : null, () => checklistApi.list(id));
+  const dict = useT();
+  const t = dict.checklist;
 
   if (!session) return null;
   const err = booking.error ?? lists.error;
@@ -50,7 +44,7 @@ export default function ChecklistPage() {
   if (!booking.data || !lists.data) {
     return (
       <Dark>
-        <div role="status" aria-label="A carregar" className="grid gap-4">
+        <div role="status" aria-label={dict.common.loading} className="grid gap-4">
           <Skeleton className="h-10 w-2/3 bg-white/10" />
           <Skeleton className="h-64 bg-white/10" />
         </div>
@@ -74,16 +68,14 @@ export default function ChecklistPage() {
   return (
     <Dark>
       <div className="[&_a]:text-salvia">
-        <BackLink href={`/reservas/${id}`}>Reserva {bookingCode(id)}</BackLink>
+        <BackLink href={`/reservas/${id}`}>{fmt(dict.bookingPage.bookingCode, { code: bookingCode(id) })}</BackLink>
       </div>
       <div className="grid gap-2">
         <h1 className="font-titulo text-[26px] leading-tight font-bold text-white md:text-[32px]">
-          {phase ? `Checklist de ${LABEL[phase].noun}` : "Entrega e devolução"}
+          {phase ? t[phase].title : t.both}
         </h1>
         <p className="text-[15px] text-salvia-tint">
-          {phase
-            ? `Um de vocês fotografa e descreve o estado; ${firstName(other)} confirma. As fotos são a prova do estado do equipamento.`
-            : "Registo das fotos e notas da entrega e da devolução desta reserva."}
+          {phase ? fmt(t.introPhase, { other: firstName(other, dict) }) : t.introHistory}
         </p>
       </div>
 
@@ -98,13 +90,13 @@ export default function ChecklistPage() {
 
       {history.length > 0 && (
         <div className="grid gap-4">
-          {phase && <h2 className="font-titulo text-xl font-bold text-white">Já registado</h2>}
+          {phase && <h2 className="font-titulo text-xl font-bold text-white">{t.alreadyRecorded}</h2>}
           {history.map((c) => (
             <ChecklistView key={c.id} checklist={c} />
           ))}
         </div>
       )}
-      {!phase && history.length === 0 && <p className="text-areia/75">Ainda não há nada registado.</p>}
+      {!phase && history.length === 0 && <p className="text-areia/75">{t.nothingYet}</p>}
     </Dark>
   );
 }
@@ -122,6 +114,7 @@ function CaptureForm({ bookingId, type, onDone }: { bookingId: string; type: Che
   const [files, setFiles] = useState<Record<string, { file: File; url: string }>>({});
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const t = useT().checklist;
   const urls = useRef<string[]>([]);
   useEffect(() => () => urls.current.forEach((u) => URL.revokeObjectURL(u)), []);
 
@@ -139,10 +132,10 @@ function CaptureForm({ bookingId, type, onDone }: { bookingId: string; type: Che
     try {
       const photos = await Promise.all(ANGLES.filter((a) => files[a.key]).map((a) => compressImage(files[a.key].file)));
       await checklistApi.create(bookingId, type, notes.trim(), photos);
-      toast.success(`${LABEL[type].noun[0].toUpperCase()}${LABEL[type].noun.slice(1)} registada. Falta a outra parte confirmar.`);
+      toast.success(t[type].done);
       onDone();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível registar.");
+      toast.error(e instanceof Error ? e.message : t.registerError);
       setBusy(false);
     }
   }
@@ -152,13 +145,13 @@ function CaptureForm({ bookingId, type, onDone }: { bookingId: string; type: Che
       <div className="grid gap-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-bold">
-            {done} de {ANGLES.length} fotos {done < MIN_PHOTOS && <span className="font-normal text-areia/70">(mínimo {MIN_PHOTOS})</span>}
+            {fmt(t.photosCount, { done, total: ANGLES.length })} {done < MIN_PHOTOS && <span className="font-normal text-areia/70">{fmt(t.minimum, { min: MIN_PHOTOS })}</span>}
           </span>
           <span className="flex items-center gap-1.5 text-areia/70">
-            <Sun className="size-4 text-ambar" strokeWidth={1.8} aria-hidden /> Procura boa luz, sem flash
+            <Sun className="size-4 text-ambar" strokeWidth={1.8} aria-hidden /> {t.light}
           </span>
         </div>
-        <div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label="Fotos tiradas" aria-valuemin={0} aria-valuemax={ANGLES.length} aria-valuenow={done}>
+        <div className="h-2 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-label={t.photosTaken} aria-valuemin={0} aria-valuemax={ANGLES.length} aria-valuenow={done}>
           <div
             className="h-full origin-left rounded-full bg-salvia transition-transform duration-350 ease-out"
             style={{ transform: `scaleX(${done / ANGLES.length})` }}
@@ -168,24 +161,24 @@ function CaptureForm({ bookingId, type, onDone }: { bookingId: string; type: Che
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         {ANGLES.map((a) => (
-          <CameraSlot key={a.key} label={a.label} hint={a.hint} photo={files[a.key]?.url} onPick={(f) => pick(a.key, f)} />
+          <CameraSlot key={a.key} label={t.angles[a.key].label} hint={t.angles[a.key].hint} photo={files[a.key]?.url} onPick={(f) => pick(a.key, f)} />
         ))}
       </div>
 
       <div className="rounded-cartao bg-white/5 p-4 [&_label]:text-areia [&_textarea]:border-white/20 [&_textarea]:bg-white/5 [&_textarea]:text-areia">
         <TextArea
-          label="Notas sobre o estado"
+          label={t.notes}
           value={notes}
           onChange={setNotes}
           rows={3}
           maxLength={2000}
-          placeholder="Ex.: pequeno risco no canto inferior do ecrã, já existia. 2 baterias e carregador."
+          placeholder={t.notesPh}
         />
       </div>
 
       <div className="fixed inset-x-0 bottom-[68px] z-30 border-t border-white/10 bg-verde-noite px-4 py-3 md:static md:border-0 md:bg-transparent md:p-0">
         <Button size="lg" block disabled={!ready} loading={busy} onClick={submit}>
-          {done < MIN_PHOTOS ? `Faltam ${MIN_PHOTOS - done} fotos` : !notes.trim() ? "Escreve as notas" : LABEL[type].verb}
+          {done < MIN_PHOTOS ? plural(MIN_PHOTOS - done, t.missing) : !notes.trim() ? t.writeNotes : t[type].verb}
         </Button>
       </div>
     </>
@@ -193,13 +186,16 @@ function CaptureForm({ bookingId, type, onDone }: { bookingId: string; type: Che
 }
 
 function Waiting({ checklist, other }: { checklist: Checklist; other: string }) {
+  const dict = useT();
+  const t = dict.checklist;
+  const name = firstName(other, dict);
   return (
     <>
       <div className="flex gap-3 rounded-cartao border border-white/15 p-4" role="status">
         <Clock className="mt-0.5 size-5 shrink-0 text-ambar" strokeWidth={1.8} aria-hidden />
         <p>
-          <span className="font-bold">À espera de {firstName(other)}.</span>{" "}
-          <span className="text-areia/75">Registaste a {LABEL[checklist.type].noun}; {firstName(other)} tem de confirmar na app dele.</span>
+          <span className="font-bold">{fmt(t.waitingFor, { name })}</span>{" "}
+          <span className="text-areia/75">{fmt(t.waitingText, { noun: t[checklist.type].noun, name })}</span>
         </p>
       </div>
       <ChecklistView checklist={checklist} />
@@ -209,16 +205,18 @@ function Waiting({ checklist, other }: { checklist: Checklist; other: string }) 
 
 function Review({ bookingId, checklist, onDone }: { bookingId: string; checklist: Checklist; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
-  const noun = LABEL[checklist.type].noun;
+  const dict = useT();
+  const t = dict.checklist;
+  const noun = t[checklist.type].noun;
 
   async function confirm() {
     setBusy(true);
     try {
       await checklistApi.confirm(bookingId, checklist.type);
-      toast.success(checklist.type === "DELIVERY" ? "Entrega confirmada. Bom aluguer!" : "Devolução confirmada. A equipa vai decidir a caução.");
+      toast.success(checklist.type === "DELIVERY" ? t.deliveryConfirmed : t.returnConfirmed);
       onDone();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível confirmar.");
+      toast.error(e instanceof Error ? e.message : t.confirmError);
       setBusy(false);
     }
   }
@@ -226,15 +224,15 @@ function Review({ bookingId, checklist, onDone }: { bookingId: string; checklist
   return (
     <>
       <p className="text-areia/85">
-        <span className="font-bold">{firstName(checklist.createdByName)}</span> registou a {noun}. Confere as fotos e as notas com o equipamento à tua frente.
+        <span className="font-bold">{firstName(checklist.createdByName, dict)}</span> {fmt(t.reviewText, { noun })}
       </p>
       <ChecklistView checklist={checklist} />
       <div className="grid gap-3">
         <Button size="lg" block loading={busy} onClick={confirm}>
-          Confirmar {noun}
+          {fmt(t.confirm, { noun })}
         </Button>
         <ButtonLink href={`/reservas/${bookingId}/problema`} variant="outline" block className="border-white/30 text-areia hover:bg-white/10">
-          <Flag strokeWidth={1.8} /> Não concordo: reportar problema
+          <Flag strokeWidth={1.8} /> {t.disagree}
         </ButtonLink>
       </div>
     </>
@@ -242,21 +240,23 @@ function Review({ bookingId, checklist, onDone }: { bookingId: string; checklist
 }
 
 function ChecklistView({ checklist }: { checklist: Checklist }) {
-  const noun = LABEL[checklist.type].noun;
+  const t = useT().checklist;
+  const lang = useLang();
+  const noun = t[checklist.type].noun;
   return (
-    <section className="grid animate-sobe gap-3 rounded-cartao border border-white/10 bg-white/5 p-4" aria-label={`Checklist de ${noun}`}>
+    <section className="grid animate-sobe gap-3 rounded-cartao border border-white/10 bg-white/5 p-4" aria-label={fmt(t.viewLabel, { noun })}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-titulo text-lg font-bold text-white capitalize">{noun}</h3>
         {checklist.confirmed ? (
           <span className="flex items-center gap-1.5 text-sm text-salvia">
-            <CheckCircle2 className="size-4" strokeWidth={2} aria-hidden /> Confirmada {checklist.confirmedAt && `em ${formatDateTime(checklist.confirmedAt)}`}
+            <CheckCircle2 className="size-4" strokeWidth={2} aria-hidden /> {checklist.confirmedAt ? fmt(t.confirmedAt, { when: formatDateTime(checklist.confirmedAt, lang) }) : t.confirmed}
           </span>
         ) : (
-          <span className="text-sm text-areia/70">Por confirmar</span>
+          <span className="text-sm text-areia/70">{t.pending}</span>
         )}
       </div>
       <p className="text-[13px] text-areia/70">
-        Registada por {checklist.createdByName} em {formatDateTime(checklist.createdAt)}
+        {fmt(t.createdBy, { name: checklist.createdByName, when: formatDateTime(checklist.createdAt, lang) })}
       </p>
       <p className="whitespace-pre-line">{checklist.notes}</p>
       <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
@@ -265,7 +265,7 @@ function ChecklistView({ checklist }: { checklist: Checklist }) {
           .map((p, i) => (
             <a key={p.id} href={p.url} target="_blank" rel="noreferrer" className="block aspect-[4/3] overflow-hidden rounded-campo bg-black">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.url} alt={`Foto ${i + 1} da ${noun}`} className="size-full object-cover" />
+              <img src={p.url} alt={fmt(t.photoOf, { n: i + 1, noun })} className="size-full object-cover" />
             </a>
           ))}
       </div>

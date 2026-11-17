@@ -12,6 +12,7 @@ import { authApi } from "@/lib/api";
 import { safeNext, signIn } from "@/lib/auth";
 import { isValidPhone, normalizePhone } from "@/lib/format";
 import { toLatLng, type ApproxLocation } from "@/lib/location";
+import { useT } from "@/lib/i18n/client";
 
 function RegisterFlow() {
   const router = useRouter();
@@ -26,16 +27,19 @@ function RegisterFlow() {
   const [code, setCode] = useState("");
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [loading, setLoading] = useState(false);
+  const dict = useT();
+  const a = dict.auth;
+  const t = a.register;
 
   const payload = () => ({ fullName: fullName.trim(), phone: normalizePhone(phone), email: email.trim() || undefined, password, role, location: location ? toLatLng(location) : undefined });
 
   async function submitData(e: React.FormEvent) {
     e.preventDefault();
     const fields: Record<string, string> = {};
-    if (fullName.trim().length < 3) fields.fullName = "Escreve o teu nome completo.";
-    if (!isValidPhone(phone)) fields.phone = "Escreve os 9 dígitos do teu número.";
-    if (email && !/^\S+@\S+\.\S+$/.test(email)) fields.email = "Escreve um email válido ou deixa em branco.";
-    if (password.length < 8) fields.password = "A password tem de ter pelo menos 8 caracteres.";
+    if (fullName.trim().length < 3) fields.fullName = t.errName;
+    if (!isValidPhone(phone)) fields.phone = a.phoneDigits;
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) fields.email = t.errEmail;
+    if (password.length < 8) fields.password = a.passwordMin;
     if (Object.keys(fields).length) return setErrors({ fields });
 
     setLoading(true);
@@ -52,12 +56,12 @@ function RegisterFlow() {
 
   async function submitOtp(e: React.FormEvent) {
     e.preventDefault();
-    if (code.length !== 6) return setErrors({ fields: { code: "O código tem 6 dígitos." } });
+    if (code.length !== 6) return setErrors({ fields: { code: a.codeLength } });
     setLoading(true);
     setErrors({ fields: {} });
     try {
       signIn(await authApi.verifyRegistration({ phone: normalizePhone(phone), code }));
-      toast.success("Conta criada. Bem-vindo à Beeznoo.");
+      toast.success(a.created);
       const home = role === "OWNER" ? "/painel" : "/explorar";
       router.replace(`/bem-vindo?next=${encodeURIComponent(safeNext(nextParam, home))}`);
     } catch (err) {
@@ -70,27 +74,27 @@ function RegisterFlow() {
   if (step === "otp") {
     return (
       <>
-        <StepProgress step={2} total={2} label="Confirmar número" />
+        <StepProgress step={2} total={2} label={t.stepOtp} />
         <div className="h-6" />
         <AuthTitle
-          title="Confirma o teu número"
-          subtitle={<>Enviámos um código por WhatsApp para <strong className="num text-verde">{normalizePhone(phone)}</strong>. Se não tiveres WhatsApp, chega por SMS.</>}
+          title={a.otpTitle}
+          subtitle={<>{a.otpSentBefore}<strong className="num text-verde">{normalizePhone(phone)}</strong>{a.otpSentAfter}</>}
         />
         <form onSubmit={submitOtp} className="grid gap-5" noValidate>
           <OtpField value={code} onChange={setCode} error={errors.fields.code} />
           <FormError message={errors.form} />
           <Button type="submit" loading={loading} block size="lg">
-            {loading ? "A confirmar…" : "Confirmar e criar conta"}
+            {loading ? a.confirming : t.otpSubmit}
           </Button>
           <div className="flex items-center justify-between">
             <button type="button" className="min-h-11 text-sm font-medium text-verde hover:underline" onClick={() => { setCode(""); setStep("data"); }}>
-              Mudar número
+              {t.changeNumber}
             </button>
             <ResendCode
               onResend={async () => {
                 try {
                   await authApi.register(payload());
-                  toast.success("Novo código enviado.");
+                  toast.success(t.newCode);
                 } catch (err) {
                   setErrors(toFormErrors(err));
                 }
@@ -104,34 +108,34 @@ function RegisterFlow() {
 
   return (
     <>
-      <StepProgress step={1} total={2} label="Os teus dados" />
+      <StepProgress step={1} total={2} label={t.stepData} />
       <div className="h-6" />
-      <AuthTitle title="Cria a tua conta" subtitle="Menos de um minuto. Confirmamos o teu número com um código no WhatsApp." />
+      <AuthTitle title={t.title} subtitle={t.subtitle} />
       <form onSubmit={submitData} className="grid gap-5" noValidate>
-        <TextField label="Nome completo" autoComplete="name" value={fullName} onChange={setFullName} error={errors.fields.fullName} />
+        <TextField label={t.fullName} autoComplete="name" value={fullName} onChange={setFullName} error={errors.fields.fullName} />
         <PhoneField value={phone} onChange={setPhone} error={errors.fields.phone} autoComplete="username" />
-        <TextField label="Email (opcional)" type="email" autoComplete="email" value={email} onChange={setEmail} error={errors.fields.email} />
-        <PasswordField value={password} onChange={setPassword} autoComplete="new-password" hint="Pelo menos 8 caracteres." error={errors.fields.password} />
+        <TextField label={t.emailOpt} type="email" autoComplete="email" value={email} onChange={setEmail} error={errors.fields.email} />
+        <PasswordField value={password} onChange={setPassword} autoComplete="new-password" hint={a.passwordHint} error={errors.fields.password} />
         <RolePicker value={role} onChange={setRole} />
         <LocationOptIn value={location} onChange={setLocation} />
         <FormError message={errors.form} />
         <p className="text-[13px] text-cinza">
-          Ao continuar, aceitas a{" "}
+          {t.acceptBefore}{" "}
           <Link href="/privacidade" target="_blank" className="font-medium text-mel-texto underline">
-            Política de Privacidade
+            {t.privacy}
           </Link>
           .
         </p>
         <Button type="submit" loading={loading} block size="lg">
-          {loading ? "A enviar código…" : "Continuar"}
+          {loading ? a.sendingCode : dict.common.continue}
         </Button>
         <Divider />
-        <GoogleButton label="Registar com Google" />
+        <GoogleButton label={a.googleSignUp} />
       </form>
       <p className="mt-8 text-center text-[15px] text-cinza">
-        Já tens conta?{" "}
+        {t.haveAccount}{" "}
         <Link href="/entrar" className="font-bold text-mel-texto hover:underline">
-          Entrar
+          {t.signIn}
         </Link>
       </p>
     </>

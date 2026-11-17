@@ -7,7 +7,9 @@ import { AlertTriangle, Check, ChevronRight, Clock, Hourglass, ShieldCheck, User
 import { Avatar, ItemPhoto } from "./equipment";
 import { SuccessCheck } from "./success";
 import { Badge, ButtonLink, Kz } from "./ui";
-import { BOOKING_LABEL, TIMELINE_STEPS, bookingCode, stepsDone, type NextStep } from "@/lib/booking";
+import { bookingCode, bookingLabel, stepsDone, type NextStep } from "@/lib/booking";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 import { daysBetween, formatDateTime, formatDay, formatDuration, formatKz, formatRange } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Booking } from "@/lib/types";
@@ -25,8 +27,10 @@ function useNow(intervalMs = 30_000) {
 }
 
 /** Prazo ao vivo: normal (ambar-tint + relógio) → urgente < 3 h (erro-tint + alerta) → expirado (areia-2 + X). Sempre ícone + texto, sem animação contínua. */
-export function DeadlineChip({ until, prefix = "Faltam", className }: { until: Date; prefix?: string; className?: string }) {
+export function DeadlineChip({ until, prefix, className }: { until: Date; prefix?: string; className?: string }) {
   const now = useNow();
+  const lang = useLang();
+  const t = useT().booking;
   if (now === null) return <span className={cn("inline-block h-8 w-32 rounded-full bg-skeleton", className)} aria-hidden />;
   const left = until.getTime() - now;
   const state = left <= 0 ? "expirado" : left < 3 * 3_600_000 ? "urgente" : "normal";
@@ -42,7 +46,9 @@ export function DeadlineChip({ until, prefix = "Faltam", className }: { until: D
       )}
     >
       <Icon className="size-4" strokeWidth={2.2} aria-hidden />
-      {state === "expirado" ? `Expirou ${formatDateTime(until)}` : `${state === "urgente" ? "Urgente · " : ""}${prefix} ${formatDuration(left)}`}
+      {state === "expirado"
+        ? fmt(t.deadlineExpired, { when: formatDateTime(until, lang) })
+        : `${state === "urgente" ? t.deadlineUrgent : ""}${prefix ?? t.deadlineLeft} ${formatDuration(left, lang)}`}
     </span>
   );
 }
@@ -50,17 +56,20 @@ export function DeadlineChip({ until, prefix = "Faltam", className }: { until: D
 // ── BookingTicket: a reserva como bilhete ─────────────────────────────────
 /** Reserva como bilhete (verde, recortes laterais, picotado); leve inclinação 3D que endireita no hover (só com rato). */
 export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" | "owner" }) {
-  const st = BOOKING_LABEL[booking.status];
+  const dict = useT();
+  const t = dict.booking;
+  const lang = useLang();
+  const st = bookingLabel(booking.status, dict);
   const days = daysBetween(booking.startDate, booking.endDate);
-  const other = as === "renter" ? { role: "Dono", name: booking.ownerName } : { role: "Arrendatário", name: booking.renterName };
+  const other = as === "renter" ? { role: t.owner, name: booking.ownerName } : { role: t.renter, name: booking.renterName };
   return (
     <div className="animate-sobe">
-    <article className="superficie-marca bilhete-3d relative overflow-hidden rounded-sheet bg-verde text-areia" aria-label={`Reserva ${bookingCode(booking.id)}`}>
+    <article className="superficie-marca bilhete-3d relative overflow-hidden rounded-sheet bg-verde text-areia" aria-label={fmt(t.ticket, { code: bookingCode(booking.id) })}>
       <div className="hex-bg absolute inset-0 opacity-70" aria-hidden />
       <div className="relative flex gap-4 p-5">
         <ItemPhoto src={booking.itemCoverPhoto} alt={booking.itemTitle} className="w-24 shrink-0 rounded-campo bg-white/10 text-salvia" />
         <div className="grid min-w-0 content-start gap-1.5">
-          <p className="num text-xs font-bold tracking-[0.12em] text-salvia uppercase">Reserva {bookingCode(booking.id)}</p>
+          <p className="num text-xs font-bold tracking-[0.12em] text-salvia uppercase">{fmt(t.ticket, { code: bookingCode(booking.id) })}</p>
           <h1 className="font-titulo text-xl leading-tight font-bold md:text-2xl">{booking.itemTitle}</h1>
           <Badge tone={st.tone} className="justify-self-start">{st.label}</Badge>
         </div>
@@ -73,15 +82,15 @@ export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" 
       </div>
       <dl className="relative grid grid-cols-3 gap-3 px-5 pt-1 pb-5">
         <div>
-          <dt className="text-[11px] font-bold tracking-[0.12em] text-salvia uppercase">Levanta</dt>
-          <dd className="font-titulo text-lg font-bold">{formatDay(booking.startDate, true)}</dd>
+          <dt className="text-[11px] font-bold tracking-[0.12em] text-salvia uppercase">{t.pickup}</dt>
+          <dd className="font-titulo text-lg font-bold">{formatDay(booking.startDate, true, lang)}</dd>
         </div>
         <div>
-          <dt className="text-[11px] font-bold tracking-[0.12em] text-salvia uppercase">Devolve</dt>
-          <dd className="font-titulo text-lg font-bold">{formatDay(booking.endDate, true)}</dd>
+          <dt className="text-[11px] font-bold tracking-[0.12em] text-salvia uppercase">{t.dropoff}</dt>
+          <dd className="font-titulo text-lg font-bold">{formatDay(booking.endDate, true, lang)}</dd>
         </div>
         <div>
-          <dt className="text-[11px] font-bold tracking-[0.12em] text-salvia uppercase">Dias</dt>
+          <dt className="text-[11px] font-bold tracking-[0.12em] text-salvia uppercase">{t.days}</dt>
           <dd className="num font-titulo text-lg font-bold">{days}</dd>
         </div>
         <div className="col-span-3 flex items-center gap-3 border-t border-white/10 pt-3">
@@ -98,13 +107,14 @@ export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" 
 }
 
 // ── NextStepCard ──────────────────────────────────────────────────────────
+// label: chave em t.booking.who
 const WHO = {
-  you: { label: "Próximo passo", icon: Clock, box: "bg-ambar-tint", eyebrow: "text-aviso-texto", sub: "text-aviso-texto" },
-  other: { label: "À espera da outra parte", icon: Hourglass, box: "bg-areia-2", eyebrow: "text-cinza", sub: "text-texto-corpo" },
-  team: { label: "Com a equipa Beeznoo", icon: Users, box: "bg-erro-tint", eyebrow: "text-erro", sub: "text-texto-corpo" },
-  done: { label: "Fechado", icon: Check, box: "bg-areia-2", eyebrow: "text-cinza", sub: "text-texto-corpo" },
+  you: { label: "you" as const, icon: Clock, box: "bg-ambar-tint", eyebrow: "text-aviso-texto", sub: "text-aviso-texto" },
+  other: { label: "other" as const, icon: Hourglass, box: "bg-areia-2", eyebrow: "text-cinza", sub: "text-texto-corpo" },
+  team: { label: "team" as const, icon: Users, box: "bg-erro-tint", eyebrow: "text-erro", sub: "text-texto-corpo" },
+  done: { label: "done" as const, icon: Check, box: "bg-areia-2", eyebrow: "text-cinza", sub: "text-texto-corpo" },
 };
-const POSITIVE = { label: "Concluído", icon: Check, box: "bg-salvia-tint", eyebrow: "text-verde-medio", sub: "text-texto-corpo" };
+const POSITIVE = { label: "positive" as const, icon: Check, box: "bg-salvia-tint", eyebrow: "text-verde-medio", sub: "text-texto-corpo" };
 
 /**
  * Próximo passo no topo da reserva (v4): ambar-tint + relógio + "Próximo passo" quando és tu a agir;
@@ -114,11 +124,12 @@ export function NextStepCard({ step, deadline, amount, positive }: { step: NextS
   const meta = positive ? POSITIVE : WHO[step.who];
   const Icon = meta.icon;
   const mine = step.who === "you";
+  const t = useT().booking;
   return (
-    <section aria-label="Próximo passo" className={cn("grid animate-sobe gap-3 rounded-cartao p-4 md:p-5", meta.box)}>
+    <section aria-label={t.nextStepLabel} className={cn("grid animate-sobe gap-3 rounded-cartao p-4 md:p-5", meta.box)}>
       <p className={cn("flex items-center gap-1.5 text-xs font-bold tracking-[0.1em] uppercase", meta.eyebrow)}>
         <Icon className="size-4" strokeWidth={2} aria-hidden />
-        {meta.label}
+        {t.who[meta.label]}
       </p>
       <div className="grid gap-1">
         <h2 className="font-titulo text-xl leading-tight font-bold text-verde md:text-2xl">{step.title}</h2>
@@ -147,17 +158,19 @@ export function NextStepCard({ step, deadline, amount, positive }: { step: NextS
  */
 export function Timeline({ booking, orientation = "vertical" }: { booking: Booking; orientation?: "vertical" | "horizontal" }) {
   const done = stepsDone(booking.status);
+  const dict = useT();
+  const t = dict.booking;
   const cancelled = booking.status === "CANCELLED_OWNER" || booking.status === "CANCELLED_RENTER" || booking.status === "EXPIRED";
   const disputed = booking.status === "DISPUTED";
-  const steps = TIMELINE_STEPS.map((label, i) => {
+  const steps = t.timeline.map((label, i) => {
     const isDone = i < done;
     const isProblem = disputed && i === done;
     const isNow = i === done && !cancelled && !isProblem;
-    return { label: isProblem ? "Problema reportado" : label, isDone, isNow, isProblem };
+    return { key: i, label: isProblem ? t.problemReported : label, isDone, isNow, isProblem };
   });
   const cancelNote = cancelled && (
     <p className="mt-3 flex items-center gap-2 text-sm font-medium text-erro">
-      <X className="size-4" strokeWidth={2.2} aria-hidden /> {BOOKING_LABEL[booking.status].label}
+      <X className="size-4" strokeWidth={2.2} aria-hidden /> {bookingLabel(booking.status, dict).label}
     </p>
   );
 
@@ -172,10 +185,10 @@ export function Timeline({ booking, orientation = "vertical" }: { booking: Booki
         </span>
         <ol className="grid" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
           {steps.map((s, i) => (
-            <li key={TIMELINE_STEPS[i]} className="relative flex flex-col items-center gap-2 px-1 text-center" aria-current={s.isNow ? "step" : undefined}>
+            <li key={s.key} className="relative flex flex-col items-center gap-2 px-1 text-center" aria-current={s.isNow ? "step" : undefined}>
               <TimelineDot {...s} index={i} />
               <span className={cn("text-[13px] leading-tight", s.isDone || s.isNow || s.isProblem ? "font-bold text-verde" : "text-cinza")}>{s.label}</span>
-              {s.isNow && <span className="text-xs text-aviso-texto">Agora</span>}
+              {s.isNow && <span className="text-xs text-aviso-texto">{t.now}</span>}
             </li>
           ))}
         </ol>
@@ -190,7 +203,7 @@ export function Timeline({ booking, orientation = "vertical" }: { booking: Booki
         {steps.map((s, i) => {
           const last = i === steps.length - 1;
           return (
-            <li key={TIMELINE_STEPS[i]} className="flex gap-3" aria-current={s.isNow ? "step" : undefined}>
+            <li key={s.key} className="flex gap-3" aria-current={s.isNow ? "step" : undefined}>
               <div className="flex w-7 flex-col items-center">
                 <TimelineDot {...s} index={i} />
                 {!last && (
@@ -201,7 +214,7 @@ export function Timeline({ booking, orientation = "vertical" }: { booking: Booki
               </div>
               <div className={cn("pb-5", last && "pb-0")}>
                 <p className={cn("text-[15px]", s.isDone || s.isNow || s.isProblem ? "font-bold text-verde" : "text-cinza")}>{s.label}</p>
-                {s.isNow && <p className="text-[13px] text-aviso-texto">Agora</p>}
+                {s.isNow && <p className="text-[13px] text-aviso-texto">{t.now}</p>}
               </div>
             </li>
           );
@@ -214,6 +227,7 @@ export function Timeline({ booking, orientation = "vertical" }: { booking: Booki
 
 /** Ponto da timeline: feito (salvia + check), agora (anel âmbar), problema (erro + alerta), por fazer (contorno). */
 function TimelineDot({ isDone, isNow, isProblem, index }: { isDone: boolean; isNow: boolean; isProblem: boolean; index: number }) {
+  const t = useT().booking;
   return (
     <span
       className={cn(
@@ -226,7 +240,7 @@ function TimelineDot({ isDone, isNow, isProblem, index }: { isDone: boolean; isN
       style={isDone ? ({ "--i": index } as React.CSSProperties) : undefined}
     >
       {isDone ? <Check className="size-3.5" strokeWidth={3} aria-hidden /> : isProblem ? <AlertTriangle className="size-3.5" strokeWidth={2.5} aria-hidden /> : null}
-      <span className="sr-only">{isDone ? "Feito" : isNow ? "Agora" : isProblem ? "Problema" : "Por fazer"}</span>
+      <span className="sr-only">{isDone ? t.done : isNow ? t.now : isProblem ? t.problem : t.todo}</span>
     </span>
   );
 }
@@ -239,42 +253,44 @@ export function PriceSummary({
   const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
   const rental = Math.round(pricePerDay * days);
   const fee = serviceFee ?? Math.round(rental * feeRate);
+  const dict = useT();
+  const t = dict.booking.price;
+  const lang = useLang();
+  const daysLabel = fmt(t.daysTimes, { days: plural(days, dict.common.days), price: formatKz(pricePerDay) });
   // Pagamento direto (2026-11-15): o arrendatário paga tudo ao dono na entrega; o dono entrega a taxa à Beeznoo
   if (as === "owner") {
     return (
       <div className="grid gap-3 text-[15px]">
         <div className="grid gap-1">
-          <p className="text-sm text-cinza">Ficas com</p>
+          <p className="text-sm text-cinza">{t.youKeep}</p>
           <Kz value={rental} className="text-3xl text-verde" />
-          <p className="text-[13px] text-cinza">
-            {days} {days === 1 ? "dia" : "dias"} × {formatKz(pricePerDay)}
-          </p>
+          <p className="text-[13px] text-cinza">{daysLabel}</p>
         </div>
         <div className="grid gap-2 border-t border-borda pt-3">
-          <Row label="Recebes na entrega" value={formatKz(rental + fee + deposit)} />
-          <Row label="Taxa de serviço a entregar à Beeznoo" value={formatKz(fee)} />
-          {deposit > 0 && <Row label="Caução a devolver no fim" value={formatKz(deposit)} />}
+          <Row label={t.receiveAtHandover} value={formatKz(rental + fee + deposit)} />
+          <Row label={t.feeToBeeznoo} value={formatKz(fee)} />
+          {deposit > 0 && <Row label={t.depositToReturn} value={formatKz(deposit)} />}
         </div>
       </div>
     );
   }
   return (
     <div className="grid text-[15px]">
-      <Row label={`${days} ${days === 1 ? "dia" : "dias"} × ${formatKz(pricePerDay)}`} value={formatKz(rental)} divided />
-      <Row label={`Taxa de serviço (${formatFeeRate(feeRate)})`} value={formatKz(fee)} divided />
+      <Row label={daysLabel} value={formatKz(rental)} divided />
+      <Row label={fmt(t.fee, { rate: formatFeeRate(feeRate, lang) })} value={formatKz(fee)} divided />
       <Row
         label={
           <span className="flex flex-wrap items-center gap-2">
-            Caução
-            <Badge tone="ok" icon={ShieldCheck} className="h-6 px-2 text-xs">Reembolsável</Badge>
+            {t.deposit}
+            <Badge tone="ok" icon={ShieldCheck} className="h-6 px-2 text-xs">{t.refundable}</Badge>
           </span>
         }
         value={formatKz(deposit)}
-        hint="O dono devolve-te a caução depois da devolução, se estiver tudo em ordem."
+        hint={t.depositHint}
         divided
       />
       <div className="flex items-end justify-between gap-3 pt-3">
-        <span className="font-bold text-verde">Pagas ao dono na entrega</span>
+        <span className="font-bold text-verde">{t.payOwner}</span>
         <Kz value={rental + fee + deposit} className="text-2xl text-verde" />
       </div>
     </div>
@@ -297,7 +313,9 @@ function Row({ label, value, hint, divided }: { label: React.ReactNode; value: s
 // ── Linhas de lista ───────────────────────────────────────────────────────
 /** Linha de reserva em listas (foto, nome, datas, estado). */
 export function BookingRow({ booking, as, index = 0 }: { booking: Booking; as: "renter" | "owner"; index?: number }) {
-  const st = BOOKING_LABEL[booking.status];
+  const dict = useT();
+  const lang = useLang();
+  const st = bookingLabel(booking.status, dict);
   return (
     <Link
       href={`/reservas/${booking.id}`}
@@ -308,7 +326,7 @@ export function BookingRow({ booking, as, index = 0 }: { booking: Booking; as: "
       <div className="grid min-w-0 flex-1 gap-1">
         <p className="truncate font-titulo font-bold text-verde">{booking.itemTitle}</p>
         <p className="truncate text-[13px] text-cinza">
-          {formatRange(booking.startDate, booking.endDate)} · {as === "renter" ? booking.ownerName : booking.renterName}
+          {formatRange(booking.startDate, booking.endDate, lang)} · {as === "renter" ? booking.ownerName : booking.renterName}
         </p>
         <Badge tone={st.tone} className="justify-self-start">{st.label}</Badge>
       </div>

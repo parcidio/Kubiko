@@ -18,9 +18,10 @@ import { addDaysIso, daysBetween, formatDay, formatRange, LUANDA_AREAS, todayIso
 import { canRent } from "@/lib/mode";
 import type { Availability, Item, Me } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
-import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
+import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 
-const STEPS = ["Datas", "Entrega", "Mensagem", "Rever"];
 type Handover = "pickup" | "delivery";
 
 function Reservar() {
@@ -44,10 +45,14 @@ function Reservar() {
   const [sending, setSending] = useState(false);
   const availability = useResource<Availability>(`availability:${id}`, () => catalogApi.availability(id));
   const me = useResource<Me>(session ? "profile:me" : null, () => profileApi.me());
+  const lang = useLang();
+  const dict = useT();
+  const t = dict.reserve;
+  const STEPS = t.steps;
 
   if (!session) return null;
   if (loadError) return <ErrorState message={loadError} onRetry={reload} />;
-  if (!item) return <Skeleton role="status" aria-label="A carregar" className="h-96 rounded-cartao" />;
+  if (!item) return <Skeleton role="status" aria-label={dict.common.loading} className="h-96 rounded-cartao" />;
 
   const days = daysBetween(start, end);
   const busyDays = unavailableDays(availability.data);
@@ -60,12 +65,12 @@ function Reservar() {
   function validate(s: number) {
     const fields: Record<string, string> = {};
     if (s === 1) {
-      if (start < todayIso()) fields.startDate = "Não pode ser no passado.";
-      if (days < 1) fields.endDate = "Pelo menos um dia depois.";
-      else if (conflict) fields.startDate = `Já está ocupado a ${formatDay(conflict)}. Escolhe outras datas.`;
+      if (start < todayIso()) fields.startDate = t.pastDate;
+      if (days < 1) fields.endDate = t.minOneDay;
+      else if (conflict) fields.startDate = fmt(t.busyOn, { day: formatDay(conflict, false, lang) });
     }
-    if (s === 2 && handover === "delivery" && !area) fields.area = "Escolhe o bairro de entrega.";
-    if (s === 4 && !terms) fields.terms = "Tens de aceitar as condições para continuar.";
+    if (s === 2 && handover === "delivery" && !area) fields.area = t.pickArea;
+    if (s === 4 && !terms) fields.terms = t.acceptTerms;
     setErrors({ fields });
     return Object.keys(fields).length === 0;
   }
@@ -81,7 +86,7 @@ function Reservar() {
     try {
       // A API ainda não tem campos de entrega (BACKEND_GAPS): seguem na mensagem ao dono.
       const handoverLine =
-        handover === "pickup" ? `Entrega: levanto no local do dono, às ${time}.` : `Entrega: peço entrega em ${area}, às ${time}.`;
+        handover === "pickup" ? fmt(t.handoverPickup, { time }) : fmt(t.handoverDelivery, { area, time });
       const booking = await bookingApi.create({
         itemId: id,
         startDate: start,
@@ -91,7 +96,7 @@ function Reservar() {
       router.replace(`/reservas/${booking.id}?novo=1`);
     } catch (err) {
       if (isKycRequired(err)) {
-        toast(KYC_REDIRECT_TOAST);
+        toast(kycRedirectToast());
         router.push("/verificacao");
         return;
       }
@@ -107,10 +112,10 @@ function Reservar() {
     <div className="mx-auto grid max-w-2xl gap-6">
       {step > 1 ? (
         <button type="button" onClick={() => setStep(step - 1)} className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 justify-self-start text-sm font-medium text-mel-texto hover:underline">
-          <ArrowLeft className="size-4" strokeWidth={1.8} aria-hidden /> Passo anterior
+          <ArrowLeft className="size-4" strokeWidth={1.8} aria-hidden /> {t.prevStep}
         </button>
       ) : (
-        <BackLink href={`/equipamento/${id}`}>Voltar ao equipamento</BackLink>
+        <BackLink href={`/equipamento/${id}`}>{t.backToItem}</BackLink>
       )}
 
       <Card className="flex items-center gap-3 p-2.5">
@@ -118,21 +123,21 @@ function Reservar() {
         <div className="min-w-0">
           <p className="truncate font-titulo text-[17px] font-bold tracking-tight text-verde">{item.title}</p>
           <p className="text-sm text-cinza">
-            <Kz value={item.pricePerDay} className="text-sm" /> /dia · {item.ownerName}
+            <Kz value={item.pricePerDay} className="text-sm" /> {dict.common.perDay} · {item.ownerName}
           </p>
         </div>
       </Card>
 
       {needsKyc ? (
         <div className="grid gap-4">
-          <Callout tone="warn" title="Antes de pedir, verifica a tua identidade">
-            É feito à mão pela equipa e pode demorar até 2 dias úteis. Só precisas de o fazer uma vez. Depois voltas a este equipamento e pedes.
+          <Callout tone="warn" title={t.kycTitle}>
+            {t.kycText}
           </Callout>
-          <ButtonLink href="/verificacao" size="lg">Verificar identidade</ButtonLink>
+          <ButtonLink href="/verificacao" size="lg">{t.verify}</ButtonLink>
         </div>
       ) : blocked ? (
-        <Callout tone="warn" title={isOwnItem ? "Este equipamento é teu" : "A tua conta é só de dono"}>
-          {isOwnItem ? "Não podes reservar o teu próprio equipamento." : "Para alugar, a conta tem de ser de arrendatário ou de \"as duas coisas\". Fala connosco para mudar."}
+        <Callout tone="warn" title={isOwnItem ? t.ownItemTitle : t.ownerOnlyTitle}>
+          {isOwnItem ? t.ownItemText : t.ownerOnlyText}
         </Callout>
       ) : (
         <>
@@ -140,10 +145,10 @@ function Reservar() {
 
           {step === 1 && (
             <section className="grid animate-sobe gap-4">
-              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">Para que dias?</h1>
+              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">{t.whichDays}</h1>
               <div className="grid grid-cols-2 gap-3">
-                <TextField label="Levantas" type="date" min={todayIso()} value={start} onChange={(v) => { setStart(v); if (v >= end) setEnd(addDaysIso(v, 1)); }} error={errors.fields.startDate} />
-                <TextField label="Devolves" type="date" min={addDaysIso(start, 1)} value={end} onChange={setEnd} error={errors.fields.endDate} />
+                <TextField label={t.pickup} type="date" min={todayIso()} value={start} onChange={(v) => { setStart(v); if (v >= end) setEnd(addDaysIso(v, 1)); }} error={errors.fields.startDate} />
+                <TextField label={t.dropoff} type="date" min={addDaysIso(start, 1)} value={end} onChange={setEnd} error={errors.fields.endDate} />
               </div>
               {availability.data && (
                 <Card className="p-4">
@@ -151,11 +156,11 @@ function Reservar() {
                 </Card>
               )}
               {conflict ? (
-                <Callout tone="warn">Já está ocupado a {formatDay(conflict)}. O dia de devolução pode coincidir com o início de outro aluguer, mas nenhum dia de uso pode.</Callout>
+                <Callout tone="warn">{fmt(t.busyCallout, { day: formatDay(conflict, false, lang) })}</Callout>
               ) : days > 0 && (
                 <p className="flex items-center gap-2.5 rounded-cartao bg-areia-2 p-4 text-verde">
                   <CalendarDays className="size-5 shrink-0 text-mel" strokeWidth={1.8} aria-hidden />
-                  <span><strong className="font-titulo">{formatRange(start, end)}</strong> · <span className="num">{days} {days === 1 ? "dia" : "dias"}</span></span>
+                  <span><strong className="font-titulo">{formatRange(start, end, lang)}</strong> · <span className="num">{plural(days, dict.common.days)}</span></span>
                 </p>
               )}
             </section>
@@ -163,54 +168,54 @@ function Reservar() {
 
           {step === 2 && (
             <section className="grid animate-sobe gap-4">
-              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">Como recebes o equipamento?</h1>
+              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">{t.howReceive}</h1>
               <RadioCards<Handover>
-                legend="Entrega e recolha"
+                legend={t.handoverLegend}
                 name="handover"
                 value={handover}
                 onChange={setHandover}
                 options={[
-                  { value: "pickup", title: "Levanto no dono", text: "Combinam o sítio exato depois de ele aceitar.", icon: Home },
-                  { value: "delivery", title: "Peço entrega", text: "O dono diz se consegue e quanto custa (combinado à parte).", icon: Truck },
+                  { value: "pickup", title: t.pickupTitle, text: t.pickupText, icon: Home },
+                  { value: "delivery", title: t.deliveryTitle, text: t.deliveryText, icon: Truck },
                 ]}
               />
               {handover === "delivery" && (
-                <SelectField label="Bairro de entrega" value={area} onChange={setArea} placeholder="Escolhe o bairro" options={LUANDA_AREAS.map((a) => ({ value: a, label: a }))} error={errors.fields.area} />
+                <SelectField label={t.deliveryArea} value={area} onChange={setArea} placeholder={t.pickAreaPh} options={LUANDA_AREAS.map((a) => ({ value: a, label: a }))} error={errors.fields.area} />
               )}
-              <TextField label="Hora preferida" type="time" value={time} onChange={setTime} />
-              <Callout tone="info" icon={MapPin}>Quem faz a entrega e se tem custo ainda está por fechar. Por agora combina-se com o dono.</Callout>
+              <TextField label={t.time} type="time" value={time} onChange={setTime} />
+              <Callout tone="info" icon={MapPin}>{t.deliveryNote}</Callout>
             </section>
           )}
 
           {step === 3 && (
             <section className="grid animate-sobe gap-4">
-              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">Diz ao dono para que é</h1>
+              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">{t.tellOwner}</h1>
               <TextArea
-                label="Mensagem (opcional)"
+                label={t.message}
                 value={message}
                 onChange={setMessage}
                 maxLength={800}
-                placeholder="Ex.: casamento em Talatona no sábado. Já trabalhei com a A7 III."
-                hint="Pedidos com contexto são aceites mais depressa."
+                placeholder={t.messagePh}
+                hint={t.messageHint}
               />
             </section>
           )}
 
           {step === 4 && (
             <section className="grid animate-sobe gap-4">
-              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">Rever e enviar</h1>
+              <h1 className="font-titulo text-[26px] leading-[1.1] font-bold tracking-[-0.02em] text-verde md:text-[32px]">{t.review}</h1>
               <Card className="grid gap-4 p-4">
                 <p className="flex items-start gap-2.5 font-bold text-verde">
                   <CalendarDays className="mt-0.5 size-5 shrink-0 text-mel" strokeWidth={1.8} aria-hidden />
                   <span>
-                    {formatRange(start, end)} · {handover === "pickup" ? "levantas no dono" : `entrega em ${area}`} às {time}
+                    {fmt(handover === "pickup" ? t.summaryPickup : t.summaryDelivery, { range: formatRange(start, end, lang), area, time })}
                   </span>
                 </p>
                 <PriceSummary pricePerDay={Number(item.pricePerDay)} days={days} deposit={Number(item.depositAmount ?? 0)} />
               </Card>
-              <Callout tone="warn" icon={Clock}>O dono tem 24 h para responder. Pagas na entrega, ao dono, depois de conferires o equipamento.</Callout>
+              <Callout tone="warn" icon={Clock}>{t.ownerHas24h}</Callout>
               <Checkbox checked={terms} onChange={setTerms} error={errors.fields.terms}>
-                Aceito as condições: devolvo nas datas combinadas e no mesmo estado, e a caução pode ser retida se houver dano.
+                {t.terms}
               </Checkbox>
               <FormError message={errors.form} />
             </section>
@@ -219,11 +224,11 @@ function Reservar() {
           <StickyCTA>
             {step < STEPS.length ? (
               <Button block size="lg" arrow onClick={next}>
-                Continuar
+                {dict.common.continue}
               </Button>
             ) : (
               <Button block size="lg" loading={sending} onClick={submit}>
-                {sending ? "A enviar pedido…" : "Enviar pedido"}
+                {sending ? t.sending : t.send}
               </Button>
             )}
           </StickyCTA>
@@ -231,7 +236,7 @@ function Reservar() {
       )}
       {blocked && (
         <ButtonLink href="/explorar" variant="outline">
-          Voltar a explorar
+          {t.backToExplore}
         </ButtonLink>
       )}
     </div>

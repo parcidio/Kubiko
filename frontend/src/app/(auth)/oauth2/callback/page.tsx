@@ -9,6 +9,7 @@ import { Button, ButtonLink } from "@/components/bz/ui";
 import { authApi } from "@/lib/api";
 import { signIn } from "@/lib/auth";
 import { isValidPhone, normalizePhone } from "@/lib/format";
+import { useT } from "@/lib/i18n/client";
 
 type Errors = FormErrors;
 
@@ -24,6 +25,8 @@ function Callback() {
   const [exchangeFailed, setExchangeFailed] = useState(false);
   const [mfa, setMfa] = useState<{ token: string; hint?: string | null } | null>(null);
   const failed = exchangeFailed || (status === "success" && !code);
+  const a = useT().auth;
+  const t = a.oauth;
 
   useEffect(() => {
     if (handled.current || status !== "success" || !code) return;
@@ -48,17 +51,17 @@ function Callback() {
 
   if (status === "pending_phone") return <CompletePhone pendingToken={params.get("pendingToken") ?? ""} />;
 
-  if (status === "success" && !failed) return <p role="status" className="text-[15px] text-cinza">A entrar…</p>;
+  if (status === "success" && !failed) return <p role="status" className="text-[15px] text-cinza">{a.signingIn}</p>;
 
   if (status === "email_in_use") {
     return (
       <>
         <AuthTitle
-          title="Este email já tem conta na Beeznoo"
-          subtitle="Por segurança, não juntamos contas sozinhos. Entra com o teu telefone e password e, em Conta, carrega em “Associar conta Google”. A partir daí entras com o Google diretamente."
+          title={t.emailInUseTitle}
+          subtitle={t.emailInUseText}
         />
         <ButtonLink href="/entrar?next=%2Fconta" block>
-          Entrar com telefone
+          {t.signInPhone}
         </ButtonLink>
       </>
     );
@@ -66,9 +69,9 @@ function Callback() {
 
   return (
     <>
-      <AuthTitle title="Não foi possível entrar com Google" subtitle="Tenta outra vez ou entra com o teu número." />
+      <AuthTitle title={t.failedTitle} subtitle={t.failedText} />
       <ButtonLink href="/entrar" block>
-        Voltar a entrar
+        {t.backToLogin}
       </ButtonLink>
     </>
   );
@@ -82,6 +85,8 @@ function CompletePhone({ pendingToken }: { pendingToken: string }) {
   const [code, setCode] = useState("");
   const [errors, setErrors] = useState<Errors>({ fields: {} });
   const [loading, setLoading] = useState(false);
+  const dict = useT();
+  const a = dict.auth;
 
   async function sendCode() {
     await authApi.googleRegister({ pendingToken, phone: normalizePhone(phone), role });
@@ -89,7 +94,7 @@ function CompletePhone({ pendingToken }: { pendingToken: string }) {
 
   async function submitPhone(e: React.FormEvent) {
     e.preventDefault();
-    if (!isValidPhone(phone)) return setErrors({ fields: { phone: "Escreve os 9 dígitos do teu número." } });
+    if (!isValidPhone(phone)) return setErrors({ fields: { phone: a.phoneDigits } });
     setLoading(true);
     setErrors({ fields: {} });
     try {
@@ -104,12 +109,12 @@ function CompletePhone({ pendingToken }: { pendingToken: string }) {
 
   async function submitOtp(e: React.FormEvent) {
     e.preventDefault();
-    if (code.length !== 6) return setErrors({ fields: { code: "O código tem 6 dígitos." } });
+    if (code.length !== 6) return setErrors({ fields: { code: a.codeLength } });
     setLoading(true);
     setErrors({ fields: {} });
     try {
       signIn(await authApi.googleVerify({ pendingToken, code }));
-      toast.success("Conta criada. Bem-vindo à Beeznoo.");
+      toast.success(a.created);
       router.replace(`/bem-vindo?next=${role === "OWNER" ? "/painel" : "/explorar"}`);
     } catch (err) {
       setErrors(toFormErrors(err));
@@ -121,12 +126,12 @@ function CompletePhone({ pendingToken }: { pendingToken: string }) {
   if (step === "otp") {
     return (
       <>
-        <AuthTitle title="Confirma o teu número" subtitle={<>Enviámos um código por WhatsApp para <strong className="text-verde">{normalizePhone(phone)}</strong>. Se não tiveres WhatsApp, chega por SMS.</>} />
+        <AuthTitle title={a.otpTitle} subtitle={<>{a.otpSentBefore}<strong className="text-verde">{normalizePhone(phone)}</strong>{a.otpSentAfter}</>} />
         <form onSubmit={submitOtp} className="grid gap-5" noValidate>
           <OtpField value={code} onChange={setCode} error={errors.fields.code} />
           <FormError message={errors.form} />
           <Button type="submit" loading={loading} block size="lg">
-            {loading ? "A confirmar…" : "Confirmar"}
+            {loading ? a.confirming : a.oauth.confirm}
           </Button>
           <div className="flex justify-end">
             <ResendCode onResend={() => sendCode().catch((err) => setErrors(toFormErrors(err)))} />
@@ -138,13 +143,13 @@ function CompletePhone({ pendingToken }: { pendingToken: string }) {
 
   return (
     <>
-      <AuthTitle title="Falta o teu número" subtitle="Usamos o telefone para confirmar reservas e falar contigo." />
+      <AuthTitle title={a.oauth.phoneTitle} subtitle={a.oauth.phoneText} />
       <form onSubmit={submitPhone} className="grid gap-5" noValidate>
         <PhoneField value={phone} onChange={setPhone} error={errors.fields.phone} />
         <RolePicker value={role} onChange={setRole} />
         <FormError message={errors.form} />
         <Button type="submit" loading={loading} block size="lg">
-          {loading ? "A enviar código…" : "Continuar"}
+          {loading ? a.sendingCode : dict.common.continue}
         </Button>
       </form>
     </>

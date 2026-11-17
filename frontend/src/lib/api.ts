@@ -5,6 +5,7 @@ import type {
   KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
 } from "./types";
 import type { LatLng } from "./types-ops";
+import { docT } from "./i18n";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string, public fields?: Record<string, string>, public code?: string) {
@@ -12,14 +13,15 @@ export class ApiError extends Error {
   }
 }
 
-const NETWORK_ERROR = "Sem ligação. Verifica a internet e tenta outra vez.";
+// Mensagens geradas no browser (as da API chegam já escritas e passam tal como vêm)
+const NETWORK_ERROR = () => docT().common.networkError;
 
 async function parseError(res: Response): Promise<ApiError> {
   try {
     const body = await res.json();
-    return new ApiError(res.status, body.message ?? body.error ?? "Algo correu mal.", body.fields ?? undefined, typeof body.code === "string" ? body.code : undefined);
+    return new ApiError(res.status, body.message ?? body.error ?? docT().common.somethingWrong, body.fields ?? undefined, typeof body.code === "string" ? body.code : undefined);
   } catch {
-    return new ApiError(res.status, res.status >= 500 ? "O servidor falhou. Tenta outra vez." : "Algo correu mal.");
+    return new ApiError(res.status, res.status >= 500 ? docT().common.serverError : docT().common.somethingWrong);
   }
 }
 
@@ -61,7 +63,7 @@ export async function request<T>(path: string, init: RequestInit = {}, retry = t
   try {
     res = await fetch(`/api/v1${path}`, { ...init, headers, credentials: "same-origin" });
   } catch {
-    throw new ApiError(0, NETWORK_ERROR);
+    throw new ApiError(0, NETWORK_ERROR());
   }
 
   if (res.status === 401 && session && retry && (await refreshTokens())) {
@@ -82,7 +84,7 @@ async function download(path: string, fallbackName: string, retry = true): Promi
   try {
     res = await fetch(`/api/v1${path}`, { headers, credentials: "same-origin" });
   } catch {
-    throw new ApiError(0, NETWORK_ERROR);
+    throw new ApiError(0, NETWORK_ERROR());
   }
   if (res.status === 401 && session && retry && (await refreshTokens())) return download(path, fallbackName, false);
   if (!res.ok) throw await parseError(res);
@@ -108,7 +110,7 @@ async function upload<T>(path: string, form: FormData, retry = true): Promise<T>
   try {
     res = await fetch(`/api/v1${path}`, { method: "POST", body: form, headers, credentials: "same-origin" });
   } catch {
-    throw new ApiError(0, NETWORK_ERROR);
+    throw new ApiError(0, NETWORK_ERROR());
   }
   if (res.status === 401 && session && retry && (await refreshTokens())) return upload<T>(path, form, false);
   if (!res.ok) throw await parseError(res);
