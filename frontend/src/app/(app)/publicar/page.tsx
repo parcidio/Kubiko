@@ -18,7 +18,7 @@ import { compressImage } from "@/lib/images";
 import { canOwn } from "@/lib/mode";
 import type { Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
-import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
+import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
 
 const STEPS = ["Fotos", "Detalhes", "Preço e caução", "Pré-visualização"];
 const MAX_PHOTOS = 8; // limite da API
@@ -112,7 +112,7 @@ function PublicarForm({ profileId }: { profileId: string }) {
       setPublished(item);
     } catch (e) {
       if (isKycRequired(e)) {
-        toast(KYC_REDIRECT_TOAST);
+        toast(kycRedirectToast());
         router.push("/verificacao");
         return;
       }

@@ -8,6 +8,8 @@ import { Avatar, EquipmentCard, Stars, formatRating } from "./equipment";
 import { ButtonLink, Skeleton, Button } from "./ui";
 import { catalogApi } from "@/lib/api";
 import { formatDay } from "@/lib/format";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 import { cn } from "@/lib/utils";
 import { useResource } from "@/lib/use-resource";
 import type { ItemOrder, ItemSummary, Review } from "@/lib/types";
@@ -30,6 +32,7 @@ export function Rail({
   const key = `rail:${order}:${featured ? "f" : ""}:${categoryId ?? "all"}`;
   const { data, loading } = useResource(key, () => catalogApi.items({ categoryId, featured, order, size: 10 }));
   const scroller = useRef<HTMLUListElement>(null);
+  const t = useT().discover;
   const items = (data?.content ?? []).filter(keep ?? (() => true));
 
   if (loading) return <RailSkeleton title={title} />;
@@ -49,8 +52,8 @@ export function Rail({
         </div>
         {items.length > 3 && (
           <div className="hidden gap-1 md:flex">
-            <ArrowButton label={`${title}: anteriores`} icon={ChevronLeft} onClick={() => scrollBy(-1)} />
-            <ArrowButton label={`${title}: seguintes`} icon={ChevronRight} onClick={() => scrollBy(1)} />
+            <ArrowButton label={fmt(t.previous, { title })} icon={ChevronLeft} onClick={() => scrollBy(-1)} />
+            <ArrowButton label={fmt(t.next, { title })} icon={ChevronRight} onClick={() => scrollBy(1)} />
           </div>
         )}
       </div>
@@ -79,8 +82,9 @@ function ArrowButton({ label, icon: Icon, onClick }: { label: string; icon: Luci
 }
 
 function RailSkeleton({ title }: { title: string }) {
+  const t = useT().discover;
   return (
-    <div role="status" aria-label={`A carregar ${title}`} className="grid gap-3">
+    <div role="status" aria-label={fmt(t.loadingRail, { title })} className="grid gap-3">
       <Skeleton className="h-6 w-44" />
       <div className="faixa -mx-4 gap-3 px-4 md:mx-0 md:px-0">
         {Array.from({ length: 4 }, (_, i) => (
@@ -97,15 +101,13 @@ function RailSkeleton({ title }: { title: string }) {
 
 // ── Porque podes confiar (uma linha, sem promessas falsas) ──────────────
 
-const TRUST: { icon: LucideIcon; title: string; text: string }[] = [
-  { icon: BadgeCheck, title: "Donos verificados", text: "Identidade confirmada pela equipa" },
-  { icon: ShieldCheck, title: "Pagas na entrega", text: "Só depois de conferires, com comprovativo" },
-  { icon: Camera, title: "Fotos na entrega", text: "Checklist e contrato em cada aluguer" },
-];
+const TRUST_ICONS: LucideIcon[] = [BadgeCheck, ShieldCheck, Camera];
 
 export function TrustStrip({ className }: { className?: string }) {
+  const t = useT().discover;
+  const TRUST = t.trust.map((x, i) => ({ ...x, icon: TRUST_ICONS[i] }));
   return (
-    <ul aria-label="Como a Beeznoo te protege" className={cn("faixa -mx-4 gap-2 px-4 md:mx-0 md:grid md:grid-cols-3 md:gap-3 md:px-0", className)}>
+    <ul aria-label={t.trustLabel} className={cn("faixa -mx-4 gap-2 px-4 md:mx-0 md:grid md:grid-cols-3 md:gap-3 md:px-0", className)}>
       {TRUST.map(({ icon: Icon, title, text }, i) => (
         <li
           key={title}
@@ -124,12 +126,14 @@ export function TrustStrip({ className }: { className?: string }) {
 }
 
 // ── Pesquisas rápidas no herói ───────────────────────────────────────────
+// Termos de pesquisa (os títulos dos anúncios estão em português), por isso não se traduzem.
 
 export const QUICK_SEARCHES = ["Sony", "Drone", "Coluna", "Projetor", "Microfone", "Tenda"];
 
 export function QuickSearches({ onPick, active }: { onPick: (q: string) => void; active: string }) {
+  const t = useT().discover;
   return (
-    <div className="faixa -mx-4 gap-2 px-4 md:mx-0 md:flex-wrap md:px-0" aria-label="Pesquisas frequentes">
+    <div className="faixa -mx-4 gap-2 px-4 md:mx-0 md:flex-wrap md:px-0" aria-label={t.quickLabel}>
       {QUICK_SEARCHES.map((q) => {
         const on = active.trim().toLowerCase() === q.toLowerCase();
         return (
@@ -155,18 +159,19 @@ export function QuickSearches({ onPick, active }: { onPick: (q: string) => void;
 // ── Bloco editorial: convite a publicar (da Beeznoo, não é anúncio) ──────
 
 export function PublishPromo() {
+  const t = useT().discover;
   return (
     <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde p-6 text-areia md:flex md:items-center md:justify-between md:gap-8 md:p-8">
       <HexGlow />
       <div className="relative grid gap-1.5 md:max-w-lg">
-        <p className="text-xs font-bold tracking-[0.1em] text-salvia uppercase">Para donos</p>
+        <p className="text-xs font-bold tracking-[0.1em] text-salvia uppercase">{t.promoEyebrow}</p>
         <h2 className="font-titulo text-2xl leading-tight font-extrabold tracking-tight md:text-3xl">
-          <span className="text-white">Tens equipamento parado?</span> <span className="text-salvia">Põe-no a render.</span>
+          <span className="text-white">{t.promoTitle}</span> <span className="text-salvia">{t.promoAccent}</span>
         </h2>
-        <p className="text-[15px] text-salvia-tint">Publicas com fotos e preço, aceitas só os pedidos que quiseres e recebes por cada aluguer.</p>
+        <p className="text-[15px] text-salvia-tint">{t.promoText}</p>
       </div>
       <ButtonLink href="/publicar" variant="light" arrow className="relative mt-4 md:mt-0">
-        Publicar equipamento
+        {t.promoCta}
       </ButtonLink>
     </section>
   );
@@ -181,6 +186,9 @@ export function ReviewsSection({
   const [more, setMore] = useState<Review[]>([]);
   const [page, setPage] = useState(0);
   const [loadingMore, setLoadingMore] = useState(false);
+  const dict = useT();
+  const t = dict.discover;
+  const lang = useLang();
   const reviews = [...(first.data?.content ?? []), ...more];
   const hasMore = reviews.length < count;
 
@@ -198,29 +206,29 @@ export function ReviewsSection({
   return (
     <section aria-labelledby="avaliacoes" className="grid gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 id="avaliacoes" className="font-titulo text-lg font-bold text-verde md:text-xl">Avaliações</h2>
-        {rentals > 0 && <p className="num text-[13px] text-cinza">Alugado {rentals} {rentals === 1 ? "vez" : "vezes"} na Beeznoo</p>}
+        <h2 id="avaliacoes" className="font-titulo text-lg font-bold text-verde md:text-xl">{t.reviews}</h2>
+        {rentals > 0 && <p className="num text-[13px] text-cinza">{plural(rentals, t.rented)}</p>}
       </div>
 
       {average && count > 0 ? (
         <div className="flex items-center gap-4 rounded-cartao bg-areia-2 p-4">
-          <span className="num font-titulo text-5xl leading-none font-extrabold tracking-tight text-verde">{formatRating(average)}</span>
+          <span className="num font-titulo text-5xl leading-none font-extrabold tracking-tight text-verde">{formatRating(average, lang)}</span>
           <span className="grid gap-1">
             <Stars value={average} />
             <span className="text-sm text-cinza">
-              {count} {count === 1 ? "avaliação" : "avaliações"} de quem já alugou
+              {plural(count, t.reviewsCount)}
             </span>
           </span>
         </div>
       ) : (
         <div className="flex items-center gap-3 rounded-cartao border border-dashed border-borda-forte p-4 text-sm text-cinza">
           <MessageSquareText className="size-5 shrink-0 text-mel" strokeWidth={1.8} aria-hidden />
-          Ainda sem avaliações. Quem alugar primeiro conta como correu.
+          {t.noReviews}
         </div>
       )}
 
       {count > 0 && first.loading && (
-        <div role="status" aria-label="A carregar avaliações" className="grid gap-3">
+        <div role="status" aria-label={t.loadingReviews} className="grid gap-3">
           {[0, 1].map((i) => (
             <Skeleton key={i} className="h-24 rounded-cartao" />
           ))}
@@ -228,9 +236,9 @@ export function ReviewsSection({
       )}
       {first.error && (
         <div role="alert" className="flex items-center justify-between gap-3 rounded-cartao bg-erro-tint p-3 text-sm text-erro">
-          Não conseguimos carregar as avaliações.
+          {t.reviewsError}
           <Button size="sm" variant="danger" onClick={first.reload}>
-            Tentar outra vez
+            {dict.common.retry}
           </Button>
         </div>
       )}
@@ -243,7 +251,7 @@ export function ReviewsSection({
                 <Avatar name={r.reviewerName} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold text-verde">{r.reviewerName}</p>
-                  <p className="text-[13px] text-cinza">{formatDay(r.createdAt)}</p>
+                  <p className="text-[13px] text-cinza">{formatDay(r.createdAt, false, lang)}</p>
                 </div>
                 <Stars value={r.rating} size="sm" />
               </div>
@@ -255,7 +263,7 @@ export function ReviewsSection({
 
       {hasMore && first.data && (
         <Button variant="outline" className="justify-self-start" loading={loadingMore} onClick={loadMore}>
-          Ver mais avaliações
+          {t.moreReviews}
         </Button>
       )}
     </section>

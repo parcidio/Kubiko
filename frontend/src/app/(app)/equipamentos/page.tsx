@@ -12,7 +12,7 @@ import { BackLink, Badge, Button, ButtonLink, Card, Kz, type Tone } from "@/comp
 import { bookingApi, ownerItemApi } from "@/lib/api";
 import { DRAFT_KEY_PREFIX, useRequireSession } from "@/lib/auth";
 import { CONDITION_LABEL } from "@/lib/format";
-import { isKycRequired, KYC_REDIRECT_TOAST } from "@/lib/kyc";
+import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
 import { useMode } from "@/lib/mode";
 import type { ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
@@ -84,7 +84,7 @@ export default function EquipamentosPage() {
       reload();
     } catch (e) {
       if (isKycRequired(e)) {
-        toast(KYC_REDIRECT_TOAST);
+        toast(kycRedirectToast());
         router.push("/verificacao");
         return;
       }

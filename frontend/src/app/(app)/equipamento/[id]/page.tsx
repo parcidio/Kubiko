@@ -21,6 +21,8 @@ import { useSession } from "@/lib/auth";
 import { whatsappLink } from "@/lib/booking";
 import { firstConflict, unavailableDays } from "@/lib/availability";
 import { addDaysIso, daysBetween, formatDay, formatRange, todayIso } from "@/lib/format";
+import { fmt, plural } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 import { canRent } from "@/lib/mode";
 import { cn } from "@/lib/utils";
 import { useResource } from "@/lib/use-resource";
@@ -46,11 +48,14 @@ export default function EquipamentoPage() {
   const [depositInfo, setDepositInfo] = useState(false);
   // Dias ocupados (público). Se falhar, o pedido continua possível: a API valida na mesma
   const availability = useResource<Availability>(`availability:${id}`, () => catalogApi.availability(id));
+  const lang = useLang();
+  const dict = useT();
+  const t = dict.item;
 
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!item) {
     return (
-      <div role="status" aria-label="A carregar" className="grid gap-4 md:grid-cols-2 md:gap-10">
+      <div role="status" aria-label={dict.common.loading} className="grid gap-4 md:grid-cols-2 md:gap-10">
         <Skeleton className="aspect-4/3 rounded-cartao" />
         <div className="grid content-start gap-3">
           <Skeleton className="h-9 w-3/4" />
@@ -73,17 +78,17 @@ export default function EquipamentoPage() {
   const needsKyc = !!session && canRent(session.role) && !isOwn && me.data?.canTransact === false;
   const rentalTotal = days > 0 ? Math.round(Number(item.pricePerDay) * days * (1 + feeRate)) : 0;
   // O botão diz porque não dá para pedir, em vez de ficar só cinzento
-  const ctaBlocked = !available ? "Indisponível" : conflict ? "Escolhe outras datas" : days < 1 ? "Escolhe as datas" : null;
-  const waText = `Olá Beeznoo! Tenho uma pergunta sobre "${item.title}" (${formatRange(start, end)}).`;
+  const ctaBlocked = !available ? t.unavailable : conflict ? t.pickOtherDates : days < 1 ? t.pickDates : null;
+  const waText = fmt(t.waText, { title: item.title, range: formatRange(start, end, lang) });
 
   async function toggleFeatured() {
     setFeaturing(true);
     try {
       const updated = await adminApi.setFeatured(id, !item!.featured);
       setData(updated);
-      toast.success(updated.featured ? "Está em destaque no Explorar." : "Destaque retirado.");
+      toast.success(updated.featured ? t.featuredOn : t.featuredOff);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível mudar o destaque.");
+      toast.error(e instanceof Error ? e.message : t.featuredError);
     } finally {
       setFeaturing(false);
     }
@@ -92,7 +97,7 @@ export default function EquipamentoPage() {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-5 md:gap-8">
       <div className="hidden md:block">
-        <BackLink href="/explorar">Explorar</BackLink>
+        <BackLink href="/explorar">{t.backToExplore}</BackLink>
       </div>
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-5 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:gap-10">
@@ -105,13 +110,13 @@ export default function EquipamentoPage() {
               onScroll={(e) => setPhoto(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
             >
               {(photos.length ? photos : [null]).map((p, i) => (
-                <ItemPhoto key={p?.id ?? i} src={p?.photUrl} alt={`${item.title} — foto ${i + 1}`} icon={Icon} rounded={false} className="w-full shrink-0 snap-center" />
+                <ItemPhoto key={p?.id ?? i} src={p?.photUrl} alt={fmt(t.photoN, { title: item.title, n: i + 1 })} icon={Icon} rounded={false} className="w-full shrink-0 snap-center" />
               ))}
             </div>
             {/* Voltar a flutuar sobre a foto (no desktop há o BackLink por cima) */}
             <Link
               href="/explorar"
-              aria-label="Voltar a explorar"
+              aria-label={t.backToExploreLabel}
               className="absolute top-4 left-4 flex size-11 items-center justify-center rounded-campo bg-branco/90 text-verde shadow-float backdrop-blur transition-transform duration-200 active:scale-95 md:hidden"
             >
               <ChevronLeft className="size-5" strokeWidth={1.8} aria-hidden />
@@ -130,7 +135,7 @@ export default function EquipamentoPage() {
             )}
             {item.featured && (
               <span className="absolute top-4 right-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-verde px-3 text-[13px] font-bold text-areia md:right-auto md:left-4 [&_svg]:text-ambar">
-                <Sparkles className="size-4" strokeWidth={1.8} aria-hidden /> Em destaque
+                <Sparkles className="size-4" strokeWidth={1.8} aria-hidden /> {t.featured}
               </span>
             )}
           </div>
@@ -140,7 +145,7 @@ export default function EquipamentoPage() {
                 <button
                   key={p.id}
                   type="button"
-                  aria-label={`Ver foto ${i + 1}`}
+                  aria-label={fmt(t.seePhoto, { n: i + 1 })}
                   aria-current={i === photo}
                   onClick={() => gallery.current?.scrollTo({ left: i * gallery.current.clientWidth, behavior: "smooth" })}
                   className={cn("w-20 cursor-pointer overflow-hidden rounded-campo border-2 transition-[border-color,opacity] duration-200", i === photo ? "border-verde" : "border-transparent opacity-70 hover:opacity-100")}
@@ -157,23 +162,23 @@ export default function EquipamentoPage() {
           <div className="grid animate-sobe gap-3">
             <div className="flex flex-wrap items-center gap-2">
               {item.category && <Badge tone="analise" icon={Icon}>{item.category.name}</Badge>}
-              {!available && <Badge tone="neutro">Indisponível</Badge>}
+              {!available && <Badge tone="neutro">{t.unavailable}</Badge>}
             </div>
             <h1 className="font-titulo text-[28px] leading-[1.05] font-bold tracking-[-0.02em] text-verde md:text-[40px]">{item.title}</h1>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-cinza">
               {item.ratingAverage && item.ratingCount > 0 ? (
                 <a href="#avaliacoes" className="inline-flex min-h-11 items-center gap-1.5 hover:underline md:min-h-0">
                   <Stars value={item.ratingAverage} size="sm" />
-                  <span className="num font-bold text-verde">{formatRating(item.ratingAverage)}</span>
-                  <span className="num">· {item.ratingCount} {item.ratingCount === 1 ? "avaliação" : "avaliações"}</span>
+                  <span className="num font-bold text-verde">{formatRating(item.ratingAverage, lang)}</span>
+                  <span className="num">{plural(item.ratingCount, t.reviewsCount)}</span>
                 </a>
               ) : (
-                <span className="font-medium text-mel-texto">Novo na Beeznoo</span>
+                <span className="font-medium text-mel-texto">{dict.equipment.newOnBeeznoo}</span>
               )}
               {item.completedRentals > 0 && (
                 <span className="inline-flex items-center gap-1">
                   <Repeat2 className="size-4 text-mel" strokeWidth={1.8} aria-hidden />
-                  <span className="num">Alugado {item.completedRentals} {item.completedRentals === 1 ? "vez" : "vezes"}</span>
+                  <span className="num">{plural(item.completedRentals, t.rented)}</span>
                 </span>
               )}
               <span className="inline-flex items-center gap-1">
@@ -182,7 +187,7 @@ export default function EquipamentoPage() {
             </div>
             <div className="flex items-baseline gap-1 text-verde">
               <Kz value={item.pricePerDay} className="text-[32px] md:text-4xl" />
-              <span className="text-cinza">por dia</span>
+              <span className="text-cinza">{t.perDay}</span>
             </div>
             <ConditionMeter condition={item.condition} />
           </div>
@@ -191,13 +196,13 @@ export default function EquipamentoPage() {
           <Card className="flex items-center gap-3 p-4">
             <Avatar name={item.ownerName} size="lg" />
             <div className="min-w-0 flex-1">
-              <Eyebrow>Dono</Eyebrow>
+              <Eyebrow>{t.owner}</Eyebrow>
               <p className="flex min-w-0 items-center gap-2">
                 <span className="truncate font-titulo text-lg font-bold text-verde">{item.ownerName}</span>
                 {item.ownerVerified && <VerifiedBadge compact />}
               </p>
               <p className="flex items-center gap-1 text-[13px] text-cinza">
-                <Clock className="size-3.5" strokeWidth={1.8} aria-hidden /> Tem 24 h para responder ao teu pedido
+                <Clock className="size-3.5" strokeWidth={1.8} aria-hidden /> {t.ownerReplies}
               </p>
             </div>
           </Card>
@@ -205,11 +210,11 @@ export default function EquipamentoPage() {
           {/* Datas + preço */}
           <Card className="grid gap-4 p-4">
             <h2 className="flex items-center gap-3 font-titulo text-lg font-bold tracking-tight text-verde">
-              <HexTile icon={CalendarDays} tone="ambar-tint" size={40} /> Quando precisas?
+              <HexTile icon={CalendarDays} tone="ambar-tint" size={40} /> {t.when}
             </h2>
             <div className="grid grid-cols-2 gap-3">
-              <TextField label="Levantas" type="date" min={todayIso()} value={start} onChange={(v) => { setStart(v); if (v >= end) setEnd(addDaysIso(v, 1)); }} />
-              <TextField label="Devolves" type="date" min={start} value={end} onChange={setEnd} />
+              <TextField label={t.pickup} type="date" min={todayIso()} value={start} onChange={(v) => { setStart(v); if (v >= end) setEnd(addDaysIso(v, 1)); }} />
+              <TextField label={t.dropoff} type="date" min={start} value={end} onChange={setEnd} />
             </div>
             {availability.data && (
               <MonthCalendar
@@ -226,20 +231,20 @@ export default function EquipamentoPage() {
             )}
             {conflict ? (
               <p role="alert" className="text-sm text-erro">
-                Já está ocupado a {formatDay(conflict)}. Escolhe outras datas.
+                {fmt(t.busyOn, { day: formatDay(conflict, false, lang) })}
               </p>
             ) : days > 0 ? (
               <>
                 <PriceSummary pricePerDay={Number(item.pricePerDay)} days={days} deposit={deposit} />
                 <p className="flex gap-2.5 rounded-cartao bg-salvia-tint p-3 text-sm text-verde">
                   <ShieldCheck className="mt-0.5 size-4.5 shrink-0 text-verde-medio" strokeWidth={1.8} aria-hidden />
-                  Não pagas nada agora. Conferes o equipamento na entrega e só depois pagas ao dono.
+                  {t.payNothingNow}
                 </p>
               </>
             ) : (
-              <p className="text-sm text-erro">A devolução tem de ser pelo menos um dia depois.</p>
+              <p className="text-sm text-erro">{t.minOneDay}</p>
             )}
-            <p className="text-[13px] text-cinza">O dia de devolução fica livre para o aluguer seguinte. O dono confirma quando aceitar o pedido.</p>
+            <p className="text-[13px] text-cinza">{t.returnDayFree}</p>
           </Card>
 
           <button
@@ -249,15 +254,15 @@ export default function EquipamentoPage() {
           >
             <HexTile icon={ShieldCheck} tone="salvia" size={44} flip />
             <span className="flex-1">
-              <span className="block font-bold">Proteção Beeznoo</span>
-              <span className="text-sm">Contrato, caução e fotos na entrega. Como funciona?</span>
+              <span className="block font-bold">{t.protection}</span>
+              <span className="text-sm">{t.protectionText}</span>
             </span>
             <ChevronRight className="size-5 text-cinza transition-transform duration-200 ease-out group-hover:translate-x-1" strokeWidth={1.8} aria-hidden />
           </button>
 
           {item.description && (
             <section className="grid gap-2">
-              <h2 className="font-titulo text-lg font-bold tracking-tight text-verde">Sobre o equipamento</h2>
+              <h2 className="font-titulo text-lg font-bold tracking-tight text-verde">{t.about}</h2>
               <p className="whitespace-pre-line text-texto-corpo">{item.description}</p>
             </section>
           )}
@@ -265,18 +270,18 @@ export default function EquipamentoPage() {
           {session?.role === "ADMIN" && (
             <Card className="flex items-center justify-between gap-3 border-dashed p-4">
               <span className="text-sm text-verde">
-                <span className="block font-bold">Admin · Destaque</span>
-                {item.featured ? "Aparece em \"Em destaque\" no Explorar." : "Não está em destaque."}
+                <span className="block font-bold">{t.adminFeatured}</span>
+                {item.featured ? t.adminIsFeatured : t.adminNotFeatured}
               </span>
               <Button variant="outline" size="sm" loading={featuring} onClick={toggleFeatured}>
-                <Sparkles strokeWidth={1.8} /> {item.featured ? "Tirar destaque" : "Destacar"}
+                <Sparkles strokeWidth={1.8} /> {item.featured ? t.unfeature : t.feature}
               </Button>
             </Card>
           )}
 
           {needsKyc && (
-            <Callout tone="warn" title="Antes de pedir, verifica a tua identidade">
-              É feito à mão pela equipa e pode demorar até 2 dias úteis. Só precisas de o fazer uma vez.
+            <Callout tone="warn" title={t.kycTitle}>
+              {t.kycText}
             </Callout>
           )}
 
@@ -285,31 +290,31 @@ export default function EquipamentoPage() {
               ctaBlocked ? (
                 <p className="leading-tight text-verde">
                   <Kz value={item.pricePerDay} className="text-xl" />
-                  <span className="text-[13px] text-cinza"> /dia</span>
+                  <span className="text-[13px] text-cinza"> {dict.common.perDay}</span>
                 </p>
               ) : (
                 // o total das datas é o número que decide (aluguer + taxa; a caução está no resumo acima)
                 <p className="leading-tight text-verde">
                   <Kz value={rentalTotal} className="text-xl" />
                   <span className="block text-[13px] text-cinza">
-                    {formatRange(start, end)} · {days} {days === 1 ? "dia" : "dias"}
+                    {formatRange(start, end, lang)} · {plural(days, dict.common.days)}
                   </span>
                 </p>
               )
             }
           >
             <div className="flex gap-2">
-              <a href={whatsappLink(waText)} target="_blank" rel="noreferrer" aria-label={`Falar no WhatsApp sobre ${item.title}`} className={cn(buttonClass("secondary"), "w-12 px-0 md:w-auto md:px-5")}>
+              <a href={whatsappLink(waText)} target="_blank" rel="noreferrer" aria-label={fmt(t.whatsappAbout, { title: item.title })} className={cn(buttonClass("secondary"), "w-12 px-0 md:w-auto md:px-5")}>
                 <MessageCircle strokeWidth={1.8} />
                 <span className="hidden md:inline">WhatsApp</span>
               </a>
               {needsKyc ? (
                 <ButtonLink href="/verificacao" className="md:flex-1">
-                  Verificar identidade
+                  {t.verifyIdentity}
                 </ButtonLink>
               ) : (
                 <ButtonLink href={reserveHref} className={cn("md:flex-1", ctaBlocked ? "pointer-events-none opacity-50" : "")} aria-disabled={!!ctaBlocked}>
-                  {ctaBlocked ?? "Pedir reserva"}
+                  {ctaBlocked ?? t.request}
                 </ButtonLink>
               )}
             </div>
@@ -321,8 +326,8 @@ export default function EquipamentoPage() {
         <ReviewsSection itemId={id} average={item.ratingAverage} count={item.ratingCount} rentals={item.completedRentals} />
         {item.category && (
           <Rail
-            title={`Mais em ${item.category.name}`}
-            subtitle="Outros equipamentos da mesma categoria"
+            title={fmt(t.moreIn, { category: item.category.name })}
+            subtitle={t.moreInSub}
             icon={LayoutGrid}
             order="POPULAR"
             categoryId={item.category.id}
@@ -331,7 +336,7 @@ export default function EquipamentoPage() {
         )}
       </div>
 
-      <Sheet open={depositInfo} onClose={() => setDepositInfo(false)} title="Como funciona a caução">
+      <Sheet open={depositInfo} onClose={() => setDepositInfo(false)} title={t.depositHow}>
         <DepositExplainer pricePerDay={Number(item.pricePerDay)} deposit={deposit} />
       </Sheet>
     </div>
@@ -339,12 +344,8 @@ export default function EquipamentoPage() {
 }
 
 function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; deposit: number }) {
-  const steps = [
-    { t: "Pagas ao dono, na entrega", d: `Aluguer + taxa + caução. Neste equipamento a caução é ${deposit.toLocaleString("de-DE")} Kz e fica com o dono durante o aluguer.` },
-    { t: "Fotografam juntos na entrega", d: "A checklist com fotos regista o estado. Protege-te a ti e ao dono." },
-    { t: "Devolves e o dono devolve a caução", d: "Se estiver tudo em ordem, a caução volta inteira para ti e o dono regista-o na app." },
-    { t: "Se houver dano", d: "O dono pode reter parte, com motivo. Se não concordares, reportas até 7 dias depois e a equipa decide com base nas fotos." },
-  ];
+  const t = useT().item;
+  const steps = t.depositSteps.map((s) => ({ t: s.t, d: fmt(s.d, { deposit: deposit.toLocaleString("de-DE") }) }));
   return (
     <div className="grid gap-5 pt-2">
       <ol className="grid gap-4">
@@ -359,8 +360,11 @@ function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; depos
         ))}
       </ol>
       <div className="rounded-cartao bg-areia-2 p-4 text-sm text-verde">
-        Exemplo: 3 dias a {pricePerDay.toLocaleString("de-DE")} Kz → pagas {(pricePerDay * 3 * 1.08 + deposit).toLocaleString("de-DE", { maximumFractionDigits: 0 })} Kz e
-        recebes de volta {deposit.toLocaleString("de-DE")} Kz depois da devolução.
+        {fmt(t.depositExample, {
+          price: pricePerDay.toLocaleString("de-DE"),
+          total: (pricePerDay * 3 * 1.08 + deposit).toLocaleString("de-DE", { maximumFractionDigits: 0 }),
+          deposit: deposit.toLocaleString("de-DE"),
+        })}
       </div>
     </div>
   );

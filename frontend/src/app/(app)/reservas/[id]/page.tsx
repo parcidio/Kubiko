@@ -17,6 +17,8 @@ import { PAID_STATUSES, bookingCode, deadlineOf, firstName, nextStep, whatsappLi
 import { daysBetween, formatRange } from "@/lib/format";
 import type { Booking, Payment } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { fmt } from "@/lib/i18n";
+import { useLang, useT } from "@/lib/i18n/client";
 
 function ReservaHub() {
   const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
@@ -35,12 +37,16 @@ function ReservaHub() {
   const [cancelSheet, setCancelSheet] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelNote, setCancelNote] = useState("");
+  const lang = useLang();
+  const dict = useT();
+  const t = dict.bookingHub;
+  const A = t.actions;
 
   if (!session) return null;
   if (error) return <ErrorState message={error} onRetry={reload} />;
   if (!booking) {
     return (
-      <div role="status" aria-label="A carregar" className="mx-auto grid max-w-5xl gap-4">
+      <div role="status" aria-label={dict.common.loading} className="mx-auto grid max-w-5xl gap-4">
         <Skeleton className="h-56 rounded-sheet" />
         <Skeleton className="h-40 rounded-sheet" />
       </div>
@@ -49,19 +55,19 @@ function ReservaHub() {
 
   const days = daysBetween(booking.startDate, booking.endDate);
   const pricePerDay = days ? Number(booking.totalPrice) / days : 0;
-  const step = nextStep(booking, as);
+  const step = nextStep(booking, as, dict);
   const total = Math.round(Number(booking.totalPrice) * (1 + feeRate) + Number(booking.depositAmount));
   const code = bookingCode(booking.id);
-  const waText = `Olá Beeznoo! É sobre a reserva ${code}: ${booking.itemTitle}, ${formatRange(booking.startDate, booking.endDate)}.`;
+  const waText = fmt(t.waText, { code, title: booking.itemTitle, range: formatRange(booking.startDate, booking.endDate, lang) });
 
   async function cancel() {
     setCancelling(true);
     try {
       setBooking(await bookingApi.cancel(booking!.id, cancelNote.trim() || undefined));
-      toast.success(booking!.status === "ACCEPTED" ? "Reserva cancelada." : "Pedido cancelado.");
+      toast.success(booking!.status === "ACCEPTED" ? t.bookingCancelled : t.requestCancelled);
       setCancelSheet(false);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível cancelar.");
+      toast.error(e instanceof Error ? e.message : t.cancelError);
     } finally {
       setCancelling(false);
     }
@@ -75,7 +81,7 @@ function ReservaHub() {
     try {
       await documentApi.contract(booking!.id);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível descarregar o contrato.");
+      toast.error(e instanceof Error ? e.message : t.contractError);
     }
   }
 
@@ -83,35 +89,35 @@ function ReservaHub() {
     try {
       const p = await paymentApi.current(booking!.id);
       if (!p?.receiptNumber) {
-        toast.error("O comprovativo aparece quando o pagamento for confirmado.");
+        toast.error(t.receiptPending);
         return;
       }
       await documentApi.receipt(p.id);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Não foi possível descarregar o comprovativo.");
+      toast.error(e instanceof Error ? e.message : t.receiptError);
     }
   }
 
   const actions: { icon: LucideIcon; label: string; href?: string; external?: boolean; show: boolean; onClick?: () => void; danger?: boolean }[] = [
-    { icon: MessageCircle, label: "Falar com a equipa no WhatsApp", href: whatsappLink(waText), external: true, show: true },
-    { icon: ClipboardCheck, label: "Checklist de entrega e devolução", href: `/reservas/${id}/checklist`, show: handover || booking.status === "COMPLETED" || booking.status === "DISPUTED" },
-    { icon: FileText, label: "Contrato de aluguer", href: `/reservas/${id}/contrato`, show: hasContract },
-    { icon: FileDown, label: "Descarregar contrato (PDF)", show: hasContract, onClick: downloadContract },
-    { icon: Receipt, label: "Comprovativo de pagamento (PDF)", show: paid, onClick: downloadReceipt },
-    { icon: ShieldCheck, label: "Registar devolução da caução", href: `/reservas/${id}/caucao`, show: booking.status === "RETURNED" && as === "owner" },
-    { icon: HandCoins, label: as === "owner" ? "Confirmar que recebi o pagamento" : "Como pagar na entrega", href: `/reservas/${id}/pagar`, show: booking.status === "ACCEPTED" },
+    { icon: MessageCircle, label: A.whatsapp, href: whatsappLink(waText), external: true, show: true },
+    { icon: ClipboardCheck, label: A.checklist, href: `/reservas/${id}/checklist`, show: handover || booking.status === "COMPLETED" || booking.status === "DISPUTED" },
+    { icon: FileText, label: A.contract, href: `/reservas/${id}/contrato`, show: hasContract },
+    { icon: FileDown, label: A.contractPdf, show: hasContract, onClick: downloadContract },
+    { icon: Receipt, label: A.receiptPdf, show: paid, onClick: downloadReceipt },
+    { icon: ShieldCheck, label: A.deposit, href: `/reservas/${id}/caucao`, show: booking.status === "RETURNED" && as === "owner" },
+    { icon: HandCoins, label: as === "owner" ? A.confirmPayment : A.howToPay, href: `/reservas/${id}/pagar`, show: booking.status === "ACCEPTED" },
     // a API só aceita em COMPLETED nos 7 dias depois de o dono registar a caução
-    { icon: Flag, label: "Reportar problema", href: `/reservas/${id}/problema`, show: handover || (booking.status === "COMPLETED" && as === "renter"), danger: true },
+    { icon: Flag, label: A.report, href: `/reservas/${id}/problema`, show: handover || (booking.status === "COMPLETED" && as === "renter"), danger: true },
     // Até pagar não há dinheiro a devolver: o arrendatário cancela o pedido ou a reserva aceite; o dono cancela a aceite (ex.: não apareceu)
-    { icon: Flag, label: booking.status === "ACCEPTED" ? "Cancelar reserva" : "Cancelar pedido", show: (booking.status === "PENDING_OWNER" && as === "renter") || booking.status === "ACCEPTED", onClick: () => setCancelSheet(true), danger: true },
+    { icon: Flag, label: booking.status === "ACCEPTED" ? A.cancelBooking : A.cancelRequest, show: (booking.status === "PENDING_OWNER" && as === "renter") || booking.status === "ACCEPTED", onClick: () => setCancelSheet(true), danger: true },
   ];
 
   return (
     <div className="mx-auto grid max-w-5xl gap-5">
-      <BackLink href={as === "owner" ? "/pedidos" : "/reservas"}>{as === "owner" ? "Pedidos recebidos" : "As minhas reservas"}</BackLink>
+      <BackLink href={as === "owner" ? "/pedidos" : "/reservas"}>{as === "owner" ? t.backOwner : t.backRenter}</BackLink>
 
       {isNew && booking.status === "PENDING_OWNER" && (
-        <SuccessBurst title="Pedido enviado!" text={`${firstName(booking.ownerName)} tem 24 h para responder. Avisamos-te assim que houver novidades.`} />
+        <SuccessBurst title={t.sentTitle} text={fmt(t.sentText, { owner: firstName(booking.ownerName, dict) })} />
       )}
 
       <div className="grid gap-5 md:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] md:items-start">
@@ -129,13 +135,13 @@ function ReservaHub() {
             <Card className="grid gap-4 p-4 md:p-5">
               {booking.renterMessage && (
                 <div>
-                  <Eyebrow>Mensagem de {firstName(booking.renterName)}</Eyebrow>
+                  <Eyebrow>{fmt(t.messageFrom, { name: firstName(booking.renterName, dict) })}</Eyebrow>
                   <p className="mt-1 whitespace-pre-line">{booking.renterMessage}</p>
                 </div>
               )}
               {booking.ownerNote && (
                 <div>
-                  <Eyebrow>Nota de {firstName(booking.ownerName)}</Eyebrow>
+                  <Eyebrow>{fmt(t.noteFrom, { name: firstName(booking.ownerName, dict) })}</Eyebrow>
                   <p className="mt-1 whitespace-pre-line">{booking.ownerNote}</p>
                 </div>
               )}
@@ -145,14 +151,14 @@ function ReservaHub() {
 
         <div className="grid gap-5">
           <Card className="p-5">
-            <SectionTitle className="mb-4">Progresso</SectionTitle>
+            <SectionTitle className="mb-4">{t.progress}</SectionTitle>
             <Timeline booking={booking} />
           </Card>
           <Card className="p-5">
-            <SectionTitle className="mb-4">Valores</SectionTitle>
+            <SectionTitle className="mb-4">{t.amounts}</SectionTitle>
             <PriceSummary pricePerDay={pricePerDay} days={days} deposit={Number(booking.depositAmount)} as={as} />
           </Card>
-          <Card aria-label="Ações" role="group" className="overflow-hidden">
+          <Card aria-label={t.actionsLabel} role="group" className="overflow-hidden">
             {actions
               .filter((a) => a.show)
               .map(({ icon: Icon, label, href, external, onClick, danger }) => {
@@ -181,14 +187,14 @@ function ReservaHub() {
       <Sheet
         open={cancelSheet}
         onClose={() => setCancelSheet(false)}
-        title={booking.status === "ACCEPTED" ? "Cancelar reserva?" : "Cancelar pedido?"}
+        title={booking.status === "ACCEPTED" ? t.cancelBookingQ : t.cancelRequestQ}
         footer={
           <div className="flex gap-3">
             <Button variant="ghost" onClick={() => setCancelSheet(false)}>
-              Manter
+              {t.keep}
             </Button>
             <Button variant="danger" block loading={cancelling} onClick={cancel}>
-              Sim, cancelar
+              {t.confirmCancel}
             </Button>
           </div>
         }
@@ -196,13 +202,13 @@ function ReservaHub() {
         <div className="grid gap-3 pt-2">
           <p>
             {as === "owner"
-              ? `${firstName(booking.renterName)} é avisado e as datas ficam livres. Usa isto se não apareceu ou se combinaram cancelar. Ainda não recebeste o pagamento na app.`
+              ? fmt(t.cancelOwnerText, { renter: firstName(booking.renterName, dict) })
               : booking.status === "ACCEPTED"
-                ? "O dono é avisado e as datas ficam livres. Ainda não pagaste nada na app, por isso não há reembolso a tratar."
-                : "O dono é avisado e as datas ficam livres. Ainda não pagaste nada, por isso não há reembolso a tratar."}
+                ? t.cancelAcceptedText
+                : t.cancelPendingText}
           </p>
           {as === "owner" && (
-            <TextArea label="Mensagem para o arrendatário (opcional)" value={cancelNote} onChange={setCancelNote} maxLength={500} />
+            <TextArea label={t.cancelNote} value={cancelNote} onChange={setCancelNote} maxLength={500} />
           )}
         </div>
       </Sheet>
