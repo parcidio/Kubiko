@@ -1,6 +1,8 @@
 package com.beeznoo.api.auth.security;
 
 import com.beeznoo.api.auth.service.JwtService;
+import com.beeznoo.api.profile.entity.UserRole;
+import com.beeznoo.api.profile.repository.ProfileRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import org.junit.jupiter.api.AfterEach;
@@ -20,7 +22,8 @@ import static org.mockito.Mockito.mock;
 class JwtAuthFiltterTest {
 
     private final JwtService jwtService = mock(JwtService.class);
-    private final JwtAuthFiltter filter = new JwtAuthFiltter(jwtService);
+    private final ProfileRepository profileRepository = mock(ProfileRepository.class);
+    private final JwtAuthFiltter filter = new JwtAuthFiltter(jwtService, profileRepository);
 
     @AfterEach
     void clear() {
@@ -48,6 +51,36 @@ class JwtAuthFiltterTest {
     void subjectQueNaoEUuid_ficaSemAutenticacao() throws Exception {
         Claims claims = Jwts.claims().subject("nao-e-uuid").add("role", "RENTER").build();
         given(jwtService.validateAndExtract("tok")).willReturn(claims);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer tok");
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    // Admin despromovido: o token ainda diz ADMIN, mas o papel vem da BD
+    @Test
+    void tokenAdmin_papelConfirmadoNaBd() throws Exception {
+        UUID profileId = UUID.randomUUID();
+        Claims claims = Jwts.claims().subject(profileId.toString()).add("role", "ADMIN").build();
+        given(jwtService.validateAndExtract("tok")).willReturn(claims);
+        given(profileRepository.findActiveRoleById(profileId)).willReturn(java.util.Optional.of(UserRole.BOTH));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer tok");
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
+                .extracting("authority").containsExactly("ROLE_BOTH");
+    }
+
+    @Test
+    void tokenAdmin_contaSuspensaOuApagada_ficaSemAutenticacao() throws Exception {
+        UUID profileId = UUID.randomUUID();
+        Claims claims = Jwts.claims().subject(profileId.toString()).add("role", "ADMIN").build();
+        given(jwtService.validateAndExtract("tok")).willReturn(claims);
+        given(profileRepository.findActiveRoleById(profileId)).willReturn(java.util.Optional.empty());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer tok");

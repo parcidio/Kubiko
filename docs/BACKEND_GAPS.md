@@ -139,3 +139,17 @@ equipamento e reservas recentes). ✅ `POST /admin/users/{id}/suspend` e `/reins
 sessões revogadas, equipamento fora do Explorar). ✅ `PATCH /admin/items/{id}/suspend` e `/reinstate`. Motivo na
 auditoria em todas. Ecrãs: `/admin/utilizadores` e `/admin/utilizadores/[id]`. Regras em `claude/decisoes-produto.md`.
 ⬜ Avisar a pessoa automaticamente da suspensão (hoje a equipa avisa).
+
+## Papéis, mensagens da equipa e telefones estrangeiros (2026-11-17)
+
+✅ `PATCH /admin/users/{id}/role` `{ admin }` (409 `self_demotion` / `last_admin` / `account_suspended`, auditoria
+`USER_ROLE_CHANGED`, sessões revogadas) e `GET /admin/users?role=ADMIN`. Um token ADMIN já emitido é confirmado na BD
+em cada pedido: o admin despromovido perde os poderes logo. Erros com código vêm em `code` no corpo do erro.
+✅ Admin › Mensagens (V26): `GET/POST/PUT/DELETE /admin/messages/templates`, `GET /admin/messages/whatsapp-check`,
+`POST /admin/messages/preview`, `POST /admin/messages` (202), `GET /admin/messages`, `GET /admin/messages/{id}`.
+Contrato em `docs/API_ADMIN_MESSAGES_GEO.md`. Envio depois do commit numa thread própria, WhatsApp com 2–4 s entre
+mensagens. ⬜ Retoma de entregas `PENDING` se a API reiniciar a meio. ⬜ Público `CITY` depende da V27
+(`service_areas`); hoje compara com `profiles.city`. ⚑ Corpo de `POST /messages` e resposta de `GET /contacts/{phone}`
+do Losambo por confirmar (só em `WhatsAppOtpClient`).
+✅ Registo com número internacional (E.164, 8–15 dígitos); fora de +244 o OTP vai só por WhatsApp (503
+`whatsapp_unavailable` / 422 `not_on_whatsapp`).

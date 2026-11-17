@@ -13,7 +13,8 @@ import org.springframework.web.client.RestClient;
 @Configuration
 @EnableConfigurationProperties({ JwtProperties.class, OmbalaProperties.class, PaymentProperties.class,
         StorageProperties.class, NotificationProperties.class, SecurityProperties.class,
-        CompanyProperties.class, WhatsAppProperties.class, OtpProperties.class })
+        CompanyProperties.class, WhatsAppProperties.class, OtpProperties.class,
+        com.beeznoo.api.message.config.MessageProperties.class })
 public class AppConfig {
 
     @Bean

@@ -52,6 +52,14 @@ public class GlobalExceptionHandler {
                 .body(new ErrorBody(HttpStatus.BAD_REQUEST.value(), ex.getMessage(), null));
     }
 
+    // Erros de negócio com código estável (ex.: 409 last_admin, 422 too_many_recipients)
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorBody> handleApi(ApiException ex) {
+        return ResponseEntity
+                .status(ex.status())
+                .body(new ErrorBody(ex.status().value(), ex.getMessage(), null, OffsetDateTime.now(), ex.code()));
+    }
+
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorBody> handleIllegalState(IllegalStateException ex) {
         return ResponseEntity
@@ -146,10 +154,12 @@ public class GlobalExceptionHandler {
             int status,
             String message,
             Map<String, String> fields,
-            OffsetDateTime timestamp
+            OffsetDateTime timestamp,
+            // código estável para o cliente (ApiException); null nos restantes erros
+            String code
     ) {
         public ErrorBody(int status, String message, Map<String, String> fields) {
-            this(status, message, fields, OffsetDateTime.now());
+            this(status, message, fields, OffsetDateTime.now(), null);
         }
     }
 

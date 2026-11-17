@@ -151,6 +151,15 @@ app:
     nif: ${COMPANY_NIF:}
     address: ${COMPANY_ADDRESS:Luanda, Angola}
     email: ${COMPANY_EMAIL:ajuda@beeznoo.ao}
+  messages:
+    # Admin › Mensagens (decisoes-produto.md 2026-11-17): envio em segundo plano, com ritmo no WhatsApp
+    whatsapp-min-delay: ${MESSAGES_WHATSAPP_MIN_DELAY:2s}
+    whatsapp-max-delay: ${MESSAGES_WHATSAPP_MAX_DELAY:4s}
+    other-delay: ${MESSAGES_OTHER_DELAY:600ms}
+    max-recipients: 2000
+    max-whatsapp-recipients: ${MESSAGES_MAX_WHATSAPP_RECIPIENTS:300}
+    # mensagens de WhatsApp por admin por hora (custo); acima → 429 whatsapp_hourly_cap
+    whatsapp-hourly-cap: ${MESSAGES_WHATSAPP_HOURLY_CAP:500}
   notifications:
     email:
       # false: notificações só na app (email_status SKIPPED). true exige RESEND_API_KEY e domínio verificado no Resend.

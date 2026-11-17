@@ -29,6 +29,7 @@ public class AuditService {
     public static final String ACCOUNT = "ACCOUNT";
     public static final String INCIDENT = "INCIDENT";
     public static final String ITEM = "ITEM";
+    public static final String MESSAGE = "MESSAGE";
 
     private final AuditLogRepository auditLogRepository;
     private final ProfileRepository profileRepository;

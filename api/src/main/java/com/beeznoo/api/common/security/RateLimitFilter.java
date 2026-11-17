@@ -26,6 +26,7 @@ import java.util.UUID;
 public class RateLimitFilter extends OncePerRequestFilter {
 
     private static final String AUTH = "/api/v1/auth/";
+    private static final String MESSAGES = "/api/v1/admin/messages";
     private static final Set<String> OTP_SENDERS = Set.of(
             AUTH + "register", AUTH + "password/reset/request", AUTH + "google/register");
 
@@ -74,6 +75,12 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         UUID profileId = currentProfile();
+        // Admin › Mensagens (2026-11-17): cada envio pode sair para centenas de pessoas; a verificação fala com o Losambo
+        if (profileId != null && write && path.equals(MESSAGES)) {
+            limiter.check("admin-msg-send:" + profileId, 20, Duration.ofHours(1), "Enviaste demasiadas mensagens. Tenta mais tarde.");
+        } else if (profileId != null && path.equals(MESSAGES + "/whatsapp-check")) {
+            limiter.check("admin-wa-check:" + profileId, 30, Duration.ofMinutes(1), "Demasiadas verificações. Espera um pouco.");
+        }
         if (profileId != null && write) {
             if (isMultipart(request)) {
                 limiter.check("upload:" + profileId, 30, Duration.ofHours(1), "Enviaste demasiados ficheiros. Tenta mais tarde.");

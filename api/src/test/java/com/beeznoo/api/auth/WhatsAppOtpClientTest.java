@@ -87,6 +87,51 @@ class WhatsAppOtpClientTest {
     }
 
     @Test
+    void mensagemLivre_enviaToEText_eTrataErros() {
+        Setup s = setup("tst", null, "lsb_live_tst");
+        s.server().expect(requestTo(URL + "/messages")).andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.to").value("+351912345678"))
+                .andExpect(jsonPath("$.text").value("Olá Ana"))
+                .andRespond(withStatus(HttpStatus.ACCEPTED));
+        s.client().sendText("+351912345678", "Olá Ana");
+        s.server().verify();
+
+        s.server().reset();
+        s.server().expect(requestTo(URL + "/messages"))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND).contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"error\":\"not_on_whatsapp\"}"));
+        assertThatThrownBy(() -> s.client().sendText("+244923000111", "x"))
+                .isInstanceOf(WhatsAppOtpClient.NotOnWhatsAppException.class);
+
+        s.server().reset();
+        s.server().expect(requestTo(URL + "/messages")).andRespond(withServerError());
+        assertThatThrownBy(() -> s.client().sendText("+244923000111", "x"))
+                .isInstanceOf(WhatsAppOtpClient.UnavailableException.class);
+    }
+
+    @Test
+    void contacto_lidoComTolerancia_404Falso_outrosErrosNull() {
+        Setup s = setup("tst", null, "lsb_live_tst");
+        s.server().expect(requestTo(URL + "/contacts/%2B244923000111")).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("{\"numberExists\":true}", MediaType.APPLICATION_JSON));
+        assertThat(s.client().hasWhatsApp("+244923000111")).isTrue();
+
+        s.server().reset();
+        s.server().expect(requestTo(URL + "/contacts/%2B244923000111"))
+                .andRespond(withStatus(HttpStatus.NOT_FOUND));
+        assertThat(s.client().hasWhatsApp("+244923000111")).isFalse();
+
+        s.server().reset();
+        s.server().expect(requestTo(URL + "/contacts/%2B244923000111")).andRespond(withServerError());
+        assertThat(s.client().hasWhatsApp("+244923000111")).isNull();
+
+        assertThat(WhatsAppOtpClient.parseHasWhatsApp(java.util.Map.of("data", java.util.Map.of("onWhatsApp", false)))).isFalse();
+        assertThat(WhatsAppOtpClient.parseHasWhatsApp(java.util.Map.of("exists", "true"))).isTrue();
+        assertThat(WhatsAppOtpClient.parseHasWhatsApp(java.util.Map.of("foo", 1))).isNull();
+        assertThat(setup("prd", "", "x").client().hasWhatsApp("+244923000111")).isNull();
+    }
+
+    @Test
     void semChaveDoAmbiente_naoEstaConfigurado_eNaoFazPedidos() {
         Setup s = setup("prd", "", "lsb_live_tst");
         assertThat(s.client().configured()).isFalse();

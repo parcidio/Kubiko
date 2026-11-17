@@ -1,5 +1,6 @@
 package com.beeznoo.api.profile.dto;
 
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
@@ -39,4 +40,7 @@ public final class AdminUserDtos {
 
     /** Motivo obrigatório para suspender, opcional para reativar (fica na auditoria). */
     public record ModerateUserRequest(@Size(max = 500) String reason) {}
+
+    /** true = promover a ADMIN; false = retirar (volta a BOTH). decisoes-produto.md 2026-11-17. */
+    public record ChangeRoleRequest(@NotNull Boolean admin) {}
 }
