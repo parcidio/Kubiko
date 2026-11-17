@@ -7,6 +7,7 @@ import { MonthCalendar } from "@/components/bz/calendar";
 import { TextField } from "@/components/bz/form";
 import { FormError, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { DetailsFields, PriceFields, draftFromItem, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
+import { AREA_NOT_AVAILABLE_TEXT, isAreaNotAvailable, useLocationRequest } from "@/components/bz/location";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { SavedPhotoGrid } from "@/components/bz/photo";
@@ -16,6 +17,7 @@ import { BackLink, Button, ButtonLink, Callout, Card, Skeleton } from "@/compone
 import { catalogApi, ownerItemApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
 import { compressImage } from "@/lib/images";
+import { toLatLng } from "@/lib/location";
 import { unavailableDays } from "@/lib/availability";
 import { formatDay, formatDays, formatRange } from "@/lib/format";
 import type { Availability, AvailabilityBlock, Item } from "@/lib/types";
@@ -39,6 +41,7 @@ export default function GerirEquipamentoPage() {
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const { request: requestLocation, sheet: locationSheet } = useLocationRequest({ required: true, title: "Para reativar, precisamos da tua localização" });
 
   if (!session) return null;
   if (item.error) return <ErrorState message={item.error} onRetry={item.reload} />;
@@ -82,9 +85,12 @@ export default function GerirEquipamentoPage() {
 
   async function resume() {
     try {
-      item.setData(await ownerItemApi.activate(id));
+      const loc = await requestLocation();
+      if (!loc) return toast.error("Para reativar precisamos da tua localização: o piloto é só em Luanda.");
+      item.setData(await ownerItemApi.activate(id, toLatLng(loc)));
       toast.success("Reativado. Já aparece outra vez em Explorar.");
     } catch (e) {
+      if (isAreaNotAvailable(e)) return toast.error(AREA_NOT_AVAILABLE_TEXT);
       if (isKycRequired(e)) {
         toast(KYC_REDIRECT_TOAST);
         router.push("/verificacao");
@@ -209,6 +215,7 @@ export default function GerirEquipamentoPage() {
       >
         <p className="pt-2">Deixa de aparecer em Explorar e não podes receber novos pedidos. Os alugueres já feitos ficam no histórico.</p>
       </Sheet>
+      {locationSheet}
     </div>
   );
 }

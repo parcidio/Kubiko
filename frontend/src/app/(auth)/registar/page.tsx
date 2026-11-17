@@ -4,12 +4,14 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AuthTitle, Divider, GoogleButton, ResendCode, RolePicker, type SignupRole } from "@/components/bz/auth";
+import { LocationOptIn } from "@/components/bz/location";
 import { FormError, OtpField, PasswordField, PhoneField, StepProgress, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { toast } from "@/components/bz/overlay";
 import { Button } from "@/components/bz/ui";
 import { authApi } from "@/lib/api";
 import { safeNext, signIn } from "@/lib/auth";
 import { isValidPhone, normalizePhone } from "@/lib/format";
+import { toLatLng, type ApproxLocation } from "@/lib/location";
 
 function RegisterFlow() {
   const router = useRouter();
@@ -20,11 +22,12 @@ function RegisterFlow() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<SignupRole>("RENTER");
+  const [location, setLocation] = useState<ApproxLocation | null>(null);
   const [code, setCode] = useState("");
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [loading, setLoading] = useState(false);
 
-  const payload = () => ({ fullName: fullName.trim(), phone: normalizePhone(phone), email: email.trim() || undefined, password, role });
+  const payload = () => ({ fullName: fullName.trim(), phone: normalizePhone(phone), email: email.trim() || undefined, password, role, location: location ? toLatLng(location) : undefined });
 
   async function submitData(e: React.FormEvent) {
     e.preventDefault();
@@ -110,6 +113,7 @@ function RegisterFlow() {
         <TextField label="Email (opcional)" type="email" autoComplete="email" value={email} onChange={setEmail} error={errors.fields.email} />
         <PasswordField value={password} onChange={setPassword} autoComplete="new-password" hint="Pelo menos 8 caracteres." error={errors.fields.password} />
         <RolePicker value={role} onChange={setRole} />
+        <LocationOptIn value={location} onChange={setLocation} />
         <FormError message={errors.form} />
         <p className="text-[13px] text-cinza">
           Ao continuar, aceitas a{" "}

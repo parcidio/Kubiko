@@ -7,6 +7,7 @@ import { categoryIcon } from "@/components/bz/brand";
 import { EquipmentCard } from "@/components/bz/equipment";
 import { FormError, StepProgress, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { DetailsFields, EMPTY_DRAFT, PriceFields, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
+import { AreaNotAvailable, isAreaNotAvailable, isLocationRequired, PublishLocationGate } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
 import { PhotoPicker, useLocalPhotos } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
@@ -15,6 +16,7 @@ import { Button, ButtonLink, Callout } from "@/components/bz/ui";
 import { catalogApi, ownerItemApi } from "@/lib/api";
 import { DRAFT_KEY_PREFIX, useRequireSession } from "@/lib/auth";
 import { compressImage } from "@/lib/images";
+import { toLatLng, type ApproxLocation } from "@/lib/location";
 import { canOwn } from "@/lib/mode";
 import type { Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
@@ -48,10 +50,23 @@ export default function PublicarPage() {
     );
   }
   // key: trocar de conta recomeça o formulário com o rascunho dessa conta
-  return <PublicarForm key={session.profileId} profileId={session.profileId} />;
+  // Piloto só em Luanda: localização obrigatória e zona confirmada antes do formulário (decisoes-produto.md 2026-11-17)
+  return (
+    <PublishLocationGate>
+      {(location, refreshLocation) => (
+        <PublicarForm key={session.profileId} profileId={session.profileId} location={location} refreshLocation={refreshLocation} />
+      )}
+    </PublishLocationGate>
+  );
 }
 
-function PublicarForm({ profileId }: { profileId: string }) {
+function PublicarForm({
+  profileId, location, refreshLocation,
+}: {
+  profileId: string;
+  location: ApproxLocation;
+  refreshLocation: () => Promise<ApproxLocation | null>;
+}) {
   const router = useRouter();
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
   const photos = useLocalPhotos(MAX_PHOTOS);
@@ -63,6 +78,7 @@ function PublicarForm({ profileId }: { profileId: string }) {
   const [busy, setBusy] = useState(false);
   const [published, setPublished] = useState<Item | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [outside, setOutside] = useState(false);
 
   // Rascunho automático (rede fraca, app fechada a meio). As fotos não entram: ficam só na memória.
   useEffect(() => {
@@ -90,7 +106,19 @@ function PublicarForm({ profileId }: { profileId: string }) {
     setBusy(true);
     setFormErr({ fields: {} });
     try {
-      const item = await ownerItemApi.publish(draftToInput(draft));
+      let item: Item;
+      try {
+        item = await ownerItemApi.publish(draftToInput(draft), toLatLng(location));
+      } catch (e) {
+        if (!isLocationRequired(e)) throw e;
+        // a API não recebeu localização válida: pedir outra vez e tentar uma vez
+        const again = await refreshLocation();
+        if (!again) {
+          setFormErr({ form: "Para publicar precisamos da tua localização. Permite-a e tenta outra vez.", fields: {} });
+          return;
+        }
+        item = await ownerItemApi.publish(draftToInput(draft), toLatLng(again));
+      }
       try {
         localStorage.removeItem(draftKey(profileId));
       } catch {
@@ -111,6 +139,7 @@ function PublicarForm({ profileId }: { profileId: string }) {
       }
       setPublished(item);
     } catch (e) {
+      if (isAreaNotAvailable(e)) return setOutside(true);
       if (isKycRequired(e)) {
         toast(KYC_REDIRECT_TOAST);
         router.push("/verificacao");
@@ -121,6 +150,8 @@ function PublicarForm({ profileId }: { profileId: string }) {
       setBusy(false);
     }
   }
+
+  if (outside) return <AreaNotAvailable />;
 
   if (published) {
     return (

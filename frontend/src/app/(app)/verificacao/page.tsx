@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AlertTriangle, BadgeCheck, Building2, Clock, ScanFace, UserRound } from "lucide-react";
 import { HexTile } from "@/components/bz/hex";
+import { LocationOptIn } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
 import { CameraSlot } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
@@ -11,6 +12,8 @@ import { SuccessCheck } from "@/components/bz/success";
 import { SegmentedControl } from "@/components/bz/tabs";
 import { BackLink, Button, ButtonLink, Callout, Card, Skeleton } from "@/components/bz/ui";
 import { kycApi } from "@/lib/api";
+import { locationApi } from "@/lib/api-ops";
+import type { ApproxLocation } from "@/lib/location";
 import { useRequireSession } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { compressImage } from "@/lib/images";
@@ -45,6 +48,7 @@ export default function VerificacaoPage() {
   const [files, setFiles] = useState<Partial<Record<Slot, File>>>({});
   const [previews, setPreviews] = useState<Partial<Record<Slot, string>>>({});
   const [sending, setSending] = useState(false);
+  const [location, setLocation] = useState<ApproxLocation | null>(null);
 
   if (!session) return null;
   if (status.error) return <ErrorState message={status.error} onRetry={status.reload} />;
@@ -93,6 +97,8 @@ export default function VerificacaoPage() {
       }
       status.setData(await kycApi.submit(type, payload));
       toast.success("Documentos enviados.");
+      // opcional: só com consentimento; uma falha aqui não estraga o envio
+      if (location) locationApi.report({ ...location, context: "KYC" }).catch(() => undefined);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Não foi possível enviar os documentos.");
     } finally {
@@ -169,6 +175,8 @@ export default function VerificacaoPage() {
           </>
         )}
       </Card>
+
+      <LocationOptIn value={location} onChange={setLocation} />
 
       <StickyCTA>
         <Button size="lg" block disabled={!ready} loading={sending} onClick={submit} aria-describedby={ready ? undefined : "kyc-falta"}>
