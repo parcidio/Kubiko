@@ -7,7 +7,7 @@ import { MonthCalendar } from "@/components/bz/calendar";
 import { TextField } from "@/components/bz/form";
 import { FormError, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { DetailsFields, PriceFields, draftFromItem, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
-import { isAreaNotAvailable, useLocationRequest } from "@/components/bz/location";
+import { isAreaNotAvailable, isLocationRequired, useLocationRequest } from "@/components/bz/location";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { SavedPhotoGrid } from "@/components/bz/photo";
@@ -89,9 +89,15 @@ export default function GerirEquipamentoPage() {
 
   async function resume() {
     try {
-      const loc = await requestLocation();
-      if (!loc) return toast.error(dict.ownerItems.reactivateNeedsLocation);
-      item.setData(await ownerItemApi.activate(id, toLatLng(loc)));
+      // 1.º sem pedir nada: a API usa a zona guardada na conta (2026-11-18); só sem ela se pede a localização
+      try {
+        item.setData(await ownerItemApi.activate(id));
+      } catch (e) {
+        if (!isLocationRequired(e)) throw e;
+        const loc = await requestLocation();
+        if (!loc) return toast.error(dict.ownerItems.reactivateNeedsLocation);
+        item.setData(await ownerItemApi.activate(id, { location: toLatLng(loc) }));
+      }
       toast.success(dict.ownerItems.resumed);
     } catch (e) {
       if (isAreaNotAvailable(e)) return toast.error(dict.location.areaNotAvailable);

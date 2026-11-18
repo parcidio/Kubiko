@@ -189,6 +189,57 @@ class ServiceAreaIntegrationTest {
         assertThat(eventRepository.findByUserIdAndContextOrderByCreatedAtDesc(owner.getId(), LocationContext.PUBLISH)).isEmpty();
     }
 
+    // ---- Consentimento na conta (2026-11-18): outro dispositivo não pergunta outra vez ----
+
+    @Test
+    void consentimentoFicaNaContaEPublicaComZonaGuardada() throws Exception {
+        mvc.perform(get("/api/v1/me/location").header("Authorization", bearer(owner)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.consented").value(false))
+                .andExpect(jsonPath("$.storedZoneUsable").value(false));
+        mvc.perform(post("/api/v1/me/location").header("Authorization", bearer(owner))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"lat\":" + LUANDA[0] + ",\"lng\":" + LUANDA[1] + ",\"context\":\"APP\"}"))
+                .andExpect(status().isOk());
+
+        // "outro dispositivo": só o token, sem nada no browser
+        mvc.perform(get("/api/v1/profiles/me").header("Authorization", bearer(owner)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.location.consented").value(true))
+                .andExpect(jsonPath("$.location.area.province").value("Luanda"))
+                .andExpect(jsonPath("$.location.storedZoneUsable").value(true))
+                .andExpect(jsonPath("$.location.lat").doesNotExist());
+
+        // publicar sem localização do browser usa a zona guardada e não inventa um evento PUBLISH
+        mvc.perform(publish("")).andExpect(status().isCreated());
+        assertThat(eventRepository.findByUserIdAndContextOrderByCreatedAtDesc(owner.getId(), LocationContext.PUBLISH)).isEmpty();
+
+        // a zona guardada caduca ao fim de 30 dias
+        em.flush();
+        jdbc.update("UPDATE profiles SET last_location_at = now() - interval '31 days' WHERE id = ?", owner.getId());
+        em.clear();
+        mvc.perform(publish(""))
+                .andExpect(status().isUnprocessableContent())
+                .andExpect(jsonPath("$.code").value("location_required"));
+    }
+
+    @Test
+    void zonaEscolhidaAMao_soAtivaENaoContraOBrowserRecente() throws Exception {
+        UUID luanda = serviceAreaService.findActiveContaining(LUANDA[0], LUANDA[1]).orElseThrow().getId();
+        mvc.perform(publish(",\"areaId\":\"" + luanda + "\"")).andExpect(status().isCreated());
+        mvc.perform(publish(",\"areaId\":\"" + UUID.randomUUID() + "\""))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("area_not_available"));
+        // sem coordenadas não há evento (o mapa não recebe pontos inventados)
+        assertThat(eventRepository.findByUserIdAndContextOrderByCreatedAtDesc(owner.getId(), LocationContext.PUBLISH)).isEmpty();
+
+        // o browser acabou de dizer Huambo: escolher Luanda à mão não passa
+        mvc.perform(publish(location(HUAMBO))).andExpect(status().isForbidden());
+        mvc.perform(publish(",\"areaId\":\"" + luanda + "\""))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("area_not_available"));
+    }
+
     @Test
     void reativarExigeZona() throws Exception {
         Item item = itemRepository.saveAndFlush(Item.builder()

@@ -106,6 +106,17 @@ export interface LocationResult {
   area: { province: string; city: string } | null;
 }
 
+/** GET /me/location e `location` em /profiles/me: consentimento guardado na conta. Nunca traz coordenadas. */
+export interface LocationStatus {
+  consented: boolean;
+  consentAt: string | null;
+  updatedAt: string | null;
+  inServiceArea: boolean | null;
+  area: { province: string; city: string } | null;
+  /** A última localização (≤ 30 dias) está numa zona ativa: publicar sem pedir outra vez. */
+  storedZoneUsable: boolean;
+}
+
 export interface PublishEligibility {
   allowed: boolean;
   reason: null | "location_required" | "area_not_available";
@@ -115,9 +126,19 @@ export interface PublishEligibility {
 export type HeatmapScope = "KYC_APPROVED" | "KYC_SUBMITTED" | "SIGNUP";
 
 export interface Heatmap {
+  scope: HeatmapScope;
   cellSizeDeg: number;
+  /** Células de 2.º nível (~28 km) para quem não chega ao mínimo numa célula de ~5 km. */
+  coarseCellSizeDeg: number;
   minCount: number;
-  cells: { lat: number; lng: number; count: number }[];
+  /** Centro da célula, contagem (≥ minCount) e lado da célula em graus. */
+  cells: { lat: number; lng: number; count: number; sizeDeg?: number }[];
   byProvince: { province: string; count: number }[];
   outsideAreas: number;
+  /** Pessoas com localização que não aparecem (nem nas células grandes chegam ao mínimo). */
+  suppressed: number;
+  /** Pessoas do âmbito que nunca partilharam a localização. */
+  withoutLocation: number;
+  /** Pessoas do âmbito com localização. */
+  withLocation: number;
 }

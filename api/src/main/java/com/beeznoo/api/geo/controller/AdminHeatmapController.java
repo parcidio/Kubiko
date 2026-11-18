@@ -26,8 +26,9 @@ public class AdminHeatmapController {
 
     @Operation(summary = "Mapa de calor (agregado)", description = """
             Contagem de pessoas por célula de 0,05° (~5 km), a partir das coordenadas arredondadas.
-            `scope`: `KYC_SUBMITTED` (omissão), `KYC_APPROVED` ou `SIGNUP`. Células com menos de `minCount` (3) não
-            saem e somam-se em `suppressed`. `byProvince`: província da zona ativa, senão a do perfil (com menos de 3,
+            `scope`: `KYC_SUBMITTED` (omissão), `KYC_APPROVED` ou `SIGNUP` (todas as contas com localização).
+            Quem fica numa célula fina com menos de `minCount` (3) junta-se numa célula de 0,25° (~28 km,
+            `sizeDeg` na célula); o que nem assim chega a 3 não sai e soma-se em `suppressed`. `byProvince`: província da zona ativa, senão a do perfil (com menos de 3,
             juntam-se em "Outras"). `outsideAreas`: fora das zonas ativas. Sem dados pessoais. Apenas ADMIN.
             """)
     @GetMapping

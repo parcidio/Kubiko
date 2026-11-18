@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Camera, FilePen, Lightbulb, Package, Pause, Pencil, Play, Plus, Search } from "lucide-react";
 import { CategoryChip, ItemPhoto } from "@/components/bz/equipment";
 import { HEX_CLIP, HexTile } from "@/components/bz/hex";
-import { isAreaNotAvailable, useLocationRequest } from "@/components/bz/location";
+import { isAreaNotAvailable, isLocationRequired, useLocationRequest } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
 import { ErrorState, HiveEmptyState, ListSkeleton } from "@/components/bz/states";
 import { BackLink, Badge, Button, ButtonLink, Card, Kz, type Tone } from "@/components/bz/ui";
@@ -82,9 +82,15 @@ export default function EquipamentosPage() {
 
   async function resume(id: string) {
     try {
-      const loc = await requestLocation();
-      if (!loc) return toast.error(t.reactivateNeedsLocation);
-      await ownerItemApi.activate(id, toLatLng(loc));
+      // 1.º sem pedir nada: a API usa a zona guardada na conta (2026-11-18); só sem ela se pede a localização
+      try {
+        await ownerItemApi.activate(id);
+      } catch (e) {
+        if (!isLocationRequired(e)) throw e;
+        const loc = await requestLocation();
+        if (!loc) return toast.error(t.reactivateNeedsLocation);
+        await ownerItemApi.activate(id, { location: toLatLng(loc) });
+      }
       toast.success(t.resumed);
       reload();
     } catch (e) {

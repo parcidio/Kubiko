@@ -78,7 +78,7 @@ public class ItemService {
         }
         kycService.assertCanTransact(ownerId);
         // só se publica dentro de uma zona ativa (decisoes-produto.md 2026-11-17, item 4)
-        locationService.assertCanPublish(owner, request.location());
+        locationService.assertCanPublish(owner, request.location(), request.areaId());
 
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new IllegalArgumentException("Categoria não encontrada"));
@@ -212,6 +212,12 @@ public class ItemService {
     // Pausado → ativo outra vez. SUSPENDED é decisão do admin e não sai por aqui.
     @Transactional(noRollbackFor = AreaNotAvailableException.class)
     public ItemResponse activate(UUID requesterId, UUID itemId, LocationInput location) throws AccessDeniedException {
+        return activate(requesterId, itemId, location, null);
+    }
+
+    @Transactional(noRollbackFor = AreaNotAvailableException.class)
+    public ItemResponse activate(UUID requesterId, UUID itemId, LocationInput location, UUID areaId)
+            throws AccessDeniedException {
         Item item = itemRepository.findActiveById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
         assertOwner(requesterId, item);
@@ -220,7 +226,7 @@ public class ItemService {
             throw new IllegalStateException("Este equipamento está em revisão pela equipa e não pode ser reativado");
         }
         kycService.assertCanTransact(requesterId);
-        locationService.assertCanPublish(item.getOwner(), location);
+        locationService.assertCanPublish(item.getOwner(), location, areaId);
         item.activate();
         return toResponse(item);
     }

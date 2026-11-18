@@ -31,6 +31,10 @@ public class LocationService {
 
     public static final String LOCATION_REQUIRED = "location_required";
     public static final String AREA_NOT_AVAILABLE = "area_not_available";
+    /** A última localização guardada serve para publicar sem perguntar outra vez durante este tempo (2026-11-18). */
+    public static final int STORED_MAX_AGE_DAYS = 30;
+    /** Zona escolhida à mão é recusada se a localização do browser das últimas horas disse "fora das zonas". */
+    static final int RECENT_GPS_HOURS = 24;
 
     private final ServiceAreaService serviceAreaService;
     private final LocationEventRepository eventRepository;
@@ -93,16 +97,74 @@ public class LocationService {
         return new LocationResult(area.isPresent(), area.map(AreaRef::from).orElse(null));
     }
 
-    /**
-     * Gate de publicar/reativar: sem localização → 422 `location_required`; regista um evento PUBLISH em cada
-     * tentativa; fora das zonas ativas → 403 `area_not_available`. Quem chama declara
-     * `noRollbackFor = AreaNotAvailableException.class` para o evento ficar mesmo quando recusa.
-     */
+    /** Compatível com quem só passa a localização do browser. */
     @Transactional(noRollbackFor = AreaNotAvailableException.class)
     public void assertCanPublish(Profile profile, LocationInput location) {
-        if (location == null || location.lat() == null || location.lng() == null) throw locationRequired();
-        LocationResult result = record(profile, LocationContext.PUBLISH, location.lat(), location.lng());
-        if (!result.inServiceArea()) throw new AreaNotAvailableException();
+        assertCanPublish(profile, location, null);
+    }
+
+    /**
+     * Gate de publicar/reativar, por ordem (decisoes-produto.md 2026-11-17 item 4 e 2026-11-18):
+     * <ol>
+     *   <li>localização do browser → regista um evento PUBLISH; fora das zonas ativas → 403 `area_not_available`;</li>
+     *   <li>zona escolhida à mão (`areaId`) → tem de estar ativa; recusada se a localização do browser das últimas
+     *       {@value #RECENT_GPS_HOURS} h disse "fora". Não cria evento (não há coordenadas);</li>
+     *   <li>nada → última localização guardada na conta, se houver consentimento, tiver ≤ {@value #STORED_MAX_AGE_DAYS}
+     *       dias e estiver numa zona ativa (outro dispositivo, browser sem localização);</li>
+     *   <li>senão → 422 `location_required`.</li>
+     * </ol>
+     * Quem chama declara `noRollbackFor = AreaNotAvailableException.class` para o evento ficar mesmo quando recusa.
+     */
+    @Transactional(noRollbackFor = AreaNotAvailableException.class)
+    public void assertCanPublish(Profile profile, LocationInput location, UUID areaId) {
+        if (location != null && location.lat() != null && location.lng() != null) {
+            LocationResult result = record(profile, LocationContext.PUBLISH, location.lat(), location.lng());
+            if (!result.inServiceArea()) throw new AreaNotAvailableException();
+            return;
+        }
+        if (areaId != null) {
+            boolean active = serviceAreaService.activeAreas().stream().anyMatch(a -> a.getId().equals(areaId));
+            if (!active || recentlyOutside(profile)) throw new AreaNotAvailableException();
+            return;
+        }
+        if (storedArea(profile).isPresent()) return;
+        throw locationRequired();
+    }
+
+    /** GET /me/location: consentimento e zona guardados na conta (sem coordenadas). */
+    @Transactional(readOnly = true)
+    public LocationStatus status(UUID profileId) {
+        return profileRepository.findById(profileId).map(this::status).orElse(LocationStatus.NONE);
+    }
+
+    @Transactional(readOnly = true)
+    public LocationStatus status(Profile profile) {
+        if (profile.getLastLat() == null || profile.getLastLng() == null) {
+            return new LocationStatus(profile.getLocationConsentAt() != null, profile.getLocationConsentAt(),
+                    null, null, null, false);
+        }
+        Optional<ServiceArea> area = serviceAreaService.findActiveContaining(
+                profile.getLastLat().doubleValue(), profile.getLastLng().doubleValue());
+        return new LocationStatus(profile.getLocationConsentAt() != null, profile.getLocationConsentAt(),
+                profile.getLastLocationAt(), area.isPresent(), area.map(AreaRef::from).orElse(null),
+                storedArea(profile).isPresent());
+    }
+
+    /** Zona ativa da última localização guardada, se ainda serve para publicar. */
+    private Optional<ServiceArea> storedArea(Profile profile) {
+        if (profile.getLocationConsentAt() == null || profile.getLastLat() == null || profile.getLastLng() == null
+                || profile.getLastLocationAt() == null
+                || profile.getLastLocationAt().isBefore(OffsetDateTime.now().minusDays(STORED_MAX_AGE_DAYS))) {
+            return Optional.empty();
+        }
+        return serviceAreaService.findActiveContaining(profile.getLastLat().doubleValue(),
+                profile.getLastLng().doubleValue());
+    }
+
+    private static boolean recentlyOutside(Profile profile) {
+        return Boolean.FALSE.equals(profile.getInServiceArea())
+                && profile.getLastLocationAt() != null
+                && profile.getLastLocationAt().isAfter(OffsetDateTime.now().minusHours(RECENT_GPS_HOURS));
     }
 
     /** GET /me/publish-eligibility: só consulta, não guarda nada. */
