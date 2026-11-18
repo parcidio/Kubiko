@@ -14,6 +14,7 @@ import { daysBetween, formatRange } from "@/lib/format";
 import type { Booking } from "@/lib/types";
 import { fmt, plural } from "@/lib/i18n";
 import { useLang, useT } from "@/lib/i18n/client";
+import { cn } from "@/lib/utils";
 
 
 /** Aceitar / Recusar um pedido (dono). Recusar pede motivo em chips. */
@@ -91,7 +92,7 @@ export function RequestCard({ booking, onChange, index = 0 }: { booking: Booking
   const lang = useLang();
   return (
     // minmax(0,1fr): sem isto a coluna da grelha cresce com o conteúdo e o cartão transborda a 360px
-    <Card className="grid animate-sobe grid-cols-[minmax(0,1fr)] gap-3 p-4" style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}>
+    <Card className={cn("grid grid-cols-[minmax(0,1fr)] gap-3 p-4", index < 4 && "animate-sobe")} style={index > 0 && index < 4 ? { animationDelay: `${index * 40}ms` } : undefined}>
       {/* flex-wrap: a 360px o prazo ("Urgente · Faltam…") passa para a linha seguinte em vez de esmagar o nome */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex min-w-0 flex-1 basis-44 items-center gap-3">

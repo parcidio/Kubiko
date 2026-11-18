@@ -9,6 +9,7 @@ import { FormError, StepProgress, toFormErrors, type FormErrors } from "@/compon
 import { DetailsFields, EMPTY_DRAFT, PriceFields, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
 import { AreaNotAvailable, isAreaNotAvailable, isLocationRequired, PublishLocationGate } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
+import { Tip } from "@/components/bz/tip";
 import { PhotoPicker, useLocalPhotos } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { SuccessCheck } from "@/components/bz/success";
@@ -71,7 +72,8 @@ function PublicarForm({
 }) {
   const router = useRouter();
   const lang = useLang();
-  const t = useT().publish;
+  const dict = useT();
+  const t = dict.publish;
   const STEPS = t.steps;
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
   const photos = useLocalPhotos(MAX_PHOTOS);
@@ -187,6 +189,7 @@ function PublicarForm({
       )}
       <PageHeader title={t.title} subtitle={savedAt ? fmt(t.draftSavedAt, { time: savedAt.toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit" }) }) : t.takesMinutes} />
       <StepProgress step={step} total={STEPS.length} label={STEPS[step - 1]} />
+      {step === 1 && <Tip id="publish" title={dict.tips.publish.title} steps={dict.tips.publish.steps} />}
 
       <div key={step} className="animate-sobe">
         {step === 1 && (

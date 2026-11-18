@@ -3,9 +3,6 @@ import { AppShell } from "@/components/bz/shell";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AppShell>
-      {children}
-      <AppLocationPrompt />
-    </AppShell>
+    <AppShell after={<AppLocationPrompt />}>{children}</AppShell>
   );
 }

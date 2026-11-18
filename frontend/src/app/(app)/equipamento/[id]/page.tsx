@@ -110,14 +110,14 @@ export default function EquipamentoPage() {
               onScroll={(e) => setPhoto(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
             >
               {(photos.length ? photos : [null]).map((p, i) => (
-                <ItemPhoto key={p?.id ?? i} src={p?.photUrl} alt={fmt(t.photoN, { title: item.title, n: i + 1 })} icon={Icon} rounded={false} className="w-full shrink-0 snap-center" />
+                <ItemPhoto key={p?.id ?? i} src={p?.photUrl} alt={fmt(t.photoN, { title: item.title, n: i + 1 })} icon={Icon} rounded={false} priority={i === 0} className="w-full shrink-0 snap-center" />
               ))}
             </div>
             {/* Voltar a flutuar sobre a foto (no desktop há o BackLink por cima) */}
             <Link
               href="/explorar"
               aria-label={t.backToExploreLabel}
-              className="absolute top-4 left-4 flex size-11 items-center justify-center rounded-campo bg-branco/90 text-verde shadow-float backdrop-blur transition-transform duration-200 active:scale-95 md:hidden"
+              className="absolute top-4 left-4 flex size-11 items-center justify-center rounded-campo bg-branco/90 text-verde shadow-float transition-transform duration-200 active:scale-95 md:hidden"
             >
               <ChevronLeft className="size-5" strokeWidth={1.8} aria-hidden />
             </Link>
@@ -337,13 +337,13 @@ export default function EquipamentoPage() {
       </div>
 
       <Sheet open={depositInfo} onClose={() => setDepositInfo(false)} title={t.depositHow}>
-        <DepositExplainer pricePerDay={Number(item.pricePerDay)} deposit={deposit} />
+        <DepositExplainer pricePerDay={Number(item.pricePerDay)} deposit={deposit} feeRate={feeRate} />
       </Sheet>
     </div>
   );
 }
 
-function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; deposit: number }) {
+function DepositExplainer({ pricePerDay, deposit, feeRate }: { pricePerDay: number; deposit: number; feeRate: number }) {
   const t = useT().item;
   const steps = t.depositSteps.map((s) => ({ t: s.t, d: fmt(s.d, { deposit: deposit.toLocaleString("de-DE") }) }));
   return (
@@ -362,7 +362,7 @@ function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; depos
       <div className="rounded-cartao bg-areia-2 p-4 text-sm text-verde">
         {fmt(t.depositExample, {
           price: pricePerDay.toLocaleString("de-DE"),
-          total: (pricePerDay * 3 * 1.08 + deposit).toLocaleString("de-DE", { maximumFractionDigits: 0 }),
+          total: (pricePerDay * 3 * (1 + feeRate) + deposit).toLocaleString("de-DE", { maximumFractionDigits: 0 }),
           deposit: deposit.toLocaleString("de-DE"),
         })}
       </div>

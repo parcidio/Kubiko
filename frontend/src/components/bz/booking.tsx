@@ -54,7 +54,7 @@ export function DeadlineChip({ until, prefix, className }: { until: Date; prefix
 }
 
 // ── BookingTicket: a reserva como bilhete ─────────────────────────────────
-/** Reserva como bilhete (verde, recortes laterais, picotado); leve inclinação 3D que endireita no hover (só com rato). */
+/** Reserva como bilhete (verde, recortes laterais, picotado). Plano; no desktop sobe 2px no hover. */
 export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" | "owner" }) {
   const dict = useT();
   const t = dict.booking;
@@ -319,8 +319,8 @@ export function BookingRow({ booking, as, index = 0 }: { booking: Booking; as: "
   return (
     <Link
       href={`/reservas/${booking.id}`}
-      className="levantar flex animate-sobe items-center gap-3 rounded-cartao border border-borda bg-branco p-3 active:scale-[.99]"
-      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      className={cn("levantar flex items-center gap-3 rounded-cartao border border-borda bg-branco p-3 active:scale-[.99]", index < 6 && "animate-sobe")}
+      style={index > 0 && index < 6 ? { animationDelay: `${index * 40}ms` } : undefined}
     >
       <ItemPhoto src={booking.itemCoverPhoto} alt={booking.itemTitle} className="w-20 shrink-0 rounded-campo" />
       <div className="grid min-w-0 flex-1 gap-1">

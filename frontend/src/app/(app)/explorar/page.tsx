@@ -7,6 +7,7 @@ import { HexGlow, categoryIcon } from "@/components/bz/brand";
 import { PublishPromo, QuickSearches, Rail, TrustStrip } from "@/components/bz/discover";
 import { CategoryChip, EquipmentCard } from "@/components/bz/equipment";
 import { Sheet } from "@/components/bz/overlay";
+import { Tip } from "@/components/bz/tip";
 import { EmptyState, ErrorState, GridSkeleton } from "@/components/bz/states";
 import { Button } from "@/components/bz/ui";
 import { catalogApi, totalPages } from "@/lib/api";
@@ -16,6 +17,7 @@ import { fmt, plural } from "@/lib/i18n";
 import { useLang, useT } from "@/lib/i18n/client";
 import type { ItemCondition, ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { cn } from "@/lib/utils";
 import BeeznoFilters, { type Filters } from "../../../../components/items/Filters";
 
 
@@ -63,15 +65,16 @@ function Explorar() {
     condition: filters.condition && filters.condition !== "ANY" ? (filters.condition as ItemCondition) : undefined,
   };
   const listKey = `items:${categoryId ?? "all"}:${JSON.stringify(search)}`;
-  const first = useResource(listKey, () => catalogApi.items({ categoryId, page: 0, ...search }));
+  // keepPrevious: ao filtrar, os resultados anteriores ficam (esbatidos) até chegarem os novos — sem voltar ao skeleton
+  const first = useResource(listKey, () => catalogApi.items({ categoryId, page: 0, ...search }), { keepPrevious: true });
   const [more, setMore] = useState<{ key: string; page: number; items: ItemSummary[] } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const extra = more?.key === listKey ? more : null;
+  const extra = more?.key === listKey && !first.stale ? more : null;
   const items = useMemo(() => [...(first.data?.content ?? []), ...(extra?.items ?? [])], [first.data, extra]);
   const page = extra?.page ?? 0;
   const pages = first.data ? totalPages(first.data) : 1;
-  const state = first.error ? "error" : first.loading ? "loading" : "ready";
+  const state = first.error ? "error" : first.loading && !first.data ? "loading" : "ready";
 
   async function loadMore() {
     setLoadingMore(true);
@@ -119,11 +122,12 @@ function Explorar() {
                 className="h-14 w-full rounded-campo border-[1.5px] border-transparent bg-branco pr-4 pl-12 text-[15px] text-verde outline-none transition placeholder:text-cinza focus:border-salvia focus:ring-4 focus:ring-salvia/40"
               />
             </label>
+            {/* lg:hidden (e não md): entre 768 e 1023px a barra lateral de filtros ainda não aparece */}
             <button
               type="button"
               onClick={() => setSheet(true)}
               aria-label={activeFilters ? fmt(t.filtersActive, { n: activeFilters }) : t.filters}
-              className="relative flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-campo bg-branco text-verde transition-transform duration-200 active:scale-95 md:hidden"
+              className="relative flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-campo bg-branco text-verde transition-transform duration-200 active:scale-95 lg:hidden"
             >
               <SlidersHorizontal className="size-5" strokeWidth={1.8} aria-hidden />
               {activeFilters > 0 && (
@@ -182,6 +186,9 @@ function Explorar() {
               <CategoryChip key={c.id} label={c.name} icon={categoryIcon(c.slug)} active={c.id === categoryId} onClick={() => setCategoryId(c.id)} />
             ))}
           </section>
+
+          {/* Primeira visita: como funciona o aluguer (depois de fechar fica só o link "Como funciona?") */}
+          {browsing && <Tip id="explore" title={dict.tips.explore.title} steps={dict.tips.explore.steps} />}
 
           {activeFilters > 0 && (
             <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -253,7 +260,13 @@ function Explorar() {
         )}
         {state === "ready" && visible.length > 0 && (
           <>
-            <ul className="grid grid-cols-2 gap-2.5 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-5">
+            <ul
+              aria-busy={first.stale || undefined}
+              className={cn(
+                "grid grid-cols-2 gap-2.5 transition-opacity duration-200 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-5",
+                first.stale && "opacity-60",
+              )}
+            >
               {visible.map((item, i) => (
                 <li key={item.id}>
                   <EquipmentCard
@@ -265,7 +278,7 @@ function Explorar() {
                 </li>
               ))}
             </ul>
-            {page + 1 < pages && (
+            {page + 1 < pages && !first.stale && (
               <Button variant="outline" className="justify-self-center" loading={loadingMore} onClick={loadMore}>
                 {t.more}
               </Button>

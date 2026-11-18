@@ -176,7 +176,7 @@ function CaptureForm({ bookingId, type, onDone }: { bookingId: string; type: Che
         />
       </div>
 
-      <div className="fixed inset-x-0 bottom-[68px] z-30 border-t border-white/10 bg-verde-noite px-4 py-3 md:static md:border-0 md:bg-transparent md:p-0">
+      <div className="fixed inset-x-0 bottom-[calc(68px+env(safe-area-inset-bottom))] z-30 border-t border-white/10 bg-verde-noite px-4 py-3 md:static md:border-0 md:bg-transparent md:p-0">
         <Button size="lg" block disabled={!ready} loading={busy} onClick={submit}>
           {done < MIN_PHOTOS ? plural(MIN_PHOTOS - done, t.missing) : !notes.trim() ? t.writeNotes : t[type].verb}
         </Button>

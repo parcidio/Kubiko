@@ -250,26 +250,35 @@
   --dur-base: 350ms;
   --dur-slow: 600ms;
 
+  /* Movimento da app (DESIGN_SYSTEM §6): curto (≤ 8px), só opacity + transform, durações 200/350/600 ms.
+     O "pop" (--ease-pop) fica para confirmações e parte de uma escala próxima de 1 para não "saltar". */
   --animate-check-pop: check-pop 600ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
-  --animate-check-in:  check-in 350ms cubic-bezier(0.2, 1.4, 0.4, 1) 250ms both;
+  --animate-check-in:  check-in 350ms cubic-bezier(0.2, 0.8, 0.2, 1) 200ms both;
 
   @keyframes check-pop {
-    from { opacity: 0; transform: scale(.3); }
+    from { opacity: 0; transform: scale(.7); }
     to   { opacity: 1; transform: none; }
   }
   @keyframes check-in {
-    from { opacity: 0; transform: scale(.4) rotate(-12deg); }
+    from { opacity: 0; transform: scale(.7); }
     to   { opacity: 1; transform: none; }
   }
 
-  --animate-sobe:  sobe 280ms cubic-bezier(.2, .8, .2, 1) both;
-  --animate-sheet: sheet 320ms cubic-bezier(.2, .8, .2, 1) both;
-  --animate-aparece: aparece 320ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-sobe:  sobe 350ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-desce: desce 200ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-sheet: sheet 350ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-aparece: aparece 200ms cubic-bezier(.2, .8, .2, 1) both;
+  --animate-esbate: esbate 200ms cubic-bezier(.2, .8, .2, 1) both;
   --animate-brilho:  brilho 1.4s ease-in-out infinite;
-  --animate-estrela: estrela 360ms cubic-bezier(.3, 1.6, .5, 1) both;
+  --animate-estrela: estrela 300ms cubic-bezier(.2, .8, .2, 1) both;
 
   @keyframes sobe {
     from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+  /* toasts (vêm do topo) */
+  @keyframes desce {
+    from { opacity: 0; transform: translateY(-8px); }
     to   { opacity: 1; transform: none; }
   }
   @keyframes sheet {
@@ -277,16 +286,21 @@
     to   { transform: none; }
   }
   @keyframes aparece {
-    from { opacity: 0; transform: scale(.96); }
+    from { opacity: 0; transform: scale(.97); }
     to   { opacity: 1; transform: none; }
   }
+  @keyframes esbate {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  /* brilho do skeleton: move um ::after com transform (compositor), não background-position (repinta a cada frame) */
   @keyframes brilho {
-    from { background-position: 150% 0; }
-    to   { background-position: -50% 0; }
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(100%); }
   }
   @keyframes estrela {
-    0%   { transform: scale(.6); }
-    60%  { transform: scale(1.18); }
+    0%   { transform: scale(.85); }
+    60%  { transform: scale(1.08); }
     100% { transform: none; }
   }
 }
@@ -375,13 +389,23 @@
   @media (width >= 48rem) { font-size: 16px; }
 }
 
-/* Skeleton com brilho a passar (mais leve para o olho do que piscar) */
+/* Skeleton com brilho a passar (mais leve para o olho do que piscar). O brilho é um ::after movido com transform:
+   corre no compositor, mesmo com dezenas de blocos a carregar num Android de gama média. */
 @utility skeleton-brilho {
+  position: relative;
+  overflow: hidden;
   background-color: var(--color-skeleton);
-  background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, .55) 50%, transparent 100%);
-  background-size: 200% 100%;
-  background-repeat: no-repeat;
-  animation: var(--animate-brilho);
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / .45) 50%, transparent 100%);
+    transform: translateX(-100%);
+    animation: var(--animate-brilho);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &::after { display: none; }
+  }
 }
 
 /* Faixa horizontal com scroll por toque (sem barra) */
@@ -403,26 +427,27 @@
 
 @layer base {
   dialog::backdrop { background: rgba(8, 26, 19, .55); }
+  dialog[open]::backdrop { animation: var(--animate-esbate); }
   :where(.app) :focus-visible { outline: 3px solid var(--color-verde-medio); outline-offset: 2px; }
 }
 
-/* Transição entre ecrãs (PageTransition em components/bz/motion.tsx): sai a desvanecer, entra a subir 8px */
-::view-transition-old(.pagina) { animation: 120ms ease-in both vt-sai; }
-::view-transition-new(.pagina) { animation: 280ms cubic-bezier(.2, .8, .2, 1) 60ms both vt-entra; }
-::view-transition-group(.pagina) { animation-duration: 280ms; animation-timing-function: cubic-bezier(.2, .8, .2, 1); }
+/* Transição entre ecrãs (PageTransition em components/bz/motion.tsx): só quando muda o caminho (não em filtros nem
+   em re-renders). O ecrã antigo desvanece (120ms) e o novo entra a subir 6px (200ms). O resto da página (cabeçalho,
+   barra inferior) não anima: a captura "root" fica parada, por isso as barras fixas não piscam. */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-old(.pagina-sai) { animation: 120ms ease-in both vt-sai; }
+::view-transition-new(.pagina-entra) { animation: 200ms cubic-bezier(.2, .8, .2, 1) 40ms both vt-entra; }
 @keyframes vt-sai { to { opacity: 0; } }
-@keyframes vt-entra { from { opacity: 0; translate: 0 8px; } }
+@keyframes vt-entra { from { opacity: 0; transform: translateY(6px); } }
 
-/* Listas e grelhas que entram em cascata: cada filho sobe 40ms depois do anterior (até ao 8.º; o resto entra junto) */
+/* Listas que entram em cascata: só os 5 primeiros em sequência (40ms entre eles); o resto entra junto e sem atraso
+   visível. Nunca repete: anima ao montar, não a cada re-render. */
 @utility entra-cascata {
   & > * { animation: var(--animate-sobe); }
   & > :nth-child(2) { animation-delay: 40ms; }
   & > :nth-child(3) { animation-delay: 80ms; }
   & > :nth-child(4) { animation-delay: 120ms; }
-  & > :nth-child(5) { animation-delay: 160ms; }
-  & > :nth-child(6) { animation-delay: 200ms; }
-  & > :nth-child(7) { animation-delay: 240ms; }
-  & > :nth-child(n + 8) { animation-delay: 280ms; }
+  & > :nth-child(n + 5) { animation-delay: 160ms; }
 }
 
 /* ── v4 · Movimento (DESIGN_SYSTEM §6/§7). Só transform e opacity. Hover/3D só com rato e sem reduced-motion. ── */
@@ -444,13 +469,12 @@
   }
 }
 
-/* Bilhete da reserva: leve inclinação em repouso que endireita ao passar/tocar (só com rato) */
+/* Bilhete da reserva: plano em repouso (a inclinação em repouso parecia um erro e desfocava o texto);
+   no desktop sobe 2px no hover. */
 @utility bilhete-3d {
+  transition: translate var(--dur-base) var(--ease-out);
   @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-    transform: perspective(1000px) rotateX(6deg) rotateZ(-1.2deg);
-    transform-origin: 50% 100%;
-    transition: transform var(--dur-base) var(--ease-out);
-    &:hover, &:focus-within, &:active { transform: none; }
+    &:hover { translate: 0 -2px; }
   }
 }
 
@@ -468,18 +492,18 @@
    Cada ponto/segmento recebe --i (índice) para o atraso. Corre uma vez (nada de infinito na app). */
 @utility timeline-fill-x {
   transform-origin: left center;
-  animation: tl-fill-x var(--dur-slow) var(--ease-in-out) calc(var(--i, 0) * 120ms) both;
+  animation: tl-fill-x var(--dur-slow) var(--ease-out) both;
 }
 @utility timeline-fill-y {
   transform-origin: center top;
-  animation: tl-fill-y var(--dur-slow) var(--ease-in-out) calc(var(--i, 0) * 120ms) both;
+  animation: tl-fill-y var(--dur-base) var(--ease-out) calc(var(--i, 0) * 70ms) both;
 }
 @utility timeline-acende {
-  animation: tl-acende var(--dur-base) var(--ease-pop) calc(var(--i, 0) * 120ms) both;
+  animation: tl-acende var(--dur-base) var(--ease-out) calc(var(--i, 0) * 70ms) both;
 }
 @keyframes tl-fill-x { from { transform: scaleX(0); } to { transform: none; } }
 @keyframes tl-fill-y { from { transform: scaleY(0); } to { transform: none; } }
-@keyframes tl-acende { from { opacity: .35; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes tl-acende { from { opacity: .4; transform: scale(.85); } to { opacity: 1; transform: none; } }
 
 /* Seta dos botões: desliza 4px no hover do botão (Button com arrow) */
 @utility seta-desliza {
@@ -491,6 +515,7 @@
 
 /* Reduced motion: desliga animações e transições e mostra logo o estado final (sem atrasos). */
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
   *, *::before, *::after { animation-duration: 1ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }

@@ -19,6 +19,7 @@ import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
 import { useMode } from "@/lib/mode";
 import type { ItemSummary } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
+import { cn } from "@/lib/utils";
 
 const STATUS_TONE: Record<string, Tone> = { ACTIVE: "ok", INACTIVE: "neutro", SUSPENDED: "erro" };
 
@@ -210,7 +211,7 @@ function ItemCard({
   const t = dict.ownerItems;
   const st = { label: t.status[item.status as keyof typeof t.status] ?? item.status, tone: STATUS_TONE[item.status] ?? ("neutro" as Tone) };
   return (
-    <Card className="levantar grid h-full animate-sobe gap-3 p-3" style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}>
+    <Card className={cn("levantar grid h-full gap-3 p-3", index < 6 && "animate-sobe")} style={index > 0 && index < 6 ? { animationDelay: `${index * 40}ms` } : undefined}>
       <Link href={`/equipamentos/${item.id}`} className="flex gap-3 rounded-campo">
         <ItemPhoto src={item.coverPhoto} alt={item.title} className="w-24 shrink-0 rounded-campo" />
         <div className="grid min-w-0 content-start gap-1">

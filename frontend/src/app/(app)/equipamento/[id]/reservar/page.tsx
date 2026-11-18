@@ -8,6 +8,7 @@ import { MonthCalendar } from "@/components/bz/calendar";
 import { ItemPhoto } from "@/components/bz/equipment";
 import { Checkbox, FormError, RadioCards, SelectField, StepProgress, TextArea, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { toast } from "@/components/bz/overlay";
+import { Tip } from "@/components/bz/tip";
 import { StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Button, ButtonLink, Callout, Card, Kz, Skeleton } from "@/components/bz/ui";
@@ -220,6 +221,9 @@ function Reservar() {
               <FormError message={errors.form} />
             </section>
           )}
+
+          {/* O que acontece depois do pedido (pagas ao dono na entrega, o dono devolve a caução) */}
+          <Tip id="reserve" title={dict.tips.reserve.title} steps={dict.tips.reserve.steps} />
 
           <StickyCTA>
             {step < STEPS.length ? (

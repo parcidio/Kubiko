@@ -10,7 +10,7 @@ import { useT } from "@/lib/i18n/client";
 
 const PROMISE_ICONS = [BadgeCheck, ShieldCheck, Ticket];
 
-const EASE = "cubic-bezier(0.77, 0, 0.18, 1)";
+const EASE = "cubic-bezier(0.2, 0.8, 0.2, 1)"; // --ease-out (DESIGN_SYSTEM §6)
 
 /**
  * Hexágono 3D da marca (v4 §7): camadas recuadas com translateZ e brilho decrescente dão espessura.
@@ -42,7 +42,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const contentRef = useRef<HTMLDivElement>(null);
   const prevIsRegister = useRef(isRegister);
 
-  // A página nova entra pelo lado de onde o painel verde está a sair
+  // A página nova entra (24px, 350ms) do lado de onde o painel verde está a sair, depois de o painel começar a andar
   useEffect(() => {
     if (prevIsRegister.current === isRegister) return;
     prevIsRegister.current = isRegister;
@@ -54,10 +54,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
     el.animate(
       [
-        { transform: `translateX(${isRegister ? 70 : -70}%)`, opacity: 0 },
+        { transform: `translateX(${isRegister ? 24 : -24}px)`, opacity: 0 },
         { transform: "translateX(0)", opacity: 1 },
       ],
-      { duration: 700, easing: EASE, fill: "backwards" },
+      { duration: 350, delay: 150, easing: EASE, fill: "backwards" },
     );
   }, [isRegister]);
 
@@ -65,7 +65,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="app min-h-dvh">
       {/* Herói: faixa no telemóvel; no desktop fica fixo e troca de lado */}
       <aside
-        className={`superficie-marca relative overflow-hidden bg-verde-noite px-4 pt-5 pb-14 text-areia md:fixed md:inset-y-0 md:left-0 md:z-10 md:flex md:w-[45.4545%] md:flex-col md:justify-between md:px-12 md:py-10 md:transition-transform md:duration-700 md:ease-[cubic-bezier(0.77,0,0.18,1)] md:will-change-transform ${
+        className={`superficie-marca relative overflow-hidden bg-verde-noite px-4 pt-5 pb-14 text-areia md:fixed md:inset-y-0 md:left-0 md:z-10 md:flex md:w-[45.4545%] md:flex-col md:justify-between md:px-8 md:py-10 md:transition-transform md:duration-[600ms] md:ease-[var(--ease-in-out)] lg:px-12 ${
           isRegister ? "md:translate-x-[120%]" : "md:translate-x-0"
         }`}
       >
@@ -78,7 +78,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <LangSwitch dark className="md:mr-28" />
         </div>
         <div className="relative mt-8 grid gap-4 md:mt-0">
-          <p className="max-w-[16ch] font-titulo text-[34px] leading-[1.02] font-extrabold tracking-[-0.025em] text-white md:text-[56px]">
+          <p className="max-w-[16ch] font-titulo text-[34px] leading-[1.02] font-extrabold tracking-[-0.025em] text-white md:text-[40px] lg:text-[56px]">
             {t.heroBefore}<span className="text-salvia">{t.heroAccent}</span>
           </p>
           <ul className="hidden gap-3 md:grid">
@@ -95,7 +95,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       {/* Só esta área faz scroll; a margem reserva o espaço do painel fixo */}
       <main
-        className={`relative -mt-8 rounded-t-sheet bg-areia px-4 pt-8 pb-12 md:mt-0 md:flex md:min-h-dvh md:items-center md:rounded-none md:px-12 ${
+        className={`relative -mt-8 rounded-t-sheet bg-areia px-4 pt-8 pb-12 md:mt-0 md:flex md:min-h-dvh md:items-center md:rounded-none md:px-8 lg:px-12 ${
           isRegister ? "md:mr-[45.4545%]" : "md:ml-[45.4545%]"
         }`}
       >
