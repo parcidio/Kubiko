@@ -148,7 +148,8 @@ export function TopBar() {
         // h-16 no próprio header (borda incluída): o herói sobe exatamente 4rem e cobre até ao topo do ecrã
         "sticky top-0 z-40 h-16 border-b transition-[background-color,border-color] duration-[350ms] ease-[var(--ease-out)]",
         // sobre-heroi: por cima do herói usa sempre as cores do tema claro (no escuro, salvia-tint e areia invertem)
-        dark ? "sobre-heroi border-transparent bg-transparent" : "border-borda bg-areia/95 backdrop-blur-md",
+        // sem backdrop-blur: num Android de gama média o blur de uma barra fixa repinta a cada frame do scroll
+        dark ? "sobre-heroi border-transparent bg-transparent" : "border-borda bg-areia",
       )}
     >
       <div className="mx-auto flex h-full max-w-6xl items-center gap-4 px-4 md:px-12">
@@ -208,7 +209,8 @@ export function BottomNav() {
     <nav
       aria-label={t.main}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-40 grid h-[68px] border-t border-borda bg-branco/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden",
+        // altura = 68px + zona segura (iPhone sem botão); antes a zona segura comia os 68px e esmagava os ícones
+        "fixed inset-x-0 bottom-0 z-40 grid h-[calc(68px+env(safe-area-inset-bottom))] border-t border-borda bg-branco pb-[env(safe-area-inset-bottom)] md:hidden",
         items.length === 5 ? "grid-cols-5" : items.length === 4 ? "grid-cols-4" : "grid-cols-3",
       )}
     >
@@ -268,7 +270,7 @@ export function OfflineBanner() {
 }
 
 /** Estrutura da app: cabeçalho, conteúdo com transição e barra inferior. */
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, after }: { children: React.ReactNode; after?: React.ReactNode }) {
   const pathname = usePathname();
   const isFullBleed = pathname.startsWith("/explorar") || pathname.startsWith("/painel");
 
@@ -282,9 +284,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <TopBar />
       <OfflineBanner />
       <main className={cn(
-        "pt-5 pb-40 md:pt-8 md:pb-20",
+        "pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))] md:pt-8 md:pb-20",
         isFullBleed ? "w-full px-0" : "mx-auto max-w-6xl px-4 md:px-12",
       )}><PageTransition>{children}</PageTransition></main>
+      {/* fora da transição: avisos globais (ex.: localização) não voltam a montar a cada mudança de ecrã */}
+      {after}
       <BottomNav />
     </div>
   );
@@ -293,7 +297,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 /** StickyCTABar: barra fixa com o único botão âmbar no telemóvel (por cima da BottomNav, `shadow-bar`); no desktop fica no fluxo. */
 export function StickyCTA({ children, aside }: { children: React.ReactNode; aside?: React.ReactNode }) {
   return (
-    <div className="fixed inset-x-0 bottom-[68px] z-30 flex items-center gap-3 border-t border-borda bg-branco px-4 py-3 shadow-bar md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+    <div className="fixed inset-x-0 bottom-[calc(68px+env(safe-area-inset-bottom))] z-30 flex items-center gap-3 border-t border-borda bg-branco px-4 py-3 shadow-bar md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:shadow-none">
       {aside && <div className="min-w-0 flex-1 md:hidden">{aside}</div>}
       <div className={cn(aside ? "shrink-0 md:w-full" : "w-full")}>{children}</div>
     </div>

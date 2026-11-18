@@ -68,8 +68,8 @@ export default function ReservasPage() {
       {/* Cabeçalho escuro com o bilhete-resumo */}
       <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde p-5 text-areia md:p-8">
         <div className="hex-bg absolute inset-0 opacity-80" aria-hidden />
-        <div className="pointer-events-none absolute top-1/2 left-1/2 size-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ambar/15 blur-3xl" aria-hidden />
-        <div className="relative grid gap-5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-8">
+        <div className="pointer-events-none absolute top-1/2 left-1/2 size-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(240_162_46/0.15),transparent)]" aria-hidden />
+        <div className="relative grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-8">
           <div className="flex items-center gap-4">
             <HexTile icon={Ticket} size={56} className="bg-ambar text-sobre-ambar md:hidden" />
             <HexTile icon={Ticket} size={76} className="hidden bg-ambar text-sobre-ambar md:inline-flex" />
@@ -188,8 +188,9 @@ function SummaryTicket({
     </>
   );
   const shell = cn(
-    "flex min-h-24 overflow-hidden rounded-cartao bg-areia shadow-flutua md:w-[26rem] md:-rotate-2",
-    next && "transition-transform duration-200 hover:rotate-0 focus-visible:rotate-0",
+    // plano (sem rotação em repouso); a 768px ocupa a largura toda, no desktop 26rem ao lado do título
+    "flex min-h-24 overflow-hidden rounded-cartao bg-areia shadow-flutua lg:w-[26rem]",
+    next && "transition-[translate] duration-200 ease-[var(--ease-out)] hover:-translate-y-0.5",
   );
   return next ? (
     <Link href={`/reservas/${next.id}`} className={shell} aria-label={fmt(t.nextLabel, { title: next.itemTitle })}>
