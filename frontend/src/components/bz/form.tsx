@@ -4,7 +4,8 @@ import { useId, useRef, useState } from "react";
 import { AlertCircle, Check, Eye, EyeOff, type LucideIcon } from "lucide-react";
 import { ApiError } from "@/lib/api";
 import { docT, fmt } from "@/lib/i18n";
-import { useT } from "@/lib/i18n/client";
+import { useLang, useT } from "@/lib/i18n/client";
+import { countryOf, DEFAULT_DIAL, joinPhone, normalizePhone, PHONE_COUNTRIES, splitPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
 export const inputClass = cn(
@@ -150,28 +151,92 @@ function AffixInput({
   );
 }
 
-/** Telefone angolano: prefixo +244 fixo, 9 dígitos. */
+/**
+ * Telefone com indicativo do país (+244 por omissão). O valor é "+<indicativo> <número>" e `normalizePhone` passa-o
+ * a E.164. "Outro país" deixa escrever o número internacional completo. Fora de Angola o código vai só por WhatsApp.
+ */
 // autoComplete="username" no registo: o gestor de passwords grava o telefone como utilizador (o login aceita-o)
 export function PhoneField({ label, value, onChange, error, hint, className, autoComplete = "tel-national" }: Partial<Common> & Pick<Common, "value" | "onChange"> & { autoComplete?: string }) {
   const id = useId();
   const t = useT().form;
+  const lang = useLang();
+  const split = splitPhone(value);
+  const [other, setOther] = useState(!split.known);
+  const dial = other ? OTHER : split.dial;
+  const country = PHONE_COUNTRIES.find((c) => c.dial === dial);
+  const names = regionNames(lang);
+  const foreign = other ? value.trim().length > 1 && !value.trim().startsWith(DEFAULT_DIAL) : dial !== DEFAULT_DIAL;
+
+  function pickCountry(next: string) {
+    if (next === OTHER) {
+      setOther(true);
+      onChange(dial === DEFAULT_DIAL ? "+" : `${dial}${split.national.replace(/\D/g, "")}`);
+    } else {
+      setOther(false);
+      onChange(joinPhone(next, other ? "" : split.national));
+    }
+  }
+
   return (
-    <Field id={id} label={label ?? t.phone} hint={hint} error={error} className={className}>
-      <AffixInput
-        id={id}
-        prefix="+244"
-        type="tel"
-        inputMode="numeric"
-        autoComplete={autoComplete}
-        placeholder="923 456 789"
-        maxLength={11}
-        value={value}
-        onChange={(e) => onChange(e.target.value.replace(/[^\d ]/g, ""))}
-        error={error}
-        hint={hint}
-      />
+    <Field id={id} label={label ?? t.phone} hint={hint ?? (foreign ? t.phoneForeignHint : undefined)} error={error} className={className}>
+      <div
+        className={cn(
+          "flex h-12 overflow-hidden rounded-campo border-[1.5px] border-borda-forte bg-branco transition focus-within:border-verde-medio focus-within:ring-[3px] focus-within:ring-salvia-tint",
+          error && "border-2 border-erro",
+        )}
+      >
+        <select
+          aria-label={t.phoneCountry}
+          value={dial}
+          onChange={(e) => pickCountry(e.target.value)}
+          className="num max-w-[7.5rem] shrink-0 cursor-pointer appearance-none bg-areia-2 px-3 font-bold text-verde outline-none"
+        >
+          {PHONE_COUNTRIES.map((c) => (
+            <option key={c.iso} value={c.dial}>
+              {`${c.dial} ${names?.of(c.iso) ?? c.iso}`}
+            </option>
+          ))}
+          <option value={OTHER}>{t.phoneOther}</option>
+        </select>
+        <input
+          id={id}
+          className="num min-w-0 flex-1 bg-transparent px-4 text-base text-verde outline-none placeholder:text-cinza"
+          type="tel"
+          inputMode="tel"
+          autoComplete={other ? "tel" : autoComplete}
+          placeholder={other ? t.phoneOtherPh : country?.placeholder}
+          maxLength={other ? 20 : 16}
+          value={other ? value : split.national}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (other) onChange("+" + v.replace(/[^\d ]/g, ""));
+            // colou um número internacional completo no campo nacional: muda o país sozinho
+            else if (v.trim().startsWith("+") || v.trim().startsWith("00")) {
+              const n = normalizePhone(v);
+              const c = countryOf(n);
+              if (c) onChange(joinPhone(c.dial, n.slice(c.dial.length)));
+              else {
+                setOther(true);
+                onChange(n);
+              }
+            } else onChange(joinPhone(dial, v.replace(/[^\d ]/g, "")));
+          }}
+          aria-invalid={!!error || undefined}
+          aria-describedby={describedBy(id, error, hint ?? (foreign ? t.phoneForeignHint : undefined))}
+        />
+      </div>
     </Field>
   );
+}
+
+const OTHER = "other";
+
+function regionNames(lang: string) {
+  try {
+    return new Intl.DisplayNames([lang === "en" ? "en" : "pt-PT"], { type: "region" });
+  } catch {
+    return undefined;
+  }
 }
 
 /** Valor inteiro em kwanzas. Mostra com separador de milhares enquanto escreves. */

@@ -2,7 +2,7 @@ import { readSession, toSession, writeSession } from "./session";
 import type {
   Account, AdminMetrics, AdminPayment, AdminUserDetail, AdminUserSummary, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType,
   CommissionDue, Contract, Deposit, DirectChannel, Incident, IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, KycAccountType, KycDetail,
-  KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
+  KycQueueFilter, KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
 } from "./types";
 import type { LatLng } from "./types-ops";
 import { docT } from "./i18n";
@@ -52,6 +52,22 @@ async function refreshTokens(): Promise<boolean> {
   return refreshing;
 }
 
+/**
+ * Renova o access token já (cookie bz_refresh). Serve para apanhar uma mudança de papel feita por outra pessoa da
+ * equipa (o papel vai no token). Devolve false se a sessão já não for válida (a sessão local é limpa).
+ */
+export function refreshSession(): Promise<boolean> {
+  return refreshTokens();
+}
+
+/** Sinal que cancela o pedido ao fim de `ms` (rede instável: nada fica pendurado para sempre). */
+export function timeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
 export async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const session = readSession();
   const headers = new Headers(init.headers);
@@ -62,8 +78,9 @@ export async function request<T>(path: string, init: RequestInit = {}, retry = t
   let res: Response;
   try {
     res = await fetch(`/api/v1${path}`, { ...init, headers, credentials: "same-origin" });
-  } catch {
-    throw new ApiError(0, NETWORK_ERROR());
+  } catch (e) {
+    const timedOut = init.signal?.aborted || (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError"));
+    throw new ApiError(0, timedOut ? docT().common.timeoutError : NETWORK_ERROR());
   }
 
   if (res.status === 401 && session && retry && (await refreshTokens())) {
@@ -173,6 +190,13 @@ export const profileApi = {
   // 409 se o envio de emails estiver desligado no servidor
   requestEmailCode: () => post<void>("/profiles/me/email/verification"),
   confirmEmail: (code: string) => post<Me>("/profiles/me/email/verification/confirm", { code }),
+  // Foto de perfil: JPEG/PNG até 5 MB; devolve o perfil com avatarUrl assinada (1 h)
+  uploadAvatar: (photo: Blob) => {
+    const form = new FormData();
+    form.append("photo", photo, "avatar.jpg");
+    return upload<Me>("/me/avatar", form);
+  },
+  removeAvatar: () => del<Me>("/me/avatar"),
 };
 
 export const catalogApi = {
@@ -220,16 +244,21 @@ export interface ItemInput {
   city?: string;
 }
 
+/** Onde se publica: posição do browser (arredondada), zona escolhida à mão, ou nenhuma (zona guardada na conta). */
+export type PublishWhere = { location?: LatLng; areaId?: string };
+
 /** Equipamento do dono autenticado. */
 export const ownerItemApi = {
   mine: (page = 0) => request<Page<ItemSummary>>(`/items/me?page=${page}&size=50&sort=createdAt,desc`),
-  // Localização atual obrigatória: 422 location_required, 403 area_not_available (fora das zonas ativas)
-  publish: (b: ItemInput, location?: LatLng) => post<Item>("/items", { ...b, location }),
+  // Zona: localização do browser, ou zona escolhida à mão (areaId), ou nada → a API usa a zona guardada na conta.
+  // Sem nenhuma: 422 location_required; fora das zonas ativas: 403 area_not_available (decisoes-produto.md 2026-11-18)
+  publish: (b: ItemInput, where: PublishWhere = {}) => post<Item>("/items", { ...b, ...where }),
   // UpdateItemRequest usa "condition" (o publish usa "itemCondition")
   update: (id: string, { itemCondition, ...b }: Partial<ItemInput>) => patch<Item>(`/items/${id}`, { ...b, condition: itemCondition }),
   deactivate: (id: string) => patch<void>(`/items/${id}/deactivate`),
   // Pausado → ativo (SUSPENDED é da equipa e devolve 409)
-  activate: (id: string, location?: LatLng) => patch<Item>(`/items/${id}/activate`, location ? { location } : undefined),
+  activate: (id: string, where: PublishWhere = {}) =>
+    patch<Item>(`/items/${id}/activate`, where.location || where.areaId ? where : undefined),
   // JPEG/PNG até 5 MB, máx. 8 por item. Comprimir antes (lib/images.ts)
   uploadPhotos: (id: string, files: Blob[]) => {
     const form = new FormData();
@@ -282,7 +311,13 @@ export const adminApi = {
   settleCommissions: (ownerId: string, reason?: string) =>
     post<{ ownerId: string; payments: number; amount: number }>(`/admin/commissions/${ownerId}/settle`, { reason }),
   // KYC: fila (PENDING e IN_REVIEW, mais antigas primeiro), detalhe com URLs de 5 min, decisão
-  kycQueue: (page = 0, size = 50) => request<Page<KycQueueItem>>(`/admin/kyc?page=${page}&size=${size}`),
+  // status: OPEN (omissão) = por decidir · INFO_REQUESTED / REJECTED / APPROVED = já saíram da fila · profileId = todas de uma pessoa
+  kycQueue: (page = 0, size = 50, filter: { status?: KycQueueFilter; profileId?: string } = {}) => {
+    const q = new URLSearchParams({ page: String(page), size: String(size) });
+    if (filter.status) q.set("status", filter.status);
+    if (filter.profileId) q.set("profileId", filter.profileId);
+    return request<Page<KycQueueItem>>(`/admin/kyc?${q}`);
+  },
   kycDetail: (id: string) => request<KycDetail>(`/admin/kyc/${id}`),
   kycReview: (id: string, action: "START_REVIEW" | "APPROVE" | "REJECT" | "REQUEST_INFO", note?: string) =>
     patch<KycStatusInfo>(`/admin/kyc/${id}/review`, { action, note }),
@@ -317,7 +352,8 @@ export const adminApi = {
   },
   user: (id: string) => request<AdminUserDetail>(`/admin/users/${id}`),
   suspendUser: (id: string, reason: string) => post<AdminUserSummary>(`/admin/users/${id}/suspend`, { reason }),
-  reinstateUser: (id: string, reason?: string) => post<AdminUserSummary>(`/admin/users/${id}/reinstate`, { reason }),
+  // reativar exige motivo (2026-11-18); ações novas em lib/api-admin.ts
+  reinstateUser: (id: string, reason: string) => post<AdminUserSummary>(`/admin/users/${id}/reinstate`, { reason }),
   suspendItem: (id: string, reason: string) => patch<Item>(`/admin/items/${id}/suspend`, { reason }),
   reinstateItem: (id: string, reason?: string) => patch<Item>(`/admin/items/${id}/reinstate`, { reason }),
 };

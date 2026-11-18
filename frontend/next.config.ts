@@ -26,8 +26,8 @@ const csp = [
   // tile.openstreetmap.org: mosaicos do mapa em Admin › Mapa (só imagens; o Leaflet vem do nosso bundle)
   `img-src 'self' data: blob: https://*.backblazeb2.com https://tile.openstreetmap.org${storageOrigin ? ` ${storageOrigin}` : ""}${isDev ? " http://localhost:*" : ""}`,
   "font-src 'self' data:",
-  // Google Apps Script: formulário da lista de espera na landing. ws:/localhost só em desenvolvimento (React Refresh)
-  `connect-src 'self' https://script.google.com https://script.googleusercontent.com${isDev ? " ws: http://localhost:*" : ""}`,
+  // ws:/localhost só em desenvolvimento (React Refresh). (A lista de espera, que usava o Google Apps Script, saiu.)
+  `connect-src 'self'${isDev ? " ws: http://localhost:*" : ""}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

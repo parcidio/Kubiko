@@ -15,16 +15,58 @@ import type { BookingStatus, Checklist, ChecklistType, Incident, IncidentType } 
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
 
-export function AdminHeader({ title, text, action }: { title: string; text: string; action?: React.ReactNode }) {
+/** Cabeçalho de página do Admin: título, uma frase e as ações à direita (igual em todas as páginas). */
+export function AdminHeader({ title, text, action, meta, leading }: {
+  title: string; text?: string; action?: React.ReactNode; meta?: React.ReactNode; leading?: React.ReactNode;
+}) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div className="grid gap-1">
-        <p className="text-xs font-bold tracking-[0.12em] text-mel-texto uppercase">Equipa Beeznoo</p>
-        <h1 className="font-titulo text-[26px] leading-tight font-bold tracking-tight text-verde md:text-[32px]">{title}</h1>
-        <p className="max-w-2xl text-cinza">{text}</p>
+    <div className="mb-5 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-borda pb-5">
+      <div className="flex min-w-0 items-center gap-4">
+        {leading}
+        <div className="grid min-w-0 gap-1">
+          <h1 className="font-titulo text-2xl leading-tight font-bold tracking-tight text-verde md:text-[28px]">{title}</h1>
+          {text && <p className="max-w-2xl text-[15px] text-cinza">{text}</p>}
+          {meta && <div className="mt-1 flex flex-wrap items-center gap-2">{meta}</div>}
+        </div>
       </div>
-      {action}
+      {action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
     </div>
+  );
+}
+
+/** Painel com título (secções dentro de uma página do Admin). */
+export function AdminPanel({ title, action, children, className, bodyClassName }: {
+  title?: string; action?: React.ReactNode; children: React.ReactNode; className?: string; bodyClassName?: string;
+}) {
+  return (
+    <section className={cn("overflow-hidden rounded-cartao border border-borda bg-branco", className)} aria-label={title}>
+      {title && (
+        <div className="flex min-h-12 items-center justify-between gap-3 border-b border-borda px-4 py-2">
+          <h2 className="font-titulo text-base font-bold text-verde">{title}</h2>
+          {action}
+        </div>
+      )}
+      <div className={bodyClassName}>{children}</div>
+    </section>
+  );
+}
+
+/** Número de um KPI: rótulo, valor grande, nota. Plano, sem animação. */
+export function KpiTile({ label, value, hint, href, tone = "neutro" }: {
+  label: string; value: React.ReactNode; hint?: React.ReactNode; href?: string; tone?: "neutro" | "atencao";
+}) {
+  const body = (
+    <>
+      <p className="text-[13px] font-medium text-cinza">{label}</p>
+      <p className={cn("num font-titulo text-[28px] leading-tight font-bold", tone === "atencao" ? "text-aviso-texto" : "text-verde")}>{value}</p>
+      {hint && <p className="text-[13px] text-cinza">{hint}</p>}
+    </>
+  );
+  const cls = "grid content-start gap-0.5 rounded-cartao border border-borda bg-branco p-4";
+  return href ? (
+    <Link href={href} className={cn(cls, "transition-colors duration-200 hover:border-borda-forte")}>{body}</Link>
+  ) : (
+    <div className={cls}>{body}</div>
   );
 }
 

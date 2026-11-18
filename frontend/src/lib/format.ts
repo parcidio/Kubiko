@@ -68,15 +68,8 @@ export const CONDITION_LABEL: Record<ItemCondition, string> = {
   FAIR: "Sinais de uso",
 };
 
-// "+244 923 456 789" / "923456789" → "+244923456789"
-export function normalizePhone(input: string) {
-  const digits = input.replace(/\D/g, "").replace(/^244/, "");
-  return `+244${digits}`;
-}
-
-export function isValidPhone(input: string) {
-  return /^\+2449\d{8}$/.test(normalizePhone(input));
-}
+// Telefones (E.164, qualquer país; +244 por omissão): ver lib/phone.ts
+export { isValidPhone, normalizePhone } from "./phone";
 
 // "2026-10-16" → "16 out" · com weekday: "sex, 16 out" · en: "16 Oct" / "Fri 16 Oct"
 export function formatDay(iso: string, weekday = false, lang: Lang = "pt") {

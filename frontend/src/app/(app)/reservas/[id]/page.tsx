@@ -2,12 +2,14 @@
 
 import { useServiceFeeRate } from "@/lib/fee";
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { ChevronRight, ClipboardCheck, FileDown, FileText, Flag, HandCoins, MessageCircle, Receipt, ShieldCheck, type LucideIcon } from "lucide-react";
 import { BookingTicket, NextStepCard, PriceSummary, SuccessBurst, Timeline } from "@/components/bz/booking";
 import { HexTile } from "@/components/bz/hex";
 import { Sheet, toast } from "@/components/bz/overlay";
 import { RequestActions } from "@/components/bz/requests";
+import { Tip } from "@/components/bz/tip";
 import { TextArea } from "@/components/bz/form";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Button, Card, Eyebrow, SectionTitle, Skeleton } from "@/components/bz/ui";
@@ -73,6 +75,8 @@ function ReservaHub() {
     }
   }
 
+  // Dica do estado atual (o que fazer agora, pagamento e caução); estados fechados não têm
+  const stateTip = (dict.tips.booking[as] as Partial<Record<string, { title: string; steps: string[] }>>)[booking.status];
   const paid = PAID_STATUSES.includes(booking.status);
   const handover = booking.status === "ACTIVE" || booking.status === "IN_PROGRESS" || booking.status === "RETURNED";
   const hasContract = booking.status === "ACCEPTED" || paid;
@@ -128,6 +132,7 @@ function ReservaHub() {
             amount={needsPayment ? (payment.data?.amount ?? total) : undefined}
             positive={booking.status === "COMPLETED"}
           />
+          {stateTip && <Tip id={`booking.${as}.${booking.status}`} title={stateTip.title} steps={stateTip.steps} />}
           <BookingTicket booking={booking} as={as} />
           {as === "owner" && booking.status === "PENDING_OWNER" && <RequestActions booking={booking} onDone={setBooking} />}
 
@@ -170,10 +175,15 @@ function ReservaHub() {
                     <ChevronRight className="size-5 text-cinza transition-transform duration-200 group-hover:translate-x-1" strokeWidth={1.8} aria-hidden />
                   </>
                 );
-                return href ? (
-                  <a key={label} href={href} target={external ? "_blank" : undefined} rel={external ? "noreferrer" : undefined} className={cls}>
+                // Links internos com <Link> (navegação do cliente, sem recarregar a app); WhatsApp abre fora
+                return href && external ? (
+                  <a key={label} href={href} target="_blank" rel="noreferrer" className={cls}>
                     {inner}
                   </a>
+                ) : href ? (
+                  <Link key={label} href={href} className={cls}>
+                    {inner}
+                  </Link>
                 ) : (
                   <button key={label} type="button" onClick={onClick} className={cls}>
                     {inner}

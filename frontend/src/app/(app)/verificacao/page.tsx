@@ -5,6 +5,7 @@ import { AlertTriangle, BadgeCheck, Building2, Clock, ScanFace, UserRound } from
 import { HexTile } from "@/components/bz/hex";
 import { LocationOptIn } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
+import { Tip } from "@/components/bz/tip";
 import { CameraSlot } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
@@ -112,6 +113,8 @@ export default function VerificacaoPage() {
         <PageHeader title={t.title} subtitle={t.subtitle} />
       </div>
 
+      <Tip id="verification" title={dict.tips.verification.title} steps={dict.tips.verification.steps} />
+
       {k.status === "REJECTED" && (
         <Callout tone="erro" icon={AlertTriangle} title={t.rejectedTitle}>
           {k.rejectionReason ?? t.sendAgain}
@@ -144,7 +147,7 @@ export default function VerificacaoPage() {
       )}
 
       {/* Fundo escuro: as fotos dos documentos leem-se melhor */}
-      <Card className="grid gap-4 border-0 bg-verde-noite p-4 text-areia">
+      <Card className="superficie-marca grid gap-4 border-0 bg-verde-noite p-4 text-areia">
         {type === "INDIVIDUAL" ? (
           <>
             <p className="flex items-center gap-2 font-bold">

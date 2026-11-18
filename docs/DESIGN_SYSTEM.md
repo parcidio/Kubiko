@@ -113,7 +113,7 @@ Proporção: **70% areia · 20% verde · 10% âmbar**.
 | **Hexágonos 3D**      | Hero, blocos escuros (landing)                            | 5 camadas com `translateZ` e brilho decrescente, rotação 6–16s         |
 | **Faixa a deslizar**  | Marquee de equipamento                                    | `translateX(-50%)` 38s linear, pausa no hover                          |
 | **Timeline viva**     | Timeline de 6 passos                                      | Preenchimento `scaleX` + pontos acendem em sequência                   |
-| **Check de sucesso**  | Lista de espera, "Pedido enviado", "Pagamento confirmado" | Círculo `salvia-tint` com `--ease-pop`, 600ms                          |
+| **Check de sucesso**  | "Pedido enviado", "Pagamento confirmado"                  | Círculo `salvia-tint` com `--ease-pop`, 600ms                          |
 | **Skeleton**          | Listas a carregar                                         | Brilho 1,4s; `role="status"`                                           |
 
 ### Regras da app (não da landing)
@@ -220,3 +220,4 @@ Existentes da v3 mantêm-se. Novos ou alterados na v4:
 | 2026-11-16 | Texto de destaque sobre verde passa a `salvia`                                                                                                     | Âmbar fica reservado ao botão principal                        | Trocar classes de destaque na landing                                        |
 | 2026-11-16 | Timeline: "pago" → "pago ao dono"; "caução libertada" → "caução devolvida"                                                                         | Pagamento direto ao dono (2026-11-15)                          | Labels da `Timeline`                                                         |
 | 2026-11-16 | Logo: hexágono com três faixas documentado como SVG                                                                                                | Faltava especificação vetorial                                 | Exportar `beeznoo-icon.svg`                                                  |
+| 2026-11-18 | Tema claro/escuro/sistema único (script no `<head>`), `PreferencesMenu` (tema + língua) e `ThemeSwitch`; tokens `sobre-salvia`, `erro-sobre-verde`; `borda-forte` escura a 3:1 | Escuro com flash, preso ao sair/no admin, cores desencontradas | `lib/theme-script.ts`, `lib/theme.ts`, `bz/preferences.tsx`, `.dark` em `globals.css` e `landing.css` |

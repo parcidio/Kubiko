@@ -37,6 +37,7 @@ chaves em SHA-256 — para várias instâncias). Resposta `429` com `Retry-After
 | Refresh | 30 / min | IP |
 | Troca do código Google | 20 / min | IP |
 | Uploads (multipart) | 30 / hora | pessoa |
+| Foto de perfil (`/me/avatar`) | 10 / hora | pessoa |
 | Escrita autenticada | 120 / min | pessoa |
 | Corpo JSON | 1 MB (413) · ficheiros 5 MB, pedido multipart 26 MB | — |
 

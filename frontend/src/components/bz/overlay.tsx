@@ -39,7 +39,7 @@ export function Sheet({
       onClick={(e) => e.target === ref.current && onClose()}
       className={cn(
         "app m-0 mt-auto max-h-[90dvh] w-full max-w-none overflow-hidden rounded-t-sheet bg-branco p-0 text-texto-corpo shadow-sheet open:animate-sheet",
-        "md:m-auto md:max-w-lg md:rounded-sheet md:open:animate-sobe",
+        "md:m-auto md:max-w-lg md:rounded-sheet md:open:animate-aparece",
         className,
       )}
     >
@@ -53,8 +53,9 @@ export function Sheet({
             <X className="size-5" strokeWidth={1.8} />
           </button>
         </div>
-        <div className="overflow-y-auto px-5 pb-5">{children}</div>
-        {footer && <div className="border-t border-borda bg-branco px-5 py-4">{footer}</div>}
+        {/* overscroll-contain: o scroll do sheet não arrasta a página por trás; zona segura no fundo (iPhone) */}
+        <div className={cn("overflow-y-auto overscroll-contain px-5", footer ? "pb-5" : "pb-[max(1.25rem,env(safe-area-inset-bottom))]")}>{children}</div>
+        {footer && <div className="border-t border-borda bg-branco px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{footer}</div>}
       </div>
     </dialog>
   );
@@ -100,16 +101,16 @@ export function Toaster() {
     () => items,
   );
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-3 z-[100] flex flex-col items-center gap-2 px-4">
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[100] flex flex-col items-center gap-2 px-4">
       {list.map((t) => {
         const Icon = ICON[t.kind];
         return (
           <div
             key={t.id}
             role={t.kind === "erro" ? "alert" : "status"}
-            className="superficie-marca pointer-events-auto flex w-full max-w-sm animate-sobe items-center gap-3 rounded-cartao bg-verde px-4 py-3 font-corpo text-[15px] text-areia shadow-flutua"
+            className="superficie-marca pointer-events-auto flex w-full max-w-sm animate-desce items-center gap-3 rounded-cartao bg-verde px-4 py-3 font-corpo text-[15px] text-areia shadow-flutua"
           >
-            <Icon className={cn("size-5 shrink-0", t.kind === "erro" ? "text-[#F4A29C]" : "text-ambar")} strokeWidth={1.8} aria-hidden />
+            <Icon className={cn("size-5 shrink-0", t.kind === "erro" ? "text-erro-sobre-verde" : "text-ambar")} strokeWidth={1.8} aria-hidden />
             <p>{t.text}</p>
           </div>
         );

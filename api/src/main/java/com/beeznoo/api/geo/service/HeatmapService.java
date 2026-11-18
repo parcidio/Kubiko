@@ -25,9 +25,17 @@ import java.util.Optional;
 public class HeatmapService {
 
     public static final double CELL_SIZE_DEG = 0.05;
+    /**
+     * 2.º nível (~28 km): quem não chega ao mínimo numa célula fina junta-se aqui. Com poucas pessoas espalhadas por
+     * Luanda quase todas as células de 5 km tinham 1–2 pessoas e o mapa ficava vazio (2026-11-18). Cada pessoa conta
+     * numa só célula e o mínimo de 3 mantém-se em todas.
+     */
+    public static final double COARSE_CELL_SIZE_DEG = 0.25;
     public static final int MIN_COUNT = 3;
     // 0,05° em centésimas de grau (as coordenadas guardadas têm 2 casas)
     private static final int CELL_HUNDREDTHS = 5;
+    // células finas por lado de uma célula grossa (0,25 / 0,05); as grelhas estão alinhadas em 0
+    private static final int FINE_PER_COARSE = 5;
     static final String UNKNOWN_PROVINCE = "Desconhecida";
     static final String OTHER_PROVINCES = "Outras";
 
@@ -46,12 +54,14 @@ public class HeatmapService {
         Map<String, Long> provinces = new HashMap<>();
         long outside = 0;
         long withoutLocation = 0;
+        long withLocation = 0;
 
         for (Row row : rows) {
             if (row.lat() == null || row.lng() == null) {
                 withoutLocation += row.count();
                 continue;
             }
+            withLocation += row.count();
             long latIdx = Math.floorDiv(row.lat().movePointRight(2).longValueExact(), CELL_HUNDREDTHS);
             long lngIdx = Math.floorDiv(row.lng().movePointRight(2).longValueExact(), CELL_HUNDREDTHS);
             long key = (latIdx + 10_000) * 100_000 + (lngIdx + 10_000);
@@ -66,12 +76,23 @@ public class HeatmapService {
         }
 
         List<HeatmapCell> visible = new ArrayList<>();
-        long suppressed = 0;
+        Map<Long, long[]> coarse = new HashMap<>();
         for (long[] c : cells.values()) {
+            if (c[2] < MIN_COUNT) {
+                long latIdx = Math.floorDiv(c[0], FINE_PER_COARSE);
+                long lngIdx = Math.floorDiv(c[1], FINE_PER_COARSE);
+                long key = (latIdx + 10_000) * 100_000 + (lngIdx + 10_000);
+                coarse.computeIfAbsent(key, k -> new long[]{latIdx, lngIdx, 0})[2] += c[2];
+            } else {
+                visible.add(new HeatmapCell(center(c[0]), center(c[1]), c[2], CELL_SIZE_DEG));
+            }
+        }
+        long suppressed = 0;
+        for (long[] c : coarse.values()) {
             if (c[2] < MIN_COUNT) {
                 suppressed += c[2];
             } else {
-                visible.add(new HeatmapCell(center(c[0]), center(c[1]), c[2]));
+                visible.add(new HeatmapCell(coarseCenter(c[0]), coarseCenter(c[1]), c[2], COARSE_CELL_SIZE_DEG));
             }
         }
         visible.sort(Comparator.comparingLong(HeatmapCell::count).reversed()
@@ -87,13 +108,18 @@ public class HeatmapService {
         byProvince.sort(Comparator.comparingLong(ProvinceCount::count).reversed().thenComparing(ProvinceCount::province));
         if (others > 0) byProvince.add(new ProvinceCount(OTHER_PROVINCES, others));
 
-        return new Heatmap(scope.name(), CELL_SIZE_DEG, MIN_COUNT, visible, byProvince, outside, suppressed,
-                withoutLocation);
+        return new Heatmap(scope.name(), CELL_SIZE_DEG, COARSE_CELL_SIZE_DEG, MIN_COUNT, visible, byProvince, outside,
+                suppressed, withoutLocation, withLocation);
     }
 
     // centro da célula, arredondado a 3 casas
     private static double center(long idx) {
         return BigDecimal.valueOf(idx * CELL_HUNDREDTHS * 10L + 25L, 3).doubleValue();
+    }
+
+    // centro da célula grossa (0,25°), a 3 casas
+    private static double coarseCenter(long idx) {
+        return BigDecimal.valueOf(idx * CELL_HUNDREDTHS * FINE_PER_COARSE * 10L + 125L, 3).doubleValue();
     }
 
     // Coordenadas do momento certo (KYC ou registo), senão a última conhecida. Admins não contam.

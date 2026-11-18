@@ -16,8 +16,16 @@ public final class MetricsDtos {
             Funnel funnel30d,
             Commissions commissions,
             Kyc kyc,
-            Marketplace marketplace
+            Marketplace marketplace,
+            Queues queues
     ) {}
+
+    /**
+     * Trabalho em aberto para a equipa (decisoes-produto.md 2026-11-18), visível a qualquer papel na Visão geral.
+     * awaitingOwner: pedidos à espera do dono · inProgress: pagas ou com o equipamento entregue · disputed: em
+     * disputa · openIncidents: problemas por resolver · suspendedAccounts: contas suspensas.
+     */
+    public record Queues(long awaitingOwner, long inProgress, long disputed, long openIncidents, long suspendedAccounts) {}
 
     /** Alugueres concluídos: este mês e o anterior (para a variação). */
     public record NorthStar(long completedThisMonth, long completedLastMonth) {}

@@ -738,3 +738,192 @@ ativas; mapa usado na decisão da 2.ª província.
 **Nota de schema (2026-11-17).** As mensagens da equipa entram como **V28** (`V28__admin_messages.sql`), não V26:
 foram integradas depois da V27 (zonas de serviço) e o Flyway recusa uma versão mais baixa numa base onde a V27 já
 esteja aplicada. A V26 fica por usar (o Flyway aceita saltos).
+
+---
+
+## 2026-11-18 — Verificação de identidade visível, acesso da equipa ao KYC e números estrangeiros
+
+**Contexto.** (1) Pouca gente encontrava o "Verifica a tua identidade" (só um link na Conta e um 403 ao publicar/pedir).
+(2) A equipa dizia que os dados do KYC ficavam guardados mas que deixava de os conseguir rever. (3) Quem está em Luanda
+com número estrangeiro não conseguia registar-se: o frontend tinha o prefixo `+244` fixo e 9 dígitos (o backend já
+aceitava E.164 desde 2026-11-17).
+
+**Hipótese.** Se a pessoa vir o passo de verificação (o que é, porquê, quanto demora, o que precisa) no momento certo,
+mais pessoas chegam a "Verificado" antes do primeiro pedido; se a equipa vir todas as verificações, decide mais depressa;
+se estrangeiros residentes se puderem registar, aumenta a oferta e a procura. **Utilizador-alvo:** arrendatários e
+donos novos; equipa Beeznoo. **Critério de sucesso:** % de contas com KYC submetido nos primeiros 7 dias; tempo médio
+de decisão (já em Admin › Visão geral); registos com número fora de +244.
+
+**Decisões.**
+1. **Cartão de verificação** (`KycCard`, estado: por começar · em análise · recusada com motivo e "Enviar outra vez" ·
+   falta informação · verificada) na Conta, no Painel do dono, no início de Publicar e no lugar do pedido em Reservar.
+   Nos momentos com gate só aparece se o servidor exigir KYC (`canTransact`).
+2. **Causa da falta de acesso da equipa** (achados): a API de decisão e as URLs assinadas funcionam (teste de ponta a
+   ponta por HTTP: `KycAdminFlowIntegrationTest`), mas (a) a fila só mostrava `PENDING`/`IN_REVIEW` — depois de
+   recusar, aprovar ou pedir informação a verificação desaparecia e não havia forma de voltar aos documentos, enquanto a
+   Visão geral contava `INFO_REQUESTED` como pendente; (b) quem recebia acesso de admin (Admin › Utilizadores, desde
+   2026-11-17) ficava com o token antigo e a área de Admin recusava-o sem pedir nada à API, por isso a sessão nunca era
+   renovada. Correções: `GET /admin/kyc?status=OPEN|INFO_REQUESTED|REJECTED|APPROVED` e `?profileId=` (separadores em
+   Admin › Verificações e "Ver documentos" na ficha da pessoa); o Admin renova a sessão uma vez antes de recusar
+   (a promoção já revoga as sessões → entra outra vez com 2FA).
+3. **Documentos de KYC:** continuam guardados depois da decisão (nada é apagado); só URLs assinadas de 5 min, cada
+   abertura auditada (`KYC_DOCUMENTS_VIEWED`). ⚑ O prazo de retenção depois de aprovado/recusado continua em aberto
+   (ver 2026-10-23) — decidir com o André antes de implementar limpeza.
+4. **Telefone:** campo com indicativo do país (+244 por omissão, lista de países frequentes e "Outro país"),
+   normalização para E.164 no frontend (`lib/phone.ts`) e no backend (`Phones.normalize`, nos DTOs de registo,
+   verificação, login, recuperação e Google). O mesmo número escrito de outra forma é o mesmo (unicidade, login,
+   recuperação). Fora de +244 o código vai só por WhatsApp (sem alteração à decisão de 2026-11-17).
+
+---
+
+## 2026-11-18 — Tema claro/escuro/sistema único; landing de produto em produção
+
+**Contexto.** O tema escuro só era aplicado pelo `AppShell` (num `useEffect`, depois da pintura) e pela página Conta.
+Resultado: flash ao carregar; ao sair da sessão a classe `.dark` ficava no `<html>` e o login ficava escuro (mas, num
+carregamento direto, claro); o admin herdava o escuro e não tinha forma de o mudar; a landing ignorava-o. O `<body>` usava
+ainda tokens antigos (estilo shadcn) com outros verdes/areias. A landing tinha a lista de espera, que já não faz sentido
+com a plataforma no ar.
+
+**Decisões (⚑ a validar pelo André):**
+
+1. **Um só mecanismo de tema** (`frontend/src/lib/theme-script.ts` + `lib/theme.ts`): escolha `claro` / `escuro` /
+   `sistema` guardada em `localStorage` (`beeznoo.theme`, preferência do aparelho, não da conta: mantém-se ao sair).
+   Um script no `<head>` do layout raiz aplica `.dark` e `color-scheme` antes da primeira pintura, em todas as rotas.
+   **Omissão: claro** (a identidade é 70% areia); "sistema" é opção explícita.
+2. **Onde se muda:** botão compacto "tema e língua" (`PreferencesMenu`) no cabeçalho da app, da landing, no canto do
+   ecrã de autenticação e na barra lateral do admin; controlo completo em Conta › Aparência; tema e língua no rodapé da landing.
+3. **Paleta escura** = os tokens da v4 com o mesmo papel (globals.css, `.dark`), AA verificado. Âmbar e sálvia levam sempre
+   texto verde-escuro (`sobre-ambar`, `sobre-salvia`). A landing segue o tema; blocos verdes e ilustrações mantêm as cores claras.
+4. **Landing em produção:** sai a lista de espera (formulário, contagem, CTAs, Google Apps Script na CSP). CTAs reais:
+   Explorar equipamento (âmbar), Publicar equipamento, Entrar / Criar conta; "Diz-nos o que procuras" vai para o WhatsApp.
+
+**Em aberto.** O slogan "Por que comprar quando podes alugar?" segue a norma brasileira na pergunta direta; em pt-PT
+escreve-se "Porque comprar quando podes alugar?". Não mudei por ser texto de marca congelado — decisão do André.
+
+---
+
+## 2026-11-18 — Localização: consentimento na conta, Publicar sem bloquear, mapa com 2 níveis
+
+**Contexto.** Três bugs em produção: (1) "Publicar" demorava ou congelava à espera da localização (o formulário só
+aparecia depois do pedido ao browser e da verificação da zona; `permissions.query` e os pedidos à API não tinham tempo
+máximo; quem ignorava o pedido do browser esperava até 32 s); (2) o Admin › Mapa aparecia vazio apesar de muitas pessoas
+terem aceitado a localização: em Publicar a posição só era *consultada* (`publish-eligibility`, não guarda), o ecrã abria
+em "Verificados", e com poucas pessoas espalhadas quase todas as células de 5 km tinham 1–2 pessoas (escondidas pelo
+mínimo de 3) sem a UI dizer quantas estavam escondidas; (3) noutro dispositivo a app voltava a perguntar, porque "já
+perguntei" vivia só no `localStorage`.
+**Hipótese.** Tirar a espera de Publicar e não repetir perguntas aumenta os anúncios publicados; um mapa com dados
+serve a decisão da 2.ª província. **Utilizador-alvo:** donos (Publicar), equipa (Mapa).
+**Critério de sucesso:** Publicar abre em < 1 s em rede 3G; 0 queixas de "congela"; mapa com células visíveis.
+
+**Decisões (⚑ validar com o André):**
+1. **Consentimento na conta.** `profiles.location_consent_at` (V27) passa a ser a fonte: `GET /me/location` e
+   `location` em `GET /profiles/me` devolvem `{consented, consentAt, updatedAt, inServiceArea, area, storedZoneUsable}` —
+   **zona, nunca coordenadas**. Noutro dispositivo, com consentimento, a app não volta a perguntar; só chama a API do
+   browser em silêncio se a permissão já estiver dada nesse browser. Sem migração.
+2. **Publicar não espera pela localização.** O formulário aparece logo; a zona resolve-se num cartão no topo, por ordem:
+   posição do browser já autorizada (≤ 8 s) → zona guardada na conta (última localização ≤ **30 dias** numa zona
+   ativa) → a pessoa escolhe "Usar a minha localização" ou **a zona à mão** (lista das zonas ativas).
+   A API aplica a mesma ordem em `POST /items` e `PATCH /items/{id}/activate` (`location`, `areaId` ou nada).
+   Zona à mão recusada (403) se o browser disse "fora das zonas" nas últimas 24 h. A zona à mão e a zona guardada
+   **não criam** `location_events` (o mapa só recebe posições reais).
+   ⚠ Trade-off: escolher a zona à mão torna o gate mais fácil de contornar. Já era só controlo de produto (o browser
+   pode ser enganado); a alternativa (sem escolha à mão) deixa de fora quem tem a localização bloqueada ou um browser
+   sem GPS. Se aparecerem anúncios fora do piloto, retirar a escolha à mão é uma mudança só de frontend + `areaId`.
+3. **Publicar regista a posição** (contexto `APP`) quando a obtém, em vez de só consultar: alimenta o mapa.
+4. **Mapa com 2 níveis.** Quem fica numa célula de 0,05° (~5 km) com menos de 3 junta-se numa célula de 0,25° (~28 km);
+   o mínimo de 3 mantém-se em todas e cada pessoa conta numa só célula. O ecrã abre em "Todos" (com localização), mostra
+   quantos têm/não têm localização e quantos ficaram escondidos. Contas de admin continuam fora.
+5. **Tempos máximos:** permissão 1,5 s; posição 10 s (+20 s para responder ao pedido do browser; +2 s quando já
+   autorizado); pedidos de localização à API 8–10 s. Retenção inalterada (histórico 12 meses; o mapa lê o perfil).
+
+**Em aberto.** Botão "Retirar consentimento" na conta (hoje: definições do browser ou pedido à equipa).
+
+---
+
+## 2026-11-18 — Acesso ao Admin por convite, papéis da equipa e back-office
+
+**Contexto.** Feedback do André (produção): a gestão de contas "não é profissional"; o botão "Tornar admin" estava
+exposto em cada linha de Admin › Utilizadores (um clique dava acesso total a dados de KYC e pagamentos); as ações eram
+rasas; o painel parecia um protótipo. Esta entrada **substitui a decisão 1 de 2026-11-17** (promover/retirar admin
+em Utilizadores).
+
+**Hipótese.** Com acesso por convite, papéis com o mínimo de permissões e ações com motivo e auditoria, a equipa
+(4 pessoas + quem vier) trabalha mais depressa e com menos risco de um erro ou de uma conta roubada expor dados de
+identidade. **Utilizador-alvo:** equipa Beeznoo. **Critério de sucesso:** 0 acessos de admin concedidos fora do fluxo
+de convite; 100% das ações sensíveis sobre contas com motivo em `audit_logs`; a equipa resolve um caso de conta
+(encontrar → ficha → ação) em < 2 min.
+
+**Decisões.**
+
+1. **Papéis da equipa** (`profiles.admin_role`, V29; só existe com `role = 'ADMIN'`):
+   | Papel | Pode |
+   |---|---|
+   | `SUPER_ADMIN` | tudo, incluindo Equipa e acessos, Auditoria e eventos de segurança |
+   | `OPERATIONS` | Operação (reservas, pagamentos/comissões, cauções, problemas), ver Utilizadores, notas, moderar equipamento, mensagens |
+   | `TRUST` | Confiança (verificações KYC, Utilizadores com ações: suspender, terminar sessões, repor telefone), notas, moderar equipamento, mensagens |
+   | `GROWTH` | Crescimento (mapa, zonas, mensagens) e ver Utilizadores (para escolher destinatários) |
+   Todos veem a Visão geral (métricas agregadas, sem dados pessoais). As permissões vêm da BD em cada pedido
+   (`JwtAuthFiltter` já confirmava o papel ADMIN na BD): mudar ou retirar um papel tem efeito no pedido seguinte.
+   Os admins existentes ficam `SUPER_ADMIN` (migração). Um ADMIN sem `admin_role` só vê a Visão geral (menor privilégio).
+2. **Acesso só por convite.** Um `SUPER_ADMIN` convida um utilizador existente (pela conta) ou um email, com um papel.
+   O convite tem um token aleatório de 32 bytes, guardado só como SHA-256, válido **72 h**, de uso único e revogável.
+   O link leva o token no **fragmento** (`/convite-equipa#…`), que o browser não envia a servidores nem fica em logs;
+   a aceitação é um `POST` com o token no corpo. Quem aceita tem de ter sessão iniciada, telefone confirmado, conta
+   não suspensa, e ser a pessoa convidada (a conta indicada, ou o email convidado **já confirmado**). Ao aceitar, as
+   sessões são revogadas: volta a entrar, agora com 2FA de admin. O link é mostrado uma vez a quem convida (para o
+   mandar por WhatsApp, manual antes de automatizar) e vai por email quando há email.
+3. **Pedidos de acesso: não construídos.** Não recomendo um botão "pedir acesso de admin" num marketplace aberto: dá
+   a qualquer conta uma porta para engenharia social e cria uma fila que ninguém precisa (a equipa conhece-se). O
+   convite cobre o caso "quero entrar na equipa" — a pessoa pede por fora e um SUPER_ADMIN convida. Revisitar se a
+   equipa passar de ~10 pessoas.
+4. **Equipa e acessos** (Admin › Sistema › Equipa): mudar o papel e retirar o acesso, sempre com motivo. Proteções:
+   ninguém muda nem retira o próprio acesso (sem auto-promoção nem auto-despromoção); fica sempre pelo menos um
+   `SUPER_ADMIN` ativo (bloqueio de linhas, como no último admin); retirar acesso devolve a conta a `BOTH` e revoga
+   as sessões. Auditoria: `ADMIN_INVITED`, `ADMIN_INVITATION_REVOKED`, `ADMIN_INVITATION_ACCEPTED`,
+   `ADMIN_ROLE_CHANGED`, `ADMIN_ACCESS_REVOKED`, na mesma transação. `PATCH /admin/users/{id}/role` é removido.
+5. **Gestão de contas** (Admin › Confiança › Utilizadores): tabela com pesquisa, filtros (papel, estado do KYC,
+   suspensão, telefone confirmado, data de registo), ordenação e paginação no servidor. Ficha com perfil, KYC (link
+   para Verificações), equipamento, reservas, notas internas e histórico (auditoria da conta e das verificações).
+   Ações com confirmação e **motivo obrigatório**: suspender, reativar, terminar sessões, repor confirmação do
+   telefone. Nota interna (`admin_user_notes`, só a equipa vê; append-only). "Enviar mensagem" abre Mensagens com a
+   pessoa escolhida. Cada ação fica em `audit_logs` (`SESSIONS_REVOKED`, `PHONE_VERIFICATION_RESET`, `USER_NOTE_ADDED`).
+   - **Terminar sessões** revoga os refresh tokens; o token de acesso já emitido dura ≤ 15 min (como na suspensão).
+   - **Repor telefone** obriga a confirmar o número outra vez. Para não trancar a pessoa: no login com telefone por
+     confirmar, a API envia um código novo e responde `403 phone_unverified`; o ecrã de entrar pede o código.
+6. **Reservas no Admin** (Operação): lista paginada com filtro por estado e pesquisa (equipamento, dono,
+   arrendatário) — não havia lista, só a ficha.
+7. **Back-office.** Barra lateral agrupada (Operação · Confiança · Crescimento · Sistema), barra de topo com menu
+   da pessoa (papel, sair), cabeçalhos de página iguais, tabelas densas, estados vazio/a carregar/erro em todas as
+   listas. Sem animações decorativas no Admin (DESIGN_SYSTEM §6, "Regras da app"). Desktop primeiro, tablet usável,
+   telemóvel legível. Só tokens de cor (claro/escuro).
+
+**Consequências.** Migração **V29** (`admin_role`, `admin_invitations`, `admin_user_notes`). Endpoints novos em
+`/api/v1/admin/team/**` (SUPER_ADMIN), `/api/v1/admin/access/me`, `/api/v1/team-access/invitations/{inspect,accept}`
+(qualquer sessão), `/api/v1/admin/users/{id}/{sessions/revoke,phone-verification/reset,notes,history}` e
+`/api/v1/admin/bookings`. Os controladores de admin passam de `hasRole('ADMIN')` para permissões por área.
+
+**Em aberto (⚑ validar com o André).**
+- Os quatro papéis e o que cada um pode (tabela acima).
+- Validade do convite (72 h).
+- Serviços que ainda decidem "é admin?" só pelo papel ADMIN (contratos, recibos, fichas de reserva) — qualquer
+  papel da equipa os abre. Restringir por área quando houver mais gente na equipa.
+
+---
+
+## 2026-11-18 — Foto de perfil (upload)
+
+**Hipótese:** uma cara no cartão do dono e na reserva aumenta a confiança entre desconhecidos (o pedido sai mais vezes
+e o dono aceita mais). **Para quem:** donos e arrendatários. **Sucesso:** % de donos ativos com foto; comparar a taxa de
+pedido por visita entre equipamento com e sem foto do dono. ⚑ Validar com o André.
+
+- `POST /api/v1/me/avatar` (multipart, parte `photo`) e `DELETE /api/v1/me/avatar`. Só JPEG/PNG até 5 MB,
+  validados pelos bytes e recodificados (`UploadedFiles.validate`, sai o EXIF). Storage privado (B2) em
+  `avatars/{profileId}/`; o ficheiro novo apaga-se no rollback e o antigo só depois do commit (`StorageTransactions`).
+- **V30** `profiles.avatar_storage_key`. A chave nunca sai: os DTOs (`/profiles/me`,
+  equipamento `ownerAvatarUrl`, Admin › Utilizador) devolvem URL assinada de **1 h** (`AvatarUrls`), cobre a cache de
+  5 min da página pública. Sem upload, mantém-se a foto do Google (`avatar_url`); "Remover" apaga as duas (ficam as iniciais).
+- O browser recorta ao quadrado e reduz a **512 px JPEG** antes de enviar (~50 KB em rede móvel). JPEG e não WebP: a API
+  só descodifica JPEG/PNG (ImageIO); WebP exigiria uma dependência nova para pouca poupança a 512 px.
+- Limite: 10 mudanças por hora por pessoa (`RateLimitFilter`), além do limite geral de uploads.
+- A foto é visível para quem vê o equipamento ou a reserva — o texto da Conta di-lo. Sem moderação automática:
+  fotos impróprias tratam-se manualmente (Admin vê a foto na ficha do utilizador).

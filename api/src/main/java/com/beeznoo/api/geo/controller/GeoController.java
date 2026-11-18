@@ -46,6 +46,19 @@ public class GeoController {
         return ResponseEntity.ok(locationService.record(profileId, request));
     }
 
+    @Operation(summary = "O meu consentimento e zona", description = """
+            Consentimento de localização guardado na conta e zona da última localização (sem coordenadas). A app usa-o
+            para não voltar a perguntar noutro dispositivo. `storedZoneUsable`: publicar sem pedir a localização outra
+            vez (última localização com ≤ 30 dias numa zona ativa).
+            """)
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/me/location")
+    public ResponseEntity<LocationStatus> myLocation(@AuthenticationPrincipal UUID profileId) {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(locationService.status(profileId));
+    }
+
     @Operation(summary = "Posso publicar aqui?", description = """
             Só consulta (não guarda nada). Sem `lat`/`lng` → `allowed=false`, `reason=location_required`;
             fora das zonas ativas → `reason=area_not_available`. `areas` = zonas ativas.

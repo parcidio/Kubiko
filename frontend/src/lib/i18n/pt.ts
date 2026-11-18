@@ -12,6 +12,10 @@ export const pt = {
 
   common: {
     language: "Língua",
+    theme: "Tema",
+    themes: { light: "Claro", dark: "Escuro", system: "Sistema" },
+    preferences: "Tema e língua",
+    preferencesLabel: "Tema e língua: abrir opções",
     loading: "A carregar",
     retry: "Tentar outra vez",
     close: "Fechar",
@@ -29,6 +33,7 @@ export const pt = {
     days: { one: "{n} dia", other: "{n} dias" },
     copyFailed: "Não foi possível copiar. Seleciona e copia à mão.",
     networkError: "Sem ligação. Verifica a internet e tenta outra vez.",
+    timeoutError: "A ligação está lenta. Tenta outra vez daqui a pouco.",
     serverError: "O servidor falhou. Tenta outra vez.",
     somethingWrong: "Algo correu mal.",
   },
@@ -42,6 +47,7 @@ export const pt = {
 
   landing: {
     nav: {
+      explore: "Explorar",
       how: "Como funciona",
       categories: "Categorias",
       owners: "Para donos",
@@ -53,16 +59,14 @@ export const pt = {
       signUp: "Criar conta",
     },
     hero: {
-      pill: "Em breve em Luanda · Lista de espera aberta",
+      pill: "Já disponível em Luanda",
       line1: "Precisas de",
       line2: "equipamento?",
       accent: "Aluga, não compres.",
       lead: "Câmaras, som, luzes e projetores de quem os tem parados, perto de ti e com caução reembolsável. Pagas só os dias que usas, ao dono, na entrega.",
-      ctaWaitlist: "Entrar na lista de espera",
-      ctaHow: "Ver como funciona",
-      perks: ["Acesso antecipado à plataforma", "Aviso quando abrirmos na tua província", "Benefícios para os primeiros inscritos"],
-      countdown: "Abrimos em",
-      units: { d: "dias", h: "horas", m: "min", s: "seg" },
+      ctaExplore: "Explorar equipamento",
+      ctaPublish: "Publicar equipamento",
+      perks: ["Exploras sem criar conta", "Vês o valor final antes de pedir", "Pagas ao dono só na entrega"],
       phone: {
         search: "Câmara para casamento",
         days: "3 diárias × 35.000 Kz",
@@ -85,6 +89,7 @@ export const pt = {
       tabsLabel: "Categorias",
       soon: "Em breve",
       tellUs: "Diz-nos o que procuras",
+      tellUsMessage: "Olá! Procuro equipamento que ainda não encontrei na Beeznoo: ",
       cats: {
         foto: {
           label: "Foto e vídeo",
@@ -117,7 +122,7 @@ export const pt = {
           label: "Mais categorias",
           kicker: "A seguir",
           title: "Do berbequim à carrinha.",
-          text: "Começamos por foto, vídeo, áudio e eventos. Diz-nos na lista de espera o que procuras e abrimos primeiro as categorias mais pedidas.",
+          text: "Começamos por foto, vídeo, áudio e eventos. Diz-nos no WhatsApp o que procuras e abrimos primeiro as categorias mais pedidas.",
           explore: "",
           uses: ["Obras e reparações em casa", "Consolas, ecrãs, portáteis", "Eventos e escritórios", "Carrinhas e transporte"],
           names: ["Ferramentas", "Eletrónica", "Mobiliário", "Veículos"],
@@ -153,7 +158,7 @@ export const pt = {
       renterTitle2: "Paga só quando usas.",
       renterText:
         "Um casamento, uma gravação, um evento no fim de semana: não compres equipamento que vai ficar parado. Vês o valor final antes de pedir, sem surpresas.",
-      renterCta: "Quero alugar",
+      renterCta: "Explorar equipamento",
       mockTitle: "Sony A7 III · 23 a 25 out",
       mockDays: "3 diárias × 35.000 Kz",
       mockFee: "Taxa de serviço ({rate})",
@@ -165,7 +170,7 @@ export const pt = {
       ownerTitle2: "Põe-no a render.",
       ownerText:
         "Particular ou empresa: publicas o que tens, defines o preço e as datas e aceitas só os pedidos que quiseres, com contrato e caução em cada reserva.",
-      ownerCta: "Quero disponibilizar",
+      ownerCta: "Publicar equipamento",
       ownerNew: "Novo pedido · Kilamba",
       ownerReply: "Responde até 18:30",
       ownerGet: "Recebes pelo aluguer",
@@ -192,45 +197,6 @@ export const pt = {
         },
         { title: "Contrato em cada reserva", text: "Datas, preço, caução e condições por escrito, para os dois lados." },
       ],
-    },
-    waitlist: {
-      eyebrow: "Lista de espera",
-      title: "Sê dos primeiros a alugar na Beeznoo.",
-      lead: "Leva menos de um minuto. Avisamos-te quando abrirmos na tua província, e os primeiros inscritos têm benefícios no arranque.",
-      bullets: ["Sem spam: só novidades do lançamento", "Particulares e empresas", "Podes alugar, disponibilizar ou os dois"],
-      okTitle: "Estás na lista!",
-      okText: "Avisamos-te quando abrirmos na tua província.",
-      share: "Partilhar no WhatsApp",
-      shareText: "Entrei na lista de espera da Beeznoo: https://beeznoo.ao",
-      another: "Inscrever outra pessoa",
-      goal: "O que queres fazer?",
-      goals: { alugar: "Quero alugar", disponibilizar: "Quero disponibilizar", ambos: "Os dois" },
-      name: "Nome",
-      namePh: "O teu nome",
-      email: "Email",
-      phone: "Telefone / WhatsApp",
-      rentWhat: "O que precisas de alugar?",
-      rentWhatPh: "Ex.: câmara e luz para um casamento",
-      rentWhen: "Para quando?",
-      rentBudget: "Quanto pagarias por semana? (Kz)",
-      amountPh: "Ex.: 25000",
-      offerWhat: "O que queres disponibilizar?",
-      offerWhatPh: "Ex.: Canon EOS R6 e 2 lentes",
-      from: "Disponível de",
-      until: "Até",
-      price: "Por quanto? (Kz)",
-      province: "Província",
-      iAm: "Sou",
-      individual: "Particular",
-      company: "Empresa",
-      error: "Não conseguimos enviar. Confirma a ligação à internet e carrega em \"Tentar outra vez\".",
-      waOpened: "Abrimos o WhatsApp com os teus dados. Envia a mensagem para ficares na lista.",
-      waContinue: "Continuar no WhatsApp",
-      submit: "Entrar na lista de espera",
-      privacyBefore: "Ao inscreveres-te aceitas a nossa ",
-      privacy: "Política de Privacidade",
-      waBoth:
-        "Olá! Quero conhecer a Beeznoo e utilizar a plataforma nos dois perfis.\n\nNome: {name}\nEmail: {email}\nTelefone/WhatsApp: {phone}\nProvíncia: {province}\nPerfil: {profile}\nObjetivo: Alugar e disponibilizar equipamentos",
     },
     faq: {
       eyebrow: "Perguntas frequentes",
@@ -287,6 +253,10 @@ export const pt = {
   form: {
     genericError: "Algo correu mal. Tenta outra vez.",
     phone: "Telefone",
+    phoneCountry: "Indicativo do país",
+    phoneOther: "Outro país",
+    phoneOtherPh: "+indicativo e número",
+    phoneForeignHint: "Fora de Angola, o código chega só por WhatsApp.",
     password: "Password",
     showPassword: "Mostrar password",
     hidePassword: "Esconder password",
@@ -303,7 +273,7 @@ export const pt = {
     google: "Continuar com Google",
     googleSignUp: "Registar com Google",
     codeLength: "O código tem 6 dígitos.",
-    phoneDigits: "Escreve os 9 dígitos do teu número.",
+    phoneDigits: "Número inválido. Confirma o indicativo do país e os dígitos.",
     passwordMin: "A password tem de ter pelo menos 8 caracteres.",
     passwordHint: "Pelo menos 8 caracteres.",
     confirming: "A confirmar…",
@@ -315,11 +285,19 @@ export const pt = {
     otpTitle: "Confirma o teu número",
     otpSentBefore: "Enviámos um código por WhatsApp para ",
     otpSentAfter: ". Se não tiveres WhatsApp, chega por SMS.",
+    otpSentAfterForeign: ". Números fora de Angola recebem o código só por WhatsApp.",
     mfa: {
       title: "Confirma que és tu",
       subtitle: "Enviámos um código por WhatsApp. As contas da equipa têm verificação em dois passos.",
       subtitleTo: "Enviámos um código por WhatsApp para {phone}. As contas da equipa têm verificação em dois passos.",
       failed: "Não foi possível confirmar o código.",
+      submit: "Confirmar e entrar",
+    },
+    phoneConfirm: {
+      title: "Confirma o teu telefone",
+      subtitle: "Enviámos um código por WhatsApp para o número da tua conta. Confirma-o para entrar.",
+      phone: "Número de telefone da conta",
+      errPhone: "Escreve o número de telefone da tua conta.",
       submit: "Confirmar e entrar",
     },
     roles: {
@@ -332,10 +310,10 @@ export const pt = {
       title: "Olá outra vez",
       subtitle: "Entra para pedir reservas, pagar e acompanhar tudo num sítio.",
       identifier: "Telefone ou email",
-      identifierPh: "923 456 789 ou nome@email.com",
+      identifierPh: "923 456 789, +351 912 345 678 ou nome@email.com",
       errEmpty: "Escreve o teu telefone ou email.",
       errEmail: "Escreve um email válido.",
-      errPhone: "Escreve os 9 dígitos do teu número (ou o teu email).",
+      errPhone: "Escreve o teu número (fora de Angola, com o indicativo, ex.: +351…) ou o teu email.",
       errPassword: "Escreve a tua password.",
       forgot: "Esqueceste a password?",
       submit: "Entrar",
@@ -713,6 +691,33 @@ export const pt = {
     redirectToast: "Verifica a tua identidade primeiro. É feito à mão e pode demorar até 2 dias úteis.",
   },
 
+  kycCard: {
+    label: "Verificação de identidade",
+    titles: {
+      account: "Verifica a tua identidade",
+      dashboard: "Verifica a tua identidade para receberes pedidos",
+      publish: "Antes de publicar, verifica a tua identidade",
+      request: "Antes de pedires, verifica a tua identidade",
+    },
+    why: "É obrigatório para pedir reservas e publicar equipamento: quem aluga e quem empresta sabe com quem está a lidar.",
+    facts: {
+      needs: "BI (frente e verso) e uma selfie com o BI. Empresa: NIF e certidão.",
+      time: "Enviar leva 2 minutos. A equipa confere à mão em até 2 dias úteis.",
+      privacy: "Os documentos ficam privados: só a equipa Beeznoo os vê.",
+    },
+    start: "Verificar identidade",
+    pending: {
+      title: "Identidade em análise",
+      text: "Recebemos os teus documentos. A equipa confere à mão em até 2 dias úteis.",
+      textAt: "Recebemos os teus documentos a {when}. A equipa confere à mão em até 2 dias úteis.",
+      notify: "Avisamos-te na app e por email quando houver decisão.",
+    },
+    reasonLabel: "Motivo:",
+    rejected: { title: "A verificação foi recusada", text: "Corrige o que falhou e envia os documentos outra vez.", cta: "Enviar outra vez" },
+    info: { title: "Falta uma coisa na tua verificação", noteLabel: "A equipa pede:", text: "A equipa precisa de mais um documento ou de uma foto melhor.", cta: "Enviar documentos" },
+    approved: { title: "Identidade verificada", text: "Podes pedir reservas e publicar. O selo \"Verificado\" aparece no teu perfil." },
+  },
+
   reserve: {
     steps: ["Datas", "Entrega", "Mensagem", "Rever"],
     pastDate: "Não pode ser no passado.",
@@ -1067,6 +1072,20 @@ export const pt = {
   },
 
   account: {
+    avatar: {
+      change: "Alterar foto",
+      add: "Adicionar foto",
+      remove: "Remover",
+      uploading: "A enviar a tua foto…",
+      removing: "A remover a tua foto…",
+      saved: "Foto atualizada.",
+      removed: "Foto removida. Ficam as tuas iniciais.",
+      failed: "Não conseguimos enviar a foto. Verifica a rede.",
+      notImage: "Escolhe uma imagem (JPEG ou PNG).",
+      retry: "Tentar outra vez",
+      hint: "JPEG ou PNG. Quem aluga contigo vê esta foto.",
+      alt: "A tua foto de perfil",
+    },
     roles: { RENTER: "Arrendatário", OWNER: "Dono de equipamento", BOTH: "Alugo e sou dono", ADMIN: "Equipa Beeznoo" },
     google: {
       linked: { title: "Conta Google associada", text: "Já podes entrar com o Google. Se o email era o mesmo, ficou verificado." },
@@ -1097,9 +1116,8 @@ export const pt = {
     modeText: "Escolhe como usas a Beeznoo.",
     language: "Idioma",
     languageText: "Português ou inglês, em toda a app.",
-    darkTheme: "Tema escuro",
-    darkThemeText: "Altera o contraste da aplicação.",
-    darkThemeToggle: "Ativar tema escuro",
+    theme: "Tema",
+    themeText: "Claro, escuro ou igual ao do teu telemóvel.",
     signOut: "Sair",
     saved: "Dados guardados.",
     savedVerify: "Guardado. Verifica o email novo.",
@@ -1352,6 +1370,139 @@ export const pt = {
     publish: "Publicar",
   },
 
+  // "Como funciona" contextual (components/bz/tip.tsx): curto, concreto, pagamento direto ao dono.
+  tips: {
+    howItWorks: "Como funciona",
+    howItWorksQ: "Como funciona?",
+    hide: "Esconder dica",
+    gotIt: "Percebi",
+    explore: {
+      title: "Alugar na Beeznoo, em 4 passos",
+      steps: [
+        "Escolhe o equipamento e os dias de que precisas.",
+        "Envias o pedido ao dono. Ainda não pagas nada.",
+        "O dono aceita e combinam a entrega por WhatsApp.",
+        "Pagas ao dono na entrega. No fim, o dono devolve-te a caução.",
+      ],
+    },
+    reserve: {
+      title: "O que acontece depois de enviares",
+      steps: [
+        "O dono tem até 24 h para aceitar ou recusar.",
+        "Se aceitar, combinam a hora e o local da entrega.",
+        "Na entrega, conferem juntos o equipamento e pagas ao dono: aluguer, taxa e caução.",
+        "Quando devolves, o dono confere o estado e devolve-te a caução.",
+      ],
+    },
+    booking: {
+      renter: {
+        PENDING_OWNER: {
+          title: "Enquanto esperas pelo dono",
+          steps: [
+            "Não pagaste nada: só pagas ao dono na entrega.",
+            "Se o dono não responder em 24 h, o pedido expira e podes pedir outro equipamento.",
+          ],
+        },
+        ACCEPTED: {
+          title: "Pedido aceite: prepara a entrega",
+          steps: [
+            "Combina a hora e o local com o dono.",
+            "Leva o valor total. Pagas ao dono só depois de conferires o equipamento.",
+            "A caução fica com o dono durante o aluguer e volta para ti quando devolveres tudo em ordem.",
+          ],
+        },
+        ACTIVE: {
+          title: "Antes de levares o equipamento",
+          steps: [
+            "Abre o checklist de entrega e fotografa o estado do equipamento com o dono.",
+            "As fotos são a tua prova se houver dúvidas na devolução.",
+          ],
+        },
+        IN_PROGRESS: {
+          title: "Enquanto tens o equipamento",
+          steps: [
+            "Cuida dele e devolve-o na data combinada.",
+            "Na devolução, fazem outra vez o checklist com fotos.",
+            "Se algo correr mal, toca em Reportar problema: a equipa ajuda.",
+          ],
+        },
+        RETURNED: {
+          title: "A caução volta para ti",
+          steps: [
+            "O dono confere o equipamento e devolve-te a caução.",
+            "Se ficar com parte, tem de dar o motivo na app.",
+            "Se não concordares, reportas um problema até 7 dias depois.",
+          ],
+        },
+      },
+      owner: {
+        PENDING_OWNER: {
+          title: "Antes de aceitares",
+          steps: [
+            "Confirma que o equipamento está livre e em condições nesses dias.",
+            "Tens até 24 h para responder. Depois disso, o pedido expira.",
+            "Não recebes nada agora: o arrendatário paga-te na entrega.",
+          ],
+        },
+        ACCEPTED: {
+          title: "Recebes na entrega",
+          steps: [
+            "Combina a hora e o local com o arrendatário.",
+            "Na entrega, recebes o aluguer, a taxa de serviço e a caução.",
+            "Confirma aqui que recebeste: a reserva passa a paga.",
+          ],
+        },
+        ACTIVE: {
+          title: "Entrega com fotos",
+          steps: [
+            "Abre o checklist de entrega e fotografa o equipamento com o arrendatário presente.",
+            "As fotos protegem-te se o equipamento voltar com danos.",
+          ],
+        },
+        IN_PROGRESS: {
+          title: "Quando o equipamento voltar",
+          steps: [
+            "Confere o estado com o checklist de devolução.",
+            "Depois, devolve a caução e regista-o na app.",
+          ],
+        },
+        RETURNED: {
+          title: "Devolve a caução",
+          steps: [
+            "Se estiver tudo em ordem, devolve a caução completa ao arrendatário.",
+            "Se houver danos, podes ficar com parte, com motivo e fotos.",
+            "Regista aqui o que devolveste: a reserva fica concluída.",
+          ],
+        },
+      },
+    },
+    publish: {
+      title: "Ganhar com o teu equipamento",
+      steps: [
+        "Publicas com fotos reais, preço por dia e caução.",
+        "Recebes pedidos e decides: aceitas ou recusas em 24 h.",
+        "Na entrega, recebes o pagamento diretamente do arrendatário.",
+        "No fim, devolves a caução e entregas a taxa de serviço à Beeznoo.",
+      ],
+    },
+    verification: {
+      title: "Como funciona a verificação",
+      steps: [
+        "Tira fotos nítidas do BI (frente e verso) e uma selfie a segurar o BI.",
+        "Uma pessoa da equipa confirma os documentos.",
+        "Recebes um aviso quando estiver aprovado. Aí já podes pedir e publicar.",
+      ],
+    },
+    requests: {
+      title: "Como respondes a um pedido",
+      steps: [
+        "Abre o pedido e vê as datas, a mensagem e quanto recebes.",
+        "Aceita ou recusa em 24 h. Se recusares, diz o motivo.",
+        "Ao aceitar, combina a entrega. Recebes o pagamento na entrega e confirmas aqui.",
+      ],
+    },
+  },
+
   wallet: {
     periods: { "30": "Últimos 30 dias", "90": "Últimos 90 dias", all: "Desde o início" },
     back: "Voltar",
@@ -1413,6 +1564,21 @@ export const pt = {
     backExplore: "Voltar a Explorar",
     checking: "A confirmar a tua zona",
     waiting: "À espera da localização",
+    zoneLabel: "Zona: {area}",
+    zoneUnconfirmed: "Localização partilhada. Confirmamos a zona ao publicar.",
+    zoneFromDevice: "Pela localização deste telemóvel.",
+    zoneFromAccount: "Pela localização guardada na tua conta.",
+    zoneManual: "Escolhida por ti.",
+    change: "Mudar",
+    needTitle: "Onde está o equipamento?",
+    needText: "Durante o piloto só se publica nas zonas abertas. Partilha a localização ou escolhe a zona. Podes ir preenchendo o anúncio.",
+    useMyLocation: "Usar a minha localização",
+    chooseZone: "Ou escolhe a zona",
+    choosePlaceholder: "Escolhe a zona",
+    useThisZone: "Usar esta zona",
+    areasLoadFailed: "Não conseguimos carregar as zonas. Tenta outra vez.",
+    outsideInline: "Pela tua localização estás fora das zonas abertas ({list}). Podes continuar a preencher, mas só publicas numa zona aberta.",
+    needZoneToPublish: "Falta a zona: partilha a localização ou escolhe a zona no topo do formulário.",
   },
 };
 

@@ -37,10 +37,15 @@ SMS a número não +244 → ignorado (`foreignNoWhatsapp`/`foreignSms`). Estado 
   `PUT /admin/service-areas/{id}` · (sem delete: desativar).
 - `POST /me/location` `{ lat, lng, accuracyM?, context: "SIGNUP"|"KYC"|"PUBLISH"|"APP" }` → `{ inServiceArea, area: {province, city}|null }`.
   Guarda arredondado a 2 casas.
-- Publicar (`POST /items` e publicar/reativar): body ou cabeçalho com `lat`/`lng` (campo `location: {lat,lng}` no body).
-  Sem localização → 422 `location_required`; fora → 403 `area_not_available`.
+- `GET /me/location` → `{ consented, consentAt, updatedAt, inServiceArea, area: {province, city}|null, storedZoneUsable }`
+  (sem coordenadas; também em `GET /profiles/me` como `location`). Decisão 2026-11-18.
+- Publicar (`POST /items`) e reativar (`PATCH /items/{id}/activate`): `location: {lat,lng}` (posição do browser), ou
+  `areaId` (zona escolhida à mão; 403 se o browser disse "fora" nas últimas 24 h), ou nada (zona guardada na conta:
+  última localização ≤ 30 dias numa zona ativa). Sem nenhuma → 422 `location_required`; fora → 403 `area_not_available`.
   `GET /me/publish-eligibility?lat=&lng=` → `{ allowed, reason: null|"location_required"|"area_not_available", areas: [...] }`.
 
 ## Mapa
 `GET /admin/metrics/heatmap?scope=KYC_APPROVED|KYC_SUBMITTED|SIGNUP` →
-`{ cellSizeDeg: 0.05, minCount: 3, cells: [{ lat, lng, count }], byProvince: [{ province, count }], outsideAreas: n }`.
+`{ scope, cellSizeDeg: 0.05, coarseCellSizeDeg: 0.25, minCount: 3, cells: [{ lat, lng, count, sizeDeg }], byProvince: [{ province, count }],
+outsideAreas, suppressed, withoutLocation, withLocation }`. Quem não chega a 3 numa célula de 0,05° junta-se na de 0,25°
+(`sizeDeg`); o que nem assim chega fica em `suppressed`.

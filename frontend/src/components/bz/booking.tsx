@@ -54,7 +54,7 @@ export function DeadlineChip({ until, prefix, className }: { until: Date; prefix
 }
 
 // ── BookingTicket: a reserva como bilhete ─────────────────────────────────
-/** Reserva como bilhete (verde, recortes laterais, picotado); leve inclinação 3D que endireita no hover (só com rato). */
+/** Reserva como bilhete (verde, recortes laterais, picotado). Plano; no desktop sobe 2px no hover. */
 export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" | "owner" }) {
   const dict = useT();
   const t = dict.booking;
@@ -94,7 +94,7 @@ export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" 
           <dd className="num font-titulo text-lg font-bold">{days}</dd>
         </div>
         <div className="col-span-3 flex items-center gap-3 border-t border-white/10 pt-3">
-          <Avatar name={other.name} size="sm" className="bg-salvia text-verde" />
+          <Avatar name={other.name} size="sm" className="bg-salvia text-sobre-salvia" />
           <div className="min-w-0">
             <dt className="text-[11px] font-bold tracking-[0.12em] text-salvia uppercase">{other.role}</dt>
             <dd className="truncate font-medium">{other.name}</dd>
@@ -232,7 +232,7 @@ function TimelineDot({ isDone, isNow, isProblem, index }: { isDone: boolean; isN
     <span
       className={cn(
         "relative z-[1] flex size-7 shrink-0 items-center justify-center rounded-full border-2",
-        isDone && "timeline-acende border-salvia bg-salvia text-verde",
+        isDone && "timeline-acende border-salvia bg-salvia text-sobre-salvia",
         isNow && "border-ambar bg-ambar-tint ring-4 ring-ambar/25",
         isProblem && "border-erro bg-erro text-branco",
         !isDone && !isNow && !isProblem && "border-borda-forte bg-branco",
@@ -319,8 +319,8 @@ export function BookingRow({ booking, as, index = 0 }: { booking: Booking; as: "
   return (
     <Link
       href={`/reservas/${booking.id}`}
-      className="levantar flex animate-sobe items-center gap-3 rounded-cartao border border-borda bg-branco p-3 active:scale-[.99]"
-      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      className={cn("levantar flex items-center gap-3 rounded-cartao border border-borda bg-branco p-3 active:scale-[.99]", index < 6 && "animate-sobe")}
+      style={index > 0 && index < 6 ? { animationDelay: `${index * 40}ms` } : undefined}
     >
       <ItemPhoto src={booking.itemCoverPhoto} alt={booking.itemTitle} className="w-20 shrink-0 rounded-campo" />
       <div className="grid min-w-0 flex-1 gap-1">

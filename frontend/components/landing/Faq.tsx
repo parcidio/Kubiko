@@ -9,7 +9,7 @@ export default async function LandingFaq({ feeRate }: { feeRate: number }) {
   const rate = formatFeeRate(feeRate, await getLang());
   const FAQ = t.items.map((f) => ({ q: f.q, a: fmt(f.a, { rate }) }));
   return (
-    <section id="faq" className="lp-sec" style={{ paddingTop: 40 }} aria-labelledby="lp-faq-title">
+    <section id="faq" className="lp-sec" aria-labelledby="lp-faq-title">
       <div className="lp-wrap lp-faq-grid">
         <div className="lp-rv">
           <div className="lp-eyebrow">{t.eyebrow}</div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUp, Mail, MessageCircle } from "lucide-react";
 import { LangSwitch } from "@/components/bz/lang-switch";
+import { ThemeSwitch } from "@/components/bz/preferences";
 import { whatsappLink } from "@/lib/booking";
 import { getT } from "@/lib/i18n/server";
 import { BeeznooMark, Hex3D } from "./Brand";
@@ -68,7 +69,11 @@ export default async function LandingFooter() {
                   <Mail size={20} strokeWidth={1.8} aria-hidden="true" />
                 </a>
               </div>
-              <LangSwitch dark className="mt-4" />
+              {/* sobre-heroi: tokens claros sobre o verde, também no tema escuro */}
+              <div className="sobre-heroi mt-4 flex flex-wrap items-center gap-3">
+                <LangSwitch dark />
+                <ThemeSwitch dark iconsOnly />
+              </div>
             </div>
             <nav aria-label={t.platform} className="lp-fcol">
               <h3>{t.platform}</h3>

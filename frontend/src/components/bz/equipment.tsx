@@ -5,7 +5,6 @@ import { useServiceFeeRate } from "@/lib/fee";
 import { BadgeCheck, MapPin, Package, Repeat2, Sparkles, Star, type LucideIcon } from "lucide-react";
 import { categoryIcon, hexPath } from "./brand";
 import { Kz } from "./ui";
-import { initials } from "@/lib/booking";
 import { daysBetween, formatKz } from "@/lib/format";
 import { fmt, plural, type Lang } from "@/lib/i18n";
 import { useLang, useT } from "@/lib/i18n/client";
@@ -14,15 +13,15 @@ import type { ItemCondition, ItemSummary } from "@/lib/types";
 
 /** Foto 4:3; sem foto → bloco areia-2 com o ícone da categoria. */
 export function ItemPhoto({
-  src, alt, icon, className, imgClassName, rounded = true,
-}: { src?: string | null; alt: string; icon?: LucideIcon; className?: string; imgClassName?: string; rounded?: boolean }) {
+  src, alt, icon, className, imgClassName, rounded = true, priority = false,
+}: { src?: string | null; alt: string; icon?: LucideIcon; className?: string; imgClassName?: string; rounded?: boolean; /** Primeira foto visível (LCP): carrega já, com prioridade. */ priority?: boolean }) {
   const Icon = icon ?? Package;
   const t = useT().equipment;
   return (
     <div className={cn("relative aspect-[4/3] overflow-hidden bg-areia-2", rounded && "rounded-cartao", className)}>
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} loading="lazy" decoding="async" className={cn("size-full object-cover", imgClassName)} />
+        <img src={src} alt={alt} loading={priority ? "eager" : "lazy"} fetchPriority={priority ? "high" : undefined} decoding="async" className={cn("size-full object-cover", imgClassName)} />
       ) : (
         <div className={cn("flex size-full items-center justify-center text-mel", imgClassName)} role="img" aria-label={fmt(t.noPhoto, { alt })}>
           <Icon className="size-1/4 max-h-12 max-w-12" strokeWidth={1.4} aria-hidden />
@@ -43,7 +42,7 @@ export function ConditionMeter({ condition, className }: { condition: ItemCondit
     <div className={cn("flex items-center gap-3", className)}>
       <svg viewBox="0 0 110 22" className="h-5 w-[110px]" role="img" aria-label={fmt(dict.equipment.conditionAria, { label, level })}>
         {Array.from({ length: 5 }, (_, i) => (
-          <path key={i} d={hexPath(11 + i * 22, 11, 10)} fill={i < level ? "#1F5C42" : "#ECE6DA"} />
+          <path key={i} d={hexPath(11 + i * 22, 11, 10)} fill={i < level ? "var(--color-verde-medio)" : "var(--color-skeleton)"} />
         ))}
       </svg>
       <span className="text-sm font-medium text-verde">{label}</span>
@@ -62,23 +61,8 @@ export function VerifiedBadge({ className, compact }: { className?: string; comp
   );
 }
 
-/** Avatar com iniciais (salvia-tint + verde-médio: âmbar nunca em texto). */
-export function Avatar({ name, size = "md", className }: { name?: string | null; size?: "sm" | "md" | "lg"; className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-salvia-tint font-titulo font-bold text-verde-medio",
-        size === "sm" && "size-9 text-sm",
-        size === "md" && "size-11 text-base",
-        size === "lg" && "size-14 text-lg",
-        className,
-      )}
-    >
-      {initials(name)}
-    </span>
-  );
-}
+/** Avatar (foto ou iniciais): vive em ./avatar; reexportado para os imports existentes. */
+export { Avatar } from "./avatar";
 
 /** "Cidade, Província" ou "Luanda". */
 export function placeOf(item: { city?: string | null; province?: string | null }) {
@@ -135,25 +119,29 @@ export function RatingInline({ average, count, className }: { average: number | 
  * Cartão de equipamento (v4): cartão branco com borda, foto 4:3, preço/dia a flutuar sobre a foto, nome em Bricolage,
  * prova social, bairro e selo. No desktop levanta 4px no hover (`levantar`); no telemóvel fica plano.
  * Com `dates` (pesquisa com datas no Explorar), mostra o total desses dias (aluguer + taxa; a caução vê-se no Detalhe).
+ * Entrada: só os primeiros 6 cartões sobem em cascata (40ms); os seguintes (ex.: "Ver mais") aparecem sem animação.
+ * `animate={false}` dentro de blocos que já animam (faixas do Explorar).
  */
 export function EquipmentCard({
-  item, href, icon, index = 0, className, showFeatured = true, dates,
-}: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean; dates?: { start: string; end: string } }) {
+  item, href, icon, index = 0, className, showFeatured = true, dates, animate = true,
+}: { item: ItemSummary; href: string; icon?: LucideIcon; index?: number; className?: string; showFeatured?: boolean; dates?: { start: string; end: string }; animate?: boolean }) {
   const feeRate = useServiceFeeRate(); // PAYMENTS_SERVICE_FEE_RATE, via API
   const days = dates ? daysBetween(dates.start, dates.end) : 0;
   const dict = useT();
   const t = dict.equipment;
+  const entra = animate && index < 6;
   const tag = item.featured && showFeatured
-    ? { label: t.featured, icon: Sparkles, cls: "bg-verde text-areia [&_svg]:text-ambar" }
+    ? { label: t.featured, icon: Sparkles, cls: "bg-verde-solido text-white [&_svg]:text-ambar" }
     : null;
   return (
     <Link
       href={href}
       className={cn(
-        "group levantar block animate-sobe rounded-cartao border border-borda bg-branco p-2 outline-none active:scale-[.98] focus-visible:ring-4 focus-visible:ring-verde-medio/30",
+        "group levantar block rounded-cartao border border-borda bg-branco p-2 outline-none active:scale-[.98] focus-visible:ring-4 focus-visible:ring-verde-medio/30",
+        entra && "animate-sobe",
         className,
       )}
-      style={{ animationDelay: `${Math.min(index, 8) * 40}ms` }}
+      style={entra && index > 0 ? { animationDelay: `${index * 40}ms` } : undefined}
     >
       <div className="relative overflow-hidden rounded-campo">
         <ItemPhoto
@@ -161,7 +149,7 @@ export function EquipmentCard({
           alt={item.title}
           icon={icon ?? categoryIcon(item.categorySlug)}
           rounded={false}
-          imgClassName="transition duration-500 ease-out group-hover:scale-105"
+          imgClassName="transition-transform duration-[600ms] ease-[var(--ease-out)] group-hover:scale-[1.03]"
         />
         {tag && (
           <span className={cn("absolute top-2 left-2 inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-bold", tag.cls)}>
@@ -169,7 +157,7 @@ export function EquipmentCard({
             {tag.label}
           </span>
         )}
-        <span className="absolute bottom-2 left-2 rounded-full bg-branco/95 px-3 py-1 text-verde shadow-flutua backdrop-blur">
+        <span className="absolute bottom-2 left-2 rounded-full bg-branco/95 px-3 py-1 text-verde shadow-flutua">
           <Kz value={item.pricePerDay} className="text-[15px]" />
           <span className="text-xs text-cinza"> {dict.common.perDay}</span>
         </span>

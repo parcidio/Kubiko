@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import com.beeznoo.api.config.AdminAccess;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin/kyc")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize(AdminAccess.KYC)
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Admin · KYC", description = "Fila de verificações de identidade e decisão manual")
 public class AdminKycController {
@@ -33,8 +34,10 @@ public class AdminKycController {
     @Operation(
             summary = "Fila de verificações",
             description = """
-                    Verificações `PENDING` e `IN_REVIEW`, da mais antiga para a mais recente
-                    (pela data da última submissão). Apenas ADMIN.
+                    `status=OPEN` (omissão): verificações `PENDING` e `IN_REVIEW`, da mais antiga para a mais recente
+                    (pela data da última submissão). `status=INFO_REQUESTED|REJECTED|APPROVED`: as que já saíram da
+                    fila, mais recentes primeiro (os documentos continuam guardados e consultáveis no detalhe).
+                    `profileId`: todas as verificações dessa pessoa (ignora `status`). Apenas ADMIN.
                     """
     )
     @ApiResponses({
@@ -45,8 +48,11 @@ public class AdminKycController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping
-    public ResponseEntity<Page<KycQueueItem>> queue(Pageable pageable) {
-        return ResponseEntity.ok(kycService.listPending(pageable));
+    public ResponseEntity<Page<KycQueueItem>> queue(
+            @RequestParam(required = false) KycService.QueueFilter status,
+            @RequestParam(required = false) UUID profileId,
+            Pageable pageable) {
+        return ResponseEntity.ok(kycService.list(status, profileId, pageable));
     }
 
     @Operation(

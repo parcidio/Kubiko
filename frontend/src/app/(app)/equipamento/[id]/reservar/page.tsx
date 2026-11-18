@@ -8,6 +8,7 @@ import { MonthCalendar } from "@/components/bz/calendar";
 import { ItemPhoto } from "@/components/bz/equipment";
 import { Checkbox, FormError, RadioCards, SelectField, StepProgress, TextArea, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { toast } from "@/components/bz/overlay";
+import { Tip } from "@/components/bz/tip";
 import { StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Button, ButtonLink, Callout, Card, Kz, Skeleton } from "@/components/bz/ui";
@@ -19,6 +20,7 @@ import { canRent } from "@/lib/mode";
 import type { Availability, Item, Me } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
+import { KycCard } from "@/components/bz/kyc";
 import { fmt, plural } from "@/lib/i18n";
 import { useLang, useT } from "@/lib/i18n/client";
 
@@ -129,12 +131,7 @@ function Reservar() {
       </Card>
 
       {needsKyc ? (
-        <div className="grid gap-4">
-          <Callout tone="warn" title={t.kycTitle}>
-            {t.kycText}
-          </Callout>
-          <ButtonLink href="/verificacao" size="lg">{t.verify}</ButtonLink>
-        </div>
+        <KycCard context="request" primary />
       ) : blocked ? (
         <Callout tone="warn" title={isOwnItem ? t.ownItemTitle : t.ownerOnlyTitle}>
           {isOwnItem ? t.ownItemText : t.ownerOnlyText}
@@ -220,6 +217,9 @@ function Reservar() {
               <FormError message={errors.form} />
             </section>
           )}
+
+          {/* O que acontece depois do pedido (pagas ao dono na entrega, o dono devolve a caução) */}
+          <Tip id="reserve" title={dict.tips.reserve.title} steps={dict.tips.reserve.steps} />
 
           <StickyCTA>
             {step < STEPS.length ? (

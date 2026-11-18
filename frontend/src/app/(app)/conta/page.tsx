@@ -1,57 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BadgeCheck, CheckCircle2, ChevronRight, CircleHelp, Clock, Languages, LogOut, Mail, Moon, Package, Phone, ShieldCheck, Sun, Ticket, Wallet, type LucideIcon } from "lucide-react";
+import { BadgeCheck, CheckCircle2, ChevronRight, CircleHelp, Clock, Languages, LogOut, Mail, Package, Phone, ShieldCheck, SunMoon, Ticket, Wallet, type LucideIcon } from "lucide-react";
 import { HexGlow } from "@/components/bz/brand";
 import { FormError, OtpField, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { HexTile } from "@/components/bz/hex";
+import { KycCard } from "@/components/bz/kyc";
 import { toast } from "@/components/bz/overlay";
 import { ModeSwitch } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
 import { Button, Callout, Card, Eyebrow, Skeleton } from "@/components/bz/ui";
 import { authApi, profileApi } from "@/lib/api";
 import { signOut, useRequireSession } from "@/lib/auth";
-import { initials, whatsappLink } from "@/lib/booking";
+import { whatsappLink } from "@/lib/booking";
+import { AvatarEditor } from "@/components/bz/avatar";
 import { canOwn, canRent, isAdmin } from "@/lib/mode";
 import type { Me, UserRole } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { LangSwitch } from "@/components/bz/lang-switch";
+import { ThemeSwitch } from "@/components/bz/preferences";
 import { fmt } from "@/lib/i18n";
 import { useT } from "@/lib/i18n/client";
 
 /** Regresso de "Associar conta Google" (/conta?google=…); textos em t.account.google. */
 const GOOGLE_TONE: Record<string, "ok" | "warn"> = { linked: "ok", already: "warn", conflict: "warn" };
 
-function subscribeTheme(onChange: () => void) {
-  window.addEventListener("beeznoo:theme", onChange);
-  window.addEventListener("storage", onChange);
-  return () => {
-    window.removeEventListener("beeznoo:theme", onChange);
-    window.removeEventListener("storage", onChange);
-  };
-}
-
-function getThemeSnapshot() {
-  return window.localStorage.getItem("beeznoo.theme") === "dark";
-}
-
 function ContaInner() {
   const session = useRequireSession();
   const router = useRouter();
   const params = useSearchParams();
-  const darkMode = useSyncExternalStore(subscribeTheme, getThemeSnapshot, () => false);
   const me = useResource<Me>(session ? "profile:me" : null, () => profileApi.me());
   const dict = useT();
   const t = dict.account;
   const ROLE_LABEL: Record<UserRole, string> = t.roles;
   const googleKey = params.get("google") ?? "";
   const googleResult = googleKey in GOOGLE_TONE ? { tone: GOOGLE_TONE[googleKey], ...t.google[googleKey as keyof typeof t.google] } : undefined;
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-  }, [darkMode]);
 
   if (!session) return null;
 
@@ -69,12 +54,14 @@ function ContaInner() {
       <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde-noite p-5 text-areia md:p-8">
         <HexGlow />
         <div className="relative grid justify-items-center gap-4 text-center md:gap-5 lg:justify-items-start lg:text-left">
-          <HexTile tone="salvia" size={80} className="num md:hidden">
-            {me.data ? initials(me.data.fullName) : ROLE_LABEL[session.role].charAt(0)}
-          </HexTile>
-          <HexTile tone="salvia" size={104} className="num hidden md:inline-flex">
-            {me.data ? initials(me.data.fullName) : ROLE_LABEL[session.role].charAt(0)}
-          </HexTile>
+          {me.data ? (
+            <AvatarEditor me={me.data} onChange={me.setData} />
+          ) : (
+            <>
+              <HexTile tone="salvia" size={80} className="num md:hidden">{ROLE_LABEL[session.role].charAt(0)}</HexTile>
+              <HexTile tone="salvia" size={104} className="num hidden md:inline-flex">{ROLE_LABEL[session.role].charAt(0)}</HexTile>
+            </>
+          )}
           <div className="grid w-full gap-4">
             <div>
               <Eyebrow className="text-salvia">{ROLE_LABEL[session.role]}</Eyebrow>
@@ -108,6 +95,7 @@ function ContaInner() {
           <Skeleton role="status" aria-label={dict.common.loading} className="h-72 rounded-cartao" />
         ) : (
           <>
+            <KycCard context="account" />
             <ProfileForm me={me.data} onSaved={me.setData} />
             <EmailVerification me={me.data} onVerified={me.setData} />
             <GoogleSection me={me.data} />
@@ -144,29 +132,17 @@ function ContaInner() {
             </div>
             <div className="flex items-center justify-between gap-4 border-t border-borda pt-4">
               <div className="flex min-w-0 items-center gap-3">
-                <Languages className="size-5 text-mel" aria-hidden />
+                <Languages className="size-5 shrink-0 text-mel" strokeWidth={1.8} aria-hidden />
                 <div><p className="font-bold text-verde">{t.language}</p><p className="text-sm text-cinza">{t.languageText}</p></div>
               </div>
               <LangSwitch />
             </div>
-            <div className="flex items-center justify-between gap-4 border-t border-borda pt-4">
+            <div className="flex flex-col items-stretch gap-3 border-t border-borda pt-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <div className="flex min-w-0 items-center gap-3">
-                {darkMode ? <Moon className="size-5 text-mel" aria-hidden /> : <Sun className="size-5 text-mel" aria-hidden />}
-                <div><p className="font-bold text-verde">{t.darkTheme}</p><p className="text-sm text-cinza">{t.darkThemeText}</p></div>
+                <SunMoon className="size-5 shrink-0 text-mel" strokeWidth={1.8} aria-hidden />
+                <div><p className="font-bold text-verde">{t.theme}</p><p className="text-sm text-cinza">{t.themeText}</p></div>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={darkMode}
-                aria-label={t.darkThemeToggle}
-                onClick={() => {
-                  window.localStorage.setItem("beeznoo.theme", darkMode ? "light" : "dark");
-                  window.dispatchEvent(new Event("beeznoo:theme"));
-                }}
-                className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full p-1 transition-colors ${darkMode ? "bg-verde-medio" : "bg-borda-forte"}`}
-              >
-                <span className={`block size-5 rounded-full bg-branco shadow transition-transform ${darkMode ? "translate-x-5" : "translate-x-0"}`} />
-              </button>
+              <ThemeSwitch className="w-full sm:w-auto" />
             </div>
           </Card>
         </section>

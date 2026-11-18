@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ExternalLink, FileText, RefreshCw } from "lucide-react";
 import { AdminHeader, ConfirmWithReason, QueueStates, age } from "@/components/bz/admin";
 import { toast } from "@/components/bz/overlay";
 import { ErrorState } from "@/components/bz/states";
+import { Segmented } from "@/components/bz/tabs";
 import { Badge, Button, Card, Skeleton } from "@/components/bz/ui";
 import { adminApi } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import type { KycDetail, KycDocumentType, KycQueueItem, KycStatus, Page } from "@/lib/types";
+import type { KycDetail, KycDocumentType, KycQueueFilter, KycQueueItem, KycStatus, Page } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
 
@@ -40,12 +42,36 @@ const ACTION_LABEL: Record<string, string> = {
 
 type Decision = "APPROVE" | "REJECT" | "REQUEST_INFO";
 
+// Separadores: a fila por decidir e o que já saiu dela (os documentos continuam guardados e consultáveis)
+const TABS: { value: KycQueueFilter; label: string; empty: string }[] = [
+  { value: "OPEN", label: "Por decidir", empty: "Nenhuma verificação pendente" },
+  { value: "INFO_REQUESTED", label: "Info pedida", empty: "Ninguém está a reenviar documentos" },
+  { value: "REJECTED", label: "Recusadas", empty: "Nenhuma verificação recusada" },
+  { value: "APPROVED", label: "Aprovadas", empty: "Nenhuma verificação aprovada" },
+];
+
+const AWAITING: KycStatus[] = ["PENDING", "IN_REVIEW"];
+
 /**
  * KYC manual (decisoes-produto.md 2026-11-15): a pessoa envia o BI e a selfie, a equipa confere e decide.
  * Abrir uma verificação fica na auditoria (KYC_DOCUMENTS_VIEWED); os links dos documentos expiram em 5 min.
  */
 export default function AdminVerificacoes() {
-  const queue = useResource<Page<KycQueueItem>>("admin:kyc", () => adminApi.kycQueue());
+  return (
+    <Suspense>
+      <AdminVerificacoesInner />
+    </Suspense>
+  );
+}
+
+function AdminVerificacoesInner() {
+  const router = useRouter();
+  // ?pessoa=<id>: vem da ficha em Admin › Utilizadores — todas as verificações dessa pessoa
+  const person = useSearchParams().get("pessoa");
+  const [tab, setTab] = useState<KycQueueFilter>("OPEN");
+  const queue = useResource<Page<KycQueueItem>>(`admin:kyc:${person ?? tab}`, () =>
+    adminApi.kycQueue(0, 50, person ? { profileId: person } : { status: tab }),
+  );
   const rows = queue.data?.content ?? [];
   const [openId, setOpenId] = useState<string | null>(null);
   const [detail, setDetail] = useState<KycDetail | null>(null);
@@ -87,6 +113,25 @@ export default function AdminVerificacoes() {
         text="BI e selfie por conferir, a mais antiga primeiro. Confere que a cara, o nome e o BI batem certo. Recusar e pedir informação exigem motivo, que a pessoa vê."
       />
 
+      {person ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-[15px] text-cinza">Todas as verificações desta pessoa, a mais recente primeiro.</p>
+          <Button variant="ghost" size="sm" onClick={() => router.replace("/admin/verificacoes")}>Ver a fila</Button>
+        </div>
+      ) : (
+        <Segmented
+          label="Estado das verificações"
+          value={tab}
+          onChange={(v) => {
+            setTab(v);
+            setOpenId(null);
+            setDetail(null);
+          }}
+          options={TABS.map(({ value, label }) => ({ value, label }))}
+          className="max-w-2xl"
+        />
+      )}
+
       <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start">
         <Card className="overflow-hidden">
           <QueueStates
@@ -94,8 +139,8 @@ export default function AdminVerificacoes() {
             error={queue.error}
             empty={rows.length === 0}
             onRetry={queue.reload}
-            emptyTitle="Nenhuma verificação pendente"
-            emptyText="Quando alguém envia o BI, aparece aqui."
+            emptyTitle={person ? "Esta pessoa ainda não enviou documentos" : TABS.find((x) => x.value === tab)!.empty}
+            emptyText={tab === "OPEN" && !person ? "Quando alguém envia o BI, aparece aqui." : "Os documentos ficam guardados e podes abri-los aqui."}
           />
           {rows.length > 0 && (
             <ul className="entra-cascata">
@@ -110,6 +155,7 @@ export default function AdminVerificacoes() {
                       <span className="truncate font-medium text-verde">{k.profileName}</span>
                       <span className="text-[13px] text-cinza">
                         {k.accountType === "BUSINESS" ? "Empresa" : "Particular"} · enviado {age(k.submittedAt)}
+                        {k.reviewedAt && ` · decidido ${age(k.reviewedAt)}`}
                       </span>
                     </span>
                     <Badge tone={STATUS[k.status].tone}>{STATUS[k.status].label}</Badge>
@@ -186,11 +232,21 @@ export default function AdminVerificacoes() {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-3 border-t border-borda pt-4">
-                <Button variant="dark" onClick={() => setDecision("APPROVE")}>Aprovar</Button>
-                <Button variant="outline" onClick={() => setDecision("REQUEST_INFO")}>Pedir informação</Button>
-                <Button variant="danger" onClick={() => setDecision("REJECT")}>Recusar</Button>
-              </div>
+              {detail.verification.status && AWAITING.includes(detail.verification.status) ? (
+                <div className="flex flex-wrap gap-3 border-t border-borda pt-4">
+                  <Button variant="dark" onClick={() => setDecision("APPROVE")}>Aprovar</Button>
+                  <Button variant="outline" onClick={() => setDecision("REQUEST_INFO")}>Pedir informação</Button>
+                  <Button variant="danger" onClick={() => setDecision("REJECT")}>Recusar</Button>
+                </div>
+              ) : (
+                detail.verification.status && (
+                  <p className="flex items-center gap-2 border-t border-borda pt-4 text-[13px] text-cinza">
+                    <Badge tone={STATUS[detail.verification.status].tone}>{STATUS[detail.verification.status].label}</Badge>
+                    {detail.verification.reviewedAt && `Decidida a ${formatDateTime(detail.verification.reviewedAt)}.`}
+                    {detail.verification.status === "INFO_REQUESTED" && " Volta à fila quando a pessoa reenviar."}
+                  </p>
+                )
+              )}
             </>
           )}
         </Card>

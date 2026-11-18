@@ -152,9 +152,10 @@ class AuthServiceIntegrationTest {
     void loginWithUnverifiedProfileThrows() {
         doRegister(); // sem doVerify()
 
+        // decisoes-produto.md 2026-11-18: código estável para o ecrã de entrar pedir o código
         assertThatThrownBy(() -> authService.login(new LoginRequest(PHONE, null, PASSWORD)))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("não verificado");
+                .isInstanceOf(com.beeznoo.api.common.exception.ApiException.class)
+                .extracting("code").isEqualTo("phone_unverified");
     }
 
     @Test

@@ -9,6 +9,7 @@ import { Button, ButtonLink } from "@/components/bz/ui";
 import { authApi } from "@/lib/api";
 import { signIn } from "@/lib/auth";
 import { isValidPhone, normalizePhone } from "@/lib/format";
+import { isForeignPhone } from "@/lib/phone";
 import { useT } from "@/lib/i18n/client";
 
 type Errors = FormErrors;
@@ -126,7 +127,7 @@ function CompletePhone({ pendingToken }: { pendingToken: string }) {
   if (step === "otp") {
     return (
       <>
-        <AuthTitle title={a.otpTitle} subtitle={<>{a.otpSentBefore}<strong className="text-verde">{normalizePhone(phone)}</strong>{a.otpSentAfter}</>} />
+        <AuthTitle title={a.otpTitle} subtitle={<>{a.otpSentBefore}<strong className="text-verde">{normalizePhone(phone)}</strong>{isForeignPhone(phone) ? a.otpSentAfterForeign : a.otpSentAfter}</>} />
         <form onSubmit={submitOtp} className="grid gap-5" noValidate>
           <OtpField value={code} onChange={setCode} error={errors.fields.code} />
           <FormError message={errors.form} />

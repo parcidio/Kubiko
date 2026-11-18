@@ -283,6 +283,6 @@ class AdminMessageIntegrationTest {
     private Profile profile(String name, String phone, String mail, UserRole role, boolean phoneConfirmed) {
         return profileRepository.saveAndFlush(Profile.builder()
                 .fullName(name).phone(phone).email(mail).passwordHash("$2a$10$hash")
-                .role(role).isVerified(phoneConfirmed).build());
+                .role(role).adminRole(role == UserRole.ADMIN ? com.beeznoo.api.profile.entity.AdminRole.SUPER_ADMIN : null).isVerified(phoneConfirmed).build());
     }
 }

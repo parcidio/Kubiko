@@ -317,6 +317,7 @@ Tabelas auxiliares sem relações relevantes para o negócio: `otp_codes` (códi
 | V25 | suspensão de contas pela equipa: `profiles.suspended_at`, `suspension_reason` (obrigatório se suspensa), `suspended_by` |
 | V27 | zonas de serviço e localização: `service_areas` (província, cidade, centro, `radius_km`, `active`; semeadas Luanda e Bengo/Caxito, 60 km); `profiles.last_lat/last_lng/last_location_at`, `location_consent_at`, `signup_lat/lng`, `kyc_lat/lng`, `in_service_area`; `location_events` (append-only) |
 | V28 | mensagens da equipa: `message_templates` (+ 6 predefinidos), `admin_messages`, `message_deliveries` (uma por destinatário, única por envio) |
+| V30 | foto de perfil: `profiles.avatar_storage_key` (storage privado; a API só devolve URL assinada de 1 h) |
 
 **Localização (V27, decisoes-produto.md 2026-11-17):** coordenadas de pessoas só em `NUMERIC(5,2)` (~1 km, a BD
 arredonda). `location_events` guarda cada envio (`SIGNUP`, `KYC`, `PUBLISH` — cada tentativa de publicar/reativar —,

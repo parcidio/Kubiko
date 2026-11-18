@@ -60,7 +60,7 @@ export function Rail({
       <ul ref={scroller} className="faixa -mx-4 gap-3 px-4 pb-1 md:mx-0 md:gap-4 md:px-0">
         {items.map((item, i) => (
           <li key={item.id} className="w-[44vw] max-w-[240px] min-w-[160px] shrink-0 md:w-[240px]">
-            <EquipmentCard item={item} href={`/equipamento/${item.id}`} index={i} showFeatured={!featured} />
+            <EquipmentCard item={item} href={`/equipamento/${item.id}`} index={i} showFeatured={!featured} animate={false} />
           </li>
         ))}
       </ul>
@@ -112,7 +112,7 @@ export function TrustStrip({ className }: { className?: string }) {
         <li
           key={title}
           className="group flex w-[78vw] max-w-[300px] shrink-0 animate-sobe items-center gap-3 rounded-cartao border border-borda bg-branco p-3 md:w-auto md:max-w-none"
-          style={{ animationDelay: `${i * 60}ms` }}
+          style={i > 0 ? { animationDelay: `${i * 40}ms` } : undefined}
         >
           <HexTile icon={Icon} tone="salvia-tint" size={44} flip />
           <span className="min-w-0">
@@ -246,7 +246,7 @@ export function ReviewsSection({
       {reviews.length > 0 && (
         <ul className="grid gap-3 md:grid-cols-2">
           {reviews.map((r, i) => (
-            <li key={r.id} className="grid animate-sobe content-start gap-2 rounded-cartao border border-borda bg-branco p-4" style={{ animationDelay: `${Math.min(i, 6) * 50}ms` }}>
+            <li key={r.id} className={cn("grid content-start gap-2 rounded-cartao border border-borda bg-branco p-4", i < 4 && "animate-sobe")} style={i > 0 && i < 4 ? { animationDelay: `${i * 40}ms` } : undefined}>
               <div className="flex items-center gap-3">
                 <Avatar name={r.reviewerName} size="sm" />
                 <div className="min-w-0 flex-1">

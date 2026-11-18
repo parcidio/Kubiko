@@ -110,20 +110,20 @@ export default function EquipamentoPage() {
               onScroll={(e) => setPhoto(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
             >
               {(photos.length ? photos : [null]).map((p, i) => (
-                <ItemPhoto key={p?.id ?? i} src={p?.photUrl} alt={fmt(t.photoN, { title: item.title, n: i + 1 })} icon={Icon} rounded={false} className="w-full shrink-0 snap-center" />
+                <ItemPhoto key={p?.id ?? i} src={p?.photUrl} alt={fmt(t.photoN, { title: item.title, n: i + 1 })} icon={Icon} rounded={false} priority={i === 0} className="w-full shrink-0 snap-center" />
               ))}
             </div>
             {/* Voltar a flutuar sobre a foto (no desktop há o BackLink por cima) */}
             <Link
               href="/explorar"
               aria-label={t.backToExploreLabel}
-              className="absolute top-4 left-4 flex size-11 items-center justify-center rounded-campo bg-branco/90 text-verde shadow-float backdrop-blur transition-transform duration-200 active:scale-95 md:hidden"
+              className="absolute top-4 left-4 flex size-11 items-center justify-center rounded-campo bg-branco/90 text-verde shadow-float transition-transform duration-200 active:scale-95 md:hidden"
             >
               <ChevronLeft className="size-5" strokeWidth={1.8} aria-hidden />
             </Link>
             {photos.length > 1 && (
               <>
-                <span className="num absolute right-4 bottom-4 rounded-full bg-verde/75 px-3 py-1 text-[13px] font-bold text-areia backdrop-blur">
+                <span className="num absolute right-4 bottom-4 rounded-full bg-verde-noite/80 px-3 py-1 text-[13px] font-bold text-white backdrop-blur">
                   {photo + 1} / {photos.length}
                 </span>
                 <span aria-hidden className="absolute inset-x-0 bottom-5 flex justify-center gap-1.5">
@@ -134,7 +134,7 @@ export default function EquipamentoPage() {
               </>
             )}
             {item.featured && (
-              <span className="absolute top-4 right-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-verde px-3 text-[13px] font-bold text-areia md:right-auto md:left-4 [&_svg]:text-ambar">
+              <span className="absolute top-4 right-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-verde-solido px-3 text-[13px] font-bold text-white md:right-auto md:left-4 [&_svg]:text-ambar">
                 <Sparkles className="size-4" strokeWidth={1.8} aria-hidden /> {t.featured}
               </span>
             )}
@@ -194,7 +194,7 @@ export default function EquipamentoPage() {
 
           {/* Dono */}
           <Card className="flex items-center gap-3 p-4">
-            <Avatar name={item.ownerName} size="lg" />
+            <Avatar name={item.ownerName} src={item.ownerAvatarUrl} size="lg" />
             <div className="min-w-0 flex-1">
               <Eyebrow>{t.owner}</Eyebrow>
               <p className="flex min-w-0 items-center gap-2">
@@ -337,13 +337,13 @@ export default function EquipamentoPage() {
       </div>
 
       <Sheet open={depositInfo} onClose={() => setDepositInfo(false)} title={t.depositHow}>
-        <DepositExplainer pricePerDay={Number(item.pricePerDay)} deposit={deposit} />
+        <DepositExplainer pricePerDay={Number(item.pricePerDay)} deposit={deposit} feeRate={feeRate} />
       </Sheet>
     </div>
   );
 }
 
-function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; deposit: number }) {
+function DepositExplainer({ pricePerDay, deposit, feeRate }: { pricePerDay: number; deposit: number; feeRate: number }) {
   const t = useT().item;
   const steps = t.depositSteps.map((s) => ({ t: s.t, d: fmt(s.d, { deposit: deposit.toLocaleString("de-DE") }) }));
   return (
@@ -351,7 +351,7 @@ function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; depos
       <ol className="grid gap-4">
         {steps.map((s, i) => (
           <li key={s.t} className="flex gap-3">
-            <HexTile tone="salvia" size={40} className="num text-verde">{i + 1}</HexTile>
+            <HexTile tone="salvia" size={40} className="num">{i + 1}</HexTile>
             <div>
               <p className="font-bold text-verde">{s.t}</p>
               <p className="text-sm text-cinza">{s.d}</p>
@@ -362,7 +362,7 @@ function DepositExplainer({ pricePerDay, deposit }: { pricePerDay: number; depos
       <div className="rounded-cartao bg-areia-2 p-4 text-sm text-verde">
         {fmt(t.depositExample, {
           price: pricePerDay.toLocaleString("de-DE"),
-          total: (pricePerDay * 3 * 1.08 + deposit).toLocaleString("de-DE", { maximumFractionDigits: 0 }),
+          total: (pricePerDay * 3 * (1 + feeRate) + deposit).toLocaleString("de-DE", { maximumFractionDigits: 0 }),
           deposit: deposit.toLocaleString("de-DE"),
         })}
       </div>

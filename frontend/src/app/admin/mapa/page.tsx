@@ -18,15 +18,16 @@ const HeatMap = dynamic(() => import("@/components/bz/heat-map"), {
   loading: () => <Skeleton role="status" aria-label="A carregar o mapa" className="h-[420px] rounded-cartao md:h-[520px]" />,
 });
 
+// "Todos" primeiro e por omissão: a maior parte de quem partilha a localização ainda não tem KYC (2026-11-18)
 const SCOPES: { value: HeatmapScope; label: string; what: string }[] = [
-  { value: "KYC_APPROVED", label: "Verificados", what: "pessoas com identidade verificada" },
+  { value: "SIGNUP", label: "Todos", what: "pessoas com localização partilhada" },
   { value: "KYC_SUBMITTED", label: "KYC enviado", what: "pessoas que enviaram documentos" },
-  { value: "SIGNUP", label: "Registos", what: "registos com localização partilhada" },
+  { value: "KYC_APPROVED", label: "Verificados", what: "pessoas com identidade verificada" },
 ];
 
 /** Admin › Mapa: onde está a procura, para decidir a 2.ª província (decisoes-produto.md 2026-11-17, ponto 6). */
 export default function MapaPage() {
-  const [scope, setScope] = useState<HeatmapScope>("KYC_APPROVED");
+  const [scope, setScope] = useState<HeatmapScope>("SIGNUP");
   const heat = useResource<Heatmap>(`admin:heatmap:${scope}`, () => heatmapApi.get(scope));
   const current = SCOPES.find((s) => s.value === scope)!;
   const total = heat.data?.byProvince.reduce((n, p) => n + p.count, 0) ?? 0;
@@ -38,7 +39,8 @@ export default function MapaPage() {
       <Segmented<HeatmapScope> label="O que mostrar" value={scope} onChange={setScope} options={SCOPES.map(({ value, label }) => ({ value, label }))} className="max-w-xl" />
 
       <Callout tone="info" icon={Info}>
-        Dados agregados, mínimo {heat.data?.minCount ?? 3} por zona — não mostra pessoas.
+        Dados agregados, mínimo {heat.data?.minCount ?? 3} pessoas por zona: não mostra pessoas. Zonas de ~5 km; quem não
+        chega ao mínimo junta-se em zonas de ~28 km (tracejado). Contas de admin não contam.
       </Callout>
 
       {heat.error ? (
@@ -48,13 +50,20 @@ export default function MapaPage() {
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
           <div className="grid gap-3">
-            {heat.data.cells.length === 0 ? (
+            {heat.data.cells.length === 0 && (
               <Card>
-                <EmptyState icon={MapPinOff} title="Ainda sem zonas com dados" text={`Cada zona só aparece com ${heat.data.minCount} ou mais ${current.what}.`} />
+                <EmptyState
+                  icon={MapPinOff}
+                  title="Ainda sem zonas com dados"
+                  text={
+                    heat.data.withLocation > 0
+                      ? `Há ${heat.data.withLocation} ${current.what}, mas nenhuma zona chega a ${heat.data.minCount}. Aparecem quando houver mais pessoas perto umas das outras.`
+                      : `Cada zona só aparece com ${heat.data.minCount} ou mais ${current.what}.`
+                  }
+                />
               </Card>
-            ) : (
-              <HeatMap data={heat.data} label={`Mapa de calor: ${current.what}, por zonas de cerca de 5 km`} />
             )}
+            <HeatMap data={heat.data} label={`Mapa de calor: ${current.what}, por zonas de cerca de 5 a 28 km`} />
             <div className="flex flex-wrap items-center gap-2 text-[13px] text-cinza" aria-hidden>
               <span>Menos</span>
               {HEAT_SCALE.map((c) => (
@@ -65,6 +74,22 @@ export default function MapaPage() {
           </div>
 
           <div className="grid gap-4">
+            <Card className="grid grid-cols-2 gap-4 p-5">
+              <div className="grid gap-1">
+                <p className="text-sm text-cinza">Com localização</p>
+                <p className="num font-titulo text-3xl font-extrabold text-verde">{heat.data.withLocation}</p>
+              </div>
+              <div className="grid gap-1">
+                <p className="text-sm text-cinza">Sem localização</p>
+                <p className="num font-titulo text-3xl font-extrabold text-verde">{heat.data.withoutLocation}</p>
+              </div>
+              <p className="col-span-2 text-[13px] text-cinza">
+                {heat.data.suppressed > 0
+                  ? `${heat.data.suppressed} não aparecem no mapa: estão em zonas com menos de ${heat.data.minCount} pessoas.`
+                  : "Todas as pessoas com localização estão no mapa."}
+              </p>
+            </Card>
+
             <Card className="grid gap-1 p-5">
               <p className="text-sm text-cinza">Fora das zonas ativas</p>
               <p className="num font-titulo text-3xl font-extrabold text-verde">{heat.data.outsideAreas}</p>

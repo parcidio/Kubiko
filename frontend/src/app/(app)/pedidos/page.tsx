@@ -7,6 +7,7 @@ import { HexTile } from "@/components/bz/hex";
 import { RequestCard } from "@/components/bz/requests";
 import { ErrorState, HiveEmptyState, ListSkeleton } from "@/components/bz/states";
 import { Segmented } from "@/components/bz/tabs";
+import { Tip } from "@/components/bz/tip";
 import { ButtonLink } from "@/components/bz/ui";
 import { bookingApi } from "@/lib/api";
 import { useRequireSession } from "@/lib/auth";
@@ -70,6 +71,8 @@ export default function PedidosPage() {
           </div>
         </section>
       </div>
+
+      <Tip id="requests" title={dict.tips.requests.title} steps={dict.tips.requests.steps} />
 
       <Segmented
         label={t.tabsLabel}

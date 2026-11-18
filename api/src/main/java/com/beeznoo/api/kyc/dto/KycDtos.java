@@ -47,7 +47,8 @@ public class KycDtos {
             String profileName,
             String accountType,
             String status,
-            OffsetDateTime submittedAt
+            OffsetDateTime submittedAt,
+            OffsetDateTime reviewedAt
     ) {
         public static KycQueueItem from(KycVerification k) {
             return new KycQueueItem(
@@ -56,7 +57,8 @@ public class KycDtos {
                     k.getProfile().getFullName(),
                     k.getAccountType().name(),
                     k.getStatus().name(),
-                    k.getSubmittedAt()
+                    k.getSubmittedAt(),
+                    k.getReviewedAt()
             );
         }
     }

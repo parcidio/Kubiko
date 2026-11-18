@@ -70,6 +70,8 @@ export interface Item {
   ownerName: string;
   /** KYC do dono aprovado (selo "Verificado") */
   ownerVerified: boolean;
+  /** Foto do dono (URL assinada de 1 h ou do Google); null → iniciais */
+  ownerAvatarUrl: string | null;
   category: Category | null;
   title: string;
   description: string | null;
@@ -152,6 +154,8 @@ export interface Me {
   /** Pode publicar e pedir reserva já (KYC aprovado, ou o servidor não o exige). Avisar antes de começar um pedido. */
   canTransact: boolean;
   createdAt: string;
+  /** Consentimento de localização guardado na conta (sem coordenadas) — decisoes-produto.md 2026-11-18. */
+  location?: import("./types-ops").LocationStatus | null;
 }
 
 /** Dias indisponíveis, INCLUSIVOS (start <= dia <= end). BOOKED = reserva aceite/em curso; BLOCKED = o dono bloqueou. */
@@ -273,6 +277,8 @@ export interface AdminUserSummary {
   phone: string;
   email: string | null;
   role: UserRole;
+  /** papel de equipa (só role ADMIN) — decisoes-produto.md 2026-11-18 */
+  adminRole: AdminRole | null;
   phoneVerified: boolean;
   /** estado da verificação mais recente; null = nunca submeteu */
   kycStatus: KycStatus | null;
@@ -287,9 +293,27 @@ export interface AdminUserSummary {
 export interface AdminUserDetail {
   user: AdminUserSummary;
   city: string | null;
+  province: string | null;
+  emailVerified: boolean;
+  accountType: KycAccountType | null;
+  suspendedByName: string | null;
+  /** sessões (refresh tokens) ainda válidas */
+  activeSessions: number;
+  lastSessionAt: string | null;
+  /** verificação mais recente, sem documentos (esses só em Verificações) */
+  kyc: { id: string; status: KycStatus; accountType: KycAccountType; submittedAt: string; reviewedAt: string | null } | null;
+  /** URL assinada de 1 h ou do Google; null → iniciais */
+  avatarUrl: string | null;
   items: { id: string; title: string; status: "ACTIVE" | "INACTIVE" | "SUSPENDED"; pricePerDay: number; featured: boolean }[];
   recentBookings: { id: string; itemTitle: string; side: "RENTER" | "OWNER"; status: BookingStatus; startDate: string; endDate: string; createdAt: string }[];
+  notes: number;
 }
+
+/** Papéis da equipa e permissões por área (decisoes-produto.md 2026-11-18). */
+export type AdminRole = "SUPER_ADMIN" | "OPERATIONS" | "TRUST" | "GROWTH";
+export type AdminPermission =
+  | "OVERVIEW" | "OPERATIONS_DESK" | "KYC" | "USERS_READ" | "USERS_MANAGE" | "USERS_NOTE"
+  | "ITEMS_MODERATE" | "MESSAGES" | "GROWTH_DESK" | "AUDIT" | "TEAM";
 
 export interface AuditLog {
   id: string;
@@ -378,6 +402,7 @@ export interface CommissionDue {
 
 /** KYC (SPEC §7): a equipa decide à mão. */
 export type KycStatus = "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "INFO_REQUESTED";
+export type KycQueueFilter = "OPEN" | "INFO_REQUESTED" | "REJECTED" | "APPROVED";
 export type KycAccountType = "INDIVIDUAL" | "BUSINESS";
 export type KycDocumentType = "BI_FRONT" | "BI_BACK" | "SELFIE" | "NIF_DOCUMENT" | "BUSINESS_DOCUMENT";
 
@@ -399,6 +424,7 @@ export interface KycQueueItem {
   accountType: KycAccountType;
   status: KycStatus;
   submittedAt: string;
+  reviewedAt: string | null;
 }
 
 export interface KycDocument {
@@ -453,4 +479,6 @@ export interface AdminMetrics {
   commissions: { earnedThisMonth: number; pendingTotal: number; pendingOwners: number };
   kyc: { pending: number; avgDecisionHours: number | null; decided30d: number };
   marketplace: { users: number; newUsers30d: number; verifiedUsers: number; activeItems: number; ownersWithItems: number };
+  /** trabalho em aberto (2026-11-18) */
+  queues?: { awaitingOwner: number; inProgress: number; disputed: number; openIncidents: number; suspendedAccounts: number };
 }

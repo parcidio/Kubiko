@@ -45,6 +45,10 @@ public class Profile {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    // Foto enviada pela pessoa (storage privado). Nunca sai em DTOs nem logs: usar AvatarUrls.
+    @Column(name = "avatar_storage_key")
+    private String avatarStorageKey;
+
     private String province;
 
     private String city;
@@ -53,6 +57,11 @@ public class Profile {
     @Column(nullable = false, length = 20)
     @Builder.Default
     private UserRole role = UserRole.RENTER;
+
+    // Papel dentro da equipa (V29): só com role ADMIN. Concedido só por convite (decisoes-produto.md 2026-11-18)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admin_role", length = 20)
+    private AdminRole adminRole;
 
     // definido na submissão do KYC
     @Enumerated(EnumType.STRING)
@@ -121,11 +130,18 @@ public class Profile {
     protected void onCreate() {
         createdAt = OffsetDateTime.now();
         updatedAt = OffsetDateTime.now();
+        dropAdminRoleIfNotAdmin();
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = OffsetDateTime.now();
+        dropAdminRoleIfNotAdmin();
+    }
+
+    // Só no sentido seguro: quem deixa de ser ADMIN perde o papel de equipa (nunca o contrário)
+    private void dropAdminRoleIfNotAdmin() {
+        if (role != UserRole.ADMIN) adminRole = null;
     }
 
 }

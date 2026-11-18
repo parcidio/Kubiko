@@ -40,7 +40,8 @@ public class AdminMetricsService {
                 funnel(),
                 commissions(current.serviceFee()),
                 kyc(),
-                marketplace());
+                marketplace(),
+                queues());
     }
 
     private List<MonthPoint> months() {
@@ -107,10 +108,24 @@ public class AdminMetricsService {
                 SELECT (SELECT count(*) FROM profiles WHERE role <> 'ADMIN') AS users,
                        (SELECT count(*) FROM profiles WHERE role <> 'ADMIN' AND created_at >= now() - interval '30 days') AS new_users,
                        (SELECT count(DISTINCT profile_id) FROM kyc_verifications WHERE status = 'APPROVED') AS verified,
-                       (SELECT count(*) FROM items WHERE status = 'ACTIVE') AS items,
-                       (SELECT count(DISTINCT owner_id) FROM items WHERE status = 'ACTIVE') AS owners
+                       (SELECT count(*) FROM items i JOIN profiles o ON o.id = i.owner_id
+                        WHERE i.status = 'ACTIVE' AND o.suspended_at IS NULL) AS items,
+                       (SELECT count(DISTINCT i.owner_id) FROM items i JOIN profiles o ON o.id = i.owner_id
+                        WHERE i.status = 'ACTIVE' AND o.suspended_at IS NULL) AS owners
                 """);
+        // equipamento de donos suspensos sai do Explorar: não conta como "ativo" (antes contava)
         return new Marketplace(n(r, "users"), n(r, "new_users"), n(r, "verified"), n(r, "items"), n(r, "owners"));
+    }
+
+    private Queues queues() {
+        Map<String, Object> r = jdbc.queryForMap("""
+                SELECT (SELECT count(*) FROM bookings WHERE status = 'PENDING_OWNER') AS awaiting,
+                       (SELECT count(*) FROM bookings WHERE status IN ('ACTIVE','IN_PROGRESS')) AS in_progress,
+                       (SELECT count(*) FROM bookings WHERE status = 'DISPUTED') AS disputed,
+                       (SELECT count(*) FROM incident_reports WHERE status = 'OPEN') AS incidents,
+                       (SELECT count(*) FROM profiles WHERE suspended_at IS NOT NULL) AS suspended
+                """);
+        return new Queues(n(r, "awaiting"), n(r, "in_progress"), n(r, "disputed"), n(r, "incidents"), n(r, "suspended"));
     }
 
     private static long n(Map<String, Object> row, String key) {

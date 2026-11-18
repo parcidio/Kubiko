@@ -129,7 +129,8 @@ public class AuthService {
         return issueTokens(profile);
     }
 
-    @Transactional
+    // O código enviado no login com telefone por confirmar tem de ficar gravado apesar do erro (phone_unverified)
+    @Transactional(noRollbackFor = PhoneUnverifiedException.class)
     public AuthResponse login(LoginRequest request) {
         if (request.phone() == null && request.email() == null) {
             throw new IllegalArgumentException("Número de telefone ou email é obrigatório.");
@@ -159,7 +160,15 @@ public class AuthService {
         Profile profile = found.get();
 
         if (!profile.isVerified()) {
-            throw new IllegalArgumentException("Número de Telefone ainda não verificado. Verifica o teu SMS.");
+            // Password certa mas telefone por confirmar (registo a meio, ou a equipa repôs a confirmação —
+            // decisoes-produto.md 2026-11-18): envia um código novo e o ecrã de entrar pede-o (/auth/register/verify).
+            // Só aqui, depois da password: não revela nada a quem não a sabe.
+            try {
+                sendOtp(profile.getPhone(), Purpose.REGISTRATION);
+            } catch (RateLimitExceededException e) {
+                // já há um código recente: segue com o mesmo
+            }
+            throw new PhoneUnverifiedException();
         }
 
         rateLimiter.reset("login-id:" + identifier);
@@ -575,4 +584,11 @@ public class AuthService {
         }
     }
 
+
+    /** 403 `phone_unverified`: a password estava certa e foi enviado um código para confirmar o telefone. */
+    public static class PhoneUnverifiedException extends ApiException {
+        public PhoneUnverifiedException() {
+            super(HttpStatus.FORBIDDEN, "phone_unverified", "Confirma o teu número de telefone: enviámos-te um código.");
+        }
+    }
 }

@@ -65,7 +65,7 @@ class JwtAuthFiltterTest {
         UUID profileId = UUID.randomUUID();
         Claims claims = Jwts.claims().subject(profileId.toString()).add("role", "ADMIN").build();
         given(jwtService.validateAndExtract("tok")).willReturn(claims);
-        given(profileRepository.findActiveRoleById(profileId)).willReturn(java.util.Optional.of(UserRole.BOTH));
+        given(profileRepository.findActiveAccessById(profileId)).willReturn(java.util.Optional.of(access(UserRole.BOTH, null)));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer tok");
@@ -80,12 +80,54 @@ class JwtAuthFiltterTest {
         UUID profileId = UUID.randomUUID();
         Claims claims = Jwts.claims().subject(profileId.toString()).add("role", "ADMIN").build();
         given(jwtService.validateAndExtract("tok")).willReturn(claims);
-        given(profileRepository.findActiveRoleById(profileId)).willReturn(java.util.Optional.empty());
+        given(profileRepository.findActiveAccessById(profileId)).willReturn(java.util.Optional.empty());
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.addHeader("Authorization", "Bearer tok");
         filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    // Papel de equipa → permissões da área (decisoes-produto.md 2026-11-18)
+    @Test
+    void tokenAdmin_permissoesVemDoPapelDeEquipa() throws Exception {
+        UUID profileId = UUID.randomUUID();
+        Claims claims = Jwts.claims().subject(profileId.toString()).add("role", "ADMIN").build();
+        given(jwtService.validateAndExtract("tok")).willReturn(claims);
+        given(profileRepository.findActiveAccessById(profileId))
+                .willReturn(java.util.Optional.of(access(UserRole.ADMIN, com.beeznoo.api.profile.entity.AdminRole.GROWTH)));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer tok");
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
+                .extracting("authority")
+                .contains("ROLE_ADMIN", "PERM_OVERVIEW", "PERM_GROWTH_DESK", "PERM_MESSAGES", "PERM_USERS_READ")
+                .doesNotContain("PERM_KYC", "PERM_TEAM", "PERM_AUDIT", "PERM_USERS_MANAGE");
+    }
+
+    // ADMIN sem papel de equipa: só ROLE_ADMIN (menor privilégio)
+    @Test
+    void tokenAdmin_semPapelDeEquipa_soRoleAdmin() throws Exception {
+        UUID profileId = UUID.randomUUID();
+        Claims claims = Jwts.claims().subject(profileId.toString()).add("role", "ADMIN").build();
+        given(jwtService.validateAndExtract("tok")).willReturn(claims);
+        given(profileRepository.findActiveAccessById(profileId)).willReturn(java.util.Optional.of(access(UserRole.ADMIN, null)));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer tok");
+        filter.doFilter(request, new MockHttpServletResponse(), new MockFilterChain());
+
+        assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
+                .extracting("authority").containsExactly("ROLE_ADMIN");
+    }
+
+    private static ProfileRepository.ActiveAccess access(UserRole role, com.beeznoo.api.profile.entity.AdminRole adminRole) {
+        return new ProfileRepository.ActiveAccess() {
+            public UserRole getRole() { return role; }
+            public com.beeznoo.api.profile.entity.AdminRole getAdminRole() { return adminRole; }
+        };
     }
 }

@@ -15,6 +15,10 @@ export const en: Dict = {
 
   common: {
     language: "Language",
+    theme: "Theme",
+    themes: { light: "Light", dark: "Dark", system: "System" },
+    preferences: "Theme and language",
+    preferencesLabel: "Theme and language: open options",
     loading: "Loading",
     retry: "Try again",
     close: "Close",
@@ -32,6 +36,7 @@ export const en: Dict = {
     days: { one: "{n} day", other: "{n} days" },
     copyFailed: "Couldn't copy. Select it and copy it by hand.",
     networkError: "No connection. Check your internet and try again.",
+    timeoutError: "The connection is slow. Try again in a moment.",
     serverError: "The server failed. Try again.",
     somethingWrong: "Something went wrong.",
   },
@@ -45,6 +50,7 @@ export const en: Dict = {
 
   landing: {
     nav: {
+      explore: "Explore",
       how: "How it works",
       categories: "Categories",
       owners: "For owners",
@@ -56,16 +62,14 @@ export const en: Dict = {
       signUp: "Create account",
     },
     hero: {
-      pill: "Coming soon to Luanda · Waitlist open",
+      pill: "Now live in Luanda",
       line1: "Need",
       line2: "equipment?",
       accent: "Rent it, don't buy it.",
       lead: "Cameras, sound, lights and projectors from people who aren't using them, near you and with a refundable deposit. You only pay for the days you use, to the owner, on handover.",
-      ctaWaitlist: "Join the waitlist",
-      ctaHow: "See how it works",
-      perks: ["Early access to the platform", "A heads-up when we open in your province", "Perks for the first sign-ups"],
-      countdown: "We open in",
-      units: { d: "days", h: "hours", m: "min", s: "sec" },
+      ctaExplore: "Explore equipment",
+      ctaPublish: "List your equipment",
+      perks: ["Browse without an account", "See the final price before you ask", "Pay the owner only on handover"],
       phone: {
         search: "Camera for a wedding",
         days: "3 days × 35.000 Kz",
@@ -88,6 +92,7 @@ export const en: Dict = {
       tabsLabel: "Categories",
       soon: "Coming soon",
       tellUs: "Tell us what you're looking for",
+      tellUsMessage: "Hi! I'm looking for equipment I haven't found on Beeznoo yet: ",
       cats: {
         foto: {
           label: "Photo & video",
@@ -120,7 +125,7 @@ export const en: Dict = {
           label: "More categories",
           kicker: "Up next",
           title: "From drills to vans.",
-          text: "We're starting with photo, video, audio and events. Tell us on the waitlist what you're looking for and we'll open the most requested categories first.",
+          text: "We're starting with photo, video, audio and events. Tell us on WhatsApp what you're looking for and we'll open the most requested categories first.",
           explore: "",
           uses: ["Home repairs and DIY", "Consoles, screens, laptops", "Events and offices", "Vans and transport"],
           names: ["Tools", "Electronics", "Furniture", "Vehicles"],
@@ -156,7 +161,7 @@ export const en: Dict = {
       renterTitle2: "Pay only when you use it.",
       renterText:
         "A wedding, a shoot, a weekend event: don't buy equipment that will sit idle. You see the final price before you request, no surprises.",
-      renterCta: "I want to rent",
+      renterCta: "Explore equipment",
       mockTitle: "Sony A7 III · 23–25 Oct",
       mockDays: "3 days × 35.000 Kz",
       mockFee: "Service fee ({rate})",
@@ -168,7 +173,7 @@ export const en: Dict = {
       ownerTitle2: "Put it to work.",
       ownerText:
         "Individual or company: list what you have, set the price and dates and accept only the requests you want, with an agreement and a deposit on every booking.",
-      ownerCta: "I want to list gear",
+      ownerCta: "List your equipment",
       ownerNew: "New request · Kilamba",
       ownerReply: "Reply by 18:30",
       ownerGet: "You get for the rental",
@@ -195,45 +200,6 @@ export const en: Dict = {
         },
         { title: "An agreement for every booking", text: "Dates, price, deposit and terms in writing, for both sides." },
       ],
-    },
-    waitlist: {
-      eyebrow: "Waitlist",
-      title: "Be among the first to rent on Beeznoo.",
-      lead: "It takes less than a minute. We'll let you know when we open in your province, and the first sign-ups get launch perks.",
-      bullets: ["No spam: only launch news", "Individuals and companies", "Rent, list your gear or both"],
-      okTitle: "You're on the list!",
-      okText: "We'll let you know when we open in your province.",
-      share: "Share on WhatsApp",
-      shareText: "I joined the Beeznoo waitlist: https://beeznoo.ao",
-      another: "Sign up someone else",
-      goal: "What do you want to do?",
-      goals: { alugar: "I want to rent", disponibilizar: "I want to list gear", ambos: "Both" },
-      name: "Name",
-      namePh: "Your name",
-      email: "Email",
-      phone: "Phone / WhatsApp",
-      rentWhat: "What do you need to rent?",
-      rentWhatPh: "E.g. a camera and lights for a wedding",
-      rentWhen: "When for?",
-      rentBudget: "How much would you pay per week? (Kz)",
-      amountPh: "E.g. 25000",
-      offerWhat: "What do you want to list?",
-      offerWhatPh: "E.g. Canon EOS R6 and 2 lenses",
-      from: "Available from",
-      until: "Until",
-      price: "For how much? (Kz)",
-      province: "Province",
-      iAm: "I'm",
-      individual: "An individual",
-      company: "A company",
-      error: "We couldn't send it. Check your internet connection and tap \"Try again\".",
-      waOpened: "We opened WhatsApp with your details. Send the message to join the list.",
-      waContinue: "Continue on WhatsApp",
-      submit: "Join the waitlist",
-      privacyBefore: "By signing up you accept our ",
-      privacy: "Privacy Policy",
-      waBoth:
-        "Hi! I'd like to get to know Beeznoo and use the platform in both roles.\n\nName: {name}\nEmail: {email}\nPhone/WhatsApp: {phone}\nProvince: {province}\nProfile: {profile}\nGoal: Rent and list equipment",
     },
     faq: {
       eyebrow: "FAQ",
@@ -290,6 +256,10 @@ export const en: Dict = {
   form: {
     genericError: "Something went wrong. Try again.",
     phone: "Phone",
+    phoneCountry: "Country code",
+    phoneOther: "Other country",
+    phoneOtherPh: "+country code and number",
+    phoneForeignHint: "Outside Angola, the code arrives on WhatsApp only.",
     password: "Password",
     showPassword: "Show password",
     hidePassword: "Hide password",
@@ -306,7 +276,7 @@ export const en: Dict = {
     google: "Continue with Google",
     googleSignUp: "Sign up with Google",
     codeLength: "The code has 6 digits.",
-    phoneDigits: "Enter the 9 digits of your number.",
+    phoneDigits: "Invalid number. Check the country code and the digits.",
     passwordMin: "Your password needs at least 8 characters.",
     passwordHint: "At least 8 characters.",
     confirming: "Confirming…",
@@ -318,11 +288,19 @@ export const en: Dict = {
     otpTitle: "Confirm your number",
     otpSentBefore: "We sent a code by WhatsApp to ",
     otpSentAfter: ". If you don't have WhatsApp, it arrives by SMS.",
+    otpSentAfterForeign: ". Numbers outside Angola get the code on WhatsApp only.",
     mfa: {
       title: "Confirm it's you",
       subtitle: "We sent a code by WhatsApp. Team accounts use two-step verification.",
       subtitleTo: "We sent a code by WhatsApp to {phone}. Team accounts use two-step verification.",
       failed: "We couldn't confirm the code.",
+      submit: "Confirm and sign in",
+    },
+    phoneConfirm: {
+      title: "Confirm your phone",
+      subtitle: "We sent a code by WhatsApp to your account's number. Confirm it to sign in.",
+      phone: "Your account's phone number",
+      errPhone: "Enter your account's phone number.",
       submit: "Confirm and sign in",
     },
     roles: {
@@ -335,10 +313,10 @@ export const en: Dict = {
       title: "Welcome back",
       subtitle: "Sign in to request bookings, pay and follow everything in one place.",
       identifier: "Phone or email",
-      identifierPh: "923 456 789 or name@email.com",
+      identifierPh: "923 456 789, +351 912 345 678 or name@email.com",
       errEmpty: "Enter your phone or email.",
       errEmail: "Enter a valid email.",
-      errPhone: "Enter the 9 digits of your number (or your email).",
+      errPhone: "Enter your number (outside Angola, with the country code, e.g. +351…) or your email.",
       errPassword: "Enter your password.",
       forgot: "Forgot your password?",
       submit: "Sign in",
@@ -716,6 +694,33 @@ export const en: Dict = {
     redirectToast: "Verify your identity first. It's done by hand and can take up to 2 working days.",
   },
 
+  kycCard: {
+    label: "Identity verification",
+    titles: {
+      account: "Verify your identity",
+      dashboard: "Verify your identity to receive requests",
+      publish: "Before publishing, verify your identity",
+      request: "Before requesting, verify your identity",
+    },
+    why: "It's required to request bookings and publish equipment: renters and owners know who they're dealing with.",
+    facts: {
+      needs: "ID card (front and back) and a selfie holding it. Business: NIF and registration certificate.",
+      time: "Sending takes 2 minutes. The team checks by hand within 2 working days.",
+      privacy: "Your documents stay private: only the Beeznoo team sees them.",
+    },
+    start: "Verify identity",
+    pending: {
+      title: "Identity under review",
+      text: "We received your documents. The team checks by hand within 2 working days.",
+      textAt: "We received your documents on {when}. The team checks by hand within 2 working days.",
+      notify: "We'll let you know in the app and by email when there's a decision.",
+    },
+    reasonLabel: "Reason:",
+    rejected: { title: "Your verification was rejected", text: "Fix what went wrong and send your documents again.", cta: "Send again" },
+    info: { title: "Your verification needs one more thing", noteLabel: "The team asks:", text: "The team needs another document or a clearer photo.", cta: "Send documents" },
+    approved: { title: "Identity verified", text: "You can request bookings and publish. The \"Verified\" badge shows on your profile." },
+  },
+
   reserve: {
     steps: ["Dates", "Handover", "Message", "Review"],
     pastDate: "It can't be in the past.",
@@ -1070,6 +1075,20 @@ export const en: Dict = {
   },
 
   account: {
+    avatar: {
+      change: "Change photo",
+      add: "Add photo",
+      remove: "Remove",
+      uploading: "Uploading your photo…",
+      removing: "Removing your photo…",
+      saved: "Photo updated.",
+      removed: "Photo removed. Your initials will show instead.",
+      failed: "We couldn't upload the photo. Check your connection.",
+      notImage: "Choose an image (JPEG or PNG).",
+      retry: "Try again",
+      hint: "JPEG or PNG. People you rent with see this photo.",
+      alt: "Your profile photo",
+    },
     roles: { RENTER: "Renter", OWNER: "Equipment owner", BOTH: "I rent and I'm an owner", ADMIN: "Beeznoo team" },
     google: {
       linked: { title: "Google account linked", text: "You can now sign in with Google. If it was the same email, it's now verified." },
@@ -1100,9 +1119,8 @@ export const en: Dict = {
     modeText: "Choose how you use Beeznoo.",
     language: "Language",
     languageText: "Portuguese or English, across the whole app.",
-    darkTheme: "Dark theme",
-    darkThemeText: "Changes the app's contrast.",
-    darkThemeToggle: "Turn on dark theme",
+    theme: "Theme",
+    themeText: "Light, dark or the same as your phone.",
     signOut: "Sign out",
     saved: "Details saved.",
     savedVerify: "Saved. Verify your new email.",
@@ -1355,6 +1373,138 @@ export const en: Dict = {
     publish: "List it",
   },
 
+  tips: {
+    howItWorks: "How it works",
+    howItWorksQ: "How does it work?",
+    hide: "Hide tip",
+    gotIt: "Got it",
+    explore: {
+      title: "Renting on Beeznoo, in 4 steps",
+      steps: [
+        "Pick the equipment and the days you need.",
+        "Send the owner a request. You don't pay anything yet.",
+        "The owner accepts and you arrange the handover on WhatsApp.",
+        "You pay the owner on handover. At the end, the owner returns your deposit.",
+      ],
+    },
+    reserve: {
+      title: "What happens after you send it",
+      steps: [
+        "The owner has up to 24 h to accept or decline.",
+        "If they accept, you arrange the time and place of the handover.",
+        "At the handover, you check the equipment together and pay the owner: rental, fee and deposit.",
+        "When you return it, the owner checks it and gives your deposit back.",
+      ],
+    },
+    booking: {
+      renter: {
+        PENDING_OWNER: {
+          title: "While you wait for the owner",
+          steps: [
+            "You haven't paid anything: you only pay the owner on handover.",
+            "If the owner doesn't reply within 24 h, the request expires and you can request other equipment.",
+          ],
+        },
+        ACCEPTED: {
+          title: "Request accepted: get ready for the handover",
+          steps: [
+            "Arrange the time and place with the owner.",
+            "Bring the full amount. Only pay the owner after you've checked the equipment.",
+            "The owner holds the deposit during the rental and gives it back when you return everything in good order.",
+          ],
+        },
+        ACTIVE: {
+          title: "Before you take the equipment",
+          steps: [
+            "Open the handover checklist and photograph the equipment with the owner.",
+            "The photos are your proof if there are doubts at the return.",
+          ],
+        },
+        IN_PROGRESS: {
+          title: "While you have the equipment",
+          steps: [
+            "Look after it and return it on the agreed date.",
+            "At the return, you do the photo checklist again.",
+            "If something goes wrong, tap Report a problem: the team will help.",
+          ],
+        },
+        RETURNED: {
+          title: "Your deposit comes back to you",
+          steps: [
+            "The owner checks the equipment and returns your deposit.",
+            "If they keep part of it, they must give the reason in the app.",
+            "If you disagree, report a problem within 7 days.",
+          ],
+        },
+      },
+      owner: {
+        PENDING_OWNER: {
+          title: "Before you accept",
+          steps: [
+            "Make sure the equipment is free and in good condition on those days.",
+            "You have up to 24 h to reply. After that, the request expires.",
+            "You don't receive anything now: the renter pays you on handover.",
+          ],
+        },
+        ACCEPTED: {
+          title: "You get paid on handover",
+          steps: [
+            "Arrange the time and place with the renter.",
+            "At the handover, you receive the rental, the service fee and the deposit.",
+            "Confirm here that you were paid: the booking becomes paid.",
+          ],
+        },
+        ACTIVE: {
+          title: "Hand over with photos",
+          steps: [
+            "Open the handover checklist and photograph the equipment with the renter present.",
+            "The photos protect you if the equipment comes back damaged.",
+          ],
+        },
+        IN_PROGRESS: {
+          title: "When the equipment comes back",
+          steps: [
+            "Check its condition with the return checklist.",
+            "Then return the deposit and record it in the app.",
+          ],
+        },
+        RETURNED: {
+          title: "Return the deposit",
+          steps: [
+            "If everything is in order, return the full deposit to the renter.",
+            "If there's damage, you can keep part of it, with a reason and photos.",
+            "Record here what you returned: the booking is then completed.",
+          ],
+        },
+      },
+    },
+    publish: {
+      title: "Earn from your equipment",
+      steps: [
+        "Publish with real photos, a daily price and a deposit.",
+        "You get requests and decide: accept or decline within 24 h.",
+        "At the handover, the renter pays you directly.",
+        "At the end, you return the deposit and pass the service fee on to Beeznoo.",
+      ],
+    },
+    verification: {
+      title: "How verification works",
+      steps: [
+        "Take clear photos of your ID card (front and back) and a selfie holding it.",
+        "A person on our team checks the documents.",
+        "You get a notice once it's approved. Then you can request and publish.",
+      ],
+    },
+    requests: {
+      title: "How to reply to a request",
+      steps: [
+        "Open the request and check the dates, the message and how much you get.",
+        "Accept or decline within 24 h. If you decline, say why.",
+        "Once you accept, arrange the handover. You get paid on handover and confirm it here.",
+      ],
+    },
+  },
+
   wallet: {
     periods: { "30": "Last 30 days", "90": "Last 90 days", all: "Since the start" },
     back: "Back",
@@ -1416,5 +1566,20 @@ export const en: Dict = {
     backExplore: "Back to Explore",
     checking: "Confirming your area",
     waiting: "Waiting for location",
+    zoneLabel: "Area: {area}",
+    zoneUnconfirmed: "Location shared. We'll confirm the area when you list.",
+    zoneFromDevice: "From this phone's location.",
+    zoneFromAccount: "From the location saved on your account.",
+    zoneManual: "Chosen by you.",
+    change: "Change",
+    needTitle: "Where is the equipment?",
+    needText: "During the pilot you can only list in open areas. Share your location or choose the area. You can keep filling in the listing.",
+    useMyLocation: "Use my location",
+    chooseZone: "Or choose the area",
+    choosePlaceholder: "Choose the area",
+    useThisZone: "Use this area",
+    areasLoadFailed: "We couldn't load the areas. Try again.",
+    outsideInline: "Your location is outside the open areas ({list}). You can keep filling in, but you can only list in an open area.",
+    needZoneToPublish: "The area is missing: share your location or choose the area at the top of the form.",
   },
 };
