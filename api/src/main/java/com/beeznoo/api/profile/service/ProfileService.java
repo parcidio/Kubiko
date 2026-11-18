@@ -1,6 +1,7 @@
 package com.beeznoo.api.profile.service;
 
 import com.beeznoo.api.common.util.Emails;
+import com.beeznoo.api.geo.service.LocationService;
 import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.profile.dto.CreateProfileRequest;
 import com.beeznoo.api.profile.dto.MeDtos.MeResponse;
@@ -24,10 +25,13 @@ public class ProfileService {
     private final ProfileRepository profileRepository;
     private final AccountRepository accountRepository;
     private final KycService kycService;
+    private final LocationService locationService;
 
     @Transactional(readOnly = true)
     public MeResponse getMe(UUID profileId) {
-        return MeResponse.from(findProfile(profileId), kycService.getMyStatus(profileId).status(), kycService.canTransact(profileId));
+        Profile profile = findProfile(profileId);
+        return MeResponse.from(profile, kycService.getMyStatus(profileId).status(), kycService.canTransact(profileId),
+                locationService.status(profile));
     }
 
     @Transactional
@@ -54,7 +58,8 @@ public class ProfileService {
         if (request.province() != null) profile.setProvince(blankToNull(request.province()));
         if (request.city() != null) profile.setCity(blankToNull(request.city()));
 
-        return MeResponse.from(profile, kycService.getMyStatus(profileId).status(), kycService.canTransact(profileId));
+        return MeResponse.from(profile, kycService.getMyStatus(profileId).status(), kycService.canTransact(profileId),
+                locationService.status(profile));
     }
 
     private Profile findProfile(UUID profileId) {

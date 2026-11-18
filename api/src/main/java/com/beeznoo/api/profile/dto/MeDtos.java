@@ -1,5 +1,6 @@
 package com.beeznoo.api.profile.dto;
 
+import com.beeznoo.api.geo.dto.GeoDtos.LocationStatus;
 import com.beeznoo.api.profile.entity.Profile;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
@@ -33,9 +34,15 @@ public class MeDtos {
             // pode publicar e pedir reserva já: KYC aprovado, ou o servidor não o exige (app.kyc.required=false)
             boolean canTransact,
             BigDecimal ratingAvg,
-            OffsetDateTime createdAt
+            OffsetDateTime createdAt,
+            // consentimento de localização guardado na conta e zona (sem coordenadas) — decisoes-produto.md 2026-11-18
+            LocationStatus location
     ) {
         public static MeResponse from(Profile p, String kycStatus, boolean canTransact) {
+            return from(p, kycStatus, canTransact, null);
+        }
+
+        public static MeResponse from(Profile p, String kycStatus, boolean canTransact, LocationStatus location) {
             return new MeResponse(
                     p.getId(),
                     p.getFullName(),
@@ -53,7 +60,8 @@ public class MeDtos {
                     kycStatus,
                     canTransact,
                     p.getRatingAvg(),
-                    p.getCreatedAt()
+                    p.getCreatedAt(),
+                    location
             );
         }
     }

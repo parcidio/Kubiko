@@ -21,12 +21,21 @@ public class ItemDtos {
             @DecimalMin("0.01") BigDecimal depositAmount,
             @Size(max = 100) String province,
             @Size(max = 100) String city,
-            // localização atual (obrigatória para publicar; null → 422 location_required) — decisoes-produto.md 2026-11-17
-            @Valid LocationInput location
-            ) {}
+            // localização atual — decisoes-produto.md 2026-11-17; sem ela: zona escolhida (`areaId`) ou a última
+            // guardada na conta (2026-11-18); sem nenhuma → 422 location_required
+            @Valid LocationInput location,
+            // zona escolhida à mão quando o browser não dá a localização (2026-11-18)
+            UUID areaId
+            ) {
+        public PublishItemRequest(String title, String description, UUID categoryId, ItemCondition itemCondition,
+                                  BigDecimal pricePerDay, BigDecimal depositAmount, String province, String city,
+                                  LocationInput location) {
+            this(title, description, categoryId, itemCondition, pricePerDay, depositAmount, province, city, location, null);
+        }
+    }
 
-    /** PATCH /items/{id}/activate: reativar também exige estar numa zona ativa. */
-    public record ActivateItemRequest(@Valid LocationInput location) {}
+    /** PATCH /items/{id}/activate: reativar também exige estar numa zona ativa (mesmas regras de publicar). */
+    public record ActivateItemRequest(@Valid LocationInput location, UUID areaId) {}
 
     public record UpdateItemRequest(
             @Size(max = 200) String title,

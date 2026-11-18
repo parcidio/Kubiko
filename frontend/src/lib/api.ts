@@ -52,6 +52,14 @@ async function refreshTokens(): Promise<boolean> {
   return refreshing;
 }
 
+/** Sinal que cancela o pedido ao fim de `ms` (rede instável: nada fica pendurado para sempre). */
+export function timeoutSignal(ms: number): AbortSignal {
+  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) return AbortSignal.timeout(ms);
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
 export async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
   const session = readSession();
   const headers = new Headers(init.headers);
@@ -62,8 +70,9 @@ export async function request<T>(path: string, init: RequestInit = {}, retry = t
   let res: Response;
   try {
     res = await fetch(`/api/v1${path}`, { ...init, headers, credentials: "same-origin" });
-  } catch {
-    throw new ApiError(0, NETWORK_ERROR());
+  } catch (e) {
+    const timedOut = init.signal?.aborted || (e instanceof DOMException && (e.name === "TimeoutError" || e.name === "AbortError"));
+    throw new ApiError(0, timedOut ? docT().common.timeoutError : NETWORK_ERROR());
   }
 
   if (res.status === 401 && session && retry && (await refreshTokens())) {
@@ -220,16 +229,21 @@ export interface ItemInput {
   city?: string;
 }
 
+/** Onde se publica: posição do browser (arredondada), zona escolhida à mão, ou nenhuma (zona guardada na conta). */
+export type PublishWhere = { location?: LatLng; areaId?: string };
+
 /** Equipamento do dono autenticado. */
 export const ownerItemApi = {
   mine: (page = 0) => request<Page<ItemSummary>>(`/items/me?page=${page}&size=50&sort=createdAt,desc`),
-  // Localização atual obrigatória: 422 location_required, 403 area_not_available (fora das zonas ativas)
-  publish: (b: ItemInput, location?: LatLng) => post<Item>("/items", { ...b, location }),
+  // Zona: localização do browser, ou zona escolhida à mão (areaId), ou nada → a API usa a zona guardada na conta.
+  // Sem nenhuma: 422 location_required; fora das zonas ativas: 403 area_not_available (decisoes-produto.md 2026-11-18)
+  publish: (b: ItemInput, where: PublishWhere = {}) => post<Item>("/items", { ...b, ...where }),
   // UpdateItemRequest usa "condition" (o publish usa "itemCondition")
   update: (id: string, { itemCondition, ...b }: Partial<ItemInput>) => patch<Item>(`/items/${id}`, { ...b, condition: itemCondition }),
   deactivate: (id: string) => patch<void>(`/items/${id}/deactivate`),
   // Pausado → ativo (SUSPENDED é da equipa e devolve 409)
-  activate: (id: string, location?: LatLng) => patch<Item>(`/items/${id}/activate`, location ? { location } : undefined),
+  activate: (id: string, where: PublishWhere = {}) =>
+    patch<Item>(`/items/${id}/activate`, where.location || where.areaId ? where : undefined),
   // JPEG/PNG até 5 MB, máx. 8 por item. Comprimir antes (lib/images.ts)
   uploadPhotos: (id: string, files: Blob[]) => {
     const form = new FormData();

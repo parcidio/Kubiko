@@ -738,3 +738,39 @@ ativas; mapa usado na decisão da 2.ª província.
 **Nota de schema (2026-11-17).** As mensagens da equipa entram como **V28** (`V28__admin_messages.sql`), não V26:
 foram integradas depois da V27 (zonas de serviço) e o Flyway recusa uma versão mais baixa numa base onde a V27 já
 esteja aplicada. A V26 fica por usar (o Flyway aceita saltos).
+
+## 2026-11-18 — Localização: consentimento na conta, Publicar sem bloquear, mapa com 2 níveis
+
+**Contexto.** Três bugs em produção: (1) "Publicar" demorava ou congelava à espera da localização (o formulário só
+aparecia depois do pedido ao browser e da verificação da zona; `permissions.query` e os pedidos à API não tinham tempo
+máximo; quem ignorava o pedido do browser esperava até 32 s); (2) o Admin › Mapa aparecia vazio apesar de muitas pessoas
+terem aceitado a localização: em Publicar a posição só era *consultada* (`publish-eligibility`, não guarda), o ecrã abria
+em "Verificados", e com poucas pessoas espalhadas quase todas as células de 5 km tinham 1–2 pessoas (escondidas pelo
+mínimo de 3) sem a UI dizer quantas estavam escondidas; (3) noutro dispositivo a app voltava a perguntar, porque "já
+perguntei" vivia só no `localStorage`.
+**Hipótese.** Tirar a espera de Publicar e não repetir perguntas aumenta os anúncios publicados; um mapa com dados
+serve a decisão da 2.ª província. **Utilizador-alvo:** donos (Publicar), equipa (Mapa).
+**Critério de sucesso:** Publicar abre em < 1 s em rede 3G; 0 queixas de "congela"; mapa com células visíveis.
+
+**Decisões (⚑ validar com o André):**
+1. **Consentimento na conta.** `profiles.location_consent_at` (V27) passa a ser a fonte: `GET /me/location` e
+   `location` em `GET /profiles/me` devolvem `{consented, consentAt, updatedAt, inServiceArea, area, storedZoneUsable}` —
+   **zona, nunca coordenadas**. Noutro dispositivo, com consentimento, a app não volta a perguntar; só chama a API do
+   browser em silêncio se a permissão já estiver dada nesse browser. Sem migração (V29 não usada).
+2. **Publicar não espera pela localização.** O formulário aparece logo; a zona resolve-se num cartão no topo, por ordem:
+   posição do browser já autorizada (≤ 8 s) → zona guardada na conta (última localização ≤ **30 dias** numa zona
+   ativa) → a pessoa escolhe "Usar a minha localização" ou **a zona à mão** (lista das zonas ativas).
+   A API aplica a mesma ordem em `POST /items` e `PATCH /items/{id}/activate` (`location`, `areaId` ou nada).
+   Zona à mão recusada (403) se o browser disse "fora das zonas" nas últimas 24 h. A zona à mão e a zona guardada
+   **não criam** `location_events` (o mapa só recebe posições reais).
+   ⚠ Trade-off: escolher a zona à mão torna o gate mais fácil de contornar. Já era só controlo de produto (o browser
+   pode ser enganado); a alternativa (sem escolha à mão) deixa de fora quem tem a localização bloqueada ou um browser
+   sem GPS. Se aparecerem anúncios fora do piloto, retirar a escolha à mão é uma mudança só de frontend + `areaId`.
+3. **Publicar regista a posição** (contexto `APP`) quando a obtém, em vez de só consultar: alimenta o mapa.
+4. **Mapa com 2 níveis.** Quem fica numa célula de 0,05° (~5 km) com menos de 3 junta-se numa célula de 0,25° (~28 km);
+   o mínimo de 3 mantém-se em todas e cada pessoa conta numa só célula. O ecrã abre em "Todos" (com localização), mostra
+   quantos têm/não têm localização e quantos ficaram escondidos. Contas de admin continuam fora.
+5. **Tempos máximos:** permissão 1,5 s; posição 10 s (+20 s para responder ao pedido do browser; +2 s quando já
+   autorizado); pedidos de localização à API 8–10 s. Retenção inalterada (histórico 12 meses; o mapa lê o perfil).
+
+**Em aberto.** Botão "Retirar consentimento" na conta (hoje: definições do browser ou pedido à equipa).

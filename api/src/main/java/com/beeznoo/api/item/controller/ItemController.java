@@ -186,8 +186,9 @@ public class ItemController {
                     Muda o estado de `INACTIVE` (pausado) para `ACTIVE`: volta a aparecer em Explorar.
                     Apenas o dono. Um item `SUSPENDED` (em revisão pela equipa) não se reativa por aqui.
                     Passa pelo mesmo gate de identidade que publicar (`KYC_REQUIRED`) e de zona:
-                    corpo `{ "location": { "lat", "lng" } }`; sem localização → 422 `location_required`,
-                    fora das zonas ativas → 403 `area_not_available`.
+                    corpo `{ "location": { "lat", "lng" } }` ou `{ "areaId" }` (zona escolhida à mão); sem nenhum usa a
+                    última localização guardada na conta (≤ 30 dias, numa zona ativa); senão 422 `location_required`.
+                    Fora das zonas ativas → 403 `area_not_available`.
                     """
     )
     @ApiResponses({
@@ -205,7 +206,8 @@ public class ItemController {
             @AuthenticationPrincipal UUID profileId,
             @PathVariable UUID id,
             @Valid @RequestBody(required = false) ActivateItemRequest request) {
-        return ResponseEntity.ok(itemService.activate(profileId, id, request == null ? null : request.location()));
+        return ResponseEntity.ok(itemService.activate(profileId, id,
+                request == null ? null : request.location(), request == null ? null : request.areaId()));
     }
 
     @Operation(

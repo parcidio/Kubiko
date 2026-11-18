@@ -9,6 +9,7 @@ import type { Heatmap } from "@/lib/types-ops";
 /**
  * Mapa de calor do Admin › Mapa. Carregado só nessa página (next/dynamic, sem SSR): Leaflet + mosaicos OSM.
  * Cada célula (~5 km) é um retângulo com a cor pela contagem; sem plugin de heatmap. Nada de pessoas, só contagens ≥ 3.
+ * Células grandes (~28 km, tracejado) juntam quem não chega ao mínimo nas pequenas.
  */
 
 const LUANDA: L.LatLngTuple = [-8.84, 13.23];
@@ -35,7 +36,11 @@ export default function HeatMap({ data, label }: { data: Heatmap; label: string 
     }).addTo(m);
     map.current = m;
     layer.current = L.layerGroup().addTo(m);
+    // o contentor pode nascer sem tamanho (carregamento dinâmico, grelha): sem isto ficam mosaicos cinzentos
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => m.invalidateSize()) : null;
+    ro?.observe(el.current);
     return () => {
+      ro?.disconnect();
       m.remove();
       map.current = null;
       layer.current = null;
@@ -47,15 +52,23 @@ export default function HeatMap({ data, label }: { data: Heatmap; label: string 
     const g = layer.current;
     if (!m || !g) return;
     g.clearLayers();
-    const half = data.cellSizeDeg / 2;
     const max = Math.max(0, ...data.cells.map((c) => c.count));
     const bounds: L.LatLngBounds[] = [];
     for (const c of data.cells) {
-      // lat/lng = centro da célula (contrato: grelha de cellSizeDeg graus)
+      // lat/lng = centro da célula; sizeDeg = lado (~5 km, ou ~28 km para quem não chega ao mínimo nas pequenas)
+      const size = c.sizeDeg ?? data.cellSizeDeg;
+      const half = size / 2;
+      const coarse = size > data.cellSizeDeg;
       const b = L.latLngBounds([c.lat - half, c.lng - half], [c.lat + half, c.lng + half]);
       bounds.push(b);
-      L.rectangle(b, { color: "#0E2A1F", weight: 0.5, fillColor: heatColor(c.count, max), fillOpacity: 0.7 })
-        .bindTooltip(`${c.count} ${c.count === 1 ? "pessoa" : "pessoas"}`)
+      L.rectangle(b, {
+        color: "#0E2A1F",
+        weight: coarse ? 1 : 0.5,
+        dashArray: coarse ? "4 4" : undefined,
+        fillColor: heatColor(c.count, max),
+        fillOpacity: coarse ? 0.45 : 0.7,
+      })
+        .bindTooltip(`${c.count} ${c.count === 1 ? "pessoa" : "pessoas"} · zona de ~${coarse ? 28 : 5} km`)
         .addTo(g);
     }
     if (bounds.length) {

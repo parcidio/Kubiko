@@ -7,7 +7,7 @@ import { categoryIcon } from "@/components/bz/brand";
 import { EquipmentCard } from "@/components/bz/equipment";
 import { FormError, StepProgress, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { DetailsFields, EMPTY_DRAFT, PriceFields, draftToInput, validateDetails, validatePrice, type DraftErrors, type ItemDraft } from "@/components/bz/item-form";
-import { AreaNotAvailable, isAreaNotAvailable, isLocationRequired, PublishLocationGate } from "@/components/bz/location";
+import { AreaNotAvailable, isAreaNotAvailable, isLocationRequired, PublishLocationCard, usePublishLocation } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
 import { PhotoPicker, useLocalPhotos } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
@@ -16,7 +16,6 @@ import { Button, ButtonLink, Callout } from "@/components/bz/ui";
 import { catalogApi, ownerItemApi } from "@/lib/api";
 import { DRAFT_KEY_PREFIX, useRequireSession } from "@/lib/auth";
 import { compressImage } from "@/lib/images";
-import { toLatLng, type ApproxLocation } from "@/lib/location";
 import { canOwn } from "@/lib/mode";
 import type { Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
@@ -52,26 +51,19 @@ export default function PublicarPage() {
     );
   }
   // key: trocar de conta recomeça o formulário com o rascunho dessa conta
-  // Piloto só em Luanda: localização obrigatória e zona confirmada antes do formulário (decisoes-produto.md 2026-11-17)
-  return (
-    <PublishLocationGate>
-      {(location, refreshLocation) => (
-        <PublicarForm key={session.profileId} profileId={session.profileId} location={location} refreshLocation={refreshLocation} />
-      )}
-    </PublishLocationGate>
-  );
+  return <PublicarForm key={session.profileId} profileId={session.profileId} />;
 }
 
-function PublicarForm({
-  profileId, location, refreshLocation,
-}: {
-  profileId: string;
-  location: ApproxLocation;
-  refreshLocation: () => Promise<ApproxLocation | null>;
-}) {
+const LOCATION_CARD_ID = "publicar-zona";
+
+function PublicarForm({ profileId }: { profileId: string }) {
   const router = useRouter();
   const lang = useLang();
-  const t = useT().publish;
+  const dict = useT();
+  const t = dict.publish;
+  // Piloto: só se publica numa zona ativa (decisoes-produto.md 2026-11-17). O formulário aparece logo; a zona
+  // resolve-se ao lado, sem bloquear (2026-11-18): posição já autorizada, zona guardada na conta, ou escolha.
+  const zone = usePublishLocation({ title: dict.location.publishTitle });
   const STEPS = t.steps;
   const categories = useResource("categories", () => catalogApi.categories()).data ?? [];
   const photos = useLocalPhotos(MAX_PHOTOS);
@@ -107,22 +99,25 @@ function PublicarForm({
     if (Object.keys(e).length === 0) setStep(step + 1);
   }
 
+  function needZone(message: string) {
+    setFormErr({ form: message, fields: {} });
+    document.getElementById(LOCATION_CARD_ID)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
   async function publish() {
+    if (!zone.where) return needZone(dict.location.needZoneToPublish);
     setBusy(true);
     setFormErr({ fields: {} });
     try {
       let item: Item;
       try {
-        item = await ownerItemApi.publish(draftToInput(draft), toLatLng(location));
+        item = await ownerItemApi.publish(draftToInput(draft), zone.where);
       } catch (e) {
         if (!isLocationRequired(e)) throw e;
-        // a API não recebeu localização válida: pedir outra vez e tentar uma vez
-        const again = await refreshLocation();
-        if (!again) {
-          setFormErr({ form: t.needLocation, fields: {} });
-          return;
-        }
-        item = await ownerItemApi.publish(draftToInput(draft), toLatLng(again));
+        // a zona guardada caducou ou a API não a aceitou: a pessoa escolhe outra vez, sem perder o formulário
+        zone.reset(t.needLocation);
+        needZone(dict.location.needZoneToPublish);
+        return;
       }
       try {
         localStorage.removeItem(draftKey(profileId));
@@ -144,7 +139,12 @@ function PublicarForm({
       }
       setPublished(item);
     } catch (e) {
-      if (isAreaNotAvailable(e)) return setOutside(true);
+      if (isAreaNotAvailable(e)) {
+        if (zone.state.kind === "gps") return setOutside(true);
+        // zona escolhida/guardada recusada: mostrar o cartão para partilhar a localização
+        zone.reset(dict.location.areaNotAvailable);
+        return needZone(dict.location.areaNotAvailable);
+      }
       if (isKycRequired(e)) {
         toast(kycRedirectToast());
         router.push("/verificacao");
@@ -186,6 +186,7 @@ function PublicarForm({
         </button>
       )}
       <PageHeader title={t.title} subtitle={savedAt ? fmt(t.draftSavedAt, { time: savedAt.toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit" }) }) : t.takesMinutes} />
+      <PublishLocationCard loc={zone} id={LOCATION_CARD_ID} />
       <StepProgress step={step} total={STEPS.length} label={STEPS[step - 1]} />
 
       <div key={step} className="animate-sobe">

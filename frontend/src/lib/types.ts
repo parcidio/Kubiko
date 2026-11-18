@@ -152,6 +152,8 @@ export interface Me {
   /** Pode publicar e pedir reserva já (KYC aprovado, ou o servidor não o exige). Avisar antes de começar um pedido. */
   canTransact: boolean;
   createdAt: string;
+  /** Consentimento de localização guardado na conta (sem coordenadas) — decisoes-produto.md 2026-11-18. */
+  location?: import("./types-ops").LocationStatus | null;
 }
 
 /** Dias indisponíveis, INCLUSIVOS (start <= dia <= end). BOOKED = reserva aceite/em curso; BLOCKED = o dono bloqueou. */

@@ -6,14 +6,15 @@ import { usePathname } from "next/navigation";
 import { CheckCircle2, LocateFixed, MapPin, MapPinOff } from "lucide-react";
 import { HexTile } from "./hex";
 import { Sheet } from "./overlay";
-import { Button, ButtonLink, Callout, Skeleton } from "./ui";
-import { ApiError } from "@/lib/api";
-import { locationApi } from "@/lib/api-ops";
+import { SelectField } from "./form";
+import { Button, ButtonLink, Callout, Spinner } from "./ui";
+import { ApiError, type PublishWhere } from "@/lib/api";
+import { locationApi, serviceAreaApi } from "@/lib/api-ops";
 import { useSession } from "@/lib/auth";
 import { fmt } from "@/lib/i18n";
 import { useT } from "@/lib/i18n/client";
-import { getApproxLocation, LocationError, locationPermission, type ApproxLocation } from "@/lib/location";
-import type { PublishEligibility } from "@/lib/types-ops";
+import { getApproxLocation, getLocationIfGranted, LocationError, locationPermission, toLatLng, type ApproxLocation } from "@/lib/location";
+import { useResource } from "@/lib/use-resource";
 
 /**
  * Explica antes de o browser perguntar (o pedido nativo não diz porquê). Só depois de "Permitir" chamamos a API
@@ -99,13 +100,9 @@ export function useLocationRequest({ required, title }: { required?: boolean; ti
   }, []);
 
   const request = useCallback(async (): Promise<ApproxLocation | null> => {
-    if ((await locationPermission()) === "granted") {
-      try {
-        return await getApproxLocation();
-      } catch {
-        /* cai na folha, que mostra o motivo */
-      }
-    }
+    // já autorizado neste browser: sem folha, em silêncio e com tempo máximo curto; se falhar, a folha explica
+    const silent = await getLocationIfGranted();
+    if (silent) return silent;
     resolver.current?.(null);
     return new Promise((resolve) => {
       resolver.current = resolve;
@@ -180,86 +177,189 @@ export function isLocationRequired(e: unknown) {
   return e instanceof ApiError && e.status === 422 && e.code === "location_required";
 }
 
-type GateState =
-  | { kind: "asking" }
-  | { kind: "denied" }
+export function areaLabel(a: { province: string; city: string }) {
+  return a.city === a.province ? a.city : `${a.city} (${a.province})`;
+}
+
+type AreaRef = { province: string; city: string };
+
+export type PublishLocationState =
   | { kind: "checking" }
-  | { kind: "error"; message: string }
-  | { kind: "outside"; areas: PublishEligibility["areas"] }
-  | { kind: "ok"; location: ApproxLocation };
+  | { kind: "gps"; location: ApproxLocation; area: AreaRef | null }
+  | { kind: "stored"; area: AreaRef | null }
+  | { kind: "manual"; areaId: string; area: AreaRef }
+  | { kind: "needed"; message?: string }
+  | { kind: "outside"; areas: AreaRef[] };
 
 /**
- * Antes do formulário de publicar: pede a localização (obrigatória) e pergunta à API se a zona está aberta
- * (GET /me/publish-eligibility), para ninguém preencher tudo e ser recusado no fim. A API volta a verificar ao publicar.
+ * Zona para publicar, sem nunca bloquear o formulário (bug de 2026-11-18: o ecrã ficava preso à espera da localização).
+ * Por ordem: (1) se o browser já autorizou, posição em silêncio (≤ 8 s); (2) senão, a zona guardada na conta
+ * (consentimento dado noutro dispositivo); (3) senão, a pessoa escolhe: "Usar a minha localização" ou a zona à mão.
+ * A API volta a verificar ao publicar.
  */
-export function PublishLocationGate({ children }: { children: (location: ApproxLocation, refresh: () => Promise<ApproxLocation | null>) => React.ReactNode }) {
-  const dict = useT();
-  const t = dict.location;
-  const { request, sheet } = useLocationRequest({ required: true, title: t.publishTitle });
-  const [state, setState] = useState<GateState>({ kind: "asking" });
-
-  // só a tentativa mais recente mexe no estado (Strict Mode corre o efeito duas vezes; "Tentar outra vez" recomeça)
+export function usePublishLocation({ title }: { title?: string } = {}) {
+  const { request, sheet } = useLocationRequest({ required: true, title });
+  const [state, setState] = useState<PublishLocationState>({ kind: "checking" });
   const attempt = useRef(0);
-  const run = useCallback(async () => {
-    const mine = ++attempt.current;
-    const update = (s: GateState) => mine === attempt.current && setState(s);
-    update({ kind: "asking" });
-    const loc = await request();
-    if (!loc) return update({ kind: "denied" });
-    update({ kind: "checking" });
+
+  // regista (APP) e diz se está numa zona; sem rede, segue com a posição e a API decide ao publicar
+  const check = useCallback(async (loc: ApproxLocation): Promise<PublishLocationState> => {
     try {
-      const el = await locationApi.publishEligibility(loc);
-      if (el.allowed) update({ kind: "ok", location: loc });
-      else if (el.reason === "area_not_available") update({ kind: "outside", areas: el.areas });
-      else update({ kind: "denied" });
-    } catch (e) {
-      update({ kind: "error", message: e instanceof Error ? e.message : dict.common.somethingWrong });
+      const r = await locationApi.report({ ...loc, context: "APP" });
+      if (r.inServiceArea) return { kind: "gps", location: loc, area: r.area };
+      const areas = await serviceAreaApi.active().catch(() => []);
+      return { kind: "outside", areas };
+    } catch {
+      return { kind: "gps", location: loc, area: null };
     }
-  }, [request, dict]);
+  }, []);
 
   useEffect(() => {
-    // pedir a localização ao abrir é a ação deste ecrã: a folha explica antes do pedido do browser
-    void run();
-  }, [run]);
+    const mine = ++attempt.current;
+    let alive = true;
+    (async () => {
+      const [loc, status] = await Promise.all([getLocationIfGranted(), locationApi.status().catch(() => null)]);
+      if (!alive || mine !== attempt.current) return;
+      if (loc) {
+        const next = await check(loc);
+        if (alive && mine === attempt.current) setState(next);
+        return;
+      }
+      setState(status?.storedZoneUsable ? { kind: "stored", area: status.area } : { kind: "needed" });
+    })();
+    return () => {
+      alive = false;
+    };
+  }, [check]);
 
-  // Ao publicar, a posição volta a ser pedida (pode ter mudado desde que abriu o formulário)
-  const refresh = useCallback(async () => {
+  /** "Usar a minha localização": explica, pede ao browser e confirma a zona. */
+  const askDevice = useCallback(async () => {
+    const mine = ++attempt.current;
+    setState({ kind: "checking" });
     const loc = await request();
-    if (loc) setState({ kind: "ok", location: loc });
-    return loc;
-  }, [request]);
+    if (mine !== attempt.current) return;
+    if (!loc) return setState({ kind: "needed" });
+    const next = await check(loc);
+    if (mine === attempt.current) setState(next);
+  }, [request, check]);
 
-  let body: React.ReactNode;
-  if (state.kind === "ok") body = children(state.location, refresh);
-  else if (state.kind === "outside") body = <AreaNotAvailable areas={state.areas} onRetry={run} />;
-  else if (state.kind === "denied" || state.kind === "error") {
-    body = (
-      <div className="mx-auto grid max-w-md gap-4 py-6">
-        <Callout
-          tone={state.kind === "error" ? "erro" : "warn"}
-          icon={MapPinOff}
-          title={state.kind === "error" ? t.cantConfirm : t.noLocationNoPublish}
-          action={<Button variant="dark" onClick={run}>{dict.common.retry}</Button>}
-        >
-          {state.kind === "error" ? state.message : `${t.why} ${t.pilotOnly}`}
-        </Callout>
-        <ButtonLink href="/explorar" variant="ghost">{t.backExplore}</ButtonLink>
-      </div>
-    );
-  } else {
-    body = (
-      <div role="status" aria-label={state.kind === "checking" ? t.checking : t.waiting} className="mx-auto grid max-w-2xl gap-4">
-        <Skeleton className="h-10 w-2/3" />
-        <Skeleton className="h-64 rounded-cartao" />
+  const chooseArea = useCallback((areaId: string, area: AreaRef) => {
+    ++attempt.current;
+    setState({ kind: "manual", areaId, area });
+  }, []);
+
+  const reset = useCallback((message?: string) => {
+    ++attempt.current;
+    setState({ kind: "needed", message });
+  }, []);
+
+  /** O que vai no pedido de publicar; null = ainda falta a zona. */
+  const where: PublishWhere | null =
+    state.kind === "gps" ? { location: toLatLng(state.location) } : state.kind === "manual" ? { areaId: state.areaId } : state.kind === "stored" ? {} : null;
+
+  return { state, where, askDevice, chooseArea, reset, sheet };
+}
+
+/** Cartão no topo de Publicar: estado da zona, sem tapar o formulário. A folha fica sempre montada (o pedido espera por ela). */
+export function PublishLocationCard({ loc, id }: { loc: ReturnType<typeof usePublishLocation>; id?: string }) {
+  return (
+    <div id={id}>
+      <PublishLocationStatus loc={loc} />
+      {loc.sheet}
+    </div>
+  );
+}
+
+function PublishLocationStatus({ loc }: { loc: ReturnType<typeof usePublishLocation> }) {
+  const t = useT().location;
+  const { state } = loc;
+
+  if (state.kind === "checking") {
+    return (
+      <div role="status" className="flex min-h-11 items-center gap-2 text-sm text-cinza">
+        <Spinner /> {t.checking}
       </div>
     );
   }
+  if (state.kind === "gps" || state.kind === "stored" || state.kind === "manual") {
+    const how = state.kind === "gps" ? t.zoneFromDevice : state.kind === "stored" ? t.zoneFromAccount : t.zoneManual;
+    return (
+      <div className="flex items-center gap-3 rounded-cartao border border-borda bg-branco p-4">
+        <MapPin className="size-5 shrink-0 text-verde-medio" strokeWidth={1.8} aria-hidden />
+        <div className="grid min-w-0 flex-1 gap-0.5" role="status">
+          <p className="font-bold text-verde">{state.area ? fmt(t.zoneLabel, { area: areaLabel(state.area) }) : t.zoneUnconfirmed}</p>
+          <p className="text-sm text-cinza">{how}</p>
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => loc.reset()}>
+          {t.change}
+        </Button>
+      </div>
+    );
+  }
+  return <ZonePicker loc={loc} />;
+}
+
+function ZonePicker({ loc }: { loc: ReturnType<typeof usePublishLocation> }) {
+  const dict = useT();
+  const t = dict.location;
+  const { state } = loc;
+  const areas = useResource("service-areas:active", () => serviceAreaApi.active());
+  const [areaId, setAreaId] = useState("");
+  const list = areas.data ?? [];
+  const outside = state.kind === "outside";
 
   return (
-    <>
-      {body}
-      {sheet}
-    </>
+    <Callout
+      tone={outside ? "warn" : "info"}
+      icon={outside ? MapPinOff : MapPin}
+      title={outside ? t.outsideTitle : t.needTitle}
+    >
+      <div className="grid gap-3">
+        <p>{outside ? fmt(t.outsideInline, { list: (state.areas.length ? state.areas : list).map(areaLabel).join(", ") || "Luanda" }) : t.needText}</p>
+        {state.kind === "needed" && state.message && (
+          <p role="alert" className="text-erro">
+            {state.message}
+          </p>
+        )}
+        <Button variant="dark" onClick={() => void loc.askDevice()} className="justify-self-start">
+          <LocateFixed strokeWidth={1.8} aria-hidden /> {outside ? dict.common.retry : t.useMyLocation}
+        </Button>
+        {/* Escolher à mão só quando o browser não deu a posição: quem está fora não passa por aqui (a API também recusa) */}
+        {!outside && (
+          <div className="grid gap-2">
+            {areas.error ? (
+              <p className="text-erro">
+                {t.areasLoadFailed}{" "}
+                <button type="button" className="font-medium underline" onClick={areas.reload}>
+                  {dict.common.retry}
+                </button>
+              </p>
+            ) : (
+              <div className="flex flex-wrap items-end gap-2">
+                <SelectField
+                  label={t.chooseZone}
+                  value={areaId}
+                  onChange={setAreaId}
+                  placeholder={areas.data ? t.choosePlaceholder : dict.common.loading}
+                  options={list.map((a) => ({ value: a.id, label: areaLabel(a) }))}
+                  className="min-w-0 flex-1"
+                />
+                <Button
+                  variant="outline"
+                  disabled={!areaId}
+                  onClick={() => {
+                    const a = list.find((x) => x.id === areaId);
+                    if (a) loc.chooseArea(a.id, a);
+                  }}
+                >
+                  {t.useThisZone}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Callout>
   );
 }
 
@@ -267,8 +367,11 @@ const APP_ASKED_KEY = "beeznoo.location.app";
 const SKIP_PATHS = ["/publicar", "/verificacao"];
 
 /**
- * Uma vez por conta, depois de entrar: explica e pede a localização (POST /me/location, contexto APP).
- * Quem já autorizou no browser envia em silêncio uma vez por sessão do browser. Recusar não muda nada na app.
+ * Uma vez por conta (não por browser), depois de entrar: explica e pede a localização (POST /me/location, contexto APP).
+ * - O browser já autorizou → envia em silêncio uma vez por sessão do browser.
+ * - A conta já deu consentimento (GET /me/location, outro dispositivo) → não pergunta outra vez; nunca chama a API
+ *   do browser sem a permissão estar dada, porque isso mostraria o pedido do browser.
+ * Recusar não muda nada na app.
  */
 export function AppLocationPrompt() {
   const session = useSession();
@@ -280,6 +383,7 @@ export function AppLocationPrompt() {
   useEffect(() => {
     if (!profileId || skip) return;
     let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const key = `${APP_ASKED_KEY}.${profileId}`;
     (async () => {
       let asked = false;
@@ -296,40 +400,40 @@ export function AppLocationPrompt() {
         if (sentThisSession) return;
         try {
           sessionStorage.setItem(key, "1");
-          const loc = await getApproxLocation();
+          const loc = await getApproxLocation({ timeoutMs: 8_000, promptGraceMs: 2_000 });
           await locationApi.report({ ...loc, context: "APP" });
         } catch {
           /* silencioso: é só para o mapa */
         }
         return;
       }
-      if (!asked && perm !== "denied") {
-        // pequeno atraso: não tapar a primeira página logo ao entrar
-        setTimeout(() => alive && setOpen(true), 1500);
+      if (asked || perm === "denied") return;
+      // consentimento guardado na conta (outro dispositivo): não voltar a perguntar
+      const status = await locationApi.status().catch(() => null);
+      if (!alive) return;
+      if (status?.consented) {
+        remember(profileId);
+        return;
       }
+      if (!status) return; // sem rede: perguntar noutra altura
+      // pequeno atraso: não tapar a primeira página logo ao entrar
+      timer = setTimeout(() => alive && setOpen(true), 1500);
     })();
     return () => {
       alive = false;
+      if (timer) clearTimeout(timer);
     };
   }, [profileId, skip]);
-
-  function remember() {
-    try {
-      if (profileId) localStorage.setItem(`${APP_ASKED_KEY}.${profileId}`, new Date().toISOString());
-    } catch {
-      /* sem storage */
-    }
-  }
 
   return (
     <LocationSheet
       open={open}
       onClose={() => {
-        remember();
+        if (profileId) remember(profileId);
         setOpen(false);
       }}
       onLocated={async (loc) => {
-        remember();
+        if (profileId) remember(profileId);
         setOpen(false);
         try {
           await locationApi.report({ ...loc, context: "APP" });
@@ -340,4 +444,12 @@ export function AppLocationPrompt() {
       }}
     />
   );
+}
+
+function remember(profileId: string) {
+  try {
+    localStorage.setItem(`${APP_ASKED_KEY}.${profileId}`, new Date().toISOString());
+  } catch {
+    /* sem storage */
+  }
 }

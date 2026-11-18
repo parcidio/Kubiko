@@ -33,6 +33,23 @@ public class GeoDtos {
 
     public record LocationResult(boolean inServiceArea, AreaRef area) {}
 
+    /**
+     * GET /me/location e `location` em GET /profiles/me (decisoes-produto.md 2026-11-18): o consentimento fica na conta,
+     * não no browser, para não voltar a perguntar noutro dispositivo. Nunca leva coordenadas: só a zona.
+     * `storedZoneUsable` = a última localização (≤ {@code STORED_MAX_AGE_DAYS} dias) está numa zona ativa e serve
+     * para publicar sem pedir outra vez.
+     */
+    public record LocationStatus(
+            boolean consented,
+            OffsetDateTime consentAt,
+            OffsetDateTime updatedAt,
+            Boolean inServiceArea,
+            AreaRef area,
+            boolean storedZoneUsable
+    ) {
+        public static final LocationStatus NONE = new LocationStatus(false, null, null, null, null, false);
+    }
+
     /** GET /service-areas (público) e lista de zonas em `publish-eligibility`. */
     public record ServiceAreaSummary(UUID id, String province, String city, boolean active) {
         public static ServiceAreaSummary from(ServiceArea a) {
@@ -68,8 +85,11 @@ public class GeoDtos {
 
     public enum HeatmapScope { KYC_APPROVED, KYC_SUBMITTED, SIGNUP }
 
-    /** Centro da célula de `cellSizeDeg` graus e número de pessoas (sempre ≥ minCount). */
-    public record HeatmapCell(double lat, double lng, long count) {}
+    /**
+     * Centro da célula e número de pessoas (sempre ≥ minCount). `sizeDeg` = lado da célula: `cellSizeDeg` (~5 km) ou,
+     * para quem não chega ao mínimo numa célula fina, `coarseCellSizeDeg` (~28 km).
+     */
+    public record HeatmapCell(double lat, double lng, long count, double sizeDeg) {}
 
     public record ProvinceCount(String province, long count) {}
 
@@ -80,11 +100,14 @@ public class GeoDtos {
     public record Heatmap(
             String scope,
             double cellSizeDeg,
+            double coarseCellSizeDeg,
             int minCount,
             List<HeatmapCell> cells,
             List<ProvinceCount> byProvince,
             long outsideAreas,
             long suppressed,
-            long withoutLocation
+            long withoutLocation,
+            // pessoas do âmbito com localização (visíveis + escondidas)
+            long withLocation
     ) {}
 }
