@@ -21,6 +21,7 @@ import { canOwn } from "@/lib/mode";
 import type { Item } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
+import { KycCard } from "@/components/bz/kyc";
 import { fmt, LOCALE } from "@/lib/i18n";
 import { useLang, useT } from "@/lib/i18n/client";
 
@@ -185,6 +186,8 @@ function PublicarForm({
           <ArrowLeft className="size-4" strokeWidth={1.8} aria-hidden /> {t.previousStep}
         </button>
       )}
+      {/* Avisa antes de a pessoa preencher tudo: publicar exige identidade verificada */}
+      {step === 1 && <KycCard context="publish" />}
       <PageHeader title={t.title} subtitle={savedAt ? fmt(t.draftSavedAt, { time: savedAt.toLocaleTimeString(LOCALE[lang], { hour: "2-digit", minute: "2-digit" }) }) : t.takesMinutes} />
       <StepProgress step={step} total={STEPS.length} label={STEPS[step - 1]} />
 

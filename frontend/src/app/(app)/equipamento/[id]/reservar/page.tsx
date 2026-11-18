@@ -19,6 +19,7 @@ import { canRent } from "@/lib/mode";
 import type { Availability, Item, Me } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
 import { isKycRequired, kycRedirectToast } from "@/lib/kyc";
+import { KycCard } from "@/components/bz/kyc";
 import { fmt, plural } from "@/lib/i18n";
 import { useLang, useT } from "@/lib/i18n/client";
 
@@ -129,12 +130,7 @@ function Reservar() {
       </Card>
 
       {needsKyc ? (
-        <div className="grid gap-4">
-          <Callout tone="warn" title={t.kycTitle}>
-            {t.kycText}
-          </Callout>
-          <ButtonLink href="/verificacao" size="lg">{t.verify}</ButtonLink>
-        </div>
+        <KycCard context="request" primary />
       ) : blocked ? (
         <Callout tone="warn" title={isOwnItem ? t.ownItemTitle : t.ownerOnlyTitle}>
           {isOwnItem ? t.ownItemText : t.ownerOnlyText}
