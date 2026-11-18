@@ -275,6 +275,8 @@ export interface AdminUserSummary {
   phone: string;
   email: string | null;
   role: UserRole;
+  /** papel de equipa (só role ADMIN) — decisoes-produto.md 2026-11-18 */
+  adminRole: AdminRole | null;
   phoneVerified: boolean;
   /** estado da verificação mais recente; null = nunca submeteu */
   kycStatus: KycStatus | null;
@@ -289,9 +291,25 @@ export interface AdminUserSummary {
 export interface AdminUserDetail {
   user: AdminUserSummary;
   city: string | null;
+  province: string | null;
+  emailVerified: boolean;
+  accountType: KycAccountType | null;
+  suspendedByName: string | null;
+  /** sessões (refresh tokens) ainda válidas */
+  activeSessions: number;
+  lastSessionAt: string | null;
+  /** verificação mais recente, sem documentos (esses só em Verificações) */
+  kyc: { id: string; status: KycStatus; accountType: KycAccountType; submittedAt: string; reviewedAt: string | null } | null;
   items: { id: string; title: string; status: "ACTIVE" | "INACTIVE" | "SUSPENDED"; pricePerDay: number; featured: boolean }[];
   recentBookings: { id: string; itemTitle: string; side: "RENTER" | "OWNER"; status: BookingStatus; startDate: string; endDate: string; createdAt: string }[];
+  notes: number;
 }
+
+/** Papéis da equipa e permissões por área (decisoes-produto.md 2026-11-18). */
+export type AdminRole = "SUPER_ADMIN" | "OPERATIONS" | "TRUST" | "GROWTH";
+export type AdminPermission =
+  | "OVERVIEW" | "OPERATIONS_DESK" | "KYC" | "USERS_READ" | "USERS_MANAGE" | "USERS_NOTE"
+  | "ITEMS_MODERATE" | "MESSAGES" | "GROWTH_DESK" | "AUDIT" | "TEAM";
 
 export interface AuditLog {
   id: string;
@@ -457,4 +475,6 @@ export interface AdminMetrics {
   commissions: { earnedThisMonth: number; pendingTotal: number; pendingOwners: number };
   kyc: { pending: number; avgDecisionHours: number | null; decided30d: number };
   marketplace: { users: number; newUsers30d: number; verifiedUsers: number; activeItems: number; ownersWithItems: number };
+  /** trabalho em aberto (2026-11-18) */
+  queues?: { awaitingOwner: number; inProgress: number; disputed: number; openIncidents: number; suspendedAccounts: number };
 }

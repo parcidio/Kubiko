@@ -4,13 +4,66 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AdminMfaStep, AuthTitle, Divider, GoogleButton } from "@/components/bz/auth";
-import { FormError, PasswordField, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
+import { FormError, OtpField, PasswordField, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { Button } from "@/components/bz/ui";
-import { authApi } from "@/lib/api";
+import { ApiError, authApi } from "@/lib/api";
 import { safeNext, signIn } from "@/lib/auth";
 import { isValidPhone, normalizePhone } from "@/lib/format";
 import { useT } from "@/lib/i18n/client";
 import { readSession } from "@/lib/session";
+
+/** Login com o telefone por confirmar: pede o código enviado pela API (e o número, se entrou com email). */
+function PhoneConfirmStep({ initialPhone, onDone }: { initialPhone: string; onDone: () => void }) {
+  const [phone, setPhone] = useState(initialPhone);
+  const [code, setCode] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({ fields: {} });
+  const [loading, setLoading] = useState(false);
+  const a = useT().auth;
+  const t = a.phoneConfirm;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const fields: Record<string, string> = {};
+    if (!isValidPhone(phone.trim())) fields.phone = t.errPhone;
+    if (code.length !== 6) fields.code = a.codeLength;
+    if (Object.keys(fields).length) return setErrors({ fields });
+    setLoading(true);
+    setErrors({ fields: {} });
+    try {
+      signIn(await authApi.verifyRegistration({ phone: normalizePhone(phone.trim()), code }));
+      onDone();
+    } catch (err) {
+      setErrors(toFormErrors(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <AuthTitle title={t.title} subtitle={t.subtitle} />
+      <form onSubmit={submit} className="grid gap-5" noValidate>
+        {!initialPhone && (
+          <TextField
+            label={t.phone}
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={setPhone}
+            error={errors.fields.phone}
+          />
+        )}
+        <OtpField value={code} onChange={setCode} error={errors.fields.code ?? (initialPhone ? errors.fields.phone : undefined)} />
+        <FormError message={errors.form} />
+        <Button type="submit" loading={loading} block size="lg">
+          {loading ? a.confirming : t.submit}
+        </Button>
+      </form>
+    </>
+  );
+}
 
 function LoginForm() {
   const router = useRouter();
@@ -22,6 +75,8 @@ function LoginForm() {
   const [errors, setErrors] = useState<FormErrors>({ fields: {} });
   const [loading, setLoading] = useState(false);
   const [mfa, setMfa] = useState<{ token: string; hint?: string | null } | null>(null);
+  // Telefone por confirmar (registo a meio, ou a equipa repôs a confirmação): a API enviou um código novo
+  const [phoneConfirm, setPhoneConfirm] = useState<{ phone: string } | null>(null);
   const a = useT().auth;
   const t = a.login;
 
@@ -54,12 +109,17 @@ function LoginForm() {
       signIn(res);
       goHome();
     } catch (err) {
+      if (err instanceof ApiError && err.code === "phone_unverified") {
+        setPhoneConfirm({ phone: isEmail ? "" : id });
+        return;
+      }
       setErrors(toFormErrors(err));
     } finally {
       setLoading(false);
     }
   }
 
+  if (phoneConfirm) return <PhoneConfirmStep initialPhone={phoneConfirm.phone} onDone={goHome} />;
   if (mfa) return <AdminMfaStep mfaToken={mfa.token} phoneHint={mfa.hint} onDone={goHome} />;
 
   return (

@@ -34,6 +34,16 @@ public enum AuditAction {
     // Zonas de serviço (decisoes-produto.md 2026-11-17): criar, editar, ativar/desativar
     SERVICE_AREA_CHANGED,
     // Papéis e mensagens da equipa (decisoes-produto.md 2026-11-17)
-    USER_ROLE_CHANGED,
-    MESSAGE_SENT
+    USER_ROLE_CHANGED,          // histórico (até 2026-11-18); substituído pelos ADMIN_* abaixo
+    MESSAGE_SENT,
+    // Acesso ao Admin por convite e papéis da equipa (decisoes-produto.md 2026-11-18)
+    ADMIN_INVITED,
+    ADMIN_INVITATION_REVOKED,
+    ADMIN_INVITATION_ACCEPTED,
+    ADMIN_ROLE_CHANGED,
+    ADMIN_ACCESS_REVOKED,
+    // Gestão de contas (decisoes-produto.md 2026-11-18)
+    SESSIONS_REVOKED,
+    PHONE_VERIFICATION_RESET,
+    USER_NOTE_ADDED
 }

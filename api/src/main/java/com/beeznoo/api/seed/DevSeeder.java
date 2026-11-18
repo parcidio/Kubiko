@@ -313,6 +313,8 @@ public class DevSeeder implements ApplicationRunner {
                 .email(email)
                 .passwordHash(encoder.encode(password))
                 .role(role)
+                // o admin do seed é o primeiro SUPER_ADMIN (os outros entram por convite)
+                .adminRole(role == UserRole.ADMIN ? com.beeznoo.api.profile.entity.AdminRole.SUPER_ADMIN : null)
                 .province("Luanda")
                 .city(city)
                 .isVerified(true) // telefone confirmado (não é KYC)

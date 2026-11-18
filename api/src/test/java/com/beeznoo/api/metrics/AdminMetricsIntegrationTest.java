@@ -197,6 +197,6 @@ class AdminMetricsIntegrationTest {
     private Profile profile(String name, UserRole role) {
         return profileRepository.save(Profile.builder()
                 .fullName(name).phone("+244" + PHONE.incrementAndGet()).passwordHash("$2a$10$hash")
-                .role(role).isVerified(true).build());
+                .role(role).adminRole(role == UserRole.ADMIN ? com.beeznoo.api.profile.entity.AdminRole.SUPER_ADMIN : null).isVerified(true).build());
     }
 }

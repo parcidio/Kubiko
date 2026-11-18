@@ -31,6 +31,15 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID> {
     @org.springframework.data.jpa.repository.Query("SELECT p.role FROM Profile p WHERE p.id = :id AND p.suspendedAt IS NULL")
     Optional<UserRole> findActiveRoleById(UUID id);
 
+    /** Papel e papel de equipa de uma conta não suspensa, numa só consulta (JwtAuthFiltter, tokens ADMIN). */
+    interface ActiveAccess {
+        UserRole getRole();
+        com.beeznoo.api.profile.entity.AdminRole getAdminRole();
+    }
+
+    @org.springframework.data.jpa.repository.Query("SELECT p.role AS role, p.adminRole AS adminRole FROM Profile p WHERE p.id = :id AND p.suspendedAt IS NULL")
+    Optional<ActiveAccess> findActiveAccessById(UUID id);
+
     boolean existsByEmail(String email);
 
     boolean existsByGoogleId(String googleId);

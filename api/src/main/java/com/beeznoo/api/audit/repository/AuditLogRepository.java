@@ -38,4 +38,24 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
               AND (:actorId IS NULL OR act.id = :actorId)
             """)
     Page<AuditLog> search(String entityType, UUID entityId, AuditAction action, UUID actorId, Pageable pageable);
+
+    // Histórico de uma conta no Admin: decisões sobre a conta, as verificações e o equipamento dela
+    @Query(value = """
+            SELECT a FROM AuditLog a LEFT JOIN FETCH a.actor
+            WHERE (a.entityType = 'ACCOUNT' AND a.entityId = :profileId)
+               OR (a.entityType = 'KYC' AND a.entityId IN
+                   (SELECT k.id FROM com.beeznoo.api.kyc.entity.KycVerification k WHERE k.profile.id = :profileId))
+               OR (a.entityType = 'ITEM' AND a.entityId IN
+                   (SELECT i.id FROM com.beeznoo.api.item.entity.Item i WHERE i.owner.id = :profileId))
+            ORDER BY a.createdAt DESC
+            """,
+            countQuery = """
+            SELECT COUNT(a) FROM AuditLog a
+            WHERE (a.entityType = 'ACCOUNT' AND a.entityId = :profileId)
+               OR (a.entityType = 'KYC' AND a.entityId IN
+                   (SELECT k.id FROM com.beeznoo.api.kyc.entity.KycVerification k WHERE k.profile.id = :profileId))
+               OR (a.entityType = 'ITEM' AND a.entityId IN
+                   (SELECT i.id FROM com.beeznoo.api.item.entity.Item i WHERE i.owner.id = :profileId))
+            """)
+    Page<AuditLog> historyOfAccount(UUID profileId, Pageable pageable);
 }

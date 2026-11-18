@@ -19,6 +19,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import com.beeznoo.api.profile.entity.AdminPermission;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -51,18 +54,28 @@ public class JwtAuthFiltter  extends OncePerRequestFilter {
             UUID profileId = UUID.fromString(claims.getSubject());
             String role = claims.get("role", String.class);
             if (role == null || role.isBlank()) throw new JwtException("Token sem papel");
+            List<SimpleGrantedAuthority> authorities = new ArrayList<>();
             if (UserRole.ADMIN.name().equals(role)) {
                 // O papel vem no token (15 min). Para ADMIN confirma-se na BD em cada pedido: um admin despromovido
-                // ou suspenso perde os poderes já, não quando o token expirar (decisoes-produto.md 2026-11-17)
-                role = profileRepository.findActiveRoleById(profileId).map(Enum::name)
+                // ou suspenso perde os poderes já, não quando o token expirar (decisoes-produto.md 2026-11-17).
+                // As permissões da área vêm do papel de equipa (decisoes-produto.md 2026-11-18); sem papel de
+                // equipa, só ROLE_ADMIN (menor privilégio: nenhuma área além do que pedir só ROLE_ADMIN).
+                ProfileRepository.ActiveAccess access = profileRepository.findActiveAccessById(profileId)
                         .orElseThrow(() -> new JwtException("Conta inexistente ou suspensa"));
+                role = access.getRole().name();
+                if (access.getRole() == UserRole.ADMIN && access.getAdminRole() != null) {
+                    for (AdminPermission p : access.getAdminRole().permissions()) {
+                        authorities.add(new SimpleGrantedAuthority(p.authority()));
+                    }
+                }
             }
+            authorities.addFirst(new SimpleGrantedAuthority("ROLE_" + role));
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             profileId,
                             null,
-                            List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                            authorities
                     );
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (JwtException | IllegalArgumentException e) {

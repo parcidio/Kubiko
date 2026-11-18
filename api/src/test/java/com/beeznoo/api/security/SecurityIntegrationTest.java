@@ -437,7 +437,7 @@ class SecurityIntegrationTest {
                 .fullName("Pessoa Teste")
                 .phone(nextPhone())
                 .passwordHash(encoder.encode(PASSWORD))
-                .role(role)
+                .role(role).adminRole(role == UserRole.ADMIN ? com.beeznoo.api.profile.entity.AdminRole.SUPER_ADMIN : null)
                 .isVerified(true)
                 .build());
     }

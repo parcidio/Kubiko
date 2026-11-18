@@ -14,13 +14,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import com.beeznoo.api.config.AdminAccess;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/admin/security-events")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize(AdminAccess.AUDIT)
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Admin · Segurança", description = "Eventos de segurança (logins bloqueados, OTP, refresh roubado, 2FA)")
 public class AdminSecurityController {

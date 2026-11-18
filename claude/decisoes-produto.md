@@ -739,6 +739,8 @@ ativas; mapa usado na decisão da 2.ª província.
 foram integradas depois da V27 (zonas de serviço) e o Flyway recusa uma versão mais baixa numa base onde a V27 já
 esteja aplicada. A V26 fica por usar (o Flyway aceita saltos).
 
+---
+
 ## 2026-11-18 — Verificação de identidade visível, acesso da equipa ao KYC e números estrangeiros
 
 **Contexto.** (1) Pouca gente encontrava o "Verifica a tua identidade" (só um link na Conta e um 403 ao publicar/pedir).
@@ -835,3 +837,73 @@ serve a decisão da 2.ª província. **Utilizador-alvo:** donos (Publicar), equi
    autorizado); pedidos de localização à API 8–10 s. Retenção inalterada (histórico 12 meses; o mapa lê o perfil).
 
 **Em aberto.** Botão "Retirar consentimento" na conta (hoje: definições do browser ou pedido à equipa).
+
+---
+
+## 2026-11-18 — Acesso ao Admin por convite, papéis da equipa e back-office
+
+**Contexto.** Feedback do André (produção): a gestão de contas "não é profissional"; o botão "Tornar admin" estava
+exposto em cada linha de Admin › Utilizadores (um clique dava acesso total a dados de KYC e pagamentos); as ações eram
+rasas; o painel parecia um protótipo. Esta entrada **substitui a decisão 1 de 2026-11-17** (promover/retirar admin
+em Utilizadores).
+
+**Hipótese.** Com acesso por convite, papéis com o mínimo de permissões e ações com motivo e auditoria, a equipa
+(4 pessoas + quem vier) trabalha mais depressa e com menos risco de um erro ou de uma conta roubada expor dados de
+identidade. **Utilizador-alvo:** equipa Beeznoo. **Critério de sucesso:** 0 acessos de admin concedidos fora do fluxo
+de convite; 100% das ações sensíveis sobre contas com motivo em `audit_logs`; a equipa resolve um caso de conta
+(encontrar → ficha → ação) em < 2 min.
+
+**Decisões.**
+
+1. **Papéis da equipa** (`profiles.admin_role`, V31; só existe com `role = 'ADMIN'`):
+   | Papel | Pode |
+   |---|---|
+   | `SUPER_ADMIN` | tudo, incluindo Equipa e acessos, Auditoria e eventos de segurança |
+   | `OPERATIONS` | Operação (reservas, pagamentos/comissões, cauções, problemas), ver Utilizadores, notas, moderar equipamento, mensagens |
+   | `TRUST` | Confiança (verificações KYC, Utilizadores com ações: suspender, terminar sessões, repor telefone), notas, moderar equipamento, mensagens |
+   | `GROWTH` | Crescimento (mapa, zonas, mensagens) e ver Utilizadores (para escolher destinatários) |
+   Todos veem a Visão geral (métricas agregadas, sem dados pessoais). As permissões vêm da BD em cada pedido
+   (`JwtAuthFiltter` já confirmava o papel ADMIN na BD): mudar ou retirar um papel tem efeito no pedido seguinte.
+   Os admins existentes ficam `SUPER_ADMIN` (migração). Um ADMIN sem `admin_role` só vê a Visão geral (menor privilégio).
+2. **Acesso só por convite.** Um `SUPER_ADMIN` convida um utilizador existente (pela conta) ou um email, com um papel.
+   O convite tem um token aleatório de 32 bytes, guardado só como SHA-256, válido **72 h**, de uso único e revogável.
+   O link leva o token no **fragmento** (`/convite-equipa#…`), que o browser não envia a servidores nem fica em logs;
+   a aceitação é um `POST` com o token no corpo. Quem aceita tem de ter sessão iniciada, telefone confirmado, conta
+   não suspensa, e ser a pessoa convidada (a conta indicada, ou o email convidado **já confirmado**). Ao aceitar, as
+   sessões são revogadas: volta a entrar, agora com 2FA de admin. O link é mostrado uma vez a quem convida (para o
+   mandar por WhatsApp, manual antes de automatizar) e vai por email quando há email.
+3. **Pedidos de acesso: não construídos.** Não recomendo um botão "pedir acesso de admin" num marketplace aberto: dá
+   a qualquer conta uma porta para engenharia social e cria uma fila que ninguém precisa (a equipa conhece-se). O
+   convite cobre o caso "quero entrar na equipa" — a pessoa pede por fora e um SUPER_ADMIN convida. Revisitar se a
+   equipa passar de ~10 pessoas.
+4. **Equipa e acessos** (Admin › Sistema › Equipa): mudar o papel e retirar o acesso, sempre com motivo. Proteções:
+   ninguém muda nem retira o próprio acesso (sem auto-promoção nem auto-despromoção); fica sempre pelo menos um
+   `SUPER_ADMIN` ativo (bloqueio de linhas, como no último admin); retirar acesso devolve a conta a `BOTH` e revoga
+   as sessões. Auditoria: `ADMIN_INVITED`, `ADMIN_INVITATION_REVOKED`, `ADMIN_INVITATION_ACCEPTED`,
+   `ADMIN_ROLE_CHANGED`, `ADMIN_ACCESS_REVOKED`, na mesma transação. `PATCH /admin/users/{id}/role` é removido.
+5. **Gestão de contas** (Admin › Confiança › Utilizadores): tabela com pesquisa, filtros (papel, estado do KYC,
+   suspensão, telefone confirmado, data de registo), ordenação e paginação no servidor. Ficha com perfil, KYC (link
+   para Verificações), equipamento, reservas, notas internas e histórico (auditoria da conta e das verificações).
+   Ações com confirmação e **motivo obrigatório**: suspender, reativar, terminar sessões, repor confirmação do
+   telefone. Nota interna (`admin_user_notes`, só a equipa vê; append-only). "Enviar mensagem" abre Mensagens com a
+   pessoa escolhida. Cada ação fica em `audit_logs` (`SESSIONS_REVOKED`, `PHONE_VERIFICATION_RESET`, `USER_NOTE_ADDED`).
+   - **Terminar sessões** revoga os refresh tokens; o token de acesso já emitido dura ≤ 15 min (como na suspensão).
+   - **Repor telefone** obriga a confirmar o número outra vez. Para não trancar a pessoa: no login com telefone por
+     confirmar, a API envia um código novo e responde `403 phone_unverified`; o ecrã de entrar pede o código.
+6. **Reservas no Admin** (Operação): lista paginada com filtro por estado e pesquisa (equipamento, dono,
+   arrendatário) — não havia lista, só a ficha.
+7. **Back-office.** Barra lateral agrupada (Operação · Confiança · Crescimento · Sistema), barra de topo com menu
+   da pessoa (papel, sair), cabeçalhos de página iguais, tabelas densas, estados vazio/a carregar/erro em todas as
+   listas. Sem animações decorativas no Admin (DESIGN_SYSTEM §6, "Regras da app"). Desktop primeiro, tablet usável,
+   telemóvel legível. Só tokens de cor (claro/escuro).
+
+**Consequências.** Migração **V31** (`admin_role`, `admin_invitations`, `admin_user_notes`). Endpoints novos em
+`/api/v1/admin/team/**` (SUPER_ADMIN), `/api/v1/admin/access/me`, `/api/v1/team-access/invitations/{inspect,accept}`
+(qualquer sessão), `/api/v1/admin/users/{id}/{sessions/revoke,phone-verification/reset,notes,history}` e
+`/api/v1/admin/bookings`. Os controladores de admin passam de `hasRole('ADMIN')` para permissões por área.
+
+**Em aberto (⚑ validar com o André).**
+- Os quatro papéis e o que cada um pode (tabela acima).
+- Validade do convite (72 h).
+- Serviços que ainda decidem "é admin?" só pelo papel ADMIN (contratos, recibos, fichas de reserva) — qualquer
+  papel da equipa os abre. Restringir por área quando houver mais gente na equipa.

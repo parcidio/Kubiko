@@ -296,6 +296,13 @@ export const en: Dict = {
       failed: "We couldn't confirm the code.",
       submit: "Confirm and sign in",
     },
+    phoneConfirm: {
+      title: "Confirm your phone",
+      subtitle: "We sent a code by WhatsApp to your account's number. Confirm it to sign in.",
+      phone: "Your account's phone number",
+      errPhone: "Enter your account's phone number.",
+      submit: "Confirm and sign in",
+    },
     roles: {
       legend: "How will you use Beeznoo?",
       RENTER: { title: "I want to rent", text: "I'm looking for equipment for a job or an event." },
