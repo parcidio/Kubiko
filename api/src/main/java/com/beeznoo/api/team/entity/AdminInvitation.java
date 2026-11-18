@@ -8,7 +8,7 @@ import org.hibernate.annotations.UuidGenerator;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-/** Convite para a equipa (V31, decisoes-produto.md 2026-11-18). O token só existe em hash. */
+/** Convite para a equipa (V29, decisoes-produto.md 2026-11-18). O token só existe em hash. */
 @Entity
 @Table(name = "admin_invitations")
 @Getter

@@ -1,5 +1,5 @@
 -- ============================================================
--- V31 — Acesso ao Admin por convite, papéis da equipa e notas internas
+-- V29 — Acesso ao Admin por convite, papéis da equipa e notas internas
 -- decisoes-produto.md 2026-11-18
 -- ============================================================
 

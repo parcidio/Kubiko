@@ -819,7 +819,7 @@ serve a decisão da 2.ª província. **Utilizador-alvo:** donos (Publicar), equi
 1. **Consentimento na conta.** `profiles.location_consent_at` (V27) passa a ser a fonte: `GET /me/location` e
    `location` em `GET /profiles/me` devolvem `{consented, consentAt, updatedAt, inServiceArea, area, storedZoneUsable}` —
    **zona, nunca coordenadas**. Noutro dispositivo, com consentimento, a app não volta a perguntar; só chama a API do
-   browser em silêncio se a permissão já estiver dada nesse browser. Sem migração (V29 não usada).
+   browser em silêncio se a permissão já estiver dada nesse browser. Sem migração.
 2. **Publicar não espera pela localização.** O formulário aparece logo; a zona resolve-se num cartão no topo, por ordem:
    posição do browser já autorizada (≤ 8 s) → zona guardada na conta (última localização ≤ **30 dias** numa zona
    ativa) → a pessoa escolhe "Usar a minha localização" ou **a zona à mão** (lista das zonas ativas).
@@ -855,7 +855,7 @@ de convite; 100% das ações sensíveis sobre contas com motivo em `audit_logs`;
 
 **Decisões.**
 
-1. **Papéis da equipa** (`profiles.admin_role`, V31; só existe com `role = 'ADMIN'`):
+1. **Papéis da equipa** (`profiles.admin_role`, V29; só existe com `role = 'ADMIN'`):
    | Papel | Pode |
    |---|---|
    | `SUPER_ADMIN` | tudo, incluindo Equipa e acessos, Auditoria e eventos de segurança |
@@ -897,7 +897,7 @@ de convite; 100% das ações sensíveis sobre contas com motivo em `audit_logs`;
    listas. Sem animações decorativas no Admin (DESIGN_SYSTEM §6, "Regras da app"). Desktop primeiro, tablet usável,
    telemóvel legível. Só tokens de cor (claro/escuro).
 
-**Consequências.** Migração **V31** (`admin_role`, `admin_invitations`, `admin_user_notes`). Endpoints novos em
+**Consequências.** Migração **V29** (`admin_role`, `admin_invitations`, `admin_user_notes`). Endpoints novos em
 `/api/v1/admin/team/**` (SUPER_ADMIN), `/api/v1/admin/access/me`, `/api/v1/team-access/invitations/{inspect,accept}`
 (qualquer sessão), `/api/v1/admin/users/{id}/{sessions/revoke,phone-verification/reset,notes,history}` e
 `/api/v1/admin/bookings`. Os controladores de admin passam de `hasRole('ADMIN')` para permissões por área.

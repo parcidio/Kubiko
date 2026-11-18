@@ -54,7 +54,7 @@ public class Profile {
     @Builder.Default
     private UserRole role = UserRole.RENTER;
 
-    // Papel dentro da equipa (V31): só com role ADMIN. Concedido só por convite (decisoes-produto.md 2026-11-18)
+    // Papel dentro da equipa (V29): só com role ADMIN. Concedido só por convite (decisoes-produto.md 2026-11-18)
     @Enumerated(EnumType.STRING)
     @Column(name = "admin_role", length = 20)
     private AdminRole adminRole;
