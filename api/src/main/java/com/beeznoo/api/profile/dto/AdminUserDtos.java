@@ -45,9 +45,9 @@ public final class AdminUserDtos {
 
     /**
      * Ficha. activeSessions: refresh tokens válidos; lastSessionAt: início da sessão mais recente.
-     * emailVerified: email confirmado por código.
+     * emailVerified: email confirmado por código. avatarUrl: URL assinada de curta duração, a do Google, ou null (iniciais).
      */
-    public record AdminUserDetail(AdminUserSummary user, String city, String province, boolean emailVerified,
+    public record AdminUserDetail(AdminUserSummary user, String city, String province, String avatarUrl, boolean emailVerified,
                                   String accountType, String suspendedByName, long activeSessions,
                                   OffsetDateTime lastSessionAt, AdminUserKyc kyc, List<AdminUserItem> items,
                                   List<AdminUserBooking> recentBookings, long notes) {}

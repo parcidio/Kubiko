@@ -11,6 +11,7 @@ import { AuditTimeline } from "@/components/bz/admin-history";
 import { Can, useAdminAccess } from "@/components/bz/admin-shell";
 import { AdminTabs, DataTable, Pagination, TableSkeleton, Td, Th, Tr, pageTotal } from "@/components/bz/admin-table";
 import { ITEM_STATUS, KycBadge, RoleLabel } from "@/components/bz/admin-users";
+import { Avatar } from "@/components/bz/avatar";
 import { TextArea } from "@/components/bz/form";
 import { toast } from "@/components/bz/overlay";
 import { EmptyState, ErrorState } from "@/components/bz/states";
@@ -88,6 +89,7 @@ function Utilizador() {
       <BackLink href="/admin/utilizadores">Utilizadores</BackLink>
       <AdminHeader
         title={u.fullName}
+        leading={<Avatar name={u.fullName} src={d.avatarUrl} size="lg" />}
         meta={
           <>
             {u.suspendedAt ? <Badge tone="erro">Suspensa</Badge> : <Badge tone="ok">Ativa</Badge>}

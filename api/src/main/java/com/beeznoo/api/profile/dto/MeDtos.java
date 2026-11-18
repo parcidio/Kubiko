@@ -38,11 +38,12 @@ public class MeDtos {
             // consentimento de localização guardado na conta e zona (sem coordenadas) — decisoes-produto.md 2026-11-18
             LocationStatus location
     ) {
-        public static MeResponse from(Profile p, String kycStatus, boolean canTransact) {
-            return from(p, kycStatus, canTransact, null);
+        public static MeResponse from(Profile p, String avatarUrl, String kycStatus, boolean canTransact) {
+            return from(p, avatarUrl, kycStatus, canTransact, null);
         }
 
-        public static MeResponse from(Profile p, String kycStatus, boolean canTransact, LocationStatus location) {
+        public static MeResponse from(Profile p, String avatarUrl, String kycStatus, boolean canTransact,
+                                      LocationStatus location) {
             return new MeResponse(
                     p.getId(),
                     p.getFullName(),
@@ -50,7 +51,7 @@ public class MeDtos {
                     p.getEmail(),
                     p.getEmailVerifiedAt() != null,
                     p.getGoogleId() != null,
-                    p.getAvatarUrl(),
+                    avatarUrl,
                     p.getProvince(),
                     p.getCity(),
                     p.getRole().name(),

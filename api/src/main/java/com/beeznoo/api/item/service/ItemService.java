@@ -51,12 +51,14 @@ public class ItemService {
     private final BookingRepository bookingRepository;
     private final AuditService auditService;
     private final LocationService locationService;
+    private final com.beeznoo.api.profile.service.AvatarUrls avatarUrls;
 
     public ItemService(ItemRepository itemRepository, CategoryRepository categoryRepository,
                        ProfileRepository profileRepository, KycService kycService, PhotoUrls photoUrls,
                        ReviewService reviewService, BookingRepository bookingRepository, AuditService auditService,
-                       LocationService locationService) {
+                       LocationService locationService, com.beeznoo.api.profile.service.AvatarUrls avatarUrls) {
         this.locationService = locationService;
+        this.avatarUrls = avatarUrls;
         this.itemRepository = itemRepository;
         this.categoryRepository = categoryRepository;
         this.profileRepository = profileRepository;
@@ -288,6 +290,7 @@ public class ItemService {
                 item.getOwner().getId(),
                 item.getOwner().getFullName(),
                 kycService.isVerified(item.getOwner().getId()),
+                avatarUrls.of(item.getOwner()),
                 toCategoryResponse(item.getCategory()),
                 item.getTitle(),
                 item.getDescription(),

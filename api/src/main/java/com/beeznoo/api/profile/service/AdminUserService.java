@@ -83,6 +83,7 @@ public class AdminUserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final AuditService auditService;
     private final AuditLogRepository auditLogRepository;
+    private final AvatarUrls avatarUrls;
 
     // ---- Pesquisa ----
 
@@ -172,7 +173,8 @@ public class AdminUserService {
     public AdminUserDetail detail(UUID userId) {
         AdminUserSummary user = summary(userId);
         Map<String, Object> extra = jdbc.queryForMap("""
-                SELECT p.city, p.province, p.email_verified_at IS NOT NULL AS email_verified, p.account_type,
+                SELECT p.city, p.province, p.avatar_storage_key, p.avatar_url,
+                       p.email_verified_at IS NOT NULL AS email_verified, p.account_type,
                        (SELECT s.full_name FROM profiles s WHERE s.id = p.suspended_by) AS suspended_by,
                        (SELECT count(*) FROM refresh_tokens r
                         WHERE r.profile_id = p.id AND r.revoked_at IS NULL AND r.expires_at > now()) AS sessions,
@@ -180,6 +182,7 @@ public class AdminUserService {
                        (SELECT count(*) FROM admin_user_notes n WHERE n.profile_id = p.id) AS notes
                 FROM profiles p WHERE p.id = ?
                 """, userId);
+        String avatarUrl = avatarUrls.of((String) extra.get("avatar_storage_key"), (String) extra.get("avatar_url"));
         List<AdminUserKyc> kyc = jdbc.query("""
                 SELECT id, status, account_type, submitted_at, reviewed_at FROM kyc_verifications
                 WHERE profile_id = ? ORDER BY submitted_at DESC LIMIT 1
@@ -202,7 +205,7 @@ public class AdminUserService {
                         rs.getString("side"), rs.getString("status"), rs.getObject("start_date", LocalDate.class),
                         rs.getObject("end_date", LocalDate.class), rs.getObject("created_at", OffsetDateTime.class)),
                 userId, userId, userId, RECENT_BOOKINGS);
-        return new AdminUserDetail(user, (String) extra.get("city"), (String) extra.get("province"),
+        return new AdminUserDetail(user, (String) extra.get("city"), (String) extra.get("province"), avatarUrl,
                 Boolean.TRUE.equals(extra.get("email_verified")), (String) extra.get("account_type"),
                 (String) extra.get("suspended_by"), ((Number) extra.get("sessions")).longValue(),
                 extra.get("last_session") == null ? null : toOffset(extra.get("last_session")),

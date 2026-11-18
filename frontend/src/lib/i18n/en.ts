@@ -1075,6 +1075,20 @@ export const en: Dict = {
   },
 
   account: {
+    avatar: {
+      change: "Change photo",
+      add: "Add photo",
+      remove: "Remove",
+      uploading: "Uploading your photo…",
+      removing: "Removing your photo…",
+      saved: "Photo updated.",
+      removed: "Photo removed. Your initials will show instead.",
+      failed: "We couldn't upload the photo. Check your connection.",
+      notImage: "Choose an image (JPEG or PNG).",
+      retry: "Try again",
+      hint: "JPEG or PNG. People you rent with see this photo.",
+      alt: "Your profile photo",
+    },
     roles: { RENTER: "Renter", OWNER: "Equipment owner", BOTH: "I rent and I'm an owner", ADMIN: "Beeznoo team" },
     google: {
       linked: { title: "Google account linked", text: "You can now sign in with Google. If it was the same email, it's now verified." },

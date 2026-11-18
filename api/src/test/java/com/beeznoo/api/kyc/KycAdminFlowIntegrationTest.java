@@ -200,6 +200,6 @@ class KycAdminFlowIntegrationTest {
     private Profile profile(String name, UserRole role, String phone) {
         return profileRepository.saveAndFlush(Profile.builder()
                 .fullName(name).phone(phone).passwordHash("$2a$10$hash")
-                .role(role).isVerified(true).build());
+                .role(role).adminRole(role == UserRole.ADMIN ? com.beeznoo.api.profile.entity.AdminRole.SUPER_ADMIN : null).isVerified(true).build());
     }
 }

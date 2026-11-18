@@ -70,6 +70,8 @@ export interface Item {
   ownerName: string;
   /** KYC do dono aprovado (selo "Verificado") */
   ownerVerified: boolean;
+  /** Foto do dono (URL assinada de 1 h ou do Google); null → iniciais */
+  ownerAvatarUrl: string | null;
   category: Category | null;
   title: string;
   description: string | null;
@@ -300,6 +302,8 @@ export interface AdminUserDetail {
   lastSessionAt: string | null;
   /** verificação mais recente, sem documentos (esses só em Verificações) */
   kyc: { id: string; status: KycStatus; accountType: KycAccountType; submittedAt: string; reviewedAt: string | null } | null;
+  /** URL assinada de 1 h ou do Google; null → iniciais */
+  avatarUrl: string | null;
   items: { id: string; title: string; status: "ACTIVE" | "INACTIVE" | "SUSPENDED"; pricePerDay: number; featured: boolean }[];
   recentBookings: { id: string; itemTitle: string; side: "RENTER" | "OWNER"; status: BookingStatus; startDate: string; endDate: string; createdAt: string }[];
   notes: number;

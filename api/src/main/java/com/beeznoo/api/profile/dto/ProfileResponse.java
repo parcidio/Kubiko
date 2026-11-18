@@ -21,13 +21,13 @@ public record ProfileResponse (
         BigDecimal ratingAvg,
         OffsetDateTime createdAt
 ) {
-    public static ProfileResponse from(Profile profile) {
+    public static ProfileResponse from(Profile profile, String avatarUrl) {
         return new ProfileResponse(
                 profile.getId(),
                 profile.getPhone(),
                 profile.getFullName(),
                 profile.getEmail(),
-                profile.getAvatarUrl(),
+                avatarUrl,
                 profile.getProvince(),
                 profile.getCity(),
                 profile.getRole(),

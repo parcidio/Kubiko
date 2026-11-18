@@ -16,13 +16,18 @@ import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
 
 /** Cabeçalho de página do Admin: título, uma frase e as ações à direita (igual em todas as páginas). */
-export function AdminHeader({ title, text, action, meta }: { title: string; text?: string; action?: React.ReactNode; meta?: React.ReactNode }) {
+export function AdminHeader({ title, text, action, meta, leading }: {
+  title: string; text?: string; action?: React.ReactNode; meta?: React.ReactNode; leading?: React.ReactNode;
+}) {
   return (
     <div className="mb-5 flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-borda pb-5">
-      <div className="grid min-w-0 gap-1">
-        <h1 className="font-titulo text-2xl leading-tight font-bold tracking-tight text-verde md:text-[28px]">{title}</h1>
-        {text && <p className="max-w-2xl text-[15px] text-cinza">{text}</p>}
-        {meta && <div className="mt-1 flex flex-wrap items-center gap-2">{meta}</div>}
+      <div className="flex min-w-0 items-center gap-4">
+        {leading}
+        <div className="grid min-w-0 gap-1">
+          <h1 className="font-titulo text-2xl leading-tight font-bold tracking-tight text-verde md:text-[28px]">{title}</h1>
+          {text && <p className="max-w-2xl text-[15px] text-cinza">{text}</p>}
+          {meta && <div className="mt-1 flex flex-wrap items-center gap-2">{meta}</div>}
+        </div>
       </div>
       {action && <div className="flex flex-wrap items-center gap-2">{action}</div>}
     </div>
