@@ -49,7 +49,7 @@ export function PhotoPicker({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.url} alt={fmt(t.photoN, { n: i + 1 })} className="size-full object-cover" />
             {i === 0 ? (
-              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">{t.cover}</span>
+              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde-noite px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">{t.cover}</span>
             ) : (
               <button type="button" onClick={() => onCover(p.id)} className="absolute bottom-1.5 left-1.5 min-h-8 rounded-full bg-branco/90 px-2.5 text-xs font-bold text-verde">
                 {t.makeCover}
@@ -61,7 +61,7 @@ export function PhotoPicker({
               aria-label={fmt(t.remove, { n: i + 1 })}
               className="absolute top-0 right-0 flex size-11 items-center justify-center text-areia"
             >
-              <span className="flex size-8 items-center justify-center rounded-full bg-verde/80">
+              <span className="flex size-8 items-center justify-center rounded-full bg-verde-noite/80 text-white">
                 <X className="size-4" strokeWidth={2} aria-hidden />
               </span>
             </button>
@@ -156,7 +156,7 @@ export function SavedPhotoGrid({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.photUrl} alt={fmt(t.photoN, { n: i + 1 })} className="size-full object-cover" />
             {i === 0 && (
-              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">{t.cover}</span>
+              <span className="absolute top-1.5 left-1.5 rounded-full bg-verde-noite px-2 py-0.5 text-xs font-bold tracking-[0.08em] text-salvia uppercase">{t.cover}</span>
             )}
             <button
               type="button"
@@ -165,7 +165,7 @@ export function SavedPhotoGrid({
               aria-label={fmt(t.remove, { n: i + 1 })}
               className="absolute top-1 right-1 flex size-11 items-center justify-center rounded-full text-areia disabled:opacity-50"
             >
-              <span className="flex size-8 items-center justify-center rounded-full bg-verde/80">
+              <span className="flex size-8 items-center justify-center rounded-full bg-verde-noite/80 text-white">
                 <X className="size-4" strokeWidth={2} />
               </span>
             </button>

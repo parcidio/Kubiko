@@ -147,7 +147,7 @@ export default function VerificacaoPage() {
       )}
 
       {/* Fundo escuro: as fotos dos documentos leem-se melhor */}
-      <Card className="grid gap-4 border-0 bg-verde-noite p-4 text-areia">
+      <Card className="superficie-marca grid gap-4 border-0 bg-verde-noite p-4 text-areia">
         {type === "INDIVIDUAL" ? (
           <>
             <p className="flex items-center gap-2 font-bold">

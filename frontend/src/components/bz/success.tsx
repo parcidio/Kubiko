@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * SuccessCheck (v4): círculo `salvia-tint` que entra com `--ease-pop` (600 ms) e um check que aparece a seguir.
- * Para "Pedido enviado", "Pagamento confirmado", lista de espera. Com reduced-motion aparece logo no estado final.
+ * Para "Pedido enviado", "Pagamento confirmado". Com reduced-motion aparece logo no estado final.
  * Decorativo por omissão (o título ao lado diz o que aconteceu); passa `label` se estiver sozinho.
  */
 export function SuccessCheck({ size = 88, label, className }: { size?: number; label?: string; className?: string }) {

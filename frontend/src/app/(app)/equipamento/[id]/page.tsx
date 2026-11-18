@@ -123,7 +123,7 @@ export default function EquipamentoPage() {
             </Link>
             {photos.length > 1 && (
               <>
-                <span className="num absolute right-4 bottom-4 rounded-full bg-verde/75 px-3 py-1 text-[13px] font-bold text-areia backdrop-blur">
+                <span className="num absolute right-4 bottom-4 rounded-full bg-verde-noite/80 px-3 py-1 text-[13px] font-bold text-white backdrop-blur">
                   {photo + 1} / {photos.length}
                 </span>
                 <span aria-hidden className="absolute inset-x-0 bottom-5 flex justify-center gap-1.5">
@@ -134,7 +134,7 @@ export default function EquipamentoPage() {
               </>
             )}
             {item.featured && (
-              <span className="absolute top-4 right-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-verde px-3 text-[13px] font-bold text-areia md:right-auto md:left-4 [&_svg]:text-ambar">
+              <span className="absolute top-4 right-4 inline-flex h-8 items-center gap-1.5 rounded-full bg-verde-solido px-3 text-[13px] font-bold text-white md:right-auto md:left-4 [&_svg]:text-ambar">
                 <Sparkles className="size-4" strokeWidth={1.8} aria-hidden /> {t.featured}
               </span>
             )}
@@ -351,7 +351,7 @@ function DepositExplainer({ pricePerDay, deposit, feeRate }: { pricePerDay: numb
       <ol className="grid gap-4">
         {steps.map((s, i) => (
           <li key={s.t} className="flex gap-3">
-            <HexTile tone="salvia" size={40} className="num text-verde">{i + 1}</HexTile>
+            <HexTile tone="salvia" size={40} className="num">{i + 1}</HexTile>
             <div>
               <p className="font-bold text-verde">{s.t}</p>
               <p className="text-sm text-cinza">{s.d}</p>

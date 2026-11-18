@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { BadgeCheck, Banknote, Flag, LayoutDashboard, LogOut, Map as MapIcon, MapPinned, MessageSquareText, ScrollText, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { Logo } from "@/components/bz/brand";
 import { PageTransition } from "@/components/bz/motion";
+import { PreferencesMenu } from "@/components/bz/preferences";
 import { ErrorState } from "@/components/bz/states";
 import { ButtonLink } from "@/components/bz/ui";
 import { refreshSession } from "@/lib/api";
@@ -61,6 +62,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex h-16 items-center gap-3 px-4 md:px-6">
           <Logo dark href="/admin" />
           <span className="rounded-full bg-salvia px-2.5 py-0.5 text-xs font-bold tracking-[0.08em] text-verde uppercase">Equipa</span>
+          {/* Tema e língua (o mesmo controlo da app): o painel abre para a direita, sobre o conteúdo */}
+          <PreferencesMenu dark align="start" className="ml-auto" />
         </div>
         <nav aria-label="Admin" className="flex gap-1 overflow-x-auto px-2 pb-2 [scrollbar-width:none] md:grid md:gap-1 md:px-3">
           {ADMIN_NAV.map(({ href, label, icon: Icon }) => {

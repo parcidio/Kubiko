@@ -9,7 +9,6 @@ import LandingHowItWorks from "../../components/landing/HowItWorks";
 import LandingMarquee from "../../components/landing/Marquee";
 import LandingRoles from "../../components/landing/Roles";
 import LandingTrust from "../../components/landing/Trust";
-import LandingWaitlist from "../../components/landing/Waitlist";
 
 /**
  * Landing beeznoo.ao — Identidade Verde v4 (docs/DESIGN_SYSTEM.md, decisão 2026-11-16).
@@ -30,7 +29,6 @@ export default async function Home() {
         <LandingHowItWorks />
         <LandingRoles feeRate={feeRate} />
         <LandingTrust />
-        <LandingWaitlist />
         <LandingFaq feeRate={feeRate} />
       </main>
       <LandingFooter />
