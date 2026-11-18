@@ -290,6 +290,10 @@ export const en: Dict = {
   form: {
     genericError: "Something went wrong. Try again.",
     phone: "Phone",
+    phoneCountry: "Country code",
+    phoneOther: "Other country",
+    phoneOtherPh: "+country code and number",
+    phoneForeignHint: "Outside Angola, the code arrives on WhatsApp only.",
     password: "Password",
     showPassword: "Show password",
     hidePassword: "Hide password",
@@ -306,7 +310,7 @@ export const en: Dict = {
     google: "Continue with Google",
     googleSignUp: "Sign up with Google",
     codeLength: "The code has 6 digits.",
-    phoneDigits: "Enter the 9 digits of your number.",
+    phoneDigits: "Invalid number. Check the country code and the digits.",
     passwordMin: "Your password needs at least 8 characters.",
     passwordHint: "At least 8 characters.",
     confirming: "Confirming…",
@@ -318,6 +322,7 @@ export const en: Dict = {
     otpTitle: "Confirm your number",
     otpSentBefore: "We sent a code by WhatsApp to ",
     otpSentAfter: ". If you don't have WhatsApp, it arrives by SMS.",
+    otpSentAfterForeign: ". Numbers outside Angola get the code on WhatsApp only.",
     mfa: {
       title: "Confirm it's you",
       subtitle: "We sent a code by WhatsApp. Team accounts use two-step verification.",
@@ -335,10 +340,10 @@ export const en: Dict = {
       title: "Welcome back",
       subtitle: "Sign in to request bookings, pay and follow everything in one place.",
       identifier: "Phone or email",
-      identifierPh: "923 456 789 or name@email.com",
+      identifierPh: "923 456 789, +351 912 345 678 or name@email.com",
       errEmpty: "Enter your phone or email.",
       errEmail: "Enter a valid email.",
-      errPhone: "Enter the 9 digits of your number (or your email).",
+      errPhone: "Enter your number (outside Angola, with the country code, e.g. +351…) or your email.",
       errPassword: "Enter your password.",
       forgot: "Forgot your password?",
       submit: "Sign in",
@@ -714,6 +719,33 @@ export const en: Dict = {
 
   kyc: {
     redirectToast: "Verify your identity first. It's done by hand and can take up to 2 working days.",
+  },
+
+  kycCard: {
+    label: "Identity verification",
+    titles: {
+      account: "Verify your identity",
+      dashboard: "Verify your identity to receive requests",
+      publish: "Before publishing, verify your identity",
+      request: "Before requesting, verify your identity",
+    },
+    why: "It's required to request bookings and publish equipment: renters and owners know who they're dealing with.",
+    facts: {
+      needs: "ID card (front and back) and a selfie holding it. Business: NIF and registration certificate.",
+      time: "Sending takes 2 minutes. The team checks by hand within 2 working days.",
+      privacy: "Your documents stay private: only the Beeznoo team sees them.",
+    },
+    start: "Verify identity",
+    pending: {
+      title: "Identity under review",
+      text: "We received your documents. The team checks by hand within 2 working days.",
+      textAt: "We received your documents on {when}. The team checks by hand within 2 working days.",
+      notify: "We'll let you know in the app and by email when there's a decision.",
+    },
+    reasonLabel: "Reason:",
+    rejected: { title: "Your verification was rejected", text: "Fix what went wrong and send your documents again.", cta: "Send again" },
+    info: { title: "Your verification needs one more thing", noteLabel: "The team asks:", text: "The team needs another document or a clearer photo.", cta: "Send documents" },
+    approved: { title: "Identity verified", text: "You can request bookings and publish. The \"Verified\" badge shows on your profile." },
   },
 
   reserve: {

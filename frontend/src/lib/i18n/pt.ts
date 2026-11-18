@@ -287,6 +287,10 @@ export const pt = {
   form: {
     genericError: "Algo correu mal. Tenta outra vez.",
     phone: "Telefone",
+    phoneCountry: "Indicativo do país",
+    phoneOther: "Outro país",
+    phoneOtherPh: "+indicativo e número",
+    phoneForeignHint: "Fora de Angola, o código chega só por WhatsApp.",
     password: "Password",
     showPassword: "Mostrar password",
     hidePassword: "Esconder password",
@@ -303,7 +307,7 @@ export const pt = {
     google: "Continuar com Google",
     googleSignUp: "Registar com Google",
     codeLength: "O código tem 6 dígitos.",
-    phoneDigits: "Escreve os 9 dígitos do teu número.",
+    phoneDigits: "Número inválido. Confirma o indicativo do país e os dígitos.",
     passwordMin: "A password tem de ter pelo menos 8 caracteres.",
     passwordHint: "Pelo menos 8 caracteres.",
     confirming: "A confirmar…",
@@ -315,6 +319,7 @@ export const pt = {
     otpTitle: "Confirma o teu número",
     otpSentBefore: "Enviámos um código por WhatsApp para ",
     otpSentAfter: ". Se não tiveres WhatsApp, chega por SMS.",
+    otpSentAfterForeign: ". Números fora de Angola recebem o código só por WhatsApp.",
     mfa: {
       title: "Confirma que és tu",
       subtitle: "Enviámos um código por WhatsApp. As contas da equipa têm verificação em dois passos.",
@@ -332,10 +337,10 @@ export const pt = {
       title: "Olá outra vez",
       subtitle: "Entra para pedir reservas, pagar e acompanhar tudo num sítio.",
       identifier: "Telefone ou email",
-      identifierPh: "923 456 789 ou nome@email.com",
+      identifierPh: "923 456 789, +351 912 345 678 ou nome@email.com",
       errEmpty: "Escreve o teu telefone ou email.",
       errEmail: "Escreve um email válido.",
-      errPhone: "Escreve os 9 dígitos do teu número (ou o teu email).",
+      errPhone: "Escreve o teu número (fora de Angola, com o indicativo, ex.: +351…) ou o teu email.",
       errPassword: "Escreve a tua password.",
       forgot: "Esqueceste a password?",
       submit: "Entrar",
@@ -711,6 +716,33 @@ export const pt = {
 
   kyc: {
     redirectToast: "Verifica a tua identidade primeiro. É feito à mão e pode demorar até 2 dias úteis.",
+  },
+
+  kycCard: {
+    label: "Verificação de identidade",
+    titles: {
+      account: "Verifica a tua identidade",
+      dashboard: "Verifica a tua identidade para receberes pedidos",
+      publish: "Antes de publicar, verifica a tua identidade",
+      request: "Antes de pedires, verifica a tua identidade",
+    },
+    why: "É obrigatório para pedir reservas e publicar equipamento: quem aluga e quem empresta sabe com quem está a lidar.",
+    facts: {
+      needs: "BI (frente e verso) e uma selfie com o BI. Empresa: NIF e certidão.",
+      time: "Enviar leva 2 minutos. A equipa confere à mão em até 2 dias úteis.",
+      privacy: "Os documentos ficam privados: só a equipa Beeznoo os vê.",
+    },
+    start: "Verificar identidade",
+    pending: {
+      title: "Identidade em análise",
+      text: "Recebemos os teus documentos. A equipa confere à mão em até 2 dias úteis.",
+      textAt: "Recebemos os teus documentos a {when}. A equipa confere à mão em até 2 dias úteis.",
+      notify: "Avisamos-te na app e por email quando houver decisão.",
+    },
+    reasonLabel: "Motivo:",
+    rejected: { title: "A verificação foi recusada", text: "Corrige o que falhou e envia os documentos outra vez.", cta: "Enviar outra vez" },
+    info: { title: "Falta uma coisa na tua verificação", noteLabel: "A equipa pede:", text: "A equipa precisa de mais um documento ou de uma foto melhor.", cta: "Enviar documentos" },
+    approved: { title: "Identidade verificada", text: "Podes pedir reservas e publicar. O selo \"Verificado\" aparece no teu perfil." },
   },
 
   reserve: {
