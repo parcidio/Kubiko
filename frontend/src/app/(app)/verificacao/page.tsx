@@ -5,6 +5,7 @@ import { AlertTriangle, BadgeCheck, Building2, Clock, ScanFace, UserRound } from
 import { HexTile } from "@/components/bz/hex";
 import { LocationOptIn } from "@/components/bz/location";
 import { toast } from "@/components/bz/overlay";
+import { Tip } from "@/components/bz/tip";
 import { CameraSlot } from "@/components/bz/photo";
 import { PageHeader, StickyCTA } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
@@ -111,6 +112,8 @@ export default function VerificacaoPage() {
         <HexTile icon={BadgeCheck} tone="salvia" size={64} flip className="animate-sobe" />
         <PageHeader title={t.title} subtitle={t.subtitle} />
       </div>
+
+      <Tip id="verification" title={dict.tips.verification.title} steps={dict.tips.verification.steps} />
 
       {k.status === "REJECTED" && (
         <Callout tone="erro" icon={AlertTriangle} title={t.rejectedTitle}>

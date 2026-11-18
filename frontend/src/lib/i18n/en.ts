@@ -1355,6 +1355,138 @@ export const en: Dict = {
     publish: "List it",
   },
 
+  tips: {
+    howItWorks: "How it works",
+    howItWorksQ: "How does it work?",
+    hide: "Hide tip",
+    gotIt: "Got it",
+    explore: {
+      title: "Renting on Beeznoo, in 4 steps",
+      steps: [
+        "Pick the equipment and the days you need.",
+        "Send the owner a request. You don't pay anything yet.",
+        "The owner accepts and you arrange the handover on WhatsApp.",
+        "You pay the owner on handover. At the end, the owner returns your deposit.",
+      ],
+    },
+    reserve: {
+      title: "What happens after you send it",
+      steps: [
+        "The owner has up to 24 h to accept or decline.",
+        "If they accept, you arrange the time and place of the handover.",
+        "At the handover, you check the equipment together and pay the owner: rental, fee and deposit.",
+        "When you return it, the owner checks it and gives your deposit back.",
+      ],
+    },
+    booking: {
+      renter: {
+        PENDING_OWNER: {
+          title: "While you wait for the owner",
+          steps: [
+            "You haven't paid anything: you only pay the owner on handover.",
+            "If the owner doesn't reply within 24 h, the request expires and you can request other equipment.",
+          ],
+        },
+        ACCEPTED: {
+          title: "Request accepted: get ready for the handover",
+          steps: [
+            "Arrange the time and place with the owner.",
+            "Bring the full amount. Only pay the owner after you've checked the equipment.",
+            "The owner holds the deposit during the rental and gives it back when you return everything in good order.",
+          ],
+        },
+        ACTIVE: {
+          title: "Before you take the equipment",
+          steps: [
+            "Open the handover checklist and photograph the equipment with the owner.",
+            "The photos are your proof if there are doubts at the return.",
+          ],
+        },
+        IN_PROGRESS: {
+          title: "While you have the equipment",
+          steps: [
+            "Look after it and return it on the agreed date.",
+            "At the return, you do the photo checklist again.",
+            "If something goes wrong, tap Report a problem: the team will help.",
+          ],
+        },
+        RETURNED: {
+          title: "Your deposit comes back to you",
+          steps: [
+            "The owner checks the equipment and returns your deposit.",
+            "If they keep part of it, they must give the reason in the app.",
+            "If you disagree, report a problem within 7 days.",
+          ],
+        },
+      },
+      owner: {
+        PENDING_OWNER: {
+          title: "Before you accept",
+          steps: [
+            "Make sure the equipment is free and in good condition on those days.",
+            "You have up to 24 h to reply. After that, the request expires.",
+            "You don't receive anything now: the renter pays you on handover.",
+          ],
+        },
+        ACCEPTED: {
+          title: "You get paid on handover",
+          steps: [
+            "Arrange the time and place with the renter.",
+            "At the handover, you receive the rental, the service fee and the deposit.",
+            "Confirm here that you were paid: the booking becomes paid.",
+          ],
+        },
+        ACTIVE: {
+          title: "Hand over with photos",
+          steps: [
+            "Open the handover checklist and photograph the equipment with the renter present.",
+            "The photos protect you if the equipment comes back damaged.",
+          ],
+        },
+        IN_PROGRESS: {
+          title: "When the equipment comes back",
+          steps: [
+            "Check its condition with the return checklist.",
+            "Then return the deposit and record it in the app.",
+          ],
+        },
+        RETURNED: {
+          title: "Return the deposit",
+          steps: [
+            "If everything is in order, return the full deposit to the renter.",
+            "If there's damage, you can keep part of it, with a reason and photos.",
+            "Record here what you returned: the booking is then completed.",
+          ],
+        },
+      },
+    },
+    publish: {
+      title: "Earn from your equipment",
+      steps: [
+        "Publish with real photos, a daily price and a deposit.",
+        "You get requests and decide: accept or decline within 24 h.",
+        "At the handover, the renter pays you directly.",
+        "At the end, you return the deposit and pass the service fee on to Beeznoo.",
+      ],
+    },
+    verification: {
+      title: "How verification works",
+      steps: [
+        "Take clear photos of your ID card (front and back) and a selfie holding it.",
+        "A person on our team checks the documents.",
+        "You get a notice once it's approved. Then you can request and publish.",
+      ],
+    },
+    requests: {
+      title: "How to reply to a request",
+      steps: [
+        "Open the request and check the dates, the message and how much you get.",
+        "Accept or decline within 24 h. If you decline, say why.",
+        "Once you accept, arrange the handover. You get paid on handover and confirm it here.",
+      ],
+    },
+  },
+
   wallet: {
     periods: { "30": "Last 30 days", "90": "Last 90 days", all: "Since the start" },
     back: "Back",

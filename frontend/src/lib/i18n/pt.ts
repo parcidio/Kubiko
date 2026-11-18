@@ -1352,6 +1352,139 @@ export const pt = {
     publish: "Publicar",
   },
 
+  // "Como funciona" contextual (components/bz/tip.tsx): curto, concreto, pagamento direto ao dono.
+  tips: {
+    howItWorks: "Como funciona",
+    howItWorksQ: "Como funciona?",
+    hide: "Esconder dica",
+    gotIt: "Percebi",
+    explore: {
+      title: "Alugar na Beeznoo, em 4 passos",
+      steps: [
+        "Escolhe o equipamento e os dias de que precisas.",
+        "Envias o pedido ao dono. Ainda não pagas nada.",
+        "O dono aceita e combinam a entrega por WhatsApp.",
+        "Pagas ao dono na entrega. No fim, o dono devolve-te a caução.",
+      ],
+    },
+    reserve: {
+      title: "O que acontece depois de enviares",
+      steps: [
+        "O dono tem até 24 h para aceitar ou recusar.",
+        "Se aceitar, combinam a hora e o local da entrega.",
+        "Na entrega, conferem juntos o equipamento e pagas ao dono: aluguer, taxa e caução.",
+        "Quando devolves, o dono confere o estado e devolve-te a caução.",
+      ],
+    },
+    booking: {
+      renter: {
+        PENDING_OWNER: {
+          title: "Enquanto esperas pelo dono",
+          steps: [
+            "Não pagaste nada: só pagas ao dono na entrega.",
+            "Se o dono não responder em 24 h, o pedido expira e podes pedir outro equipamento.",
+          ],
+        },
+        ACCEPTED: {
+          title: "Pedido aceite: prepara a entrega",
+          steps: [
+            "Combina a hora e o local com o dono.",
+            "Leva o valor total. Pagas ao dono só depois de conferires o equipamento.",
+            "A caução fica com o dono durante o aluguer e volta para ti quando devolveres tudo em ordem.",
+          ],
+        },
+        ACTIVE: {
+          title: "Antes de levares o equipamento",
+          steps: [
+            "Abre o checklist de entrega e fotografa o estado do equipamento com o dono.",
+            "As fotos são a tua prova se houver dúvidas na devolução.",
+          ],
+        },
+        IN_PROGRESS: {
+          title: "Enquanto tens o equipamento",
+          steps: [
+            "Cuida dele e devolve-o na data combinada.",
+            "Na devolução, fazem outra vez o checklist com fotos.",
+            "Se algo correr mal, toca em Reportar problema: a equipa ajuda.",
+          ],
+        },
+        RETURNED: {
+          title: "A caução volta para ti",
+          steps: [
+            "O dono confere o equipamento e devolve-te a caução.",
+            "Se ficar com parte, tem de dar o motivo na app.",
+            "Se não concordares, reportas um problema até 7 dias depois.",
+          ],
+        },
+      },
+      owner: {
+        PENDING_OWNER: {
+          title: "Antes de aceitares",
+          steps: [
+            "Confirma que o equipamento está livre e em condições nesses dias.",
+            "Tens até 24 h para responder. Depois disso, o pedido expira.",
+            "Não recebes nada agora: o arrendatário paga-te na entrega.",
+          ],
+        },
+        ACCEPTED: {
+          title: "Recebes na entrega",
+          steps: [
+            "Combina a hora e o local com o arrendatário.",
+            "Na entrega, recebes o aluguer, a taxa de serviço e a caução.",
+            "Confirma aqui que recebeste: a reserva passa a paga.",
+          ],
+        },
+        ACTIVE: {
+          title: "Entrega com fotos",
+          steps: [
+            "Abre o checklist de entrega e fotografa o equipamento com o arrendatário presente.",
+            "As fotos protegem-te se o equipamento voltar com danos.",
+          ],
+        },
+        IN_PROGRESS: {
+          title: "Quando o equipamento voltar",
+          steps: [
+            "Confere o estado com o checklist de devolução.",
+            "Depois, devolve a caução e regista-o na app.",
+          ],
+        },
+        RETURNED: {
+          title: "Devolve a caução",
+          steps: [
+            "Se estiver tudo em ordem, devolve a caução completa ao arrendatário.",
+            "Se houver danos, podes ficar com parte, com motivo e fotos.",
+            "Regista aqui o que devolveste: a reserva fica concluída.",
+          ],
+        },
+      },
+    },
+    publish: {
+      title: "Ganhar com o teu equipamento",
+      steps: [
+        "Publicas com fotos reais, preço por dia e caução.",
+        "Recebes pedidos e decides: aceitas ou recusas em 24 h.",
+        "Na entrega, recebes o pagamento diretamente do arrendatário.",
+        "No fim, devolves a caução e entregas a taxa de serviço à Beeznoo.",
+      ],
+    },
+    verification: {
+      title: "Como funciona a verificação",
+      steps: [
+        "Tira fotos nítidas do BI (frente e verso) e uma selfie a segurar o BI.",
+        "Uma pessoa da equipa confirma os documentos.",
+        "Recebes um aviso quando estiver aprovado. Aí já podes pedir e publicar.",
+      ],
+    },
+    requests: {
+      title: "Como respondes a um pedido",
+      steps: [
+        "Abre o pedido e vê as datas, a mensagem e quanto recebes.",
+        "Aceita ou recusa em 24 h. Se recusares, diz o motivo.",
+        "Ao aceitar, combina a entrega. Recebes o pagamento na entrega e confirmas aqui.",
+      ],
+    },
+  },
+
   wallet: {
     periods: { "30": "Últimos 30 dias", "90": "Últimos 90 dias", all: "Desde o início" },
     back: "Voltar",
