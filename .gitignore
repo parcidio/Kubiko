@@ -15,4 +15,4 @@ target/
 *.log
 
 # MacOs
-.DS_Store
+.DS_Storegraphify-out/
