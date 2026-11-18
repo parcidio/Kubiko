@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import com.beeznoo.api.config.AdminAccess;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin/messages")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize(AdminAccess.MESSAGES)
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Admin · Mensagens", description = "Modelos e envio de mensagens da equipa (WhatsApp, email, SMS)")
 public class AdminMessageController {

@@ -317,7 +317,8 @@ export const adminApi = {
   },
   user: (id: string) => request<AdminUserDetail>(`/admin/users/${id}`),
   suspendUser: (id: string, reason: string) => post<AdminUserSummary>(`/admin/users/${id}/suspend`, { reason }),
-  reinstateUser: (id: string, reason?: string) => post<AdminUserSummary>(`/admin/users/${id}/reinstate`, { reason }),
+  // reativar exige motivo (2026-11-18); ações novas em lib/api-admin.ts
+  reinstateUser: (id: string, reason: string) => post<AdminUserSummary>(`/admin/users/${id}/reinstate`, { reason }),
   suspendItem: (id: string, reason: string) => patch<Item>(`/admin/items/${id}/suspend`, { reason }),
   reinstateItem: (id: string, reason?: string) => patch<Item>(`/admin/items/${id}/reinstate`, { reason }),
 };

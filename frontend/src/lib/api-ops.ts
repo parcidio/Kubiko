@@ -1,5 +1,5 @@
 import { request } from "./api";
-import type { AdminUserSummary, Page } from "./types";
+import type { Page } from "./types";
 import type {
   AdminMessageDetail, AdminMessageSummary, Heatmap, HeatmapScope, LatLng, LocationContext, LocationResult, MessageInput,
   MessagePreview, MessageTemplate, MessageTemplateInput, PublishEligibility, ServiceArea, ServiceAreaInput, WhatsAppCheck,
@@ -8,11 +8,6 @@ import type {
 /** Contrato: docs/API_ADMIN_MESSAGES_GEO.md (2026-11-17). */
 
 const json = (method: string, body?: unknown): RequestInit => ({ method, body: body === undefined ? undefined : JSON.stringify(body) });
-
-/** Admin › Utilizadores: dar/retirar papel de admin. 409 last_admin · self_demotion · account_suspended. */
-export const adminRoleApi = {
-  setAdmin: (userId: string, admin: boolean) => request<AdminUserSummary>(`/admin/users/${userId}/role`, json("PATCH", { admin })),
-};
 
 /** Admin › Mensagens: modelos, pré-visualização, envio e histórico. */
 export const adminMessageApi = {

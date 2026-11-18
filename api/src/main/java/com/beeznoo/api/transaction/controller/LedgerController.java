@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import com.beeznoo.api.config.AdminAccess;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -97,7 +98,7 @@ public class LedgerController {
             @ApiResponse(responseCode = "409", description = "Saldo disponível insuficiente para o débito",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize(AdminAccess.OPERATIONS)
     @PostMapping("/admin/accounts/{accountId}/adjust")
     public ResponseEntity<AccountResponse> adjust(
             @AuthenticationPrincipal UUID adminId,

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import com.beeznoo.api.config.AdminAccess;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin/deposits")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize(AdminAccess.OPERATIONS)
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Admin · Cauções", description = "Libertar ou reter a caução depois da devolução ou de um problema")
 public class AdminDepositController {

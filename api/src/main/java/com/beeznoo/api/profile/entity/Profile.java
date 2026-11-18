@@ -54,6 +54,11 @@ public class Profile {
     @Builder.Default
     private UserRole role = UserRole.RENTER;
 
+    // Papel dentro da equipa (V31): só com role ADMIN. Concedido só por convite (decisoes-produto.md 2026-11-18)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "admin_role", length = 20)
+    private AdminRole adminRole;
+
     // definido na submissão do KYC
     @Enumerated(EnumType.STRING)
     @Column(name = "account_type", nullable = false, length = 20)
@@ -121,11 +126,18 @@ public class Profile {
     protected void onCreate() {
         createdAt = OffsetDateTime.now();
         updatedAt = OffsetDateTime.now();
+        dropAdminRoleIfNotAdmin();
     }
 
     @PreUpdate
     protected void onUpdate() {
         updatedAt = OffsetDateTime.now();
+        dropAdminRoleIfNotAdmin();
+    }
+
+    // Só no sentido seguro: quem deixa de ser ADMIN perde o papel de equipa (nunca o contrário)
+    private void dropAdminRoleIfNotAdmin() {
+        if (role != UserRole.ADMIN) adminRole = null;
     }
 
 }

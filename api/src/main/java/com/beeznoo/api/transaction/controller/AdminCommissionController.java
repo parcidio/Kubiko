@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import com.beeznoo.api.config.AdminAccess;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/admin/commissions")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize(AdminAccess.OPERATIONS)
 @SecurityRequirement(name = "bearerAuth")
 @Tag(name = "Admin · Comissões", description = "Taxa de serviço que os donos devem à Beeznoo")
 public class AdminCommissionController {

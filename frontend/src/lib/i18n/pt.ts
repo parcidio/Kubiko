@@ -322,6 +322,13 @@ export const pt = {
       failed: "Não foi possível confirmar o código.",
       submit: "Confirmar e entrar",
     },
+    phoneConfirm: {
+      title: "Confirma o teu telefone",
+      subtitle: "Enviámos um código por WhatsApp para o número da tua conta. Confirma-o para entrar.",
+      phone: "Número de telefone da conta",
+      errPhone: "Escreve o número de telefone da tua conta.",
+      submit: "Confirmar e entrar",
+    },
     roles: {
       legend: "Como vais usar a Beeznoo?",
       RENTER: { title: "Quero alugar", text: "Procuro equipamento para um trabalho ou evento." },

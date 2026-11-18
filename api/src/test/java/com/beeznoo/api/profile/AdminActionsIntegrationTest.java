@@ -150,7 +150,9 @@ class AdminActionsIntegrationTest {
                 .isInstanceOf(IllegalStateException.class).hasMessageContaining("não está disponível");
         assertThat(itemRepository.findById(item.getId()).orElseThrow().getStatus()).isEqualTo(ItemStatus.ACTIVE);
 
-        adminUserService.reinstate(admin.getId(), owner.getId(), null);
+        assertThatThrownBy(() -> adminUserService.reinstate(admin.getId(), owner.getId(), null))
+                .isInstanceOf(IllegalArgumentException.class); // motivo obrigatório (2026-11-18)
+        adminUserService.reinstate(admin.getId(), owner.getId(), "Situação resolvida");
         assertThat(authService.login(new LoginRequest(owner.getPhone(), null, PASSWORD)).accessToken()).isNotBlank();
         assertThat(publicIds()).contains(item.getId());
         assertThat(actions(owner.getId())).containsExactly(AuditAction.ACCOUNT_SUSPENDED, AuditAction.ACCOUNT_REINSTATED);
@@ -159,10 +161,10 @@ class AdminActionsIntegrationTest {
     @Test
     void naoSuspendeAdminNemASiMesmo() {
         Profile other = profile("Outra Admin", null, UserRole.ADMIN);
-        assertThatThrownBy(() -> adminUserService.suspend(admin.getId(), other.getId(), "x"))
-                .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> adminUserService.suspend(admin.getId(), admin.getId(), "x"))
-                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> adminUserService.suspend(admin.getId(), other.getId(), "Motivo de teste"))
+                .isInstanceOf(com.beeznoo.api.common.exception.ApiException.class).extracting("code").isEqualTo("team_account");
+        assertThatThrownBy(() -> adminUserService.suspend(admin.getId(), admin.getId(), "Motivo de teste"))
+                .isInstanceOf(com.beeznoo.api.common.exception.ApiException.class).extracting("code").isEqualTo("self_action");
     }
 
     @Test
@@ -240,6 +242,6 @@ class AdminActionsIntegrationTest {
     private Profile profile(String name, String email, UserRole role) {
         return profileRepository.saveAndFlush(Profile.builder()
                 .fullName(name).phone("+244" + PHONE.incrementAndGet()).email(email).passwordHash(HASH)
-                .role(role).isVerified(true).build());
+                .role(role).adminRole(role == UserRole.ADMIN ? com.beeznoo.api.profile.entity.AdminRole.SUPER_ADMIN : null).isVerified(true).build());
     }
 }
