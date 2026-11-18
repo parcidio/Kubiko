@@ -1,5 +1,6 @@
 package com.beeznoo.api.auth.dto;
 
+import com.beeznoo.api.common.util.Phones;
 import com.beeznoo.api.profile.entity.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -33,6 +34,10 @@ public class AuthDtos {
             // opcional: localização com consentimento (arredondada a ~1 km); recusar não bloqueia o registo
             @jakarta.validation.Valid com.beeznoo.api.geo.dto.GeoDtos.LocationInput location
     ) {
+        public RegisterRequest {
+            phone = Phones.normalize(phone);
+        }
+
         public RegisterRequest(String fullName, String phone, String email, String password, UserRole role) {
             this(fullName, phone, email, password, role, null);
         }
@@ -42,7 +47,11 @@ public class AuthDtos {
     public record VerifyRegistrationRequest(
             @NotBlank @Pattern(regexp = PHONE) String phone,
             @NotBlank @Pattern(regexp = OTP, message = "O código tem 6 dígitos") String code
-    ) {}
+    ) {
+        public VerifyRegistrationRequest {
+            phone = Phones.normalize(phone);
+        }
+    }
 
     // ---- Login: telefone ou email + password ----
     public record LoginRequest(
@@ -51,14 +60,22 @@ public class AuthDtos {
             @Size(max = 254) String email,
 
             @NotBlank @Size(max = 128) String password
-    ) {}
+    ) {
+        public LoginRequest {
+            phone = Phones.normalize(phone);
+        }
+    }
 
     // ---- Recuperação: passo 1 — pede OTP ----
     public record PasswordResetRequest(
             @NotBlank
             @Pattern(regexp = PHONE, message = PHONE_MESSAGE)
             String phone
-    ) {}
+    ) {
+        public PasswordResetRequest {
+            phone = Phones.normalize(phone);
+        }
+    }
 
     // ---- Recuperação: passo 2 — confirma OTP + nova password ----
     public record PasswordResetConfirmRequest(
@@ -68,7 +85,11 @@ public class AuthDtos {
             @NotBlank
             @Size(min = 8, max = 72, message = "A password deve ter entre 8 e 72 caracteres")
             String newPassword
-    ) {}
+    ) {
+        public PasswordResetConfirmRequest {
+            phone = Phones.normalize(phone);
+        }
+    }
 
     // ---- Registo via Google: passo 1 — submete telefone + role, envia OTP ----
     public record GoogleRegisterRequest(
@@ -79,7 +100,11 @@ public class AuthDtos {
             String phone,
 
             @NotNull UserRole role
-    ) {}
+    ) {
+        public GoogleRegisterRequest {
+            phone = Phones.normalize(phone);
+        }
+    }
 
     // ---- Registo via Google: passo 2 — confirma número com OTP, cria o perfil ----
     public record GoogleVerifyRequest(

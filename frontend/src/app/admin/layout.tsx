@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { BadgeCheck, Banknote, Flag, LayoutDashboard, LogOut, Map as MapIcon, MapPinned, MessageSquareText, ScrollText, ShieldCheck, Users, type LucideIcon } from "lucide-react";
@@ -8,6 +8,7 @@ import { Logo } from "@/components/bz/brand";
 import { PageTransition } from "@/components/bz/motion";
 import { ErrorState } from "@/components/bz/states";
 import { ButtonLink } from "@/components/bz/ui";
+import { refreshSession } from "@/lib/api";
 import { signOut, useRequireSession } from "@/lib/auth";
 import { isAdmin } from "@/lib/mode";
 import { cn } from "@/lib/utils";
@@ -29,8 +30,20 @@ const ADMIN_NAV: { href: string; label: string; icon: LucideIcon }[] = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = useRequireSession();
   const pathname = usePathname();
+  // O papel vem do token (15 min). Quem acabou de receber acesso de admin ainda tem um token antigo e, nesta área,
+  // nenhum pedido falha com 401 para o renovar: renova uma vez antes de recusar. Se a promoção revogou a sessão,
+  // a renovação falha, a sessão local é limpa e useRequireSession leva a pessoa a entrar outra vez (com 2FA).
+  const [checked, setChecked] = useState(false);
+  const tried = useRef(false);
+  const needsCheck = !!session && !isAdmin(session.role) && !checked;
+  useEffect(() => {
+    if (!needsCheck || tried.current) return;
+    tried.current = true;
+    refreshSession().finally(() => setChecked(true));
+  }, [needsCheck]);
 
   if (!session) return null;
+  if (needsCheck) return <div role="status" aria-label="A carregar" className="app min-h-dvh" />;
   if (!isAdmin(session.role)) {
     return (
       <div className="app grid min-h-dvh place-items-center p-4">

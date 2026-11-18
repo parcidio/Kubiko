@@ -79,6 +79,11 @@ export default function UtilizadorPage() {
         <Card className="grid gap-4 p-5">
           <div className="flex flex-wrap items-center gap-2">
             <KycBadge status={u.kycStatus} />
+            {u.kycStatus && (
+              <Link href={`/admin/verificacoes?pessoa=${u.id}`} className="inline-flex min-h-11 items-center text-sm font-medium text-mel-texto hover:underline">
+                Ver documentos
+              </Link>
+            )}
             {!u.phoneVerified && <Badge tone="pendente">Telefone por confirmar</Badge>}
             <span className="text-sm text-cinza">
               <RoleLabel role={u.role} />

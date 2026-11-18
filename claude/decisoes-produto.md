@@ -738,3 +738,36 @@ ativas; mapa usado na decisão da 2.ª província.
 **Nota de schema (2026-11-17).** As mensagens da equipa entram como **V28** (`V28__admin_messages.sql`), não V26:
 foram integradas depois da V27 (zonas de serviço) e o Flyway recusa uma versão mais baixa numa base onde a V27 já
 esteja aplicada. A V26 fica por usar (o Flyway aceita saltos).
+
+## 2026-11-18 — Verificação de identidade visível, acesso da equipa ao KYC e números estrangeiros
+
+**Contexto.** (1) Pouca gente encontrava o "Verifica a tua identidade" (só um link na Conta e um 403 ao publicar/pedir).
+(2) A equipa dizia que os dados do KYC ficavam guardados mas que deixava de os conseguir rever. (3) Quem está em Luanda
+com número estrangeiro não conseguia registar-se: o frontend tinha o prefixo `+244` fixo e 9 dígitos (o backend já
+aceitava E.164 desde 2026-11-17).
+
+**Hipótese.** Se a pessoa vir o passo de verificação (o que é, porquê, quanto demora, o que precisa) no momento certo,
+mais pessoas chegam a "Verificado" antes do primeiro pedido; se a equipa vir todas as verificações, decide mais depressa;
+se estrangeiros residentes se puderem registar, aumenta a oferta e a procura. **Utilizador-alvo:** arrendatários e
+donos novos; equipa Beeznoo. **Critério de sucesso:** % de contas com KYC submetido nos primeiros 7 dias; tempo médio
+de decisão (já em Admin › Visão geral); registos com número fora de +244.
+
+**Decisões.**
+1. **Cartão de verificação** (`KycCard`, estado: por começar · em análise · recusada com motivo e "Enviar outra vez" ·
+   falta informação · verificada) na Conta, no Painel do dono, no início de Publicar e no lugar do pedido em Reservar.
+   Nos momentos com gate só aparece se o servidor exigir KYC (`canTransact`).
+2. **Causa da falta de acesso da equipa** (achados): a API de decisão e as URLs assinadas funcionam (teste de ponta a
+   ponta por HTTP: `KycAdminFlowIntegrationTest`), mas (a) a fila só mostrava `PENDING`/`IN_REVIEW` — depois de
+   recusar, aprovar ou pedir informação a verificação desaparecia e não havia forma de voltar aos documentos, enquanto a
+   Visão geral contava `INFO_REQUESTED` como pendente; (b) quem recebia acesso de admin (Admin › Utilizadores, desde
+   2026-11-17) ficava com o token antigo e a área de Admin recusava-o sem pedir nada à API, por isso a sessão nunca era
+   renovada. Correções: `GET /admin/kyc?status=OPEN|INFO_REQUESTED|REJECTED|APPROVED` e `?profileId=` (separadores em
+   Admin › Verificações e "Ver documentos" na ficha da pessoa); o Admin renova a sessão uma vez antes de recusar
+   (a promoção já revoga as sessões → entra outra vez com 2FA).
+3. **Documentos de KYC:** continuam guardados depois da decisão (nada é apagado); só URLs assinadas de 5 min, cada
+   abertura auditada (`KYC_DOCUMENTS_VIEWED`). ⚑ O prazo de retenção depois de aprovado/recusado continua em aberto
+   (ver 2026-10-23) — decidir com o André antes de implementar limpeza.
+4. **Telefone:** campo com indicativo do país (+244 por omissão, lista de países frequentes e "Outro país"),
+   normalização para E.164 no frontend (`lib/phone.ts`) e no backend (`Phones.normalize`, nos DTOs de registo,
+   verificação, login, recuperação e Google). O mesmo número escrito de outra forma é o mesmo (unicidade, login,
+   recuperação). Fora de +244 o código vai só por WhatsApp (sem alteração à decisão de 2026-11-17).

@@ -28,6 +28,14 @@ public interface KycVerificationRepository extends JpaRepository<KycVerification
     @EntityGraph(attributePaths = "profile")
     Page<KycVerification> findByStatusInOrderBySubmittedAtAsc(Collection<KycStatus> statuses, Pageable pageable);
 
+    // Admin › Verificações noutros separadores (à espera da pessoa, decididas): mais recente primeiro
+    @EntityGraph(attributePaths = "profile")
+    Page<KycVerification> findByStatusInOrderBySubmittedAtDesc(Collection<KycStatus> statuses, Pageable pageable);
+
+    // Todas as verificações de uma pessoa (a partir da ficha em Admin › Utilizadores), mais recente primeiro
+    @EntityGraph(attributePaths = "profile")
+    Page<KycVerification> findByProfileIdOrderBySubmittedAtDesc(UUID profileId, Pageable pageable);
+
     // SELECT ... FOR UPDATE — dois admins não decidem a mesma verificação ao mesmo tempo
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT k FROM KycVerification k WHERE k.id = :id")

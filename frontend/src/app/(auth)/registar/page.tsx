@@ -11,6 +11,7 @@ import { Button } from "@/components/bz/ui";
 import { authApi } from "@/lib/api";
 import { safeNext, signIn } from "@/lib/auth";
 import { isValidPhone, normalizePhone } from "@/lib/format";
+import { isForeignPhone } from "@/lib/phone";
 import { toLatLng, type ApproxLocation } from "@/lib/location";
 import { useT } from "@/lib/i18n/client";
 
@@ -78,7 +79,7 @@ function RegisterFlow() {
         <div className="h-6" />
         <AuthTitle
           title={a.otpTitle}
-          subtitle={<>{a.otpSentBefore}<strong className="num text-verde">{normalizePhone(phone)}</strong>{a.otpSentAfter}</>}
+          subtitle={<>{a.otpSentBefore}<strong className="num text-verde">{normalizePhone(phone)}</strong>{isForeignPhone(phone) ? a.otpSentAfterForeign : a.otpSentAfter}</>}
         />
         <form onSubmit={submitOtp} className="grid gap-5" noValidate>
           <OtpField value={code} onChange={setCode} error={errors.fields.code} />

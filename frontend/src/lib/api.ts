@@ -2,7 +2,7 @@ import { readSession, toSession, writeSession } from "./session";
 import type {
   Account, AdminMetrics, AdminPayment, AdminUserDetail, AdminUserSummary, AppNotification, Me, AuditLog, Availability, AvailabilityBlock, AuthResponse, Booking, Category, Checklist, ChecklistType,
   CommissionDue, Contract, Deposit, DirectChannel, Incident, IncidentType, Item, ItemCondition, ItemOrder, ItemSummary, KycAccountType, KycDetail,
-  KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
+  KycQueueFilter, KycQueueItem, KycStatusInfo, LedgerEntry, MyCommissions, Page, Payment, Review, SecurityEvent, SecuritySeverity, UserRole,
 } from "./types";
 import type { LatLng } from "./types-ops";
 import { docT } from "./i18n";
@@ -50,6 +50,14 @@ async function refreshTokens(): Promise<boolean> {
     .catch(() => false)
     .finally(() => (refreshing = null));
   return refreshing;
+}
+
+/**
+ * Renova o access token já (cookie bz_refresh). Serve para apanhar uma mudança de papel feita por outra pessoa da
+ * equipa (o papel vai no token). Devolve false se a sessão já não for válida (a sessão local é limpa).
+ */
+export function refreshSession(): Promise<boolean> {
+  return refreshTokens();
 }
 
 export async function request<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
@@ -282,7 +290,13 @@ export const adminApi = {
   settleCommissions: (ownerId: string, reason?: string) =>
     post<{ ownerId: string; payments: number; amount: number }>(`/admin/commissions/${ownerId}/settle`, { reason }),
   // KYC: fila (PENDING e IN_REVIEW, mais antigas primeiro), detalhe com URLs de 5 min, decisão
-  kycQueue: (page = 0, size = 50) => request<Page<KycQueueItem>>(`/admin/kyc?page=${page}&size=${size}`),
+  // status: OPEN (omissão) = por decidir · INFO_REQUESTED / REJECTED / APPROVED = já saíram da fila · profileId = todas de uma pessoa
+  kycQueue: (page = 0, size = 50, filter: { status?: KycQueueFilter; profileId?: string } = {}) => {
+    const q = new URLSearchParams({ page: String(page), size: String(size) });
+    if (filter.status) q.set("status", filter.status);
+    if (filter.profileId) q.set("profileId", filter.profileId);
+    return request<Page<KycQueueItem>>(`/admin/kyc?${q}`);
+  },
   kycDetail: (id: string) => request<KycDetail>(`/admin/kyc/${id}`),
   kycReview: (id: string, action: "START_REVIEW" | "APPROVE" | "REJECT" | "REQUEST_INFO", note?: string) =>
     patch<KycStatusInfo>(`/admin/kyc/${id}/review`, { action, note }),

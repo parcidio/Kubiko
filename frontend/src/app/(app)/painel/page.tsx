@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowUpRight, CreditCard, Inbox, Package, Plus, Radio, Ticket } from "lucide-react";
 import { HexTile } from "@/components/bz/hex";
+import { KycCard } from "@/components/bz/kyc";
 import { HexGlow } from "@/components/bz/brand";
 import { BookingRow } from "@/components/bz/booking";
 import { RequestCard } from "@/components/bz/requests";
@@ -101,6 +102,9 @@ export default function PainelPage() {
           </dl>
         </div>
       </section>
+
+      {/* Próximo passo enquanto a identidade não está verificada (sem ela, o equipamento não pode ser publicado) */}
+      <KycCard context="dashboard" />
 
       <section className="grid gap-4">
         <SectionTitle action={pending.length > 0 ? <Link href="/pedidos" className="inline-flex min-h-11 items-center text-sm font-bold text-mel-texto hover:underline">{t.seeAll}</Link> : null}>

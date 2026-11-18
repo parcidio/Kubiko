@@ -7,6 +7,7 @@ import { BadgeCheck, CheckCircle2, ChevronRight, CircleHelp, Clock, Languages, L
 import { HexGlow } from "@/components/bz/brand";
 import { FormError, OtpField, TextField, toFormErrors, type FormErrors } from "@/components/bz/form";
 import { HexTile } from "@/components/bz/hex";
+import { KycCard } from "@/components/bz/kyc";
 import { toast } from "@/components/bz/overlay";
 import { ModeSwitch } from "@/components/bz/shell";
 import { ErrorState } from "@/components/bz/states";
@@ -108,6 +109,7 @@ function ContaInner() {
           <Skeleton role="status" aria-label={dict.common.loading} className="h-72 rounded-cartao" />
         ) : (
           <>
+            <KycCard context="account" />
             <ProfileForm me={me.data} onSaved={me.setData} />
             <EmailVerification me={me.data} onVerified={me.setData} />
             <GoogleSection me={me.data} />
