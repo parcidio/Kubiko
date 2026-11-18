@@ -738,3 +738,29 @@ ativas; mapa usado na decisão da 2.ª província.
 **Nota de schema (2026-11-17).** As mensagens da equipa entram como **V28** (`V28__admin_messages.sql`), não V26:
 foram integradas depois da V27 (zonas de serviço) e o Flyway recusa uma versão mais baixa numa base onde a V27 já
 esteja aplicada. A V26 fica por usar (o Flyway aceita saltos).
+
+---
+
+## 2026-11-18 — Tema claro/escuro/sistema único; landing de produto em produção
+
+**Contexto.** O tema escuro só era aplicado pelo `AppShell` (num `useEffect`, depois da pintura) e pela página Conta.
+Resultado: flash ao carregar; ao sair da sessão a classe `.dark` ficava no `<html>` e o login ficava escuro (mas, num
+carregamento direto, claro); o admin herdava o escuro e não tinha forma de o mudar; a landing ignorava-o. O `<body>` usava
+ainda tokens antigos (estilo shadcn) com outros verdes/areias. A landing tinha a lista de espera, que já não faz sentido
+com a plataforma no ar.
+
+**Decisões (⚑ a validar pelo André):**
+
+1. **Um só mecanismo de tema** (`frontend/src/lib/theme-script.ts` + `lib/theme.ts`): escolha `claro` / `escuro` /
+   `sistema` guardada em `localStorage` (`beeznoo.theme`, preferência do aparelho, não da conta: mantém-se ao sair).
+   Um script no `<head>` do layout raiz aplica `.dark` e `color-scheme` antes da primeira pintura, em todas as rotas.
+   **Omissão: claro** (a identidade é 70% areia); "sistema" é opção explícita.
+2. **Onde se muda:** botão compacto "tema e língua" (`PreferencesMenu`) no cabeçalho da app, da landing, no canto do
+   ecrã de autenticação e na barra lateral do admin; controlo completo em Conta › Aparência; tema e língua no rodapé da landing.
+3. **Paleta escura** = os tokens da v4 com o mesmo papel (globals.css, `.dark`), AA verificado. Âmbar e sálvia levam sempre
+   texto verde-escuro (`sobre-ambar`, `sobre-salvia`). A landing segue o tema; blocos verdes e ilustrações mantêm as cores claras.
+4. **Landing em produção:** sai a lista de espera (formulário, contagem, CTAs, Google Apps Script na CSP). CTAs reais:
+   Explorar equipamento (âmbar), Publicar equipamento, Entrar / Criar conta; "Diz-nos o que procuras" vai para o WhatsApp.
+
+**Em aberto.** O slogan "Por que comprar quando podes alugar?" segue a norma brasileira na pergunta direta; em pt-PT
+escreve-se "Porque comprar quando podes alugar?". Não mudei por ser texto de marca congelado — decisão do André.

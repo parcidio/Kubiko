@@ -8,8 +8,8 @@ import { setTheme, useResolvedTheme, useThemePref, type ThemePref } from "@/lib/
 import { cn } from "@/lib/utils";
 import { LangSwitch } from "./lang-switch";
 
-/** Largura aproximada do painel, para decidir para que lado abre. */
-const PANEL_WIDTH = 288;
+/** Largura do painel (cabe o seletor de tema com texto); no telemóvel encolhe até ao ecrã menos 16px. */
+const PANEL_WIDTH = 312;
 
 const THEME_OPTIONS: { value: ThemePref; icon: LucideIcon }[] = [
   { value: "light", icon: Sun },
@@ -83,7 +83,7 @@ export function ThemeSwitch({ dark, iconsOnly, className }: { dark?: boolean; ic
  * `dark` = botão sobre fundos verdes. `align` = de que lado o painel abre em relação ao botão.
  */
 export function PreferencesMenu({ dark, align = "end", className }: { dark?: boolean; align?: "start" | "end"; className?: string }) {
-  const [pos, setPos] = useState<{ top: number; left?: number; right?: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const open = pos !== null;
   const resolved = useResolvedTheme();
   const lang = useLang();
@@ -96,10 +96,11 @@ export function PreferencesMenu({ dark, align = "end", className }: { dark?: boo
     if (open) return setPos(null);
     const r = button.current?.getBoundingClientRect();
     if (!r) return;
-    // Lado pedido, a menos que o painel (~288px) não caiba no ecrã: aí abre para o outro lado
+    // Alinhado ao lado pedido do botão, mas sempre dentro do ecrã (margem de 8px)
     const vw = window.innerWidth;
-    const start = align === "start" ? r.left + PANEL_WIDTH <= vw - 8 : r.right - PANEL_WIDTH < 8;
-    setPos(start ? { top: r.bottom + 8, left: Math.max(8, r.left) } : { top: r.bottom + 8, right: Math.max(8, vw - r.right) });
+    const width = Math.min(PANEL_WIDTH, vw - 16);
+    const wanted = align === "start" ? r.left : r.right - width;
+    setPos({ top: r.bottom + 8, left: Math.min(Math.max(8, wanted), vw - width - 8), width });
   };
 
   useEffect(() => {
@@ -159,16 +160,16 @@ export function PreferencesMenu({ dark, align = "end", className }: { dark?: boo
             id={panelId}
             role="dialog"
             aria-label={t.preferences}
-            style={{ top: pos.top, left: pos.left, right: pos.right }}
+            style={{ top: pos.top, left: pos.left, width: pos.width }}
             onBlur={(e) => {
               const next = e.relatedTarget as Node | null;
               if (next && !panel.current?.contains(next) && next !== button.current) setPos(null);
             }}
-            className="fixed z-[90] grid w-max max-w-[calc(100vw-16px)] min-w-64 animate-aparece gap-3 rounded-sheet border border-borda bg-branco p-3 text-left font-corpo text-[15px] text-verde shadow-sheet"
+            className="fixed z-[90] grid animate-aparece gap-3 rounded-sheet border border-borda bg-branco p-3 text-left font-corpo text-[15px] text-verde shadow-sheet"
           >
             <div className="grid gap-1.5">
               <p className="px-1 text-xs font-bold tracking-[0.12em] text-cinza uppercase">{t.theme}</p>
-              <ThemeSwitch />
+              <ThemeSwitch className="w-full" />
             </div>
             <div className="grid gap-1.5 border-t border-borda pt-3">
               <p className="px-1 text-xs font-bold tracking-[0.12em] text-cinza uppercase">{t.language}</p>

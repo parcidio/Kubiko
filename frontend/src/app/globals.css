@@ -211,6 +211,9 @@
   --color-borda-forte: #B9C2B5; --color-erro: #B3261E; --color-erro-tint: #FBEAE8; --color-skeleton: #ECE6DA;
 }
 
+/* Campos brancos sobre heróis claros-fixos (pesquisa e datas do Explorar): controlos nativos em modo claro */
+.dark :is(.hero-explore, .superficie-ambar, .sobre-heroi) { color-scheme: light; }
+
 /* Cor do fundo da página, resolvida no .app (para os recortes do bilhete) */
 .app { --fundo-pagina: var(--color-areia); }
 
@@ -230,6 +233,10 @@
   background-size: 200% 100%;
   background-repeat: no-repeat;
   animation: var(--animate-brilho);
+}
+/* No escuro o brilho branco a 55% ofusca: reduz-se a um reflexo subtil */
+.dark .skeleton-brilho {
+  background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, .07) 50%, transparent 100%);
 }
 
 /* Faixa horizontal com scroll por toque (sem barra) */

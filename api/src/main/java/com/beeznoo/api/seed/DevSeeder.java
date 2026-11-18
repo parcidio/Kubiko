@@ -141,8 +141,8 @@ public class DevSeeder implements ApplicationRunner {
                 "RAW 6K, encaixe EF. Inclui 3 baterias NP-F, monitor e SSD 1 TB.");
         item(luzia, "aputure", "iluminacao", "Aputure 300d II com softbox", ItemCondition.GOOD, 14_000, 42_000, "Maianga",
                 "LED 300 W, luz do dia. Inclui Light Dome II e tripé.");
-        item(luzia, "epson", "eventos", "Projetor Epson EB-X51 + tela 3 m", ItemCondition.GOOD, 12_000, 36_000, "Maianga",
-                "3.800 lumens, HDMI. Para conferências e casamentos. Inclui tela com tripé e cabo de 10 m.");
+        item(luzia, "epson", "eventos", "Projetor Epson EB-X51 + ecrã 3 m", ItemCondition.GOOD, 12_000, 36_000, "Maianga",
+                "3.800 lumens, HDMI. Para conferências e casamentos. Inclui ecrã com tripé e cabo de 10 m.");
         item(paulo, "fuji", "fotografia", "Fujifilm X-T4 + XF 18-55mm", ItemCondition.LIKE_NEW, 18_000, 54_000, "Kilamba",
                 "Simulações de filme, ecrã articulado. Inclui 3 baterias.");
         item(paulo, "zoom", "audio", "Gravador Zoom H6", ItemCondition.FAIR, 7_000, 21_000, "Kilamba",
@@ -229,7 +229,7 @@ public class DevSeeder implements ApplicationRunner {
         pay(admin, luzia, paulo, r10);
         deliver(luzia, paulo, r10);
         incidentService.report(paulo, r10, IncidentType.DAMAGE,
-                "A tela rasgou num canto durante a montagem. O projetor está bom.", null);
+                "O ecrã rasgou-se num canto durante a montagem. O projetor está bom.", null);
 
         log.info("Seed: 7 pessoas, {} equipamentos, 17 reservas, 6 avaliações.", items.size());
     }
