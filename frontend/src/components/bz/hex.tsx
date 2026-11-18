@@ -8,7 +8,7 @@ export type HexTone = "verde" | "salvia" | "areia" | "salvia-tint" | "ambar-tint
 
 const HEX_TONE: Record<HexTone, string> = {
   verde: "bg-verde-solido text-ambar", // ícone âmbar sobre verde (passos, confiança); continua verde no tema escuro
-  salvia: "bg-salvia text-verde", // ícone verde sobre sálvia
+  salvia: "bg-salvia text-sobre-salvia", // ícone verde-escuro sobre sálvia (nos dois temas)
   areia: "bg-areia-2 text-mel", // estados vazios
   "salvia-tint": "bg-salvia-tint text-verde-medio", // positivo
   "ambar-tint": "bg-ambar-tint text-aviso-texto", // prazo/aviso

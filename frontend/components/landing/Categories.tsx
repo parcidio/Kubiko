@@ -18,6 +18,7 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import { whatsappLink } from "@/lib/booking";
 import { useT } from "@/lib/i18n/client";
 import { Hex3D } from "./Brand";
 
@@ -131,7 +132,7 @@ export default function LandingCategories() {
                 <ArrowRight className="lp-btn__arr" size={20} strokeWidth={1.8} aria-hidden="true" />
               </Link>
             ) : (
-              <a href="#lista" className="lp-btn lp-btn--o">
+              <a href={whatsappLink(t.tellUsMessage)} target="_blank" rel="noopener noreferrer" className="lp-btn lp-btn--o">
                 {t.tellUs}
               </a>
             )}

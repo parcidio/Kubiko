@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LangSwitch } from "@/components/bz/lang-switch";
+import { PreferencesMenu } from "@/components/bz/preferences";
 import { getT } from "@/lib/i18n/server";
 import { BeeznooMark } from "./Brand";
 
@@ -7,6 +7,7 @@ import { BeeznooMark } from "./Brand";
 export default async function LandingHeader() {
   const t = (await getT()).landing.nav;
   const LINKS = [
+    { href: "/explorar", label: t.explore },
     { href: "#como", label: t.how },
     { href: "#categorias", label: t.categories },
     { href: "#donos", label: t.owners },
@@ -23,15 +24,22 @@ export default async function LandingHeader() {
           </span>
         </a>
         <nav className="lp-navlinks" aria-label={t.main}>
-          {LINKS.map((l) => (
-            <a key={l.href} href={l.href}>
-              {l.label}
-            </a>
-          ))}
+          {LINKS.map((l) =>
+            l.href.startsWith("/") ? (
+              <Link key={l.href} href={l.href}>
+                {l.label}
+              </Link>
+            ) : (
+              <a key={l.href} href={l.href}>
+                {l.label}
+              </a>
+            ),
+          )}
         </nav>
-        <div className="lp-nav__actions">
-          {/* Abaixo de 400px o seletor fica só no rodapé (não cabe ao lado dos dois botões) */}
-          <LangSwitch dark className="lp-lang-hdr" />
+        {/* sobre-heroi: os controlos (tokens da app) mantêm as cores claras sobre o verde, também no tema escuro */}
+        <div className="lp-nav__actions sobre-heroi">
+          {/* Tema e língua num só botão compacto (ícone + PT/EN; abaixo de 400px só o ícone) */}
+          <PreferencesMenu dark className="lp-prefs-hdr" />
           <Link href="/entrar" className="lp-btn lp-btn--l">
             {t.signIn}
           </Link>

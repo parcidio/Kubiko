@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { BadgeCheck, ShieldCheck, Ticket } from "lucide-react";
 import { HexGlow, Logo } from "@/components/bz/brand";
 import { HEX_CLIP, HexTile } from "@/components/bz/hex";
-import { LangSwitch } from "@/components/bz/lang-switch";
+import { PreferencesMenu } from "@/components/bz/preferences";
 import { useT } from "@/lib/i18n/client";
 
 const PROMISE_ICONS = [BadgeCheck, ShieldCheck, Ticket];
@@ -75,7 +75,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* pr-20 no telemóvel: o hexágono 3D ocupa o canto superior direito */}
         <div className="relative flex items-center justify-between gap-3 pr-20 md:pr-0">
           <Logo dark href="/" />
-          <LangSwitch dark className="md:mr-28" />
+          <PreferencesMenu dark className="md:mr-28" />
         </div>
         <div className="relative mt-8 grid gap-4 md:mt-0">
           <p className="max-w-[16ch] font-titulo text-[34px] leading-[1.02] font-extrabold tracking-[-0.025em] text-white md:text-[56px]">

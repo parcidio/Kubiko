@@ -14,7 +14,7 @@ import { canOwn, canRent, isAdmin, setMode, useMode, type Mode } from "@/lib/mod
 import { fmt, type Dict } from "@/lib/i18n";
 import { useT } from "@/lib/i18n/client";
 import { useUnreadCount } from "@/lib/notifications";
-import { LangSwitch } from "./lang-switch";
+import { PreferencesMenu } from "./preferences";
 import { cn } from "@/lib/utils";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
@@ -173,8 +173,8 @@ export function TopBar() {
         {/* relative: a partir de 1440px o Publicar sai para a margem (absolute), e o seletor fica no mesmo sítio nos dois modos */}
         <div className="relative ml-auto flex items-center gap-2">
           <ModeSwitch dark={dark} className="hidden md:grid" />
-          {/* No telemóvel o seletor de língua vive em Conta (e no cabeçalho só para visitantes) */}
-          <LangSwitch dark={dark} className={session ? "hidden md:inline-flex" : undefined} />
+          {/* Tema e língua num só botão compacto (também em Conta › Aparência) */}
+          <PreferencesMenu dark={dark} />
           {session && <NotificationBell dark={dark} active={isActive(pathname, "/atividade")} />}
           {session && isAdmin(session.role) && (
             <ButtonLink href="/admin" variant={dark ? "on-dark" : "soft"} size="sm" className="hidden md:inline-flex">
@@ -271,11 +271,6 @@ export function OfflineBanner() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isFullBleed = pathname.startsWith("/explorar") || pathname.startsWith("/painel");
-
-  useEffect(() => {
-    const savedTheme = window.localStorage.getItem("beeznoo.theme");
-    document.documentElement.classList.toggle("dark", savedTheme === "dark");
-  }, []);
 
   return (
     <div className="app min-h-dvh">

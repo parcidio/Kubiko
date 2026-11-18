@@ -4,6 +4,7 @@ import { Toaster } from "@/components/bz/overlay";
 import { getDict, LOCALE } from "@/lib/i18n";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLang } from "@/lib/i18n/server";
+import { THEME_SCRIPT } from "@/lib/theme-script";
 import "./globals.css";
 
 const bricolageGrotesk = localFont({
@@ -89,8 +90,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-// Cor da barra do browser no telemóvel (verde da marca)
-export const viewport: Viewport = { themeColor: "#0E2A1F" };
+// Cor da barra do browser no telemóvel (verde da marca; no tema escuro do sistema, o fundo escuro da app)
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#0E2A1F" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B1A14" },
+  ],
+};
 
 export default async function RootLayout({
   children,
@@ -104,7 +110,13 @@ export default async function RootLayout({
       className={`${bricolageGrotesk.variable} ${spaceGrotesk.variable} ${dmSans.variable} scroll-smooth`}
       // Fontes da app (Identidade Verde v3): font-titulo / font-corpo em globals.css
       style={{ "--bz-display": bricolageGrotesk.style.fontFamily, "--bz-sans": dmSans.style.fontFamily } as React.CSSProperties}
+      // O script do tema muda class/style do <html> antes de o React hidratar (lib/theme-script.ts)
+      suppressHydrationWarning
     >
+      <head>
+        {/* Tema antes da primeira pintura, em todas as rotas (landing, autenticação, app, admin): sem flash */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <I18nProvider lang={lang}>
           {children}

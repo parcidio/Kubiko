@@ -94,7 +94,7 @@ export function BookingTicket({ booking, as }: { booking: Booking; as: "renter" 
           <dd className="num font-titulo text-lg font-bold">{days}</dd>
         </div>
         <div className="col-span-3 flex items-center gap-3 border-t border-white/10 pt-3">
-          <Avatar name={other.name} size="sm" className="bg-salvia text-verde" />
+          <Avatar name={other.name} size="sm" className="bg-salvia text-sobre-salvia" />
           <div className="min-w-0">
             <dt className="text-[11px] font-bold tracking-[0.12em] text-salvia uppercase">{other.role}</dt>
             <dd className="truncate font-medium">{other.name}</dd>
@@ -232,7 +232,7 @@ function TimelineDot({ isDone, isNow, isProblem, index }: { isDone: boolean; isN
     <span
       className={cn(
         "relative z-[1] flex size-7 shrink-0 items-center justify-center rounded-full border-2",
-        isDone && "timeline-acende border-salvia bg-salvia text-verde",
+        isDone && "timeline-acende border-salvia bg-salvia text-sobre-salvia",
         isNow && "border-ambar bg-ambar-tint ring-4 ring-ambar/25",
         isProblem && "border-erro bg-erro text-branco",
         !isDone && !isNow && !isProblem && "border-borda-forte bg-branco",

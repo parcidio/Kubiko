@@ -3,7 +3,7 @@ import { fmt } from "@/lib/i18n";
 import { getLang, getT } from "@/lib/i18n/server";
 import { Clock } from "lucide-react";
 import { Hex3D } from "./Brand";
-import WaitlistLink from "./WaitlistLink";
+import Link from "next/link";
 
 /**
  * Uma conta, dois papéis. Os cartões em 3D são ilustrações com um exemplo de valores (aria-hidden),
@@ -36,9 +36,9 @@ export default async function LandingRoles({ feeRate }: { feeRate: number }) {
             <p>
               {t.renterText}
             </p>
-            <WaitlistLink objetivo="alugar" className="lp-btn lp-btn--g">
+            <Link href="/explorar" className="lp-btn lp-btn--g">
               {t.renterCta}
-            </WaitlistLink>
+            </Link>
             <div className="lp-mock3d" aria-hidden="true">
               <div className="lp-mock lp-mock--sand lp-num">
                 <div className="lp-sg lp-mock__title" style={{ marginBottom: 8 }}>
@@ -81,9 +81,9 @@ export default async function LandingRoles({ feeRate }: { feeRate: number }) {
             <p>
               {t.ownerText}
             </p>
-            <WaitlistLink objetivo="disponibilizar" className="lp-btn lp-btn--o">
+            <Link href="/publicar" className="lp-btn lp-btn--o">
               {t.ownerCta}
-            </WaitlistLink>
+            </Link>
             <div className="lp-mock3d" aria-hidden="true">
               <div className="lp-mock lp-mock--white">
                 <div className="lp-owner__top">

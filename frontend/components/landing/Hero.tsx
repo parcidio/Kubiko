@@ -1,13 +1,14 @@
+import Link from "next/link";
 import { landingExample } from "@/lib/format";
 import { fmt } from "@/lib/i18n";
 import { getLang, getT } from "@/lib/i18n/server";
 import { ArrowRight, BadgeCheck, Camera, Check, Clock, Search, Undo2 } from "lucide-react";
 import { Hex3D, HexGrid } from "./Brand";
-import { Countdown, HeroStage } from "./HeroClient";
+import { HeroStage } from "./HeroClient";
 
 /**
  * Hero escuro: título "linha a linha", traço desenhado na palavra de destaque (salvia sobre verde),
- * telemóvel e hexágonos 3D só em CSS. Sem formulário: a lista de espera tem secção própria (#lista).
+ * telemóvel e hexágonos 3D só em CSS. CTAs da plataforma em produção: Explorar (âmbar, o único) e Publicar.
  * O telemóvel é uma ilustração (aria-hidden) com um exemplo de preço, não um anúncio real.
  */
 // feeRate: taxa em vigor (PAYMENTS_SERVICE_FEE_RATE via API); o exemplo de preço recalcula-se com ela
@@ -47,16 +48,15 @@ export default async function LandingHero({ feeRate }: { feeRate: number }) {
             {t.lead}
           </p>
           <div className="lp-hero__ctas lp-fade lp-fade--2">
-            <a href="#lista" className="lp-btn lp-btn--p">
-              {t.ctaWaitlist}
+            <Link href="/explorar" className="lp-btn lp-btn--p">
+              {t.ctaExplore}
               <ArrowRight className="lp-btn__arr" size={20} strokeWidth={1.8} aria-hidden="true" />
-            </a>
-            <a href="#como" className="lp-btn lp-btn--o">
-              {t.ctaHow}
-            </a>
+            </Link>
+            <Link href="/publicar" className="lp-btn lp-btn--o">
+              {t.ctaPublish}
+            </Link>
           </div>
           <div className="lp-hero__meta lp-fade lp-fade--3">
-            <Countdown label={t.countdown} units={t.units} />
             <ul className="lp-perks">
               {t.perks.map((p) => (
                 <li key={p}>

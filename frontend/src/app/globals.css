@@ -2,176 +2,33 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Tema: a classe .dark no <html> é posta pelo script do <head> (lib/theme-script.ts) antes da primeira pintura,
+ * conforme a escolha guardada (claro / escuro / sistema). Um só mecanismo para landing, autenticação, app e admin.
+ * Os tokens de cor são os da Identidade Verde v4 (docs/DESIGN_SYSTEM.md §2/§10), mais abaixo; o tema escuro
+ * redefine-os em .dark. (Os tokens antigos ao estilo shadcn — background, primary, shield… — foram removidos:
+ * não eram usados e davam ao <body> um verde/areia diferentes dos da app.)
+ */
 @theme inline {
   --font-sans:    "DM Sans",           ui-sans-serif, system-ui, sans-serif;
   --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
 
-  --radius-sm:  calc(var(--radius) - 4px);
-  --radius-md:  calc(var(--radius) - 2px);
-  --radius-lg:  var(--radius);
-  --radius-xl:  calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
-
-  --color-background:           var(--background);
-  --color-foreground:           var(--foreground);
-  --color-card:                 var(--card);
-  --color-card-foreground:      var(--card-foreground);
-  --color-popover:              var(--popover);
-  --color-popover-foreground:   var(--popover-foreground);
-  --color-primary:              var(--primary);
-  --color-primary-foreground:   var(--primary-foreground);
-  --color-secondary:            var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted:                var(--muted);
-  --color-muted-foreground:     var(--muted-foreground);
-  --color-accent:               var(--accent);
-  --color-accent-foreground:    var(--accent-foreground);
-  --color-destructive:          var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border:               var(--border);
-  --color-border-bg:            var(--border-bg);
-  --color-input:                var(--input);
-  --color-ring:                 var(--ring);
-  --color-ring-offset-background: var(--background);
-
-  --color-shield:           var(--shield);
-  --color-shield-foreground: var(--shield-foreground);
-  --color-shield-soft:      var(--shield-soft);
-  --color-success:          var(--success);
-  --color-success-soft:     var(--success-soft);
-  --color-warning:          var(--warning);
-  --color-warning-soft:     var(--warning-soft);
-  --color-sand:             var(--sand);
-  --color-ink:              var(--ink);
-
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-
-  --color-sidebar:                    var(--sidebar);
-  --color-sidebar-foreground:         var(--sidebar-foreground);
-  --color-sidebar-primary:            var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent:             var(--sidebar-accent);
-  --color-sidebar-accent-foreground:  var(--sidebar-accent-foreground);
-  --color-sidebar-border:             var(--sidebar-border);
-  --color-sidebar-ring:               var(--sidebar-ring);
-
-  /* Sombras com o verde escuro do novo design */
-  --shadow-card: 0 1px 2px rgba(14, 59, 44, 0.06), 0 8px 24px -12px rgba(14, 59, 44, 0.16);
-  --shadow-lift: 0 2px 4px rgba(14, 59, 44, 0.08), 0 18px 40px -16px rgba(14, 59, 44, 0.26);
+  /* rounded-sm / rounded-md (pequenos detalhes: caixas de seleção, chips do gráfico) */
+  --radius-sm: 8px;
+  --radius-md: 10px;
 }
 
-/* ── Light mode ────────────────────────────────────────────── */
-:root {
-  --radius: 0.75rem;
-
-  --background:           #FBF6E6;
-  --foreground:           #0E3B2C;
-  --card:                 #FFFFFF;
-  --card-foreground:      #0E3B2C;
-  --popover:              #FFFFFF;
-  --popover-foreground:   #0E3B2C;
-  --primary:              #0E3B2C;
-  --primary-foreground:   #FFC72C;
-  --secondary:            #F5F1E4;
-  --secondary-foreground: #0E3B2C;
-  --muted:                #EDE5C8;
-  --muted-foreground:     #3D574B;
-  --accent:               #E4F2E9;
-  --accent-foreground:    #0E3B2C;
-  --destructive:          #C9302D;
-  --destructive-foreground: #FFFFFF;
-  --border:               #EDE5C8;
-  --border-bg:            #EDE5C8;
-  --input:                #D5DED7;
-  --ring:                 #1E7A4C;
-
-  --shield:           #1E7A4C;
-  --shield-foreground:#FFFFFF;
-  --shield-soft:      #E4F2E9;
-  --success:          #1E7A4C;
-  --success-soft:     #E4F2E9;
-  --warning:          #FFC72C;
-  --warning-soft:     #FFE9A3;
-  --sand:             #FBF6E6;
-  --ink:              #0E3B2C;
-
-  --chart-1: #1E7A4C;
-  --chart-2: #FFC72C;
-  --chart-3: #0E3B2C;
-  --chart-4: #F2DC8E;
-  --chart-5: #C9DDD1;
-
-  --sidebar:                    #FBF6E6;
-  --sidebar-foreground:         #0E3B2C;
-  --sidebar-primary:            #0E3B2C;
-  --sidebar-primary-foreground: #FFC72C;
-  --sidebar-accent:             #E4F2E9;
-  --sidebar-accent-foreground:  #0E3B2C;
-  --sidebar-border:             #EDE5C8;
-  --sidebar-ring:               #1E7A4C;
-}
-
-/* ── Dark mode ─────────────────────────────────────────────── */
-.dark {
-  --background:           #0A2419;
-  --foreground:           #FBF6E6;
-  --card:                 #0E3B2C;
-  --card-foreground:      #FBF6E6;
-  --popover:              #0E3B2C;
-  --popover-foreground:   #FBF6E6;
-  --primary:              #FFC72C;
-  --primary-foreground:   #0E3B2C;
-  --secondary:            #163323;
-  --secondary-foreground: #FBF6E6;
-  --muted:                #163323;
-  --muted-foreground:     #C9DDD1;
-  --accent:               #1E4D35;
-  --accent-foreground:    #FBF6E6;
-  --border:               rgba(255, 255, 255, 0.10);
-  --border-bg:            rgba(255, 255, 255, 0.10);
-  --input:                rgba(255, 255, 255, 0.14);
-  --ring:                 #1E7A4C;
-
-  --shield:           #4CAF7C;
-  --shield-foreground:#0E3B2C;
-  --shield-soft:      #163323;
-  --success:          #4CAF7C;
-  --success-soft:     #163323;
-  --warning:          #FFC72C;
-  --warning-soft:     #3D2E00;
-  --sand:             #163323;
-  --ink:              #FBF6E6;
-
-  --chart-1: #4CAF7C;
-  --chart-2: #FFC72C;
-  --chart-3: #FBF6E6;
-  --chart-4: #F2DC8E;
-  --chart-5: #C9DDD1;
-
-  --sidebar:                    #0A2419;
-  --sidebar-foreground:         #FBF6E6;
-  --sidebar-primary:            #FFC72C;
-  --sidebar-primary-foreground: #0E3B2C;
-  --sidebar-accent:             #163323;
-  --sidebar-accent-foreground:  #FBF6E6;
-  --sidebar-border:             rgba(255, 255, 255, 0.10);
-  --sidebar-ring:               #1E7A4C;
-}
+:root { color-scheme: light; }
+.dark { color-scheme: dark; } /* campos nativos (data, scrollbars) acompanham o tema */
 
 @layer base {
   * {
-    border-color: var(--color-border);
+    border-color: var(--color-borda);
   }
 
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--color-areia);
+    color: var(--color-texto-corpo);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
@@ -180,21 +37,6 @@
     font-family: var(--font-display);
     letter-spacing: -0.03em;
   }
-}
-
-@utility surface {
-  background-color: var(--color-card);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-card);
-}
-
-@utility gradient-shield {
-  background-image: linear-gradient(
-    135deg,
-    var(--primary) 0%,
-    color-mix(in srgb, var(--shield) 80%, var(--primary)) 100%
-  );
 }
 
 @utility num {
@@ -240,6 +82,8 @@
 
   /* v4 (DESIGN_SYSTEM §4/§6/§10) — sombras só no que flutua; tokens de movimento */
   --color-sobre-ambar: #0E2A1F; /* texto por cima do âmbar: verde nos dois temas */
+  --color-erro-sobre-verde: #F4A29C; /* erro sobre blocos verdes (toasts): 6,9:1 */
+  --color-sobre-salvia: #0E2A1F; /* ícone/texto por cima da sálvia (HexTile "salvia", passos feitos): verde nos dois temas */
   --shadow-float: 0 24px 50px -18px rgb(0 0 0 / 0.55);
   --shadow-bar:   0 -8px 24px rgb(14 42 31 / 0.12);
   --shadow-sheet: 0 -12px 40px rgb(14 42 31 / 0.18);
@@ -295,7 +139,9 @@
  * Tokens da app no tema escuro: cada token claro tem o seu equivalente (mesmo papel, não a mesma cor).
  * Superfícies em 3 níveis para haver profundidade: página (areia) < cartão/campo (branco) < realce (areia-2).
  * "verde" é a cor de texto forte e dos preenchimentos de destaque: em escuro inverte para claro.
- * Contraste (WCAG) sobre o cartão #13291F: verde 13:1 · texto-corpo 11:1 · cinza 6,4:1 · mel-texto 7:1 · erro 5,6:1.
+ * Contraste (WCAG) sobre o cartão #13291F: verde 13,7:1 · texto-corpo 11,5:1 · cinza 7:1 · mel-texto 8,7:1 · erro 7:1 ·
+ * pares de estado: aviso-texto/ambar-tint 9,4:1 · verde-medio/salvia-tint 7,1:1 · erro/erro-tint 6,7:1.
+ * Âmbar e sálvia levam sempre texto escuro (sobre-ambar / sobre-salvia, 7,8:1 e 7,5:1).
  */
 .dark {
   /* Superfícies */
@@ -304,8 +150,9 @@
   --color-areia-2:      #1C3629; /* realce: chips, pista dos separadores, sem-foto */
   --color-skeleton:     #23402F;
   --color-borda:        #29463A;
-  --color-borda-forte:  #3F6656;
-  --color-verde-noite:  #06120D;
+  --color-borda-forte:  #557D6C; /* campos e chips: 3,3:1 sobre o cartão (contorno de controlo, WCAG 1.4.11) */
+  /* Blocos da marca (heróis, cartões escuros): um degrau acima da página, para não parecerem um buraco */
+  --color-verde-noite:  #0F2A1F;
 
   /* Texto */
   --color-verde:        #EAF4EE; /* títulos e texto forte; preenchimentos "verde" ficam claros com texto escuro */
@@ -324,6 +171,7 @@
   --color-salvia:       #8FC0A8;
   --color-salvia-tint:  #1A3D2D;
   --color-sobre-ambar:  #0E2A1F;
+  --color-sobre-salvia: #0E2A1F;
 
   /* Estados */
   --color-erro:         #FF8F86;

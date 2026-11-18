@@ -43,7 +43,7 @@ export function ConditionMeter({ condition, className }: { condition: ItemCondit
     <div className={cn("flex items-center gap-3", className)}>
       <svg viewBox="0 0 110 22" className="h-5 w-[110px]" role="img" aria-label={fmt(dict.equipment.conditionAria, { label, level })}>
         {Array.from({ length: 5 }, (_, i) => (
-          <path key={i} d={hexPath(11 + i * 22, 11, 10)} fill={i < level ? "#1F5C42" : "#ECE6DA"} />
+          <path key={i} d={hexPath(11 + i * 22, 11, 10)} fill={i < level ? "var(--color-verde-medio)" : "var(--color-skeleton)"} />
         ))}
       </svg>
       <span className="text-sm font-medium text-verde">{label}</span>
@@ -144,7 +144,7 @@ export function EquipmentCard({
   const dict = useT();
   const t = dict.equipment;
   const tag = item.featured && showFeatured
-    ? { label: t.featured, icon: Sparkles, cls: "bg-verde text-areia [&_svg]:text-ambar" }
+    ? { label: t.featured, icon: Sparkles, cls: "bg-verde-solido text-white [&_svg]:text-ambar" }
     : null;
   return (
     <Link
