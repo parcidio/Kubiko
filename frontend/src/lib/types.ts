@@ -378,6 +378,7 @@ export interface CommissionDue {
 
 /** KYC (SPEC §7): a equipa decide à mão. */
 export type KycStatus = "PENDING" | "IN_REVIEW" | "APPROVED" | "REJECTED" | "INFO_REQUESTED";
+export type KycQueueFilter = "OPEN" | "INFO_REQUESTED" | "REJECTED" | "APPROVED";
 export type KycAccountType = "INDIVIDUAL" | "BUSINESS";
 export type KycDocumentType = "BI_FRONT" | "BI_BACK" | "SELFIE" | "NIF_DOCUMENT" | "BUSINESS_DOCUMENT";
 
@@ -399,6 +400,7 @@ export interface KycQueueItem {
   accountType: KycAccountType;
   status: KycStatus;
   submittedAt: string;
+  reviewedAt: string | null;
 }
 
 export interface KycDocument {

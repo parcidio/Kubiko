@@ -148,6 +148,30 @@ public class KycService {
         return verificationRepository.findByStatusInOrderBySubmittedAtAsc(QUEUE, pageable).map(KycQueueItem::from);
     }
 
+    /**
+     * Admin › Verificações por separador. OPEN (omissão) = fila por decidir, a mais antiga primeiro. Os outros
+     * (INFO_REQUESTED, REJECTED, APPROVED) mostram o que já saiu da fila — os documentos continuam guardados e a equipa
+     * tem de os poder voltar a ver. Com profileId: todas as verificações dessa pessoa.
+     */
+    @Transactional(readOnly = true)
+    public Page<KycQueueItem> list(QueueFilter filter, UUID profileId, Pageable pageable) {
+        if (profileId != null) {
+            return verificationRepository.findByProfileIdOrderBySubmittedAtDesc(profileId, pageable).map(KycQueueItem::from);
+        }
+        return switch (filter == null ? QueueFilter.OPEN : filter) {
+            case OPEN -> listPending(pageable);
+            case INFO_REQUESTED -> byStatus(KycStatus.INFO_REQUESTED, pageable);
+            case REJECTED -> byStatus(KycStatus.REJECTED, pageable);
+            case APPROVED -> byStatus(KycStatus.APPROVED, pageable);
+        };
+    }
+
+    public enum QueueFilter { OPEN, INFO_REQUESTED, REJECTED, APPROVED }
+
+    private Page<KycQueueItem> byStatus(KycStatus status, Pageable pageable) {
+        return verificationRepository.findByStatusInOrderBySubmittedAtDesc(List.of(status), pageable).map(KycQueueItem::from);
+    }
+
     // Admin: documentos como URL assinada de 5 minutos + histórico de decisões.
     // Não é readOnly: cada leitura dos documentos de identidade fica na auditoria (quem viu o BI de quem).
     @Transactional
