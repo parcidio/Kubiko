@@ -1,5 +1,9 @@
 package com.beeznoo.api.profile.service;
 
+import com.beeznoo.api.common.storage.StorageService;
+import com.beeznoo.api.common.storage.StorageTransactions;
+import com.beeznoo.api.common.storage.UploadedFiles;
+import com.beeznoo.api.common.storage.UploadedFiles.ValidFile;
 import com.beeznoo.api.common.util.Emails;
 import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.profile.dto.CreateProfileRequest;
@@ -13,7 +17,9 @@ import com.beeznoo.api.transaction.repository.AccountRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,10 +30,48 @@ public class ProfileService {
     private final ProfileRepository profileRepository;
     private final AccountRepository accountRepository;
     private final KycService kycService;
+    private final StorageService storageService;
+    private final AvatarUrls avatarUrls;
 
     @Transactional(readOnly = true)
     public MeResponse getMe(UUID profileId) {
-        return MeResponse.from(findProfile(profileId), kycService.getMyStatus(profileId).status(), kycService.canTransact(profileId));
+        return toMe(findProfile(profileId));
+    }
+
+    /**
+     * Foto de perfil (decisoes-produto.md 2026-11-18). Só JPEG/PNG até 5 MB, recodificada no servidor (sem EXIF).
+     * O ficheiro novo apaga-se se a transação falhar; o antigo só depois do commit.
+     */
+    @Transactional
+    public MeResponse uploadAvatar(UUID profileId, MultipartFile file) {
+        Profile profile = findProfile(profileId);
+        ValidFile valid = UploadedFiles.validate(file, "A foto", UploadedFiles.IMAGES);
+
+        List<String> uploaded = StorageTransactions.deleteOnRollback(storageService);
+        String key = storageService.upload("avatars/" + profileId, UUID.randomUUID() + "." + valid.extension(),
+                valid.content(), valid.contentType());
+        uploaded.add(key);
+
+        String previous = profile.getAvatarStorageKey();
+        profile.setAvatarStorageKey(key);
+        if (previous != null) StorageTransactions.deleteAfterCommit(storageService, List.of(previous));
+        return toMe(profile);
+    }
+
+    // Remove a foto enviada e também a do Google ("Remover" quer dizer ficar com as iniciais)
+    @Transactional
+    public MeResponse deleteAvatar(UUID profileId) {
+        Profile profile = findProfile(profileId);
+        String previous = profile.getAvatarStorageKey();
+        profile.setAvatarStorageKey(null);
+        profile.setAvatarUrl(null);
+        if (previous != null) StorageTransactions.deleteAfterCommit(storageService, List.of(previous));
+        return toMe(profile);
+    }
+
+    private MeResponse toMe(Profile profile) {
+        UUID id = profile.getId();
+        return MeResponse.from(profile, avatarUrls.of(profile), kycService.getMyStatus(id).status(), kycService.canTransact(id));
     }
 
     @Transactional
@@ -54,7 +98,7 @@ public class ProfileService {
         if (request.province() != null) profile.setProvince(blankToNull(request.province()));
         if (request.city() != null) profile.setCity(blankToNull(request.city()));
 
-        return MeResponse.from(profile, kycService.getMyStatus(profileId).status(), kycService.canTransact(profileId));
+        return toMe(profile);
     }
 
     private Profile findProfile(UUID profileId) {
@@ -108,14 +152,13 @@ public class ProfileService {
         if (profile.getEmail() == null) profile.setEmail(email);
         if (profile.getAvatarUrl() == null) profile.setAvatarUrl(avatarUrl);
 
-        return ProfileResponse.from(profileRepository.save(profile));
+        profile = profileRepository.save(profile);
+        return ProfileResponse.from(profile, avatarUrls.of(profile));
     }
 
     @Transactional(readOnly = true)
     public ProfileResponse getProfile(UUID id) {
-        return ProfileResponse.from(
-                profileRepository.findById(id)
-                        .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado"))
-        );
+        Profile profile = findProfile(id);
+        return ProfileResponse.from(profile, avatarUrls.of(profile));
     }
 }

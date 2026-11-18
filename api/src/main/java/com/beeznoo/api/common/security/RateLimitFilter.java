@@ -90,6 +90,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 limiter.check("location:" + profileId, 30, Duration.ofHours(1),
                         "Enviaste a localização demasiadas vezes. Tenta mais tarde.");
             }
+            // foto de perfil (2026-11-18): trocar 10 vezes por hora chega; cada upload recodifica uma imagem
+            if (path.equals("/api/v1/me/avatar")) {
+                limiter.check("avatar:" + profileId, 10, Duration.ofHours(1),
+                        "Mudaste a foto demasiadas vezes. Tenta mais tarde.");
+            }
             limiter.check("write:" + profileId, 120, Duration.ofMinutes(1), "Demasiados pedidos. Espera um pouco.");
         }
     }

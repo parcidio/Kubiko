@@ -45,6 +45,10 @@ public class Profile {
     @Column(name = "avatar_url")
     private String avatarUrl;
 
+    // Foto enviada pela pessoa (storage privado). Nunca sai em DTOs nem logs: usar AvatarUrls.
+    @Column(name = "avatar_storage_key")
+    private String avatarStorageKey;
+
     private String province;
 
     private String city;

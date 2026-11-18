@@ -35,7 +35,7 @@ public class MeDtos {
             BigDecimal ratingAvg,
             OffsetDateTime createdAt
     ) {
-        public static MeResponse from(Profile p, String kycStatus, boolean canTransact) {
+        public static MeResponse from(Profile p, String avatarUrl, String kycStatus, boolean canTransact) {
             return new MeResponse(
                     p.getId(),
                     p.getFullName(),
@@ -43,7 +43,7 @@ public class MeDtos {
                     p.getEmail(),
                     p.getEmailVerifiedAt() != null,
                     p.getGoogleId() != null,
-                    p.getAvatarUrl(),
+                    avatarUrl,
                     p.getProvince(),
                     p.getCity(),
                     p.getRole().name(),

@@ -173,6 +173,13 @@ export const profileApi = {
   // 409 se o envio de emails estiver desligado no servidor
   requestEmailCode: () => post<void>("/profiles/me/email/verification"),
   confirmEmail: (code: string) => post<Me>("/profiles/me/email/verification/confirm", { code }),
+  // Foto de perfil: JPEG/PNG até 5 MB; devolve o perfil com avatarUrl assinada (1 h)
+  uploadAvatar: (photo: Blob) => {
+    const form = new FormData();
+    form.append("photo", photo, "avatar.jpg");
+    return upload<Me>("/me/avatar", form);
+  },
+  removeAvatar: () => del<Me>("/me/avatar"),
 };
 
 export const catalogApi = {

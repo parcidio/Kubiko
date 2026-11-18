@@ -738,3 +738,23 @@ ativas; mapa usado na decisão da 2.ª província.
 **Nota de schema (2026-11-17).** As mensagens da equipa entram como **V28** (`V28__admin_messages.sql`), não V26:
 foram integradas depois da V27 (zonas de serviço) e o Flyway recusa uma versão mais baixa numa base onde a V27 já
 esteja aplicada. A V26 fica por usar (o Flyway aceita saltos).
+
+---
+
+## 2026-11-18 — Foto de perfil (upload)
+
+**Hipótese:** uma cara no cartão do dono e na reserva aumenta a confiança entre desconhecidos (o pedido sai mais vezes
+e o dono aceita mais). **Para quem:** donos e arrendatários. **Sucesso:** % de donos ativos com foto; comparar a taxa de
+pedido por visita entre equipamento com e sem foto do dono. ⚑ Validar com o André.
+
+- `POST /api/v1/me/avatar` (multipart, parte `photo`) e `DELETE /api/v1/me/avatar`. Só JPEG/PNG até 5 MB,
+  validados pelos bytes e recodificados (`UploadedFiles.validate`, sai o EXIF). Storage privado (B2) em
+  `avatars/{profileId}/`; o ficheiro novo apaga-se no rollback e o antigo só depois do commit (`StorageTransactions`).
+- **V32** `profiles.avatar_storage_key` (V29–V31 reservadas para outros ramos). A chave nunca sai: os DTOs (`/profiles/me`,
+  equipamento `ownerAvatarUrl`, Admin › Utilizador) devolvem URL assinada de **1 h** (`AvatarUrls`), cobre a cache de
+  5 min da página pública. Sem upload, mantém-se a foto do Google (`avatar_url`); "Remover" apaga as duas (ficam as iniciais).
+- O browser recorta ao quadrado e reduz a **512 px JPEG** antes de enviar (~50 KB em rede móvel). JPEG e não WebP: a API
+  só descodifica JPEG/PNG (ImageIO); WebP exigiria uma dependência nova para pouca poupança a 512 px.
+- Limite: 10 mudanças por hora por pessoa (`RateLimitFilter`), além do limite geral de uploads.
+- A foto é visível para quem vê o equipamento ou a reserva — o texto da Conta di-lo. Sem moderação automática:
+  fotos impróprias tratam-se manualmente (Admin vê a foto na ficha do utilizador).

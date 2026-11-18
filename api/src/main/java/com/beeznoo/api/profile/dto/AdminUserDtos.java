@@ -35,7 +35,8 @@ public final class AdminUserDtos {
     public record AdminUserBooking(UUID id, String itemTitle, String side, String status,
                                    LocalDate startDate, LocalDate endDate, OffsetDateTime createdAt) {}
 
-    public record AdminUserDetail(AdminUserSummary user, String city, List<AdminUserItem> items,
+    /** avatarUrl: URL assinada de curta duração, a do Google, ou null (iniciais). */
+    public record AdminUserDetail(AdminUserSummary user, String city, String avatarUrl, List<AdminUserItem> items,
                                   List<AdminUserBooking> recentBookings) {}
 
     /** Motivo obrigatório para suspender, opcional para reativar (fica na auditoria). */

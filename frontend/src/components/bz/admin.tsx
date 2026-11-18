@@ -15,13 +15,18 @@ import type { BookingStatus, Checklist, ChecklistType, Incident, IncidentType } 
 import { useResource } from "@/lib/use-resource";
 import { cn } from "@/lib/utils";
 
-export function AdminHeader({ title, text, action }: { title: string; text: string; action?: React.ReactNode }) {
+export function AdminHeader({
+  title, text, action, leading,
+}: { title: string; text: string; action?: React.ReactNode; leading?: React.ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div className="grid gap-1">
-        <p className="text-xs font-bold tracking-[0.12em] text-mel-texto uppercase">Equipa Beeznoo</p>
-        <h1 className="font-titulo text-[26px] leading-tight font-bold tracking-tight text-verde md:text-[32px]">{title}</h1>
-        <p className="max-w-2xl text-cinza">{text}</p>
+      <div className="flex items-end gap-4">
+        {leading}
+        <div className="grid gap-1">
+          <p className="text-xs font-bold tracking-[0.12em] text-mel-texto uppercase">Equipa Beeznoo</p>
+          <h1 className="font-titulo text-[26px] leading-tight font-bold tracking-tight text-verde md:text-[32px]">{title}</h1>
+          <p className="max-w-2xl text-cinza">{text}</p>
+        </div>
       </div>
       {action}
     </div>

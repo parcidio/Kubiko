@@ -194,7 +194,7 @@ export default function EquipamentoPage() {
 
           {/* Dono */}
           <Card className="flex items-center gap-3 p-4">
-            <Avatar name={item.ownerName} size="lg" />
+            <Avatar name={item.ownerName} src={item.ownerAvatarUrl} size="lg" />
             <div className="min-w-0 flex-1">
               <Eyebrow>{t.owner}</Eyebrow>
               <p className="flex min-w-0 items-center gap-2">

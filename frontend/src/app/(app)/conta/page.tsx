@@ -13,7 +13,8 @@ import { ErrorState } from "@/components/bz/states";
 import { Button, Callout, Card, Eyebrow, Skeleton } from "@/components/bz/ui";
 import { authApi, profileApi } from "@/lib/api";
 import { signOut, useRequireSession } from "@/lib/auth";
-import { initials, whatsappLink } from "@/lib/booking";
+import { whatsappLink } from "@/lib/booking";
+import { AvatarEditor } from "@/components/bz/avatar";
 import { canOwn, canRent, isAdmin } from "@/lib/mode";
 import type { Me, UserRole } from "@/lib/types";
 import { useResource } from "@/lib/use-resource";
@@ -69,12 +70,14 @@ function ContaInner() {
       <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde-noite p-5 text-areia md:p-8">
         <HexGlow />
         <div className="relative grid justify-items-center gap-4 text-center md:gap-5 lg:justify-items-start lg:text-left">
-          <HexTile tone="salvia" size={80} className="num md:hidden">
-            {me.data ? initials(me.data.fullName) : ROLE_LABEL[session.role].charAt(0)}
-          </HexTile>
-          <HexTile tone="salvia" size={104} className="num hidden md:inline-flex">
-            {me.data ? initials(me.data.fullName) : ROLE_LABEL[session.role].charAt(0)}
-          </HexTile>
+          {me.data ? (
+            <AvatarEditor me={me.data} onChange={me.setData} />
+          ) : (
+            <>
+              <HexTile tone="salvia" size={80} className="num md:hidden">{ROLE_LABEL[session.role].charAt(0)}</HexTile>
+              <HexTile tone="salvia" size={104} className="num hidden md:inline-flex">{ROLE_LABEL[session.role].charAt(0)}</HexTile>
+            </>
+          )}
           <div className="grid w-full gap-4">
             <div>
               <Eyebrow className="text-salvia">{ROLE_LABEL[session.role]}</Eyebrow>

@@ -59,6 +59,8 @@ public class ItemDtos {
             String ownerName,
             // KYC aprovado (selo "Verificado"); não depende do gate KYC_REQUIRED
             boolean ownerVerified,
+            // foto do dono: URL assinada de curta duração, a do Google, ou null (iniciais)
+            String ownerAvatarUrl,
             CategoryResponse category,
             String title,
             String description,

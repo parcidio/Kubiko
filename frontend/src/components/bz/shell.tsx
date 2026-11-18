@@ -15,7 +15,26 @@ import { fmt, type Dict } from "@/lib/i18n";
 import { useT } from "@/lib/i18n/client";
 import { useUnreadCount } from "@/lib/notifications";
 import { LangSwitch } from "./lang-switch";
+import { Avatar, ME_CHANGED } from "./avatar";
+import { profileApi } from "@/lib/api";
+import type { Me } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+/** A minha foto no link Conta do cabeçalho (desktop). Atualiza quando a Conta muda a foto (ME_CHANGED). */
+function MyAvatar() {
+  const [me, setMe] = useState<Pick<Me, "fullName" | "avatarUrl"> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    profileApi.me().then((m) => alive && setMe(m), () => {});
+    const onChange = (e: Event) => setMe((e as CustomEvent<Me>).detail);
+    window.addEventListener(ME_CHANGED, onChange);
+    return () => {
+      alive = false;
+      window.removeEventListener(ME_CHANGED, onChange);
+    };
+  }, []);
+  return <Avatar name={me?.fullName} src={me?.avatarUrl} size="xs" />;
+}
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 type NavKey = keyof Dict["nav"];
@@ -160,12 +179,14 @@ export function TopBar() {
               href={href}
               aria-current={isActive(pathname, href) ? "page" : undefined}
               className={cn(
-                "rounded-full px-4 py-2 text-[15px] font-medium transition",
+                "inline-flex items-center gap-2 rounded-full px-4 py-2 text-[15px] font-medium transition",
+                href === "/conta" && session && "py-1.5 pl-1.5",
                 isActive(pathname, href)
                   ? dark ? "bg-areia text-verde" : "bg-verde text-areia"
                   : dark ? "text-salvia-tint hover:bg-white/10 hover:text-white" : "text-texto-corpo hover:bg-areia-2",
               )}
             >
+              {href === "/conta" && session && <MyAvatar />}
               {label}
             </Link>
           ))}

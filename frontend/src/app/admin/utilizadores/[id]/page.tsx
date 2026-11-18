@@ -7,6 +7,7 @@ import { Ban, CalendarDays, Mail, MapPin, Package, Phone, RotateCcw, ScrollText,
 import { AdminHeader, BookingStatusBadge, ConfirmWithReason } from "@/components/bz/admin";
 import { ITEM_STATUS, KycBadge, RoleLabel } from "@/components/bz/admin-users";
 import { RoleChangeSheet, type RoleTarget } from "@/components/bz/admin-role";
+import { Avatar } from "@/components/bz/avatar";
 import { toast } from "@/components/bz/overlay";
 import { ErrorState } from "@/components/bz/states";
 import { BackLink, Badge, Button, ButtonLink, Card, InfoRow, Kz, Skeleton } from "@/components/bz/ui";
@@ -41,6 +42,7 @@ export default function UtilizadorPage() {
       <BackLink href="/admin/utilizadores">Utilizadores</BackLink>
       <AdminHeader
         title={u.fullName}
+        leading={<Avatar name={u.fullName} src={detail.data.avatarUrl} size="lg" />}
         text={`Registo a ${formatDateTime(u.createdAt)}`}
         action={
           <div className="flex flex-wrap gap-2">

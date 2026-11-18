@@ -1067,6 +1067,20 @@ export const pt = {
   },
 
   account: {
+    avatar: {
+      change: "Alterar foto",
+      add: "Adicionar foto",
+      remove: "Remover",
+      uploading: "A enviar a tua foto…",
+      removing: "A remover a tua foto…",
+      saved: "Foto atualizada.",
+      removed: "Foto removida. Ficam as tuas iniciais.",
+      failed: "Não conseguimos enviar a foto. Verifica a rede.",
+      notImage: "Escolhe uma imagem (JPEG ou PNG).",
+      retry: "Tentar outra vez",
+      hint: "JPEG ou PNG. Quem aluga contigo vê esta foto.",
+      alt: "A tua foto de perfil",
+    },
     roles: { RENTER: "Arrendatário", OWNER: "Dono de equipamento", BOTH: "Alugo e sou dono", ADMIN: "Equipa Beeznoo" },
     google: {
       linked: { title: "Conta Google associada", text: "Já podes entrar com o Google. Se o email era o mesmo, ficou verificado." },

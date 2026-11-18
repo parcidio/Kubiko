@@ -5,7 +5,6 @@ import { useServiceFeeRate } from "@/lib/fee";
 import { BadgeCheck, MapPin, Package, Repeat2, Sparkles, Star, type LucideIcon } from "lucide-react";
 import { categoryIcon, hexPath } from "./brand";
 import { Kz } from "./ui";
-import { initials } from "@/lib/booking";
 import { daysBetween, formatKz } from "@/lib/format";
 import { fmt, plural, type Lang } from "@/lib/i18n";
 import { useLang, useT } from "@/lib/i18n/client";
@@ -62,23 +61,8 @@ export function VerifiedBadge({ className, compact }: { className?: string; comp
   );
 }
 
-/** Avatar com iniciais (salvia-tint + verde-médio: âmbar nunca em texto). */
-export function Avatar({ name, size = "md", className }: { name?: string | null; size?: "sm" | "md" | "lg"; className?: string }) {
-  return (
-    <span
-      aria-hidden
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-salvia-tint font-titulo font-bold text-verde-medio",
-        size === "sm" && "size-9 text-sm",
-        size === "md" && "size-11 text-base",
-        size === "lg" && "size-14 text-lg",
-        className,
-      )}
-    >
-      {initials(name)}
-    </span>
-  );
-}
+/** Avatar (foto ou iniciais): vive em ./avatar; reexportado para os imports existentes. */
+export { Avatar } from "./avatar";
 
 /** "Cidade, Província" ou "Luanda". */
 export function placeOf(item: { city?: string | null; province?: string | null }) {

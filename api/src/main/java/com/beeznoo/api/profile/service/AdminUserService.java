@@ -69,6 +69,7 @@ public class AdminUserService {
     private final ProfileRepository profileRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final AuditService auditService;
+    private final AvatarUrls avatarUrls;
 
     @Transactional(readOnly = true)
     public Page<AdminUserSummary> search(String query, boolean suspendedOnly, int page, int size) {
@@ -98,7 +99,10 @@ public class AdminUserService {
     @Transactional(readOnly = true)
     public AdminUserDetail detail(UUID userId) {
         AdminUserSummary user = summary(userId);
-        String city = jdbc.queryForObject("SELECT city FROM profiles WHERE id = ?", String.class, userId);
+        String[] extra = jdbc.queryForObject("SELECT city, avatar_storage_key, avatar_url FROM profiles WHERE id = ?",
+                (rs, i) -> new String[]{rs.getString(1), rs.getString(2), rs.getString(3)}, userId);
+        String city = extra[0];
+        String avatarUrl = avatarUrls.of(extra[1], extra[2]);
         List<AdminUserItem> items = jdbc.query("""
                 SELECT id, title, status, price_per_day, featured_at IS NOT NULL AS featured
                 FROM items WHERE owner_id = ? AND status <> 'DELETED' ORDER BY created_at DESC
@@ -115,7 +119,7 @@ public class AdminUserService {
                         rs.getString("side"), rs.getString("status"), rs.getObject("start_date", java.time.LocalDate.class),
                         rs.getObject("end_date", java.time.LocalDate.class), rs.getObject("created_at", OffsetDateTime.class)),
                 userId, userId, userId, RECENT_BOOKINGS);
-        return new AdminUserDetail(user, city, items, bookings);
+        return new AdminUserDetail(user, city, avatarUrl, items, bookings);
     }
 
     @Transactional
