@@ -328,8 +328,11 @@ public class PaymentService {
         }
     }
 
+    // Leitura de admin: só quem tem a área Operação (reservas, pagamentos, cauções, problemas)
     private boolean isAdmin(UUID profileId) {
-        return profileRepository.findById(profileId).map(p -> p.getRole() == com.beeznoo.api.profile.entity.UserRole.ADMIN).orElse(false);
+        return profileRepository.findById(profileId)
+                .map(p -> p.hasAdminPermission(com.beeznoo.api.profile.entity.AdminPermission.OPERATIONS_DESK))
+                .orElse(false);
     }
 
 }

@@ -18,7 +18,6 @@ import com.beeznoo.api.common.storage.UploadedFiles;
 import com.beeznoo.api.common.storage.UploadedFiles.ValidFile;
 import com.beeznoo.api.notification.service.NotificationService;
 import com.beeznoo.api.profile.entity.Profile;
-import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -193,7 +192,10 @@ public class IncidentService {
         return booking.getRenter().getId().equals(profileId) || booking.getOwner().getId().equals(profileId);
     }
 
+    // Leitura de admin: só quem tem a área Operação (reservas, pagamentos, cauções, problemas)
     private boolean isAdmin(UUID profileId) {
-        return profileRepository.findById(profileId).map(p -> p.getRole() == UserRole.ADMIN).orElse(false);
+        return profileRepository.findById(profileId)
+                .map(p -> p.hasAdminPermission(com.beeznoo.api.profile.entity.AdminPermission.OPERATIONS_DESK))
+                .orElse(false);
     }
 }

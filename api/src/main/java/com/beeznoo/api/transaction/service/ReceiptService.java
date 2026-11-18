@@ -8,7 +8,6 @@ import com.beeznoo.api.common.pdf.PdfCanvas;
 import com.beeznoo.api.common.util.AmountInWords;
 import com.beeznoo.api.common.util.Formats;
 import com.beeznoo.api.profile.entity.Profile;
-import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import com.beeznoo.api.transaction.entity.DirectChannel;
 import com.beeznoo.api.transaction.entity.Payment;
@@ -319,7 +318,10 @@ public class ReceiptService {
         return notBlank(a) ? a : notBlank(b) ? b : "";
     }
 
+    // Leitura de admin: só quem tem a área Operação (reservas, pagamentos, cauções, problemas)
     private boolean isAdmin(UUID profileId) {
-        return profileRepository.findById(profileId).map(p -> p.getRole() == UserRole.ADMIN).orElse(false);
+        return profileRepository.findById(profileId)
+                .map(p -> p.hasAdminPermission(com.beeznoo.api.profile.entity.AdminPermission.OPERATIONS_DESK))
+                .orElse(false);
     }
 }

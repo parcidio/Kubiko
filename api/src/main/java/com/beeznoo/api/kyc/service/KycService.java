@@ -204,6 +204,11 @@ public class KycService {
                 .orElseThrow(() -> new IllegalArgumentException("Perfil não encontrado"));
         KycVerification verification = verificationRepository.findByIdForUpdate(kycId)
                 .orElseThrow(() -> new IllegalArgumentException("Verificação não encontrada"));
+        // Separação de funções: ninguém decide a própria verificação (nem um SUPER_ADMIN)
+        if (verification.getProfile().getId().equals(adminId)) {
+            throw new AccessDeniedException(
+                    "Não podes rever a tua própria verificação. Pede a outra pessoa da equipa.");
+        }
 
         KycAction action = request.action();
         String note = request.note() == null || request.note().isBlank() ? null : request.note().strip();

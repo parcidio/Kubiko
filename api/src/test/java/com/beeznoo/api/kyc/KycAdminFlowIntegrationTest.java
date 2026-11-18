@@ -172,6 +172,29 @@ class KycAdminFlowIntegrationTest {
     }
 
     @Test
+    void adminNaoReveAPropriaVerificacao() throws Exception {
+        String kycId = submit(admin);
+
+        for (String action : new String[]{"START_REVIEW", "APPROVE"}) {
+            mvc.perform(patch("/api/v1/admin/kyc/{id}/review", kycId).header("Authorization", bearer(admin))
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"" + action + "\"}"))
+                    .andExpect(status().isForbidden());
+        }
+        mvc.perform(get("/api/v1/kyc/me").header("Authorization", bearer(admin)))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+
+        // outra pessoa da equipa decide, e fica auditado como sempre
+        Profile colleague = profile("Outra Equipa", UserRole.ADMIN, "+244" + PHONE.incrementAndGet());
+        mvc.perform(patch("/api/v1/admin/kyc/{id}/review", kycId).header("Authorization", bearer(colleague))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"action\":\"APPROVE\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("APPROVED"));
+        assertThat(auditLogRepository.findByEntityIdOrderByCreatedAtAsc(UUID.fromString(kycId)))
+                .extracting(a -> a.getAction())
+                .containsExactly(AuditAction.KYC_APPROVED);
+    }
+
+    @Test
     void numeroEstrangeiro_submeteEAparaceNaFila() throws Exception {
         Profile foreign = profile("João Silva", UserRole.RENTER, "+351912" + String.format("%06d", PHONE.incrementAndGet() % 1_000_000));
         String kycId = submit(foreign);

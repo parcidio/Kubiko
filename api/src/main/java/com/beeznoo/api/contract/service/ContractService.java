@@ -9,7 +9,6 @@ import com.beeznoo.api.common.util.Formats;
 import com.beeznoo.api.contract.dto.ContractDtos.ContractResponse;
 import com.beeznoo.api.contract.entity.Contract;
 import com.beeznoo.api.contract.repository.ContractRepository;
-import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import com.beeznoo.api.transaction.service.ServiceFees;
 import org.springframework.core.io.ClassPathResource;
@@ -160,8 +159,11 @@ public class ContractService {
                 .orElseThrow(() -> new IllegalStateException("A reserva ainda não tem contrato (o dono ainda não aceitou)"));
     }
 
+    // Leitura de admin: só quem tem a área Operação (reservas, pagamentos, cauções, problemas)
     private boolean isAdmin(UUID profileId) {
-        return profileRepository.findById(profileId).map(p -> p.getRole() == UserRole.ADMIN).orElse(false);
+        return profileRepository.findById(profileId)
+                .map(p -> p.hasAdminPermission(com.beeznoo.api.profile.entity.AdminPermission.OPERATIONS_DESK))
+                .orElse(false);
     }
 
     private static String sha256(String body) {

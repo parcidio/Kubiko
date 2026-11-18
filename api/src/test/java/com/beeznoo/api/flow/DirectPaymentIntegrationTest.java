@@ -26,6 +26,7 @@ import com.beeznoo.api.kyc.repository.KycVerificationRepository;
 import com.beeznoo.api.notification.entity.NotificationType;
 import com.beeznoo.api.notification.repository.NotificationRepository;
 import com.beeznoo.api.profile.entity.AccountType;
+import com.beeznoo.api.profile.entity.AdminRole;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -211,6 +212,45 @@ class DirectPaymentIntegrationTest {
         assertThat(actions(bookingId)).contains(AuditAction.PAYMENT_CONFIRMED_MANUALLY);
     }
 
+    // O papel ADMIN não chega: pagamentos, cauções e documentos das partes são da área Operação (2026-11-18)
+    @Test
+    void adminSemAreaOperacao_naoConfirmaNemConcluiNemLeDocumentos() {
+        UUID bookingId = requestAndAccept();
+        contractService.acceptAsRenter(renter.getId(), bookingId);
+        Profile noRole = profile("Equipa sem papel", UserRole.ADMIN);
+        noRole.setAdminRole(null);
+        profileRepository.save(noRole);
+
+        for (Profile outsider : List.of(teamMember(AdminRole.GROWTH), teamMember(AdminRole.TRUST), noRole)) {
+            UUID id = outsider.getId();
+            assertThatThrownBy(() -> bookingService.confirmPayment(id, bookingId, "Dono ligou", DirectChannel.CASH))
+                    .isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> bookingService.getById(id, bookingId)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> contractService.get(id, bookingId)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> paymentService.findCurrent(id, bookingId)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> checklistService.list(id, bookingId)).isInstanceOf(AccessDeniedException.class);
+            assertThatThrownBy(() -> incidentService.listForBooking(id, bookingId)).isInstanceOf(AccessDeniedException.class);
+        }
+        assertThat(status(bookingId)).isEqualTo(BookingStatus.ACCEPTED);
+
+        // a área Operação confirma em nome do dono
+        Profile operations = teamMember(AdminRole.OPERATIONS);
+        bookingService.confirmPayment(operations.getId(), bookingId, "O dono confirmou por telefone", DirectChannel.CASH);
+        assertThat(bookingService.getById(operations.getId(), bookingId).status()).isEqualTo("ACTIVE");
+        UUID paymentId = paymentRepository.findFirstByBookingIdOrderByCreatedAtDesc(bookingId).orElseThrow().getId();
+        assertThatThrownBy(() -> receiptService.receipt(noRole.getId(), paymentId)).isInstanceOf(AccessDeniedException.class);
+
+        // concluir (libertar a caução) também é só da Operação
+        deliverAndReturn(bookingId);
+        assertThat(status(bookingId)).isEqualTo(BookingStatus.RETURNED);
+        Profile growth = teamMember(AdminRole.GROWTH);
+        assertThatThrownBy(() -> bookingService.complete(growth.getId(), bookingId, "Tudo em ordem"))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThat(status(bookingId)).isEqualTo(BookingStatus.RETURNED);
+        bookingService.complete(operations.getId(), bookingId, "Tudo em ordem");
+        assertThat(status(bookingId)).isEqualTo(BookingStatus.COMPLETED);
+    }
+
     @Test
     void cauçãoDevolvidaPeloDono_concluiAReserva() {
         UUID bookingId = paidBooking();
@@ -366,6 +406,12 @@ class DirectPaymentIntegrationTest {
     private Profile profile(String name, UserRole role) {
         return profileRepository.save(Profile.builder()
                 .fullName(name).phone("+244" + PHONE.incrementAndGet()).passwordHash("$2a$10$hash")
-                .role(role).isVerified(true).build());
+                .role(role).adminRole(role == UserRole.ADMIN ? AdminRole.SUPER_ADMIN : null).isVerified(true).build());
+    }
+
+    private Profile teamMember(AdminRole adminRole) {
+        Profile p = profile("Equipa " + adminRole, UserRole.ADMIN);
+        p.setAdminRole(adminRole);
+        return profileRepository.save(p);
     }
 }

@@ -139,6 +139,14 @@ public class Profile {
         dropAdminRoleIfNotAdmin();
     }
 
+    /**
+     * Decisão de autorização nos serviços (fora de /api/v1/admin/**, onde não há {@code @PreAuthorize}):
+     * ADMIN com um papel de equipa que inclua a permissão. ADMIN sem papel não tem nenhuma (decisoes-produto.md 2026-11-18).
+     */
+    public boolean hasAdminPermission(AdminPermission permission) {
+        return role == UserRole.ADMIN && adminRole != null && adminRole.permissions().contains(permission);
+    }
+
     // Só no sentido seguro: quem deixa de ser ADMIN perde o papel de equipa (nunca o contrário)
     private void dropAdminRoleIfNotAdmin() {
         if (role != UserRole.ADMIN) adminRole = null;
