@@ -47,6 +47,16 @@ o balanceador `api-lb` acrescenta o do Next = **2**). Com o valor errado, ou se 
 (valor baixo) ou um atacante escolhe o IP (valor alto). Fora disto o Spring ignora `X-Forwarded-*`
 (`server.forward-headers-strategy: none`): não mudam o esquema, o host nem `getRemoteAddr()`.
 
+`ClientIp` lê a N-ésima entrada a contar da **direita** (N = `RATE_LIMIT_TRUSTED_PROXIES`). Se houver menos de N
+entradas ou a entrada não for um IP, usa o endereço da ligação — nunca uma entrada mais à esquerda (essas o cliente
+escreve). **Requisito de alojamento:** isto só é correto se **todos** os pedidos passarem pela cadeia inteira. Se a
+origem for alcançável diretamente (ex.: o URL público `*.onrender.com` sem passar pelo Vercel) e o proxy da origem
+**acrescentar** a um `X-Forwarded-For` enviado pelo cliente, a N-ésima entrada da direita é do cliente e os limites por
+IP (login, OTP, refresh, global) deixam de valer entre contas/números — os limites por conta e por telefone continuam.
+Antes de usar N > 1: (a) fechar a origem a quem não é o proxy de fora (VPS: a API não é publicada, o Caddy reescreve o
+cabeçalho), ou (b) confirmar em staging, com um pedido direto à origem com `X-Forwarded-For: 192.0.2.123`, que esse IP
+não aparece em `security_events`. ⚑ Por confirmar no Render.
+
 ## Configuração por ambiente
 
 | Variável | Local | Staging / produção |
@@ -105,7 +115,7 @@ Arquitetura e passos em `docs/DEPLOY_VPS.md` ("Arquitetura"). Resumo:
 | 1 | Alta | Com 2 réplicas e `RATE_LIMIT_STORE=memory`, cada réplica contava à parte: o dobro das tentativas de OTP/login | **Corrigido**: o compose da VPS e do Coolify fixam `database` |
 | 2 | Alta | Sem `mem_limit`, `MaxRAMPercentage=50` media a RAM da VPS: 2 JVMs podiam pedir 4 GB e o kernel matar o Postgres | **Corrigido**: `API_MEM_LIMIT` 768 MB por réplica |
 | 3 | Média | Login Google com 2 réplicas: o pedido OAuth2 fica na sessão HTTP de uma réplica; o regresso noutra falhava | **Corrigido**: afinidade por cookie no `api-lb` |
-| 4 | Média | OTP por WhatsApp aceitava um 2xx com `{"error": …}` no corpo como código válido (falha aberta) | **Corrigido** (`WhatsAppOtpClient.isVerified` + teste). Continua a aceitar um 2xx sem corpo reconhecido: confirmar com o Losambo o formato da resposta e fechar de vez |
+| 4 | Média | OTP por WhatsApp aceitava um 2xx com `{"error": …}` no corpo como código válido (falha aberta) | **Corrigido** (`WhatsAppOtpClient.isVerified` + teste). Desde 2026-11-18 falha fechado de vez: só `valid`/`verified`/`ok`/`success` a `true` ou `status` verificado contam; 2xx vazio ou sem veredicto = código inválido. Se o Losambo responder noutro formato, os códigos certos falham (visível nos logs) — ajustar só aí |
 | 5 | Média | Erro da Ombala registado com `e.getMessage()`: numa resposta de erro inclui o corpo, que pode repetir a mensagem com o **código OTP** | **Corrigido**: só o código HTTP ou a classe |
 | 6 | Média | Docker local publicava a API (8081) e o Postgres (5432) em todas as interfaces (Wi-Fi partilhado) | **Corrigido**: `127.0.0.1` |
 | 7 | Baixa | `next` 16.4.3 (GHSA-mfr8-8qww-v76h, só com `unstable_cache`, que não usamos) e `source-map-js` 1.2.1 (DoS, só no build) | **Corrigido**: `next` 16.4.6, `source-map-js` 1.2.2. `npm audit --omit=dev`: 0 |

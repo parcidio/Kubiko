@@ -28,6 +28,7 @@ const SECURITY_LABEL: Record<string, string> = {
   EMAIL_VERIFIED: "Email verificado",
   GOOGLE_LINKED: "Google associado",
   GOOGLE_EMAIL_IN_USE: "Google com email de outra conta",
+  UNPROVEN_CONTACTS_CLEARED: "Conta recuperada: email/Google do registo removidos",
 };
 
 const SEVERITY: Record<SecuritySeverity, { label: string; tone: Tone }> = {

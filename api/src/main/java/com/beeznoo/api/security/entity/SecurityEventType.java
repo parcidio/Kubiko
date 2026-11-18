@@ -13,7 +13,8 @@ public enum SecurityEventType {
     PASSWORD_RESET(LOW),
     EMAIL_VERIFIED(LOW),
     GOOGLE_LINKED(LOW),            // Google associado por email verificado dos dois lados
-    GOOGLE_EMAIL_IN_USE(LOW);      // Google com email de outra conta não verificada — não associado
+    GOOGLE_EMAIL_IN_USE(LOW),      // Google com email de outra conta não verificada — não associado
+    UNPROVEN_CONTACTS_CLEARED(MEDIUM); // recuperação de perfil por verificar: email/Google do registante removidos
 
     public enum Severity { LOW, MEDIUM, HIGH }
 

@@ -75,7 +75,8 @@ public class WhatsAppOtpClient {
 
     /**
      * POST /otp/verify. O corpo não está na documentação pública: enviamos a referência do pedido, o número e o código.
-     * Válido = 2xx sem "valid"/"verified" a false e sem estado diferente de verificado. 4xx = código errado ou expirado.
+     * Válido = 2xx com veredicto positivo explícito (ver {@link #isVerified}); tudo o resto falha fechado.
+     * 4xx = código errado ou expirado.
      */
     public boolean verify(String requestId, String phone, String code) {
         if (!props.configured()) throw new UnavailableException("WhatsApp sem chave para o ambiente " + props.env());
@@ -155,18 +156,28 @@ public class WhatsAppOtpClient {
         return null;
     }
 
+    /**
+     * Falha fechado: só um veredicto positivo explícito conta como código válido ("valid"/"verified"/"ok"/"success"
+     * a true, ou "status" verificado). 2xx sem corpo, com erro ou sem veredicto reconhecido = não verificado.
+     */
     static boolean isVerified(Map<?, ?> res) {
-        if (res == null || res.isEmpty()) return true; // 2xx sem corpo
-        // 2xx com um erro no corpo (ex. {"error":"invalid_code"}) não é um código válido: falhar fechado
+        if (res == null || res.isEmpty()) {
+            log.warn("Losambo respondeu 2xx sem corpo ao validar um OTP: tratado como código inválido");
+            return false;
+        }
         if (res.get("error") != null) return false;
         for (String flag : new String[]{"valid", "verified", "ok", "success"}) {
-            if (res.get(flag) instanceof Boolean b) return b;
+            Object v = res.get(flag);
+            if (v instanceof Boolean b) return b;
+            if (v != null) return false; // tipo inesperado (ex. "true" em texto): não arriscar
         }
-        if (res.get("status") != null) {
-            String s = res.get("status").toString().toLowerCase();
+        if (res.get("status") instanceof String status) {
+            String s = status.toLowerCase(java.util.Locale.ROOT);
             return s.equals("verified") || s.equals("approved") || s.equals("valid") || s.equals("ok");
         }
-        return true;
+        log.warn("Losambo respondeu 2xx sem veredicto reconhecido ao validar um OTP (campos {}): tratado como inválido",
+                res.keySet());
+        return false;
     }
 
     private static String errorCode(RestClientResponseException e) {
