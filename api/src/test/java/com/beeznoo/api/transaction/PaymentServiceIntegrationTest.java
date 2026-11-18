@@ -335,6 +335,7 @@ class PaymentServiceIntegrationTest {
                 .phone("+244" + PHONE.incrementAndGet())
                 .passwordHash("$2a$10$hash")
                 .role(role)
+                .adminRole(role == UserRole.ADMIN ? com.beeznoo.api.profile.entity.AdminRole.SUPER_ADMIN : null)
                 .isVerified(true)
                 .build());
     }

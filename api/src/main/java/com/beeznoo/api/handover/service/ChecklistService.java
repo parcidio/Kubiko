@@ -17,7 +17,6 @@ import com.beeznoo.api.handover.entity.ChecklistType;
 import com.beeznoo.api.handover.repository.ChecklistRepository;
 import com.beeznoo.api.notification.service.NotificationService;
 import com.beeznoo.api.profile.entity.Profile;
-import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
@@ -196,8 +195,11 @@ public class ChecklistService {
         return booking.getRenter().getId().equals(author.getId()) ? booking.getOwner() : booking.getRenter();
     }
 
+    // Leitura de admin: só quem tem a área Operação (reservas, pagamentos, cauções, problemas)
     private boolean isAdmin(UUID profileId) {
-        return profileRepository.findById(profileId).map(p -> p.getRole() == UserRole.ADMIN).orElse(false);
+        return profileRepository.findById(profileId)
+                .map(p -> p.hasAdminPermission(com.beeznoo.api.profile.entity.AdminPermission.OPERATIONS_DESK))
+                .orElse(false);
     }
 
     private static void requireStatus(Booking booking, BookingStatus expected) {

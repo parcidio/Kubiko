@@ -14,6 +14,8 @@ import com.beeznoo.api.item.entity.ItemStatus;
 import com.beeznoo.api.item.repository.CategoryRepository;
 import com.beeznoo.api.item.repository.ItemRepository;
 import com.beeznoo.api.kyc.service.KycService;
+import com.beeznoo.api.common.exception.ApiException;
+import com.beeznoo.api.profile.entity.AdminPermission;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -103,12 +105,29 @@ public class ItemService {
 
     @Transactional(readOnly = true)
     public ItemResponse getById(UUID itemId) {
-        // itens apagados não se mostram a ninguém, nem por id
+        return getById(null, itemId);
+    }
+
+    /**
+     * Detalhe por id. Apagados não se mostram a ninguém; pausados e suspensos só ao dono e a quem modera
+     * equipamento. Para os outros (incluindo anónimos) é 404, sem revelar que o anúncio existe.
+     */
+    @Transactional(readOnly = true)
+    public ItemResponse getById(UUID requesterId, UUID itemId) {
         Item item = itemRepository.findById(itemId)
                 .filter(i -> i.getStatus() != ItemStatus.DELETED)
-                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
+                .filter(i -> i.getStatus() == ItemStatus.ACTIVE || canSeeUnlisted(requesterId, i))
+                .orElseThrow(() -> ApiException.notFound("item_not_found", "Item não encontrado"));
 
         return  toResponse(item);
+    }
+
+    private boolean canSeeUnlisted(UUID requesterId, Item item) {
+        if (requesterId == null) return false;
+        if (item.getOwner().getId().equals(requesterId)) return true;
+        return profileRepository.findById(requesterId)
+                .map(p -> p.hasAdminPermission(AdminPermission.ITEMS_MODERATE))
+                .orElse(false);
     }
 
     @Transactional(readOnly = true)
@@ -208,6 +227,10 @@ public class ItemService {
         Item item = itemRepository.findActiveById(itemId)
                 .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
         assertOwner(requesterId, item);
+        // SUSPENDED é decisão do admin: pausar por cima apagava a suspensão (e o activate reativava-o)
+        if (item.getStatus() == ItemStatus.SUSPENDED) {
+            throw new IllegalStateException("Este equipamento está em revisão pela equipa e não pode ser pausado");
+        }
         item.deactivate();
     }
 

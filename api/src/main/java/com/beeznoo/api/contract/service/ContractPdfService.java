@@ -9,7 +9,6 @@ import com.beeznoo.api.common.pdf.PdfCanvas;
 import com.beeznoo.api.common.util.Formats;
 import com.beeznoo.api.contract.entity.Contract;
 import com.beeznoo.api.contract.repository.ContractRepository;
-import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -134,7 +133,10 @@ public class ContractPdfService {
         return id.toString().substring(0, 8).toUpperCase(Locale.ROOT);
     }
 
+    // Leitura de admin: só quem tem a área Operação (reservas, pagamentos, cauções, problemas)
     private boolean isAdmin(UUID profileId) {
-        return profileRepository.findById(profileId).map(p -> p.getRole() == UserRole.ADMIN).orElse(false);
+        return profileRepository.findById(profileId)
+                .map(p -> p.hasAdminPermission(com.beeznoo.api.profile.entity.AdminPermission.OPERATIONS_DESK))
+                .orElse(false);
     }
 }

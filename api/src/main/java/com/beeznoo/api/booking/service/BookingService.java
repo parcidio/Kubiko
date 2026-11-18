@@ -16,6 +16,7 @@ import com.beeznoo.api.item.service.AvailabilityService;
 import com.beeznoo.api.item.service.PhotoUrls;
 import com.beeznoo.api.kyc.service.KycService;
 import com.beeznoo.api.notification.service.NotificationService;
+import com.beeznoo.api.profile.entity.AdminPermission;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
@@ -140,7 +141,7 @@ public class BookingService {
         Booking booking = findBooking(bookingId);
         // admin: detalhe para as filas e a auditoria (dados da reserva, sem documentos — esses são auditados à parte)
         if (!isRenter(requesterId, booking) && !isOwner(requesterId, booking)
-                && findProfile(requesterId).getRole() != UserRole.ADMIN) {
+                && !findProfile(requesterId).hasAdminPermission(AdminPermission.OPERATIONS_DESK)) {
             throw new AccessDeniedException("Sem permissão para ver esta reserva");
         }
         return toResponse(booking);
@@ -323,8 +324,9 @@ public class BookingService {
         }
     }
 
+    // Pagamentos e cauções são da área Operação (decisoes-produto.md 2026-11-18): o papel ADMIN sozinho não chega
     private void assertAdmin(UUID requesterId) {
-        if (findProfile(requesterId).getRole() != UserRole.ADMIN) {
+        if (!findProfile(requesterId).hasAdminPermission(AdminPermission.OPERATIONS_DESK)) {
             throw new AccessDeniedException("Apenas administradores podem executar esta ação");
         }
     }

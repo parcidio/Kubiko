@@ -927,3 +927,18 @@ pedido por visita entre equipamento com e sem foto do dono. ⚑ Validar com o An
 - Limite: 10 mudanças por hora por pessoa (`RateLimitFilter`), além do limite geral de uploads.
 - A foto é visível para quem vê o equipamento ou a reserva — o texto da Conta di-lo. Sem moderação automática:
   fotos impróprias tratam-se manualmente (Admin vê a foto na ficha do utilizador).
+
+## 2026-11-18 — Correções de autorização (auditoria de segurança)
+
+**Hipótese:** as regras de papéis da equipa (entrada anterior) só protegem se valerem também fora de `/api/v1/admin/**`.
+**Para quem:** equipa e utilizadores. **Sucesso:** 0 decisões de pagamento/caução feitas por quem não tem a área Operação.
+⚑ Validar com o André.
+
+- **Área Operação nos serviços.** Confirmar pagamento e concluir reserva (`/bookings/{id}/confirm-payment`, `/complete`)
+  e as leituras de admin de reserva, contrato (texto e PDF), comprovativo, pagamento, checklists e problemas exigem
+  `OPERATIONS_DESK` (`Profile.hasAdminPermission`), não só `role = ADMIN`. ADMIN sem papel: 403.
+- **Suspensão só sai pelo admin.** O dono não pode pausar um equipamento `SUSPENDED` (409); antes, pausar → reativar
+  desfazia a suspensão sem `ITEM_REINSTATED`.
+- **Ninguém revê a própria verificação** (403), nem um `SUPER_ADMIN`. Outra pessoa da equipa decide, auditado como sempre.
+- **`GET /items/{id}`:** pausados e suspensos só para o dono e quem tem `ITEMS_MODERATE`; para os outros (incluindo
+  anónimos) **404**, sem revelar que existem.
