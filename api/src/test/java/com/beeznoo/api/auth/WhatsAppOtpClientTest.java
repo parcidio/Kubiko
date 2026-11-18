@@ -92,6 +92,30 @@ class WhatsAppOtpClientTest {
                 .isInstanceOf(WhatsAppOtpClient.UnavailableException.class);
     }
 
+    /** auth/whatsapp-otp-verify-fail-open: só um veredicto positivo explícito valida o código. */
+    @Test
+    void valida_falhaFechadoSemVeredictoExplicito() {
+        Setup s = setup("tst", null, "lsb_live_tst");
+        String[][] cases = {
+                {"", "false"},
+                {"{}", "false"},
+                {"{\"message\":\"invalid code\"}", "false"},
+                {"{\"valid\":\"true\"}", "false"},
+                {"{\"status\":\"pending\"}", "false"},
+                {"{\"verified\":false}", "false"},
+                {"{\"verified\":true}", "true"},
+                {"{\"valid\":true}", "true"},
+        };
+        for (String[] c : cases) {
+            s.server().reset();
+            var response = withSuccess();
+            if (!c[0].isEmpty()) response = withSuccess(c[0], MediaType.APPLICATION_JSON);
+            s.server().expect(requestTo(URL + "/otp/verify")).andRespond(response);
+            assertThat(s.client().verify("otp_8f2c", "+244923000111", "123456"))
+                    .as("resposta %s", c[0]).isEqualTo(Boolean.parseBoolean(c[1]));
+        }
+    }
+
     @Test
     void mensagemLivre_enviaToEText_eTrataErros() {
         Setup s = setup("tst", null, "lsb_live_tst");

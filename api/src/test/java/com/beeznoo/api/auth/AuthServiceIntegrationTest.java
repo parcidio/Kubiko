@@ -10,6 +10,8 @@ import com.beeznoo.api.auth.service.OmbalaSmsService;
 import com.beeznoo.api.profile.entity.Profile;
 import com.beeznoo.api.profile.entity.UserRole;
 import com.beeznoo.api.profile.repository.ProfileRepository;
+import com.beeznoo.api.security.entity.SecurityEventType;
+import com.beeznoo.api.security.repository.SecurityEventRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +47,7 @@ class AuthServiceIntegrationTest {
     @Autowired RefreshTokenRepository refreshTokenRepository;
     @Autowired ProfileRepository profileRepository;
     @Autowired com.beeznoo.api.common.security.RateLimiter rateLimiter;
+    @Autowired SecurityEventRepository securityEventRepository;
 
     private final BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private static final String PHONE    = "+244923111000";
@@ -177,6 +180,46 @@ class AuthServiceIntegrationTest {
         AuthResponse response = authService.login(
                 new LoginRequest(PHONE, null, "newPassword123"));
         assertThat(response.accessToken()).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("Recuperar um perfil por verificar remove o email não confirmado de quem o registou")
+    void passwordResetOfUnverifiedProfileClearsUnprovenEmail() {
+        // auth/pre-registered-unverified-profile-keeps-attacker-email
+        authService.register(new RegisterRequest(
+                "Registo Alheio", PHONE, "intruso@example.test", PASSWORD, UserRole.RENTER));
+        authService.requestPassword(new PasswordResetRequest(PHONE));
+        String code = "999888";
+        OtpCode otp = getLatestOtp(PHONE, Purpose.PASSWORD_RESET);
+        otp.setCodeHash(encoder.encode(code));
+        otpCodeRepository.save(otp);
+
+        authService.confirmPasswordReset(new PasswordResetConfirmRequest(PHONE, code, "newPassword123"));
+
+        Profile profile = profileRepository.findByPhone(PHONE).orElseThrow();
+        assertThat(profile.getEmail()).isNull();
+        assertThat(profile.getGoogleId()).isNull();
+        assertThat(securityEventRepository.findAll()).anySatisfy(e -> {
+            assertThat(e.getType()).isEqualTo(SecurityEventType.UNPROVEN_CONTACTS_CLEARED);
+            assertThat(e.getProfileId()).isEqualTo(profile.getId());
+        });
+    }
+
+    @Test
+    @DisplayName("Recuperar um perfil já verificado mantém o email")
+    void passwordResetOfVerifiedProfileKeepsEmail() {
+        authService.register(new RegisterRequest(
+                "Leonel Email", PHONE, "leonel@beeznoo.com", PASSWORD, UserRole.RENTER));
+        doVerify();
+        authService.requestPassword(new PasswordResetRequest(PHONE));
+        String code = "999888";
+        OtpCode otp = getLatestOtp(PHONE, Purpose.PASSWORD_RESET);
+        otp.setCodeHash(encoder.encode(code));
+        otpCodeRepository.save(otp);
+
+        authService.confirmPasswordReset(new PasswordResetConfirmRequest(PHONE, code, "newPassword123"));
+
+        assertThat(profileRepository.findByPhone(PHONE).orElseThrow().getEmail()).isEqualTo("leonel@beeznoo.com");
     }
 
     @Test

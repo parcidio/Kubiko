@@ -927,3 +927,42 @@ pedido por visita entre equipamento com e sem foto do dono. ⚑ Validar com o An
 - Limite: 10 mudanças por hora por pessoa (`RateLimitFilter`), além do limite geral de uploads.
 - A foto é visível para quem vê o equipamento ou a reserva — o texto da Conta di-lo. Sem moderação automática:
   fotos impróprias tratam-se manualmente (Admin vê a foto na ficha do utilizador).
+
+---
+
+## 2026-11-18 — Recuperar um perfil por verificar remove o email e o Google de quem o registou
+
+⚑ **Validar com o André.** Origem: revisão de segurança (`auth/pre-registered-unverified-profile-keeps-attacker-email`).
+
+**Problema.** Qualquer pessoa pode registar o número de outra com o seu próprio email. O dono real do número não se
+consegue registar ("número já registado"); entra pela recuperação de password (OTP no telefone) e depois confirma o
+telefone. O email de quem fez o registo ficava na conta e recebia as notificações de reservas do dono real.
+
+**Decisão.** Quando a recuperação de password (`confirmPasswordReset`) acontece num perfil cujo telefone **nunca foi
+verificado**, a API remove o **email não confirmado** (`email_verified_at` nulo) e a **ligação Google**, e grava o
+evento de segurança `UNPROVEN_CONTACTS_CLEARED` (Admin › Auditoria). Nome, papel e o resto ficam: a pessoa edita-os.
+Na conclusão normal do registo (`verifyRegistration`) **não** se mexe: aí é quem se registou que confirma o telefone.
+
+**Trade-off.**
+- A (escolhida): limpar só na recuperação. Quem se registou de boa-fé e recupera a password antes de confirmar o
+  telefone perde o email e volta a pô-lo em Conta. Custo baixo, caso raro.
+- B: limpar também ao confirmar o registo. Fecharia o mesmo buraco, mas apagava o email de toda a gente no registo.
+- C: não enviar notificações para emails não confirmados. Mais largo (muda o comportamento para todos os utilizadores):
+  fica para decisão de produto à parte.
+
+---
+
+## 2026-11-18 — Correções de autorização (auditoria de segurança)
+
+**Hipótese:** as regras de papéis da equipa (entrada anterior) só protegem se valerem também fora de `/api/v1/admin/**`.
+**Para quem:** equipa e utilizadores. **Sucesso:** 0 decisões de pagamento/caução feitas por quem não tem a área Operação.
+⚑ Validar com o André.
+
+- **Área Operação nos serviços.** Confirmar pagamento e concluir reserva (`/bookings/{id}/confirm-payment`, `/complete`)
+  e as leituras de admin de reserva, contrato (texto e PDF), comprovativo, pagamento, checklists e problemas exigem
+  `OPERATIONS_DESK` (`Profile.hasAdminPermission`), não só `role = ADMIN`. ADMIN sem papel: 403.
+- **Suspensão só sai pelo admin.** O dono não pode pausar um equipamento `SUSPENDED` (409); antes, pausar → reativar
+  desfazia a suspensão sem `ITEM_REINSTATED`.
+- **Ninguém revê a própria verificação** (403), nem um `SUPER_ADMIN`. Outra pessoa da equipa decide, auditado como sempre.
+- **`GET /items/{id}`:** pausados e suspensos só para o dono e quem tem `ITEMS_MODERATE`; para os outros (incluindo
+  anónimos) **404**, sem revelar que existem.

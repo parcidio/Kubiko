@@ -306,12 +306,29 @@ public class AuthService {
         consumeOtp(request.phone(), request.code(), Purpose.PASSWORD_RESET);
 
         profile.setPasswordHash(encoder.encode(request.newPassword()));
+        if (!profile.isVerified()) clearUnprovenContacts(profile);
         profileRepository.save(profile);
 
         refreshTokenRepository.revokedAllForProfile(profile.getId());
         securityEvents.record(SecurityEventType.PASSWORD_RESET, profile.getId(), null, Map.of());
 
         log.info("Password redefinida para {}", maskPhone(request.phone()));
+    }
+
+    /**
+     * O telefone nunca foi verificado e alguém acabou de provar que o controla (OTP de recuperação). Quem registou o
+     * perfil pode não ser o dono do número: o email não confirmado e a ligação Google ficam por conta de quem os pôs
+     * e são removidos, para não receberem as notificações do dono real (decisoes-produto.md 2026-11-18).
+     */
+    private void clearUnprovenContacts(Profile profile) {
+        boolean hadEmail = profile.getEmail() != null && profile.getEmailVerifiedAt() == null;
+        boolean hadGoogle = profile.getGoogleId() != null;
+        if (!hadEmail && !hadGoogle) return;
+        if (hadEmail) profile.setEmail(null);
+        if (hadGoogle) profile.setGoogleId(null);
+        securityEvents.record(SecurityEventType.UNPROVEN_CONTACTS_CLEARED, profile.getId(), null,
+                Map.of("email", hadEmail, "google", hadGoogle));
+        log.info("Contactos não confirmados removidos ao recuperar um perfil por verificar — profileId={}", profile.getId());
     }
 
     // noRollbackFor: a revogação de todas as sessões (refresh reutilizado) tem de ficar gravada mesmo com o erro

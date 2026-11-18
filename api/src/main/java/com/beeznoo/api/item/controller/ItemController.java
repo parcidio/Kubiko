@@ -77,8 +77,8 @@ public class ItemController {
             content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/{id}")
-    public ResponseEntity<ItemResponse> getById(@PathVariable UUID id) {
-        return ResponseEntity.ok(itemService.getById(id));
+    public ResponseEntity<ItemResponse> getById(@AuthenticationPrincipal UUID profileId, @PathVariable UUID id) {
+        return ResponseEntity.ok(itemService.getById(profileId, id));
     }
 
     @Operation(

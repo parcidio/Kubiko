@@ -71,7 +71,21 @@ export function useRequireSession() {
   return session;
 }
 
-/** Só aceita caminhos internos, para evitar open redirect via ?next=. */
+const NEXT_BASE = "https://beeznoo.invalid";
+
+/**
+ * Só aceita caminhos internos, para evitar open redirect via ?next=. Recusa "//x", "/\\x", caracteres de controlo e
+ * barras codificadas (%2f, %5c); depois resolve o caminho e exige a mesma origem.
+ */
 export function safeNext(next: string | null, fallback = "/explorar") {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : fallback;
+  if (!next || next.length > 2048) return fallback;
+  if (!/^\/(?![/\\])/.test(next)) return fallback;
+  if (/[\u0000-\u001f\u007f\\]/.test(next) || /%(2f|5c|0[0-9a-f]|1[0-9a-f]|7f)/i.test(next)) return fallback;
+  try {
+    const url = new URL(next, NEXT_BASE);
+    if (url.origin !== NEXT_BASE) return fallback;
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return fallback;
+  }
 }
