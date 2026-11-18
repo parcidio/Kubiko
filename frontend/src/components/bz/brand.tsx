@@ -51,8 +51,9 @@ export function HexGlow({ className }: { className?: string }) {
   return (
     <div aria-hidden className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}>
       <div className="hex-bg absolute inset-0" />
-      <div className="absolute -top-24 -right-16 size-64 rounded-full bg-ambar/25 blur-3xl" />
-      <div className="absolute -bottom-28 -left-20 size-64 rounded-full bg-verde-medio/50 blur-3xl" />
+      {/* brilhos em radial-gradient e não filter: blur (um blur de 64px repinta a cada scroll num Android de gama média) */}
+      <div className="absolute -top-40 -right-36 size-[26rem] rounded-full bg-[radial-gradient(closest-side,rgb(240_162_46/0.22),transparent)]" />
+      <div className="absolute -bottom-44 -left-40 size-[26rem] rounded-full bg-[radial-gradient(closest-side,rgb(31_92_66/0.45),transparent)]" />
     </div>
   );
 }
