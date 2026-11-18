@@ -919,7 +919,7 @@ pedido por visita entre equipamento com e sem foto do dono. ⚑ Validar com o An
 - `POST /api/v1/me/avatar` (multipart, parte `photo`) e `DELETE /api/v1/me/avatar`. Só JPEG/PNG até 5 MB,
   validados pelos bytes e recodificados (`UploadedFiles.validate`, sai o EXIF). Storage privado (B2) em
   `avatars/{profileId}/`; o ficheiro novo apaga-se no rollback e o antigo só depois do commit (`StorageTransactions`).
-- **V32** `profiles.avatar_storage_key` (V29–V31 reservadas para outros ramos). A chave nunca sai: os DTOs (`/profiles/me`,
+- **V30** `profiles.avatar_storage_key`. A chave nunca sai: os DTOs (`/profiles/me`,
   equipamento `ownerAvatarUrl`, Admin › Utilizador) devolvem URL assinada de **1 h** (`AvatarUrls`), cobre a cache de
   5 min da página pública. Sem upload, mantém-se a foto do Google (`avatar_url`); "Remover" apaga as duas (ficam as iniciais).
 - O browser recorta ao quadrado e reduz a **512 px JPEG** antes de enviar (~50 KB em rede móvel). JPEG e não WebP: a API
