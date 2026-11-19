@@ -93,7 +93,7 @@ export function ListSkeleton({ rows = 3, label }: { rows?: number; label?: strin
 export function GridSkeleton({ count = 6 }: { count?: number }) {
   const t = useT();
   return (
-    <div role="status" aria-label={t.states.loadingItems} className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+    <div role="status" aria-label={t.states.loadingItems} className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] md:gap-4 lg:gap-5">
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="grid gap-2">
           <Skeleton className="aspect-[4/3] rounded-cartao" />

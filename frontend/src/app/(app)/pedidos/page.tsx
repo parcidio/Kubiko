@@ -45,7 +45,7 @@ export default function PedidosPage() {
 
   return (
     <div className="mx-auto grid max-w-5xl gap-4 md:gap-6">
-      <div className="grid gap-4 md:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)] md:gap-5">
+      <div className="grid gap-4 md:gap-5 lg:grid-cols-[minmax(0,1.8fr)_minmax(0,1fr)]">
         {/* Cabeçalho escuro */}
         <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde p-5 text-areia md:p-8">
           <div className="hex-bg absolute inset-0 opacity-80" aria-hidden />

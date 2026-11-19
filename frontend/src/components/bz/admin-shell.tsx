@@ -136,7 +136,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 
 export function AdminSidebar() {
   return (
-    <aside className="sticky top-0 hidden h-dvh flex-col border-r border-borda bg-branco lg:flex">
+    <aside className="sticky top-0 hidden h-dvh flex-col border-r border-borda bg-branco xl:flex">
       <div className="flex h-14 shrink-0 items-center gap-2 border-b border-borda px-5">
         <Logo href="/admin" />
         <span className="rounded-full bg-areia-2 px-2 py-0.5 text-[11px] font-bold tracking-[0.1em] text-verde uppercase">Admin</span>
@@ -166,7 +166,7 @@ function MobileNav() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Abrir menu do Admin"
-        className="inline-flex size-11 items-center justify-center rounded-campo text-verde hover:bg-areia-2 lg:hidden"
+        className="inline-flex size-11 items-center justify-center rounded-campo text-verde hover:bg-areia-2 xl:hidden"
       >
         <Menu className="size-5" strokeWidth={1.8} aria-hidden />
       </button>
@@ -264,8 +264,8 @@ export function AdminTopBar() {
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-borda bg-branco px-3 md:px-6">
       <MobileNav />
-      <div className="lg:hidden"><Logo href="/admin" /></div>
-      <p className="hidden min-w-0 truncate text-sm text-cinza lg:block">
+      <div className="xl:hidden"><Logo href="/admin" /></div>
+      <p className="hidden min-w-0 truncate text-sm text-cinza xl:block">
         {item?.group ? <>{item.group} <span aria-hidden>/</span> </> : null}
         <span className="font-bold text-verde">{item?.label ?? "Admin"}</span>
       </p>

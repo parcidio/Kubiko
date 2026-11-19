@@ -441,7 +441,8 @@
 /* ── Responsivo ──────────────────────────────────── */
 @media (max-width: 1080px) {
   .lp-hero__grid { grid-template-columns: minmax(0, 1fr); min-height: 0; padding-top: 48px; }
-  .lp-scene { height: 600px; }
+  /* Cena estreita e centrada: a 768–1080px os cartões flutuantes (translateZ) saíam pela direita */
+  .lp-scene { height: 600px; max-width: 560px; margin-inline: auto; }
   .lp-h1 { font-size: 60px; }
   .lp-steps, .lp-trust-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lp-cat-panel, .lp-roles { grid-template-columns: minmax(0, 1fr); }
@@ -456,6 +457,8 @@
   .lp-lead, .lp-hero__lead { font-size: 17px; }
   .lp-sec { padding: 80px 0; }
   .lp-scene { height: 540px; transform: scale(0.86); transform-origin: top center; margin-bottom: -76px; }
+  /* Telemóvel: o cartão "Caução devolvida" descia para baixo do "Próximo passo" e ficava tapado */
+  .lp-f3 { bottom: 24px; }
   .lp-steps, .lp-trust-grid, .lp-cat-items { grid-template-columns: minmax(0, 1fr); }
   .lp-cat-intro { padding: 28px; min-height: 0; }
   .lp-cat-intro h3, .lp-role h3 { font-size: 28px; }

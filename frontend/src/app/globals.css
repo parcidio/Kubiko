@@ -266,6 +266,9 @@
 /* Faixa horizontal com scroll por toque (sem barra) */
 @utility faixa {
   display: flex;
+  /* relative: os .sr-only (absolute) dos cartões lá dentro ficam presos à faixa; sem isto escapavam ao scroll
+     e alargavam a página inteira (Explorar a 360px tinha 717px de largura) */
+  position: relative;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-padding-inline: 1rem;

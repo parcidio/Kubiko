@@ -54,8 +54,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
   if (!access.data) {
     return (
-      <div role="status" aria-label="A carregar o Admin" className="app grid min-h-dvh bg-areia lg:grid-cols-[256px_minmax(0,1fr)]">
-        <div className="hidden border-r border-borda bg-branco lg:block" />
+      <div role="status" aria-label="A carregar o Admin" className="app grid min-h-dvh bg-areia xl:grid-cols-[256px_minmax(0,1fr)]">
+        <div className="hidden border-r border-borda bg-branco xl:block" />
         <div className="grid content-start gap-4 p-6">
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-40 rounded-cartao" />
@@ -66,7 +66,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <AdminAccessProvider value={access.data}>
-      <div className="app min-h-dvh bg-areia lg:grid lg:grid-cols-[256px_minmax(0,1fr)]">
+      <div className="app min-h-dvh bg-areia xl:grid xl:grid-cols-[256px_minmax(0,1fr)]">
         <a href="#admin-main" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-campo focus:bg-branco focus:px-4 focus:py-2 focus:text-verde">
           Saltar para o conteúdo
         </a>
