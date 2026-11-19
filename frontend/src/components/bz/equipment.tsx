@@ -137,7 +137,7 @@ export function EquipmentCard({
     <Link
       href={href}
       className={cn(
-        "group levantar block rounded-cartao border border-borda bg-branco p-2 outline-none active:scale-[.98] focus-visible:ring-4 focus-visible:ring-verde-medio/30",
+        "group levantar relative block min-w-0 rounded-cartao border border-borda bg-branco p-2 outline-none active:scale-[.98] focus-visible:ring-4 focus-visible:ring-verde-medio/30",
         entra && "animate-sobe",
         className,
       )}
@@ -162,7 +162,7 @@ export function EquipmentCard({
           <span className="text-xs text-cinza"> {dict.common.perDay}</span>
         </span>
       </div>
-      <div className="grid gap-1 px-1 pt-2 pb-1">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-1 px-1 pt-2 pb-1">
         <h3 className="line-clamp-2 font-titulo text-base leading-snug font-bold text-verde md:text-lg">{item.title}</h3>
         {days > 0 && (
           <p className="text-[13px] text-texto-corpo">

@@ -139,7 +139,7 @@ export function ModeSwitch({ dark, className }: { dark?: boolean; className?: st
           aria-pressed={mode === m}
           onClick={() => go(m)}
           className={cn(
-            "min-h-9 cursor-pointer rounded-full px-3 text-[13px] font-bold whitespace-nowrap transition",
+            "min-h-11 cursor-pointer rounded-full px-3 text-[13px] font-bold whitespace-nowrap transition",
             mode === m ? (dark ? "bg-ambar text-sobre-ambar" : "bg-verde text-areia") : dark ? "text-areia/80" : "text-verde",
           )}
         >
@@ -173,39 +173,41 @@ export function TopBar() {
     >
       <div className="mx-auto flex h-full max-w-6xl items-center gap-4 px-4 md:px-12">
         <Logo dark={dark} href={session && mode === "owner" ? "/painel" : "/explorar"} label={dict.common.homeLabel} />
-        <nav className="ml-6 hidden items-center gap-1 md:flex" aria-label={t.main}>
+        <nav className="hidden items-center gap-0.5 md:flex lg:ml-6 lg:gap-1" aria-label={t.main}>
           {nav.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
               aria-current={isActive(pathname, href) ? "page" : undefined}
               className={cn(
-                "inline-flex items-center gap-2 rounded-full px-4 py-2 text-[15px] font-medium transition",
-                href === "/conta" && session && "py-1.5 pl-1.5",
+                "inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-medium whitespace-nowrap transition lg:px-4",
+                href === "/conta" && session && "min-w-11 justify-center pl-1.5 max-lg:pr-1.5",
                 isActive(pathname, href)
                   ? dark ? "bg-areia text-verde" : "bg-verde text-areia"
                   : dark ? "text-salvia-tint hover:bg-white/10 hover:text-white" : "text-texto-corpo hover:bg-areia-2",
               )}
             >
               {href === "/conta" && session && <MyAvatar />}
-              {label}
+              {/* Tablet (md–lg): Conta fica só com o avatar, para a barra caber a 768px */}
+              <span className={href === "/conta" && session ? "max-lg:sr-only" : undefined}>{label}</span>
             </Link>
           ))}
         </nav>
         {/* relative: a partir de 1440px o Publicar sai para a margem (absolute), e o seletor fica no mesmo sítio nos dois modos */}
         <div className="relative ml-auto flex items-center gap-2">
-          <ModeSwitch dark={dark} className="hidden md:grid" />
+          {/* No tablet o seletor fica no Painel e em Conta: a 768px não cabe ao lado da navegação */}
+          <ModeSwitch dark={dark} className="hidden lg:grid" />
           {/* Tema e língua num só botão compacto (também em Conta › Aparência) */}
           <PreferencesMenu dark={dark} />
           {session && <NotificationBell dark={dark} active={isActive(pathname, "/atividade")} />}
           {session && isAdmin(session.role) && (
-            <ButtonLink href="/admin" variant={dark ? "on-dark" : "soft"} size="sm" className="hidden md:inline-flex">
+            <ButtonLink href="/admin" variant={dark ? "on-dark" : "soft"} size="sm" className="hidden lg:inline-flex">
               <ShieldCheck strokeWidth={1.8} /> {t.admin}
             </ButtonLink>
           )}
           {session && mode === "owner" && (
-            <ButtonLink href="/publicar" variant={dark ? "light" : "dark"} size="sm" className="hidden whitespace-nowrap md:inline-flex min-[1440px]:absolute min-[1440px]:left-full min-[1440px]:ml-4">
-              <Plus strokeWidth={2} /> {t.publish}
+            <ButtonLink href="/publicar" aria-label={t.publish} variant={dark ? "light" : "dark"} size="sm" className="hidden whitespace-nowrap md:inline-flex max-xl:px-3 min-[1440px]:absolute min-[1440px]:left-full min-[1440px]:ml-4">
+              <Plus strokeWidth={2} /> <span className="max-xl:sr-only">{t.publish}</span>
             </ButtonLink>
           )}
           {session === null && (

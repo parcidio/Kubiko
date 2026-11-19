@@ -9,7 +9,7 @@ import { countryOf, DEFAULT_DIAL, joinPhone, normalizePhone, PHONE_COUNTRIES, sp
 import { cn } from "@/lib/utils";
 
 export const inputClass = cn(
-  "h-12 w-full rounded-campo border-[1.5px] border-borda-forte bg-branco px-4 text-base text-verde outline-none transition", // 16px: sem zoom do iOS ao focar
+  "h-12 w-full min-w-0 rounded-campo border-[1.5px] border-borda-forte bg-branco px-4 text-base text-verde outline-none transition", // 16px: sem zoom do iOS ao focar
   "placeholder:text-cinza focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint",
   "aria-invalid:border-2 aria-invalid:border-erro disabled:bg-areia-2 disabled:text-cinza",
 );
@@ -46,7 +46,7 @@ interface FieldShellProps {
 
 export function Field({ id, label, hint, error, children, className }: FieldShellProps) {
   return (
-    <div className={cn("grid gap-2", className)}>
+    <div className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2", className)}>
       <label htmlFor={id} className="text-sm font-medium text-verde">
         {label}
       </label>

@@ -96,7 +96,7 @@ function Reservas() {
               <tbody>
                 {list.data.content.map((b) => (
                   <Tr key={b.id}>
-                    <Td>
+                    <Td className="whitespace-nowrap">
                       <Link href={`/admin/reservas/${b.id}`} className="num font-bold text-verde underline-offset-2 hover:underline">
                         {bookingCode(b.id)}
                       </Link>

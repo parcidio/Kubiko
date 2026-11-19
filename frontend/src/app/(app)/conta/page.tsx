@@ -50,7 +50,7 @@ function ContaInner() {
   ];
 
   return (
-    <div className="mx-0 grid max-w-6xl gap-6 md:gap-8 lg:-ml-12 lg:w-[calc(100%+3rem)] lg:grid-cols-[minmax(24rem,0.9fr)_minmax(34rem,1.1fr)] lg:items-start xl:grid-cols-[minmax(28rem,0.9fr)_minmax(40rem,1.1fr)]">
+    <div className="mx-0 grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 md:gap-8 lg:-ml-12 lg:w-[calc(100%+3rem)] lg:grid-cols-[minmax(24rem,0.9fr)_minmax(34rem,1.1fr)] lg:items-start xl:grid-cols-[minmax(28rem,0.9fr)_minmax(40rem,1.1fr)]">
       <section className="superficie-marca relative overflow-hidden rounded-sheet bg-verde-noite p-5 text-areia md:p-8">
         <HexGlow />
         <div className="relative grid justify-items-center gap-4 text-center md:gap-5 lg:justify-items-start lg:text-left">
@@ -82,7 +82,7 @@ function ContaInner() {
         </div>
       </section>
 
-      <div className="grid gap-6 md:gap-7">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 md:gap-7">
         {googleResult && (
           <Callout tone={googleResult.tone} title={googleResult.title}>
             {googleResult.text}

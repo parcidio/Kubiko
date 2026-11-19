@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils";
 
 export function DataTable({ label, children, className, minWidth = 760 }: { label: string; children: React.ReactNode; className?: string; minWidth?: number }) {
   return (
-    <div className={cn("overflow-x-auto", className)}>
+    // contain: a largura mínima da tabela não se propaga às grelhas de cima; relative: os .sr-only (absolute) das
+    // células ficam presos ao scroll em vez de alargarem a página (antes: 761px de largura a 360px)
+    <div className={cn("relative w-full overflow-x-auto overscroll-x-contain [contain:inline-size]", className)}>
       <table aria-label={label} className="w-full border-collapse text-left text-sm" style={{ minWidth }}>
         {children}
       </table>
@@ -76,7 +78,7 @@ export function SearchInput({ value, onChange, placeholder, label }: { value: st
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={100}
-        className="h-10 w-full rounded-campo border border-borda-forte bg-branco pr-3 pl-9 text-[15px] text-verde outline-none placeholder:text-cinza focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint"
+        className="h-11 w-full rounded-campo border border-borda-forte md:h-10 bg-branco pr-3 pl-9 text-[15px] text-verde outline-none placeholder:text-cinza focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint"
       />
     </label>
   );
@@ -95,7 +97,7 @@ export function FilterSelect<T extends string>({
           id={id}
           value={value}
           onChange={(e) => onChange(e.target.value as T | "")}
-          className="h-10 appearance-none rounded-campo border border-borda-forte bg-branco pr-8 pl-3 text-sm text-verde outline-none focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint"
+          className="h-11 w-full appearance-none rounded-campo md:h-10 border border-borda-forte bg-branco pr-8 pl-3 text-sm text-verde outline-none focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint"
         >
           <option value="">{allLabel}</option>
           {options.map((o) => (
@@ -120,7 +122,7 @@ export function DateFilter({ label, value, onChange, min, max }: { label: string
         min={min}
         max={max}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 rounded-campo border border-borda-forte bg-branco px-3 text-sm text-verde outline-none focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint"
+        className="h-11 w-full rounded-campo border border-borda-forte bg-branco px-3 md:h-10 text-sm text-verde outline-none focus:border-verde-medio focus:ring-[3px] focus:ring-salvia-tint"
       />
     </div>
   );
@@ -142,7 +144,7 @@ export function Pagination({ page, size, total, onPage }: { page: number; size: 
           disabled={page === 0}
           onClick={() => onPage(page - 1)}
           aria-label="Página anterior"
-          className="inline-flex size-9 items-center justify-center rounded-campo border border-borda text-verde hover:bg-areia-2 disabled:opacity-40"
+          className="inline-flex size-11 items-center justify-center rounded-campo border border-borda text-verde hover:bg-areia-2 disabled:opacity-40 md:size-9"
         >
           <ChevronLeft className="size-4" strokeWidth={1.8} aria-hidden />
         </button>
@@ -154,7 +156,7 @@ export function Pagination({ page, size, total, onPage }: { page: number; size: 
           disabled={page + 1 >= pages}
           onClick={() => onPage(page + 1)}
           aria-label="Página seguinte"
-          className="inline-flex size-9 items-center justify-center rounded-campo border border-borda text-verde hover:bg-areia-2 disabled:opacity-40"
+          className="inline-flex size-11 items-center justify-center rounded-campo border border-borda text-verde hover:bg-areia-2 disabled:opacity-40 md:size-9"
         >
           <ChevronRight className="size-4" strokeWidth={1.8} aria-hidden />
         </button>

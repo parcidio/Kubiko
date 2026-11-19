@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 // label: "Beeznoo — início" / "Beeznoo — home" (t.common.homeLabel); brand.tsx não usa hooks para servir server components
 export function Logo({ dark, href = "/explorar", className, label = "Beeznoo" }: { dark?: boolean; href?: string; className?: string; label?: string }) {
   return (
-    <Link href={href} aria-label={label} className={cn("inline-flex shrink-0 items-center", className)}>
+    <Link href={href} aria-label={label} className={cn("inline-flex min-h-11 shrink-0 items-center", className)}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={dark ? "/svg/beeznoo-lockup-horizontal-branco.svg" : "/svg/beeznoo-lockup-horizontal-tinta.svg"}

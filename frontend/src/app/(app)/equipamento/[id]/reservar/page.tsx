@@ -111,7 +111,7 @@ function Reservar() {
   const next = () => validate(step) && setStep(step + 1);
 
   return (
-    <div className="mx-auto grid max-w-2xl gap-6">
+    <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-6">
       {step > 1 ? (
         <button type="button" onClick={() => setStep(step - 1)} className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 justify-self-start text-sm font-medium text-mel-texto hover:underline">
           <ArrowLeft className="size-4" strokeWidth={1.8} aria-hidden /> {t.prevStep}

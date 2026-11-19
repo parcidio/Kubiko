@@ -31,7 +31,8 @@ const SIZE: Record<Size, string> = {
 /** Classes de botão para <a>/<Link> que não usam <Button>/<ButtonLink>. */
 export function buttonClass(variant: Variant = "primary", size: Size = "md", block = false) {
   return cn(
-    "group/btn inline-flex select-none items-center justify-center gap-2 rounded-campo font-bold whitespace-nowrap cursor-pointer",
+    // max-w-full + quebra de linha: um rótulo comprido (ex.: email) parte em duas linhas em vez de alargar o ecrã
+    "group/btn inline-flex max-w-full select-none items-center justify-center gap-2 rounded-campo text-center font-bold [overflow-wrap:break-word] cursor-pointer",
     "transition-[background-color,border-color,color,transform] duration-200 ease-out",
     "active:scale-[.98] disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0",
     VARIANT[variant],

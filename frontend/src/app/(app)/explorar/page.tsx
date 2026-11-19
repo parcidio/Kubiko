@@ -177,7 +177,7 @@ function Explorar() {
 
         <div className="grid grid-cols-[minmax(0,1fr)] gap-5 md:gap-7">
           {/* No telemóvel a faixa de confiança passa para depois dos resultados */}
-          <div className="hidden md:block"><TrustStrip /></div>
+          <div className="hidden min-w-0 md:block"><TrustStrip /></div>
 
           {/* Categorias em pills (v4): ativa = verde com ícone âmbar */}
           <section aria-label={t.categories} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scrollbar-none md:mx-0 md:flex-wrap md:px-0">
@@ -263,12 +263,13 @@ function Explorar() {
             <ul
               aria-busy={first.stale || undefined}
               className={cn(
-                "grid grid-cols-2 gap-2.5 transition-opacity duration-200 md:grid-cols-3 md:gap-4 lg:grid-cols-4 lg:gap-5",
+                // Colunas pela largura disponível (com filtros ao lado no lg a coluna tem ~560px): nunca cartões com menos de ~13rem
+                "grid grid-cols-2 gap-2.5 transition-opacity duration-200 md:grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] md:gap-4 lg:gap-5",
                 first.stale && "opacity-60",
               )}
             >
               {visible.map((item, i) => (
-                <li key={item.id}>
+                <li key={item.id} className="min-w-0">
                   <EquipmentCard
                     item={item}
                     href={filters.dataInicio && filters.dataFim ? `/equipamento/${item.id}?de=${filters.dataInicio}&ate=${filters.dataFim}` : `/equipamento/${item.id}`}
@@ -287,7 +288,7 @@ function Explorar() {
         )}
           </section>
 
-          <div className="md:hidden"><TrustStrip /></div>
+          <div className="min-w-0 md:hidden"><TrustStrip /></div>
           {browsing && state === "ready" && <PublishPromo />}
         </div>
       </div>
